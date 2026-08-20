@@ -2,6 +2,11 @@
 # Gerekirse turkiye_cek.py ile yeniden uretilir.
 ham/
 
+# Gizli anahtarlar — asla depoya girmez
+.env
+.env.*
+!.env.ornek
+
 # Python
 __pycache__/
 *.pyc
@@ -17,3 +22,6 @@ app/kesfet-eski-yedek.html
 # Isletim sistemi
 Thumbs.db
 .DS_Store
+
+# Tarama ara ciktisi — menu_pdf_tara.py yeniden uretir
+taranmamis.txt

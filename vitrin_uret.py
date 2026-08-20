@@ -15,10 +15,12 @@ il_ad = {i["kod"]: i["ad"] for i in ix["iller"]}
 toplam = fiyatli = kalem = 0
 tur_say, ornekler = {}, []
 
-for yol in sorted(glob.glob(os.path.join(KOK, "*.json"))):
-    if yol.endswith("index.json"):
+# Klasordeki her JSON il dosyasi degil: fiyat_olcut.json gibi yan ciktilar
+# da burada duruyor. Il listesini index.json belirler, klasor icerigi degil.
+for kod in sorted(d["kod"] for d in ix["iller"]):
+    yol = os.path.join(KOK, kod + ".json")
+    if not os.path.exists(yol):
         continue
-    kod = os.path.basename(yol)[:-5]
     for m in yukle(yol)["mekanlar"]:
         toplam += 1
         tur_say[m["tur"]] = tur_say.get(m["tur"], 0) + 1

@@ -290,3 +290,160 @@ Yerelde çalıştırmak için: `python -m http.server 8123 --directory app`
 | Google Maps kazımak | ToS ihlali, ban riski, yayınlama hakkı yok |
 | Yemeksepeti / Getir / Trendyol kazımak | ToS ihlali + ihtarname riski; sermayesiz yapıda işi bitirir |
 | İkinci semt (üründen önce) | Çankaya ile yayına çık, sonra genişlet |
+
+---
+
+## 2026-08-20 — Fiyat kazıma yolu kapandı (ölçülmüş)
+
+Üç ayrı ölçüm yapıldı, üçü de aynı sonuca çıktı: **Türkiye'de işletmeler
+fiyatlarını internete koymuyor.** Bu teknik bir engel değil, sektörün durumu.
+Aşağısı, "PDF menüleri okusak / JavaScript'i çalıştırsak" sorusu tekrar
+gündeme geldiğinde yeniden saat harcamamak için kaydedilmiştir.
+
+### Ölçüm 1 — JavaScript engeli diye bilinen şey engel değilmiş
+
+`tr_menu_ozet.csv`'de 2.294 site "js" işaretliydi ve bu, menülerin JS ile
+basıldığı için okunamadığı anlamına geliyor sanılıyordu. Playwright (headless
+Chromium) ile JS çalıştırılıp menü sayfasına da gidildi. **20 rastgele sitenin
+20'sinde de metin fiyatı çıkmadı.**
+
+| Durum | Adet |
+|---|---|
+| Menü sayfası bulunamadı | 7 (%35) |
+| PDF menü | 4 (%20) |
+| Menü sayfası var, fiyat yok | 4 (%20) |
+| Site ölü / erişilemiyor | 4 (%20) |
+| Görsel (JPEG) menü | 1 (%5) |
+
+İki temsili örnek: **Cihangir Kebap** menü sayfasında yemek adları yazıyor,
+fiyat hiç yok — işletme yayınlamıyor. **Güney Yıldızı**'nın menüsünün tamamı
+tek bir `menu.jpeg` fotoğrafı.
+
+### Ölçüm 2 — PDF metin katmanı: 200 sitede sıfır kalem
+
+`menu_pdf_tara.py` yazıldı: menü sayfasını bulur, PDF/görsel toplar, PDF
+metin katmanından PyMuPDF ile fiyat çıkarır (API'siz, ücretsiz). 200 site:
+
+| Durum | Adet |
+|---|---|
+| Menü sayfası bulunamadı | 101 (%50) |
+| **Site ölü / erişilemiyor** | 39 (%20) |
+| PDF var ama menü değil | 36 (%18) |
+| PDF taranmış, OCR gerekli | 15 (%8) |
+| Görsel menü, OCR gerekli | 8 (%4) |
+| **Çıkarılan gerçek menü kalemi** | **0** |
+
+İlk turda 23 kalem çıkmıştı ve hepsi çöptü: Starbucks'ınki bir *Modern
+Slavery Statement*'tan "FOR FISCAL YEAR 2025", Big Chefs'inki bir
+sürdürülebilirlik raporundan iklim senaryosu tablosu. Bulunan PDF'ler menü
+değil kurumsal belgeydi. `menu_mu()` eklendi: çıkan adlar
+`fiyat_analiz.kategorile` ile yiyecek olarak sınıflanmıyorsa PDF reddedilir.
+Filtreden sonra ücretsiz yolun verimi **tam olarak sıfır**.
+
+Ayrıca sitelerin **%20'si ölü** — OSM'deki `website` etiketleri bayatlamış.
+
+### Ölçüm 3 — OCR'ın tavanı
+
+Geriye OCR gerektiren %12 kalıyor (taranmış PDF %8 + görsel menü %4).
+
+```
+2.294 js site × %12          ≈ 275 mekan   (TAVAN — OCR'ın başarması ve
+                                            menünün güncel olması şartıyla)
+Şu anki fiyatlı mekan        = 383
+OCR sonrası en iyi hal       ≈ 658  → 33.552 içinde %2,0
+```
+
+İl kırılımı: İstanbul ~39, Antalya ~5, İzmir ~5, **Ankara ~4** mekan.
+Yani hedef şehirde kazanç 6 mekandan 10 mekana çıkmak.
+
+### Karar
+
+Kazıma yolu kapandı. Kapsamı %1,1'den %2'ye taşımak için kurulacak bir OCR
+hattı, hedef şehirde 4 mekan ekliyor. Kalan iki yol **elle veri girişi** ve
+**kullanıcı paylaşımı**; ikisinin de altyapısı hazır (yönetim paneli, paylaşım
+formu, onay akışı, `kat` kategori kırılımı, `fiyat_olcut.json`).
+
+Hedef değişmiyor: **Çankaya'da 80-100 mekan.** Bir semtte %90 kapsam, 81 ilde
+%1'den değerlidir.
+
+### Ölçüm 4 — Tam tarama fiilen yapıldı (2026-08-21)
+
+Yukarıdaki tavan hesabına rağmen tarama sonuna kadar çalıştırıldı. **2.646
+kayıt** işlendi (OSM'de sitesi olan 2.024 tekil mekanın hepsi dahil). Bu
+sırada iki kör nokta ortaya çıktı ve kapatıldı:
+
+- **703 site hiç denenmemişti.** `tr_menu_ozet.csv` yalnız 1.321 siteyi
+  kapsıyordu. Aradaki farkta QR menü platformları vardı (allzinapp,
+  guestservice.app, cciqrmenum).
+- **Sayfa metni hiç okunmuyordu.** Tarayıcı yalnız PDF ve görsel arıyordu.
+  Eski kazıyıcı JS çalıştırmadığı için bu sayfaları okuyamamıştı; yeni
+  tarayıcı JS çalıştırıyordu ama metne bakmıyordu. Sıralama artık
+  **sayfa metni → PDF → görsel**.
+
+| Durum | Adet |
+|---|---|
+| Menü sayfası bulunamadı | 1.501 (%57) |
+| Site ölü / erişilemiyor | 652 (%25) |
+| PDF taranmış, OCR gerekli | 220 (%8) |
+| Görsel menü, OCR gerekli | 183 (%7) |
+| PDF var ama menü değil | 53 (%2) |
+| **PDF metni** | 7 |
+| **Sayfa metni** | 1 |
+
+### Elde edilen gerçek veri: 483 kalem / 8 mekan
+
+| Mekan | İl | Kalem | Kaynak |
+|---|---|---|---|
+| Sakhalin İstanbul | İstanbul | 142 | PDF metni |
+| Nezih Dokuz Ondokuz | İstanbul | 100 | PDF metni |
+| Fern Cafe | İstanbul | 94 | PDF metni |
+| Cozy Etiler | İstanbul | 71 | PDF metni |
+| Santral Coffee House | İstanbul | 39 | PDF metni |
+| Tarhun fırın | İstanbul | 15 | Sayfa metni |
+| 360 Istanbul | İstanbul | 14 | PDF metni |
+| Güney Yıldızı | Adana | 8 | Görsel OCR |
+
+497 PDF kaleminin **497'sinin** kaynak dosyada birebir geçtiği programatik
+olarak doğrulandı. Güney Yıldızı'nın 8 kalemi görselle gözle karşılaştırıldı,
+8/8 doğru. Verim: **8 / 2.646 = %0,3**.
+
+Veri `app_veri.py`'a ikinci kaynak olarak bağlandı (`ek_menuler_oku`,
+birleştirme anahtarı web sitesi; OSM etiketi yollu olabildiği için tam adres
+tutmazsa alan adına düşülüyor — ama yalnız o alan adı tek mekana aitse).
+Fiyatlı mekan **383 → 391**.
+
+### OCR kurulu ama beş denetimle sarılı
+
+NVIDIA NIM (`nemotron-nano-12b-v2-vl`) anahtarı `.env`'de, `.gitignore`
+kapsıyor. **Model ikna edici uyduruyor** — bu oturumda beş ayrı vaka çıktı ve
+**hepsi ancak kaynağa elle bakılınca** görüldü. Her biri için kalıcı denetim
+eklendi ve teste gömüldü:
+
+| Vaka | Ne oldu | Denetim |
+|---|---|---|
+| Sagaris | Fiyatsız menüde sıra numaralarını görüp 12 kaleme 123 TL yazdı | `uydurma_mi()` + PDF metin karşılaştırması |
+| 4 mekan | Platform şablon görseli 8 mekana atanmıştı | Paylaşılan-URL denetimi |
+| Adanalı Kebapçı | "Menü" aslında yemek fotoğrafı, üzerinde tek harf yok | Nötr "yazı var mı" ön kapısı |
+| Muhtar | Fix menü fiyatı (2.500₺) 9 ayrı yemeğe yazıldı | `FIX_MENU` denetimi |
+| Bağdat Marmaris | restaurantguru filigranlı, isimler bozuk, bir fiyat yanlış | `UCUNCU_TARAF` denetimi |
+
+Ayrıca iki ayrıştırma hatası: şarap yılı (`Gelibolu /2022`) fiyat sanılıyordu;
+boşluklu binlik (`3 230`) 230 okunuyordu — ikincisi Sakhalin'in 142 kaleminin
+tamamını yok etmişti.
+
+**Kural: görsel OCR çıktısı insan doğrulaması olmadan uygulamaya girmez.**
+PDF ve sayfa metni farklı — orada model araya girmiyor, sayı dosyanın içinde
+birebir yazıyor, uydurma fiziksel olarak mümkün değil.
+
+### Karar değişmedi
+
+2.646 kayıt tarandı, 8 mekan çıktı. **Ankara'ya katkı sıfır** — 8 mekanın
+7'si İstanbul, biri Adana. Ankara'da fiyatlı mekan 6'da kaldı.
+
+Kazıma yolu bitti ve bu sefer sonuna kadar gidilerek bitti. Kalan tek yol
+**elle veri girişi + kullanıcı paylaşımı**. Hedef aynı: **Çankaya'da 80-100
+mekan.**
+
+`menu_ocr.py` ileride işe yarar: Çankaya'da menü fotoğrafı çekilirse fiyatları
+elle yazmak yerine fotoğrafı okutabilirsin — ama çıktı gözle doğrulanmadan
+kaydedilmez.

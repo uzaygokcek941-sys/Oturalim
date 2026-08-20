@@ -1,0 +1,502 @@
+{
+ "turkiye": {
+  "Tatlı": {
+   "kaynak": 27,
+   "medyan": 250,
+   "alt": 150,
+   "ust": 420
+  },
+  "Pizza": {
+   "kaynak": 7,
+   "medyan": 480,
+   "alt": 19,
+   "ust": 547
+  },
+  "Su": {
+   "kaynak": 18,
+   "medyan": 70,
+   "alt": 30,
+   "ust": 150
+  },
+  "Rakı / içkiler": {
+   "kaynak": 9,
+   "medyan": 600,
+   "alt": 440,
+   "ust": 1125
+  },
+  "Patates": {
+   "kaynak": 13,
+   "medyan": 270,
+   "alt": 153,
+   "ust": 300
+  },
+  "Kahvaltı": {
+   "kaynak": 14,
+   "medyan": 444,
+   "alt": 380,
+   "ust": 540
+  },
+  "Salata": {
+   "kaynak": 18,
+   "medyan": 315,
+   "alt": 200,
+   "ust": 420
+  },
+  "Tavuk": {
+   "kaynak": 18,
+   "medyan": 446,
+   "alt": 320,
+   "ust": 630
+  },
+  "Dondurma": {
+   "kaynak": 5,
+   "medyan": 150,
+   "alt": 150,
+   "ust": 380
+  },
+  "Tost / sandviç": {
+   "kaynak": 7,
+   "medyan": 200,
+   "alt": 105,
+   "ust": 590
+  },
+  "Kola / gazlı": {
+   "kaynak": 16,
+   "medyan": 112,
+   "alt": 90,
+   "ust": 170
+  },
+  "Meyve suyu": {
+   "kaynak": 14,
+   "medyan": 140,
+   "alt": 100,
+   "ust": 195
+  },
+  "Ayran": {
+   "kaynak": 15,
+   "medyan": 90,
+   "alt": 70,
+   "ust": 130
+  },
+  "Poğaça / börek": {
+   "kaynak": 9,
+   "medyan": 250,
+   "alt": 212,
+   "ust": 550
+  },
+  "Burger": {
+   "kaynak": 8,
+   "medyan": 124,
+   "alt": 25,
+   "ust": 670
+  },
+  "Makarna": {
+   "kaynak": 7,
+   "medyan": 460,
+   "alt": 400,
+   "ust": 750
+  },
+  "Latte": {
+   "kaynak": 6,
+   "medyan": 230,
+   "alt": 200,
+   "ust": 260
+  },
+  "Matcha": {
+   "kaynak": 3,
+   "medyan": 349,
+   "alt": 285,
+   "ust": 380
+  },
+  "Kebap": {
+   "kaynak": 16,
+   "medyan": 748,
+   "alt": 474,
+   "ust": 900
+  },
+  "Döner / dürüm": {
+   "kaynak": 7,
+   "medyan": 370,
+   "alt": 215,
+   "ust": 730
+  },
+  "Köfte": {
+   "kaynak": 16,
+   "medyan": 398,
+   "alt": 298,
+   "ust": 620
+  },
+  "Çorba": {
+   "kaynak": 13,
+   "medyan": 245,
+   "alt": 130,
+   "ust": 400
+  },
+  "Espresso": {
+   "kaynak": 7,
+   "medyan": 220,
+   "alt": 118,
+   "ust": 436
+  },
+  "Filtre kahve": {
+   "kaynak": 8,
+   "medyan": 378,
+   "alt": 165,
+   "ust": 1000
+  },
+  "Lahmacun": {
+   "kaynak": 7,
+   "medyan": 250,
+   "alt": 180,
+   "ust": 250
+  },
+  "Pide": {
+   "kaynak": 5,
+   "medyan": 445,
+   "alt": 420,
+   "ust": 495
+  },
+  "Balık": {
+   "kaynak": 15,
+   "medyan": 615,
+   "alt": 348,
+   "ust": 850
+  },
+  "Çay": {
+   "kaynak": 9,
+   "medyan": 45,
+   "alt": 35,
+   "ust": 250
+  },
+  "Türk kahvesi": {
+   "kaynak": 9,
+   "medyan": 105,
+   "alt": 70,
+   "ust": 170
+  },
+  "Bira": {
+   "kaynak": 8,
+   "medyan": 250,
+   "alt": 215,
+   "ust": 450
+  },
+  "Americano": {
+   "kaynak": 6,
+   "medyan": 208,
+   "alt": 125,
+   "ust": 245
+  },
+  "Şarap": {
+   "kaynak": 7,
+   "medyan": 800,
+   "alt": 399,
+   "ust": 945
+  }
+ },
+ "il": {
+  "Ankara": {
+   "Kahvaltı": {
+    "kaynak": 3,
+    "medyan": 400,
+    "alt": 350,
+    "ust": 405
+   },
+   "Tavuk": {
+    "kaynak": 3,
+    "medyan": 680,
+    "alt": 185,
+    "ust": 2950
+   },
+   "Tatlı": {
+    "kaynak": 3,
+    "medyan": 330,
+    "alt": 150,
+    "ust": 975
+   }
+  },
+  "Eskisehir": {
+   "Tatlı": {
+    "kaynak": 3,
+    "medyan": 250,
+    "alt": 150,
+    "ust": 350
+   },
+   "Kola / gazlı": {
+    "kaynak": 3,
+    "medyan": 130,
+    "alt": 60,
+    "ust": 171
+   }
+  },
+  "Istanbul": {
+   "Salata": {
+    "kaynak": 10,
+    "medyan": 250,
+    "alt": 200,
+    "ust": 360
+   },
+   "Rakı / içkiler": {
+    "kaynak": 4,
+    "medyan": 400,
+    "alt": 350,
+    "ust": 1650
+   },
+   "Bira": {
+    "kaynak": 4,
+    "medyan": 252,
+    "alt": 215,
+    "ust": 450
+   },
+   "Americano": {
+    "kaynak": 5,
+    "medyan": 220,
+    "alt": 125,
+    "ust": 245
+   },
+   "Meyve suyu": {
+    "kaynak": 8,
+    "medyan": 146,
+    "alt": 115,
+    "ust": 300
+   },
+   "Şarap": {
+    "kaynak": 4,
+    "medyan": 650,
+    "alt": 500,
+    "ust": 1275
+   },
+   "Tatlı": {
+    "kaynak": 18,
+    "medyan": 300,
+    "alt": 170,
+    "ust": 355
+   },
+   "Poğaça / börek": {
+    "kaynak": 7,
+    "medyan": 250,
+    "alt": 50,
+    "ust": 550
+   },
+   "Tost / sandviç": {
+    "kaynak": 6,
+    "medyan": 160,
+    "alt": 105,
+    "ust": 495
+   },
+   "Burger": {
+    "kaynak": 4,
+    "medyan": 158,
+    "alt": 30,
+    "ust": 700
+   },
+   "Türk kahvesi": {
+    "kaynak": 6,
+    "medyan": 92,
+    "alt": 70,
+    "ust": 200
+   },
+   "Filtre kahve": {
+    "kaynak": 4,
+    "medyan": 378,
+    "alt": 300,
+    "ust": 500
+   },
+   "Pizza": {
+    "kaynak": 4,
+    "medyan": 490,
+    "alt": 480,
+    "ust": 547
+   },
+   "Tavuk": {
+    "kaynak": 9,
+    "medyan": 365,
+    "alt": 316,
+    "ust": 580
+   },
+   "Dondurma": {
+    "kaynak": 3,
+    "medyan": 150,
+    "alt": 60,
+    "ust": 380
+   },
+   "Kola / gazlı": {
+    "kaynak": 7,
+    "medyan": 130,
+    "alt": 70,
+    "ust": 170
+   },
+   "Ayran": {
+    "kaynak": 9,
+    "medyan": 75,
+    "alt": 75,
+    "ust": 117
+   },
+   "Lahmacun": {
+    "kaynak": 6,
+    "medyan": 240,
+    "alt": 180,
+    "ust": 250
+   },
+   "Pide": {
+    "kaynak": 4,
+    "medyan": 470,
+    "alt": 445,
+    "ust": 600
+   },
+   "Çorba": {
+    "kaynak": 10,
+    "medyan": 232,
+    "alt": 120,
+    "ust": 400
+   },
+   "Balık": {
+    "kaynak": 7,
+    "medyan": 562,
+    "alt": 250,
+    "ust": 735
+   },
+   "Espresso": {
+    "kaynak": 4,
+    "medyan": 334,
+    "alt": 232,
+    "ust": 650
+   },
+   "Kahvaltı": {
+    "kaynak": 9,
+    "medyan": 438,
+    "alt": 350,
+    "ust": 512
+   },
+   "Çay": {
+    "kaynak": 5,
+    "medyan": 45,
+    "alt": 40,
+    "ust": 250
+   },
+   "Latte": {
+    "kaynak": 4,
+    "medyan": 235,
+    "alt": 210,
+    "ust": 300
+   },
+   "Su": {
+    "kaynak": 9,
+    "medyan": 70,
+    "alt": 45,
+    "ust": 100
+   },
+   "Döner / dürüm": {
+    "kaynak": 4,
+    "medyan": 422,
+    "alt": 370,
+    "ust": 2400
+   },
+   "Matcha": {
+    "kaynak": 3,
+    "medyan": 349,
+    "alt": 285,
+    "ust": 380
+   },
+   "Kebap": {
+    "kaynak": 11,
+    "medyan": 755,
+    "alt": 470,
+    "ust": 900
+   },
+   "Köfte": {
+    "kaynak": 9,
+    "medyan": 321,
+    "alt": 298,
+    "ust": 490
+   },
+   "Patates": {
+    "kaynak": 8,
+    "medyan": 174,
+    "alt": 130,
+    "ust": 280
+   },
+   "Makarna": {
+    "kaynak": 3,
+    "medyan": 750,
+    "alt": 259,
+    "ust": 920
+   }
+  },
+  "Izmir": {
+   "Tavuk": {
+    "kaynak": 3,
+    "medyan": 185,
+    "alt": 29,
+    "ust": 590
+   },
+   "Tatlı": {
+    "kaynak": 4,
+    "medyan": 285,
+    "alt": 150,
+    "ust": 495
+   },
+   "Kola / gazlı": {
+    "kaynak": 3,
+    "medyan": 130,
+    "alt": 100,
+    "ust": 195
+   },
+   "Meyve suyu": {
+    "kaynak": 3,
+    "medyan": 148,
+    "alt": 100,
+    "ust": 195
+   },
+   "Ayran": {
+    "kaynak": 3,
+    "medyan": 125,
+    "alt": 60,
+    "ust": 175
+   },
+   "Salata": {
+    "kaynak": 3,
+    "medyan": 350,
+    "alt": 19,
+    "ust": 695
+   }
+  },
+  "Mugla": {
+   "Tatlı": {
+    "kaynak": 3,
+    "medyan": 250,
+    "alt": 41,
+    "ust": 250
+   },
+   "Tavuk": {
+    "kaynak": 3,
+    "medyan": 520,
+    "alt": 340,
+    "ust": 895
+   },
+   "Balık": {
+    "kaynak": 4,
+    "medyan": 825,
+    "alt": 750,
+    "ust": 990
+   },
+   "Su": {
+    "kaynak": 3,
+    "medyan": 95,
+    "alt": 35,
+    "ust": 700
+   },
+   "Köfte": {
+    "kaynak": 3,
+    "medyan": 620,
+    "alt": 260,
+    "ust": 800
+   },
+   "Kola / gazlı": {
+    "kaynak": 3,
+    "medyan": 120,
+    "alt": 80,
+    "ust": 140
+   }
+  }
+ }
+}
