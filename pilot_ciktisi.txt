@@ -1,0 +1,18 @@
+Aday havuzu (zincirler elendi): 81
+Secilen pilot mekan           : 15
+
+ 1. [8] Ade Miel Coffee Shop  |  +90 539 280 98 80  |  Mo-Su 09:00-00:00
+ 2. [8] Anka E-Spor Merkezi Bayýndýr  |  +90 312 433 30 81  |  24/7
+ 3. [8] Hanzade Lounge  |  +90 312 562 00 00  |  Mo-Su 09:00-23:00
+ 4. [8] Hype Coffee  |  +90 501 477 06 00  |  Mo-Su 09:00-23:30
+ 5. [8] Koala Café  |  +90 542 151 65 06  |  Mo-Su 10:00-23:00
+ 6. [8] New Jersey Coffee House  |  +90 534 061 50 59  |  Mo-Su 08:00-23:00
+ 7. [8] Quito Coffee  |  +90 532 550 0061  |  Mo-Su 08:00-23:00
+ 8. [7] Dr. Falafel  |  +90 312 419 17 57  |  Su-Th 12:00-22:00; Fr-Sa 12:00-23:30
+ 9. [7] Fanus Komünite Kafe  |  +90 551 993 73 13  |  Mo-Su 10:00-22:30
+10. [7] Kebapçý Mustafa Birlik  |  +90 551 354 50 06  |  Mo-Su 11:00-24:00
+11. [7] Çiðköftesim  |  +90 552 678 9090  |  Mo-Su 11:00-24:00
+12. [6] Kitapça  |  +90 530 304 24 22  |  Mo-Su 10:00-23:00
+13. [6] Liman Kitap Kafe  |  +90 312 317 98 98  |  Mo-Su 09:00-00:00
+14. [6] Lügat Kitap Kahve  |  +90 553 750 88 24  |  Mo-Su 09:00-22:00
+15. [6] Sanat Edebiyat Kafe  |  +90 542 149 80 62  |  24/7

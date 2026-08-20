@@ -1,0 +1,19 @@
+[1/14] Afyonkarahisar       77 mekan  (ok)
+[2/14] Antalya          HATA: [Errno 2] No such file or directory: 'ham\\TR-07.json'
+[3/14] Corum            HATA: [Errno 2] No such file or directory: 'ham\\TR-19.json'
+[4/14] Kirsehir             12 mekan  (ok)
+[5/14] Malatya              53 mekan  (ok)
+[6/14] Mardin              139 mekan  (ok)
+[7/14] Nevsehir            319 mekan  (ok)
+[8/14] Sakarya             297 mekan  (ok)
+[9/14] Sivas               135 mekan  (ok)
+[10/14] Trabzon             450 mekan  (ok)
+[11/14] Usak                273 mekan  (ok)
+[12/14] Zonguldak           111 mekan  (ok)
+[13/14] Karabuk              42 mekan  (ok)
+[14/14] Kilis                 3 mekan  (ok)
+
+TOPLAM: 1911 mekan, 12 il
+Websitesi olan : 86
+Telefonu olan  : 155
+Instagram olan : 4

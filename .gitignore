@@ -1,0 +1,19 @@
+# Ara veri — Overpass ham ciktilari (9 MB, isletme wifi parolalari iceriyor).
+# Gerekirse turkiye_cek.py ile yeniden uretilir.
+ham/
+
+# Python
+__pycache__/
+*.pyc
+
+# Test artiklari
+test_ankara.json
+test_menu.html
+
+# Kullanilmayan eski surumler
+app/veri.json
+app/kesfet-eski-yedek.html
+
+# Isletim sistemi
+Thumbs.db
+.DS_Store
