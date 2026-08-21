@@ -31,7 +31,7 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   }
   .kahraman h1{max-width:30ch}
   .kahraman h1 em{font-style:normal;color:var(--vurgu)}
-  .kahraman .giris{margin-top:var(--a4);font-size:clamp(16px,15px + .3vw,19px);max-width:52ch}
+  .kahraman .giris{margin-top:var(--a4);font-size:20px;max-width:52ch}
 
   /* ---- bütçe kutusu: sayfanın asıl işi ---- */
     .kahraman-izgara{
@@ -56,10 +56,10 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
     display:grid;place-items:center;line-height:1.25;text-align:center;
     transition:var(--hiz) var(--egri);font-variant-numeric:tabular-nums;
   }
-  .butce-cip small{display:block;font-size:11px;font-weight:500;color:var(--metin-3);letter-spacing:.02em}
+  .butce-cip small{display:block;font-size:13px;font-weight:500;color:var(--metin-3);letter-spacing:.02em}
   .butce-cip:hover{border-color:var(--cizgi-2);color:var(--metin)}
   .butce-cip[aria-pressed="true"]{background:var(--vurgu);border-color:var(--vurgu);color:var(--vurgu-metin)}
-  .butce-cip[aria-pressed="true"] small{color:color-mix(in srgb,var(--vurgu-metin) 72%,transparent)}
+  .butce-cip[aria-pressed="true"] small{color:var(--vurgu-metin);opacity:.72}
   .sehir-satir{display:flex;gap:var(--a3);align-items:flex-end;flex-wrap:wrap}
   .sehir-satir label{flex:1 1 220px}
   select.alan{
@@ -76,7 +76,7 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   .sayilar{display:grid;gap:var(--a5)}
   @media (min-width:981px){.sayilar{padding-top:var(--a2)}}
   .sayilar div{border-left:2px solid var(--vurgu);padding-left:var(--a3)}
-  .sayilar b{display:block;font-family:var(--font-baslik);font-size:clamp(1.5rem,1.1rem + 1.4vw,2.1rem);
+  .sayilar b{display:block;font-family:var(--font-baslik);font-size:40px;
     font-weight:600;letter-spacing:-.03em;font-variant-numeric:tabular-nums;color:var(--metin)}
   .sayilar span{font-size:13px;color:var(--metin-3);line-height:1.4;display:block;margin-top:4px}
   @media (max-width:980px){.sayilar{grid-template-columns:repeat(4,1fr);gap:var(--a4)}}
@@ -104,7 +104,7 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
     font-family:var(--font-baslik);font-size:20px;font-weight:600;color:var(--vurgu);
     font-variant-numeric:tabular-nums;white-space:nowrap;letter-spacing:-.02em;text-align:right;
   }
-  .v-kart .tutar small{display:block;font-family:var(--font-govde);font-size:11px;
+  .v-kart .tutar small{display:block;font-family:var(--font-govde);font-size:13px;
     font-weight:600;color:var(--metin-3);letter-spacing:.06em;text-transform:uppercase}
   .v-kart .satir{display:flex;gap:var(--a2);flex-wrap:wrap;margin-top:auto;padding-top:var(--a1)}
 

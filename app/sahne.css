@@ -163,7 +163,7 @@
   border-top:1px solid color-mix(in oklab,var(--neon-sari) 18%,transparent);
   padding-top:clamp(18px,2.5vw,28px);
 }
-.sahne .sayilar b{ color:var(--neon-sari) }
+.sahne .sayilar b{ color:var(--vurgu) }
 
 /* Yedek yol: cercevenin disinda, sokakta duran yan kapi. Gorunur ama
    birincil eylemle yarismaz -- storyboard "baslik + tek birincil eylem"
@@ -179,13 +179,13 @@
   background:color-mix(in oklab,var(--zemin) 55%,transparent);
   backdrop-filter:blur(2px);
 }
-.sahne .secim.yedek legend{ color:var(--neon-yesil); opacity:.9 }
+.sahne .secim.yedek legend{ color:var(--metin-2) }
 @media (max-width:720px){
   .sahne .secim.yedek{ margin-inline:clamp(12px,4vw,24px); max-width:none }
 }
 
-.neon-sari{ color:var(--neon-sari) }
-.neon-yesil{ color:var(--neon-yesil) }
+/* neon yalniz ISIK olarak kullaniliyor (canvas, kenar parlamasi);
+   METIN rengi olarak degil -- palet uc renkte kaliyor. */
 
 /* Tabela titremesi — kütüphane #17 (projektör titremesi).
    Yalnız bir kez oynar; sonsuz döngü dikkat çalar. */

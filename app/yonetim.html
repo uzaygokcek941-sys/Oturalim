@@ -33,14 +33,14 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   .tutar-b{font-family:var(--font-baslik);font-size:20px;font-weight:600;color:var(--vurgu);
     font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right;display:block}
   .kararlar{display:flex;gap:var(--a2);margin-top:var(--a3);justify-content:flex-end;flex-wrap:wrap}
-  .onay{background:var(--yesil);color:#fff;border-color:var(--yesil)}
-  .onay:hover{background:var(--yesil);filter:brightness(.92);color:#fff}
+  .onay{background:var(--yesil);color:var(--vurgu-metin);border-color:var(--yesil)}
+  .onay:hover{background:var(--yesil);filter:brightness(.92);color:var(--vurgu-metin)}
   .ret{color:var(--kirmizi);border-color:var(--kirmizi);background:transparent}
   .ret:hover{background:color-mix(in srgb,var(--kirmizi) 12%,transparent);color:var(--kirmizi)}
   .ozet{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
     gap:var(--a4);margin-bottom:var(--a6)}
   .ozet div{border-left:2px solid var(--vurgu);padding-left:var(--a3)}
-  .ozet b{display:block;font-family:var(--font-baslik);font-size:2.5rem;font-weight:600;
+  .ozet b{display:block;font-family:var(--font-baslik);font-size:40px;font-weight:600;
     font-variant-numeric:tabular-nums;color:var(--metin)}
   .ozet span{font-size:13px;color:var(--metin-3)}
   .uyari{display:none;gap:var(--a3);padding:var(--a4);border-radius:var(--r);
@@ -99,7 +99,7 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
       <div id="icerik" hidden>
         <div class="bolum-bas" style="margin-bottom:var(--a5)">
           <span class="etiket">Yönetim</span>
-          <h1 style="font-size:1.9rem">Fiyat paylaşımları</h1>
+          <h1 style="font-size:40px">Fiyat paylaşımları</h1>
           <p>
             Onayladığın kayıtlar mekanın fiyat bilgisine girer. Aynı mekan için gelen
             tutarları karşılaştır; tek başına duran aykırı bir rakamı onaylama.
