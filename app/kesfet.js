@@ -25,6 +25,9 @@ let mekanlar = [],
     secili   = null,
     acilistaAcilacak = P.get("mekan") || null;
 
+let ilkCizimOldu = false;
+let cetvelTavan = 0;   // gorunen listedeki en uzak mesafe (km)
+
 let harita, katman, isaretler = new Map();
 
 /* ---------- yardımcılar ---------- */
@@ -88,7 +91,13 @@ function mesafeYaz(km){
 function kartHTML(m){
   const a = acikMi(m.saat), b = bant(m, butce), o = paylasimOzet(m.id),
         sv = seviye(m);
+  /* Mesafe cetveli icin 0-1 arasi deger, GORUNEN listeye gore olceklenir.
+     Sabit tavan (5 km) ise yaramiyor: sehir merkezinde ilk 120 mekan
+     700 m icinde kaliyor, butun centikler ayni uzunlukta cikiyordu.
+     Konum yoksa cetvel hic cizilmiyor (stil --uzak varligina bakiyor). */
+  const u = konum ? Math.min(1, uzaklik(m) / (cetvelTavan || 1)) : null;
   return '<button class="kart" type="button" data-id="' + kacir(m.id) + '"' +
+    (u != null ? ' style="--uzak:' + u.toFixed(3) + '"' : "") +
     (secili === m.id ? ' aria-current="true"' : "") + ">" +
     '<div class="ust"><h3>' + kacir(m.ad) + "</h3>" +
     (m.min != null ? '<span class="tutar">' + tl(m.min) + "+</span>" : "") +
@@ -112,7 +121,19 @@ function ciz(haritayiOrtala){
   el("#sayac-ek").textContent = butce ? "· bütçe " + tl(butce) : "";
   el("#sifirla").hidden = !suzuluyor;
 
-  el("#kartlar").innerHTML = l.length
+  /* Sicrama girisi YALNIZ ilk cizimde. Her filtre degisiminde tekrar
+     oynarsa arac hissi bozuluyor -- burasi kesfet, gosteri degil. */
+  /* Cetvel tavani: cizilecek kartlarin en uzagi. kartHTML'den ONCE
+     hesaplanmali, cunku her kart bu tavana gore olcekleniyor. */
+  cetvelTavan = konum
+    ? l.slice(0, limit).reduce((e, m) => Math.max(e, uzaklik(m)), 0)
+    : 0;
+
+  const kutu = el("#kartlar");
+  kutu.classList.toggle("ilk-cizim", !ilkCizimOldu);
+  ilkCizimOldu = true;
+
+  kutu.innerHTML = l.length
     ? l.slice(0, limit).map(kartHTML).join("") +
       (l.length > limit
         ? '<button class="daha" id="daha" type="button">' +

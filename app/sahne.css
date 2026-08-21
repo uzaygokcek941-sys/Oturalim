@@ -213,3 +213,70 @@
   .cerceve{ margin-inline:clamp(12px,4vw,24px); max-width:none }
   .sahne{ min-height:88svh }
 }
+
+
+/* ============================================================
+   KEŞFET — koridor
+   İkinci tempo. Filmin iki görüntü yönetmeni var; burası Doyle değil
+   Lau tarafı: hızlı, keskin, araç gibi. Ağır etkileşim bütçesi 0.
+   Kullanıcı burada karar vermiş, arıyor — sayfa yardım etmeli,
+   etkilememeli.
+   ============================================================ */
+
+/* Koridor rayı: listenin sol kenarında dikey bir hat. Kartlar bu hattın
+   üstünde duran vitrinler. */
+#kartlar{
+  position:relative;
+  border-left:1px solid color-mix(in oklab,var(--vurgu) 22%,var(--cizgi));
+}
+
+/* Mesafe cetveli. Her kartın çentiği mesafesi kadar uzun: yakın kısa,
+   uzak uzun. Listeyi aşağı okurken mesafenin BÜYÜDÜĞÜNÜ görüyorsun.
+   Izgarada bu kaybolur — orada her şey eşit uzaklıkta durur. */
+#kartlar .kart{ position:relative }
+#kartlar .kart[style*="--uzak"]::before{
+  content:"";
+  position:absolute; left:0; top:50%;
+  height:1px; transform:translateY(-50%);
+  width:calc(5px + var(--uzak,0) * 24px);
+  background:var(--vurgu);
+  opacity:calc(.9 - var(--uzak,0) * .5);
+  transition:width var(--hiz) var(--egri);
+}
+#kartlar .kart:hover::before,
+#kartlar .kart:focus-visible::before{ opacity:1 }
+
+/* Step-printing, kart ölçeğinde. Yalnız BİTİŞİK komşular bulanıklaşıyor:
+   120 kartın hepsine filter uygulamak hem pahalı hem gereksiz — filmde de
+   smear yerel, tüm kadraj değil. */
+@supports selector(:has(*)){
+  #kartlar .kart:hover + .kart,
+  #kartlar .kart:has(+ .kart:hover),
+  #kartlar .kart:focus-visible + .kart,
+  #kartlar .kart:has(+ .kart:focus-visible){
+    filter:blur(1.2px);
+    opacity:.66;
+    transition:filter .25s var(--egri), opacity .25s var(--egri);
+  }
+}
+
+/* İlk yüklemede sıçrama. Liste her yeniden çizildiğinde değil — filtre
+   değiştirirken her seferinde animasyon oynaması araç hissini bozar. */
+.js-sahne #kartlar.ilk-cizim .kart{
+  opacity:0;
+  animation:kart-gir .34s var(--egri) forwards;
+}
+@keyframes kart-gir{ to{ opacity:1 } }
+.js-sahne #kartlar.ilk-cizim .kart:nth-child(1){ animation-delay:0ms }
+.js-sahne #kartlar.ilk-cizim .kart:nth-child(2){ animation-delay:40ms }
+.js-sahne #kartlar.ilk-cizim .kart:nth-child(3){ animation-delay:80ms }
+.js-sahne #kartlar.ilk-cizim .kart:nth-child(4){ animation-delay:120ms }
+.js-sahne #kartlar.ilk-cizim .kart:nth-child(5){ animation-delay:160ms }
+.js-sahne #kartlar.ilk-cizim .kart:nth-child(6){ animation-delay:200ms }
+.js-sahne #kartlar.ilk-cizim .kart:nth-child(n+7){ animation-delay:240ms }
+
+@media (prefers-reduced-motion:reduce){
+  #kartlar .kart:hover + .kart,
+  #kartlar .kart:has(+ .kart:hover){ filter:none; opacity:1 }
+  .js-sahne #kartlar.ilk-cizim .kart{ opacity:1; animation:none }
+}
