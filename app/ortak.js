@@ -110,6 +110,28 @@ const EGLENCE_BILETLI= new Set(["Sinema","Tiyatro","Canlı müzik","Bowling",
   "Oyun salonu","Kaçış oyunu","Buz pisti","Trambolin parkı","Mini golf",
   "Hayvanat bahçesi","Akvaryum","Etkinlik alanı","Oyun merkezi","Dans salonu"]);
 
+/* Eğlence türleri tek tek çip olamayacak kadar çok. Çip "grup:eglence"
+   değerini taşır; süzgeç burada üyeliğe çevirir. Böylece çip mantığı ve URL
+   biçimi değişmeden kalıyor. */
+const TUR_GRUP = {
+  eglence: new Set(["Gece kulübü","Sinema","Tiyatro","Canlı müzik",
+    "Sanat merkezi","Etkinlik alanı","Kumarhane","Bowling","Oyun salonu",
+    "Kaçış oyunu","Aquapark","Buz pisti","Trambolin parkı","Mini golf",
+    "Dans salonu","Oyun merkezi","Müze","Tema parkı","Hayvanat bahçesi",
+    "Akvaryum","Sanat galerisi"]),
+  yeme: new Set(["Kafe","Restoran","Fast food","Dondurma","Bar","Pub"])
+};
+
+function turUyar(secili, tur){
+  for (const s of secili){
+    if (s.slice(0, 5) === "grup:"){
+      const g = TUR_GRUP[s.slice(5)];
+      if (g && g.has(tur)) return true;
+    } else if (s === tur) return true;
+  }
+  return false;
+}
+
 function seviye(m){
   if (m.min != null)
     return { sinif:"olcum", ad:tl(m.min) + "–" + tl(m.max), olculdu:true };
