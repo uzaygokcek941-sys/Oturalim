@@ -208,9 +208,23 @@ header.ust > .kap{display:flex;align-items:center;gap:var(--a4);width:100%}
 .rozet.vurgulu{color:var(--vurgu);background:var(--vurgu-los);border-color:transparent}
 .bant{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;white-space:nowrap}
 .bant::before{content:"";width:9px;height:9px;border-radius:3px;background:currentColor;flex:0 0 auto}
-.bant.ucuz{color:var(--bant-ucuz)}
-.bant.orta{color:var(--bant-orta)}
-.bant.tuz{color:var(--bant-tuz)}
+/* ".kart .meta > span" (0,2,1) tek sinifli renk kurallarini eziyordu; bant
+   renkleri kartta hic gorunmuyordu. ".meta >" ekleyip ozgullugu 0,3,0 yapiyoruz. */
+.bant.ucuz,.meta > .bant.ucuz{color:var(--bant-ucuz)}
+.bant.orta,.meta > .bant.orta{color:var(--bant-orta)}
+.bant.tuz,.meta > .bant.tuz{color:var(--bant-tuz)}
+
+/* Fiyat seviyesi — ölçülmüş fiyat yokken tür/mutfaktan çıkarılan tahmin.
+   Bant'tan (ölçüm) görsel olarak ayrı dursun diye içi boş, çerçeveli. */
+.seviye{
+  display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;
+  white-space:nowrap;padding:1px 7px;border-radius:999px;
+  border:1px solid currentColor;opacity:.85;
+}
+.seviye.hesapli,.meta > .seviye.hesapli{color:var(--bant-ucuz)}
+.seviye.ust,.meta > .seviye.ust{color:var(--bant-tuz)}
+.seviye.icki,.meta > .seviye.icki{color:var(--metin-3)}
+.rozet.mesafe,.meta > .rozet.mesafe{color:var(--vurgu);font-variant-numeric:tabular-nums}
 
 /* ---------- 7. Kutular ---------- */
 .kutu{

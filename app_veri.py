@@ -253,9 +253,15 @@ def main():
         with open(yol, "w", encoding="utf-8") as f:
             json.dump({"il": IL_ADI.get(il, il), "mekanlar": kayitlar},
                       f, ensure_ascii=False, separators=(",", ":"))
+        # Konumdan il bulmak icin merkez. Ortalama degil medyan: tek bir
+        # yanlis etiketlenmis mekan merkezi denize kaydirmasin.
+        enler = sorted(r["lat"] for r in kayitlar)
+        boylar = sorted(r["lon"] for r in kayitlar)
+        orta = len(kayitlar) // 2
         dizin.append({"kod": kod, "ad": IL_ADI.get(il, il), "n": len(kayitlar),
                       "fiyatli": sum(1 for r in kayitlar if "menu" in r),
-                      "kb": round(os.path.getsize(yol) / 1024)})
+                      "kb": round(os.path.getsize(yol) / 1024),
+                      "lat": round(enler[orta], 4), "lon": round(boylar[orta], 4)})
 
     dizin.sort(key=lambda d: -d["n"])
     with open("app/veri/index.json", "w", encoding="utf-8") as f:

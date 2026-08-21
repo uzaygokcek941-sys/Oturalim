@@ -90,6 +90,28 @@ function bant(m, butce){
   return { sinif:"orta", ad:"bütçene giren seçenek var" };
 }
 
+/* ---------- fiyat seviyesi ----------
+   Mekanların %1,2'sinde gerçek menü fiyatı var. Kalanı için tür ve OSM
+   mutfak etiketi kullanılıyor; ikisi de sinyal vermiyorsa null dönüp kart
+   hiçbir şey iddia etmiyor. Uydurma seviye, seviye yokluğundan kötüdür. */
+const MUTFAK_HESAPLI = new Set(["burger","kebab","pizza","sandwich","chicken",
+  "doner","kofte","pide","lahmacun","tea","coffee_shop","ice_cream","dessert",
+  "breakfast","fish_and_chips","soup","turkish","regional","local"]);
+const MUTFAK_UST = new Set(["steak_house","sushi","japanese","seafood","fish",
+  "italian","french","international","fine_dining"]);
+
+function seviye(m){
+  if (m.min != null)
+    return { sinif:"olcum", ad:tl(m.min) + "–" + tl(m.max), olculdu:true };
+  if (m.tur === "Fast food" || m.tur === "Dondurma")
+    return { sinif:"hesapli", ad:"hesaplı" };
+  const mut = (m.mutfak || "").toLowerCase().split(/[;,]/).map(x => x.trim());
+  if (mut.some(x => MUTFAK_UST.has(x)))     return { sinif:"ust",     ad:"üst segment" };
+  if (mut.some(x => MUTFAK_HESAPLI.has(x))) return { sinif:"hesapli", ad:"hesaplı" };
+  if (m.tur === "Bar" || m.tur === "Pub")   return { sinif:"icki",    ad:"içki mekanı" };
+  return null;
+}
+
 /* ---------- kohort ölçümü ----------
    Çerezsiz ve sunucusuz: yalnız localStorage, yalnız bu cihaz.
    Hangi günlerde açıldığı tutuluyor; D1/D7/D30 buradan hesaplanıyor. */

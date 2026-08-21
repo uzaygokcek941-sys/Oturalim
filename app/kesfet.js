@@ -79,9 +79,15 @@ function suzulmus(){
   return l;
 }
 
+/* 1 km altında metre yazmak "0.3 km"den okunur. */
+function mesafeYaz(km){
+  return km < 1 ? Math.round(km * 1000) + " m" : km.toFixed(1) + " km";
+}
+
 /* ---------- çizim ---------- */
 function kartHTML(m){
-  const a = acikMi(m.saat), b = bant(m, butce), o = paylasimOzet(m.id);
+  const a = acikMi(m.saat), b = bant(m, butce), o = paylasimOzet(m.id),
+        sv = seviye(m);
   return '<button class="kart" type="button" data-id="' + kacir(m.id) + '"' +
     (secili === m.id ? ' aria-current="true"' : "") + ">" +
     '<div class="ust"><h3>' + kacir(m.ad) + "</h3>" +
@@ -90,9 +96,10 @@ function kartHTML(m){
     (a === true  ? '<span class="rozet acik">açık</span>' : "") +
     (a === false ? '<span class="rozet kapali">kapalı</span>' : "") +
     (b ? '<span class="bant ' + b.sinif + '">' + b.ad + "</span>" : "") +
+    (!b && sv && !sv.olculdu ? '<span class="seviye ' + sv.sinif + '">' + sv.ad + "</span>" : "") +
     (m.bahce ? '<span class="rozet">bahçe</span>' : "") +
     (m.wifi  ? '<span class="rozet">wi-fi</span>' : "") +
-    (konum ? '<span class="rozet">' + uzaklik(m).toFixed(1) + " km</span>" : "") +
+    (konum ? '<span class="rozet mesafe">' + mesafeYaz(uzaklik(m)) + "</span>" : "") +
     (o ? '<span class="rozet vurgulu">kişi başı ~' + tl(o.medyan) + "</span>" : "") +
     "</div></button>";
 }
@@ -481,6 +488,10 @@ function ilYukle(kod, ilkAcilis){
     limit = SAYFA;
     secili = null;
     ciz(true);
+    /* Anasayfadan "yakınımdakiler" ile gelindiyse konumu kendiliğinden iste.
+       Liste önce çizilir; konum gelince yeniden sıralanır, böylece izin
+       penceresi açıkken ekran boş durmaz. */
+    if (sirala === "yakin" && !konum) konumIste(() => ciz(true));
     /* Anasayfadaki vitrin kartından gelindiyse o mekanı doğrudan aç */
     if (ilkAcilis && acilistaAcilacak){
       const hedef = acilistaAcilacak;

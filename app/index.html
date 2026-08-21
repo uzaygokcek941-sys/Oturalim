@@ -174,13 +174,21 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   <!-- kahraman -->
   <section class="kahraman">
     <div class="kap">
-      <h1>Bütçen belli.<br><em>Nereye</em> gideceğin belli değil.</h1>
+      <h1>Yakınında <em>nerede</em> hesaplı oturulur?</h1>
       <p class="giris">
-        Türkiye'nin dört bir yanındaki kafe, restoran ve barı bütçene göre süz.
+        Konumunu ver, en yakındaki kafe, restoran ve barları mesafeye göre sırala.
         Üyelik yok, reklam yok, ücret yok.
       </p>
 
       <div class="kahraman-izgara">
+      <div class="konum-kutu">
+        <button class="dugme buyuk" type="button" id="yakinimdakiler">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-5.686 7-11a7 7 0 1 0-14 0c0 5.314 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg>
+          Yakınımdakileri göster
+        </button>
+        <p class="not" id="konum-durum">Konumun yalnız tarayıcında kullanılır, hiçbir yere gönderilmez.</p>
+      </div>
+
       <form class="secim" id="secim">
         <fieldset>
           <legend>Kişi başı bütçen</legend>
@@ -194,7 +202,7 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
         </fieldset>
 
         <fieldset>
-          <legend>Nerede</legend>
+          <legend>Ya da şehir seç</legend>
           <div class="sehir-satir">
             <label>
               <span class="gizli">Şehir</span>
@@ -391,7 +399,9 @@ document.addEventListener("DOMContentLoaded", () => {
   let kayitliIl = null;
   try { kayitliIl = localStorage.getItem("oturalim.il"); } catch (e) {}
 
+  let iller = [];
   fetch("veri/index.json").then(r => r.json()).then(d => {
+    iller = d.iller;
     secim.innerHTML = d.iller.map(i =>
       '<option value="' + i.kod + '">' + kacir(i.ad) + " — " + sayi(i.n) + " mekan</option>"
     ).join("");
@@ -437,6 +447,50 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll(".butce-cip").forEach(x =>
       x.setAttribute("aria-pressed", String(x === b)));
     butce = +b.dataset.butce;
+  });
+
+  /* ---------- konum ----------
+     Veri il dosyalarina bolunmus, o yuzden once koordinattan il bulunur.
+     Eslesme il merkezine en yakin olan; sinirda oturan yanlis ile dusebilir,
+     kesfet ekranindaki sehir secici acik duruyor. */
+  function enYakinIl(lat, lon){
+    let iyi = null, iyiUz = Infinity;
+    for (const i of iller){
+      if (i.lat == null) continue;
+      const dx = (i.lon - lon) * 85, dy = (i.lat - lat) * 111;
+      const uz = Math.hypot(dx, dy);
+      if (uz < iyiUz){ iyiUz = uz; iyi = i; }
+    }
+    return iyi;
+  }
+
+  const konumDugme = el("#yakinimdakiler"), konumDurum = el("#konum-durum");
+  konumDugme.addEventListener("click", () => {
+    if (!navigator.geolocation){
+      konumDurum.textContent = "Tarayıcın konum desteklemiyor. Aşağıdan şehir seçebilirsin.";
+      return;
+    }
+    konumDugme.disabled = true;
+    konumDurum.textContent = "Konum alınıyor…";
+    navigator.geolocation.getCurrentPosition(
+      p => {
+        const il = enYakinIl(p.coords.latitude, p.coords.longitude);
+        if (!il){
+          konumDugme.disabled = false;
+          konumDurum.textContent = "Şehir listesi yüklenemedi. Aşağıdan seçebilirsin.";
+          return;
+        }
+        try { localStorage.setItem("oturalim.il", il.kod); } catch (e) {}
+        location.href = "kesfet.html?il=" + il.kod + "&sirala=yakin";
+      },
+      err => {
+        konumDugme.disabled = false;
+        konumDurum.textContent = err.code === 1
+          ? "Konum izni verilmedi. Aşağıdan şehir seçebilirsin."
+          : "Konum alınamadı. Aşağıdan şehir seçebilirsin.";
+      },
+      { timeout: 10000, maximumAge: 300000 }
+    );
   });
 
   /* keşfete gönder — durum URL'de taşınıyor, link paylaşılabilir */
