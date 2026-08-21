@@ -22,20 +22,20 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   .sekmeler{display:flex;gap:var(--a1);padding:var(--a1);background:var(--zemin-3);
     border-radius:var(--r);margin-bottom:var(--a5)}
   .sekmeler button{
-    flex:1;min-height:44px;border-radius:var(--r-s);font-weight:600;font-size:15px;
+    flex:1;min-height:44px;border-radius:var(--r-s);font-weight:600;font-size:16px;
     color:var(--metin-2);transition:var(--hiz) var(--egri);
   }
   .sekmeler button[aria-selected="true"]{background:var(--yuzey);color:var(--metin);box-shadow:var(--golge-1)}
   .alanlar{display:grid;gap:var(--a4)}
-  .alanlar label{display:grid;gap:6px}
+  .alanlar label{display:grid;gap:8px}
   .alanlar .ad{font-size:13px;font-weight:700;color:var(--metin-2)}
   .alanlar input{
-    min-height:48px;padding:12px 14px;border-radius:var(--r);background:var(--zemin-3);
+    min-height:48px;padding:12px 16px;border-radius:var(--r);background:var(--zemin-3);
     border:1px solid var(--cizgi);color:var(--metin);font-size:16px;width:100%;
   }
   .alanlar input:hover{border-color:var(--cizgi-2)}
   .alanlar input[aria-invalid="true"]{border-color:var(--kirmizi)}
-  .ipucu{font-size:12.5px;color:var(--metin-3);line-height:1.45}
+  .ipucu{font-size:13px;color:var(--metin-3);line-height:1.45}
   .parola-sar{position:relative;display:block}
   .parola-sar input{padding-right:52px}
   .goster{
@@ -45,12 +45,12 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   }
   .goster:hover{color:var(--metin);background:var(--zemin-2)}
   .goster svg{width:19px;height:19px}
-  .kucuk-baglanti{background:none;border:0;color:var(--vurgu);font-size:13.5px;
+  .kucuk-baglanti{background:none;border:0;color:var(--vurgu);font-size:13px;
     cursor:pointer;text-decoration:underline;text-underline-offset:3px;padding:4px 0;
     justify-self:start;min-height:32px}
   .uyari{
     display:none;gap:var(--a3);padding:var(--a4);border-radius:var(--r);
-    font-size:14px;line-height:1.55;margin-bottom:var(--a4);align-items:flex-start;
+    font-size:13px;line-height:1.55;margin-bottom:var(--a4);align-items:flex-start;
   }
   .uyari.gorunur{display:flex}
   .uyari svg{width:19px;height:19px;flex:0 0 auto;margin-top:1px}
@@ -62,13 +62,13 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
     padding:var(--a5);border:1px dashed var(--cizgi-2);border-radius:var(--r);
     background:var(--zemin-3);display:grid;gap:var(--a3);
   }
-  .kapali-kutu h2{font-family:var(--font-govde);font-size:15px;font-weight:700}
-  .kapali-kutu code{font-size:13px;background:var(--zemin);padding:2px 6px;border-radius:4px;
+  .kapali-kutu h2{font-family:var(--font-govde);font-size:16px;font-weight:700}
+  .kapali-kutu code{font-size:13px;background:var(--zemin);padding:4px 8px;border-radius:4px;
     color:var(--vurgu);word-break:break-all}
   .neden-hesap{margin-top:var(--a6);padding-top:var(--a5);border-top:1px solid var(--cizgi);
     display:grid;gap:var(--a3)}
-  .neden-hesap li{display:flex;gap:var(--a3);font-size:14px;color:var(--metin-2);line-height:1.55}
-  .neden-hesap svg{width:17px;height:17px;color:var(--vurgu);flex:0 0 auto;margin-top:2px}
+  .neden-hesap li{display:flex;gap:var(--a3);font-size:13px;color:var(--metin-2);line-height:1.55}
+  .neden-hesap svg{width:17px;height:17px;color:var(--vurgu);flex:0 0 auto;margin-top:4px}
   .neden-hesap ul{list-style:none;display:grid;gap:var(--a3)}
 </style>
 </head>
@@ -120,7 +120,7 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
 
       <div id="acik" hidden>
         <h1 id="baslik" style="font-size:1.9rem;margin-bottom:var(--a2)">Giriş yap</h1>
-        <p id="giris-metni" style="margin-bottom:var(--a5);font-size:15.5px">
+        <p id="giris-metni" style="margin-bottom:var(--a5);font-size:16px">
           Hesap yalnızca favori ve paylaşım için. Mekanlara bakmak için gerekmiyor.
         </p>
 

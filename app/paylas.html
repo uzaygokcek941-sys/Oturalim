@@ -25,17 +25,17 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   @media (max-width:860px){.ikili{grid-template-columns:1fr}}
 
   .neden{display:grid;gap:var(--a4);margin-top:var(--a5);list-style:none}
-  .neden li{display:flex;gap:var(--a3);font-size:15.5px;color:var(--metin-2);line-height:1.6}
-  .neden svg{width:20px;height:20px;color:var(--vurgu);flex:0 0 auto;margin-top:2px}
+  .neden li{display:flex;gap:var(--a3);font-size:16px;color:var(--metin-2);line-height:1.6}
+  .neden svg{width:20px;height:20px;color:var(--vurgu);flex:0 0 auto;margin-top:4px}
   .neden strong{color:var(--metin)}
 
   .kutucuk{position:sticky;top:calc(var(--ust-yukseklik) + var(--a5))}
   .alan-grup{display:grid;gap:var(--a4);margin-block:var(--a5)}
-  .alan-grup label{display:grid;gap:6px}
+  .alan-grup label{display:grid;gap:8px}
   .alan-grup .ad{font-size:13px;font-weight:700;color:var(--metin-2);letter-spacing:.02em}
-  .alan-grup .ipucu{font-size:12.5px;color:var(--metin-3);line-height:1.45}
+  .alan-grup .ipucu{font-size:13px;color:var(--metin-3);line-height:1.45}
   .alan-grup input{
-    min-height:48px;padding:12px 14px;border-radius:var(--r);background:var(--zemin-3);
+    min-height:48px;padding:12px 16px;border-radius:var(--r);background:var(--zemin-3);
     border:1px solid var(--cizgi);color:var(--metin);font-size:16px;width:100%;
   }
   .alan-grup input:hover{border-color:var(--cizgi-2)}
@@ -46,25 +46,25 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
     background:var(--vurgu-los);border:1px solid var(--vurgu);margin-top:var(--a4);
   }
   .kvkk-uyari svg{width:20px;height:20px;color:var(--vurgu);flex:0 0 auto;margin-top:1px}
-  .kvkk-uyari p{font-size:13.5px;line-height:1.6;color:var(--metin-2)}
+  .kvkk-uyari p{font-size:13px;line-height:1.6;color:var(--metin-2)}
   .kvkk-uyari strong{color:var(--metin)}
 
   .yok{
     display:grid;gap:var(--a3);padding:var(--a5);border-radius:var(--r);
     background:var(--zemin-3);border:1px dashed var(--cizgi-2);
   }
-  .yok h3{font-family:var(--font-govde);font-size:14px;font-weight:700;color:var(--metin)}
-  .yok p{font-size:14px;line-height:1.6}
+  .yok h3{font-family:var(--font-govde);font-size:13px;font-weight:700;color:var(--metin)}
+  .yok p{font-size:13px;line-height:1.6}
 
   .ne-oluyor{display:grid;gap:var(--a3);margin-top:var(--a6);counter-reset:n;list-style:none}
   .ne-oluyor li{
     counter-increment:n;display:flex;gap:var(--a3);align-items:flex-start;
-    font-size:14.5px;color:var(--metin-2);line-height:1.55;
+    font-size:16px;color:var(--metin-2);line-height:1.55;
   }
   .ne-oluyor li::before{
     content:counter(n);flex:0 0 auto;width:24px;height:24px;border-radius:var(--r-tam);
     background:var(--zemin-3);color:var(--metin-3);display:grid;place-items:center;
-    font-size:12px;font-weight:700;font-family:var(--font-baslik);
+    font-size:13px;font-weight:700;font-family:var(--font-baslik);
   }
 </style>
 </head>
@@ -101,10 +101,10 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
 
       <div>
         <span class="etiket">Fiyat paylaş</span>
-        <h1 style="font-size:clamp(1.9rem,1.3rem+2.4vw,3.1rem);max-width:18ch">
+        <h1 style="font-size:clamp(1.9rem,1.3rem + 2.4vw,3.1rem);max-width:18ch">
           Ödediğin tutar, bir sonraki kişinin bilgisi olsun
         </h1>
-        <p style="margin-top:var(--a4);font-size:17px;max-width:52ch">
+        <p style="margin-top:var(--a4);font-size:16px;max-width:52ch">
           Mekanların çoğunda fiyat yok, çünkü işletmeler menülerini okunamayan
           biçimde yayımlıyor. Bu boşluğu kapatmanın tek yolu gerçekten gidenlerin
           söylemesi.
@@ -180,7 +180,7 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
           </div>
         </div>
 
-        <p style="margin-top:var(--a4);font-size:13.5px;color:var(--metin-3);line-height:1.6">
+        <p style="margin-top:var(--a4);font-size:13px;color:var(--metin-3);line-height:1.6">
           Yanlış bir fiyat mı gördün, ya da işletme sahibi olarak bilginin
           kaldırılmasını mı istiyorsun?
           <a href="gizlilik.html#bildir">Bildirim kanalı burada</a> — en geç 7 gün içinde dönüyorum.
@@ -203,7 +203,7 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
           </svg>
           <span>Otur<em>alım</em></span>
         </a>
-        <p style="font-size:14.5px;max-width:38ch">
+        <p style="font-size:16px;max-width:38ch">
           Bütçene göre otur. Türkiye'deki mekanları gerçek fiyat bilgisiyle gösteren
           bağımsız bir proje.
         </p>

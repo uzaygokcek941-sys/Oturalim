@@ -21,16 +21,16 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
     padding-bottom:var(--a5);border-bottom:1px solid var(--cizgi);margin-bottom:var(--a6)}
   .avatar{width:56px;height:56px;border-radius:var(--r-tam);flex:0 0 auto;
     background:var(--vurgu-los);color:var(--vurgu);display:grid;place-items:center;
-    font-family:var(--font-baslik);font-size:22px;font-weight:600}
+    font-family:var(--font-baslik);font-size:20px;font-weight:600}
   .hesap-bas .kim{flex:1;min-width:0}
-  .hesap-bas h1{font-size:1.7rem;line-height:1.15}
-  .hesap-bas .posta{font-size:14px;color:var(--metin-3);margin-top:3px;word-break:break-all}
+  .hesap-bas h1{font-size:2.5rem;line-height:1.15}
+  .hesap-bas .posta{font-size:13px;color:var(--metin-3);margin-top:4px;word-break:break-all}
 
   .sekmeler{display:flex;gap:var(--a1);padding:var(--a1);background:var(--zemin-3);
     border-radius:var(--r);margin-bottom:var(--a5);overflow-x:auto;scrollbar-width:none}
   .sekmeler::-webkit-scrollbar{display:none}
   .sekmeler button{flex:1 0 auto;min-height:44px;padding:0 16px;border-radius:var(--r-s);
-    font-weight:600;font-size:14.5px;color:var(--metin-2);white-space:nowrap}
+    font-weight:600;font-size:16px;color:var(--metin-2);white-space:nowrap}
   .sekmeler button[aria-selected="true"]{background:var(--yuzey);color:var(--metin);box-shadow:var(--golge-1)}
 
   .liste-satir{
@@ -42,7 +42,7 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   .liste-satir .alt{font-size:13px;color:var(--metin-3);margin-top:4px;
     display:flex;gap:var(--a2);align-items:center;flex-wrap:wrap}
   .liste-satir .islem{display:flex;gap:var(--a2);align-items:center}
-  .tutar-b{font-family:var(--font-baslik);font-size:17px;font-weight:600;color:var(--vurgu);
+  .tutar-b{font-family:var(--font-baslik);font-size:16px;font-weight:600;color:var(--vurgu);
     font-variant-numeric:tabular-nums;white-space:nowrap}
   .sil{width:44px;height:44px;display:grid;place-items:center;border-radius:var(--r-s);
     color:var(--metin-3);border:1px solid transparent}
@@ -50,16 +50,16 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   .sil svg{width:17px;height:17px}
 
   .alanlar{display:grid;gap:var(--a4);max-width:420px}
-  .alanlar label{display:grid;gap:6px}
+  .alanlar label{display:grid;gap:8px}
   .alanlar .ad{font-size:13px;font-weight:700;color:var(--metin-2)}
-  .alanlar input{min-height:48px;padding:12px 14px;border-radius:var(--r);
+  .alanlar input{min-height:48px;padding:12px 16px;border-radius:var(--r);
     background:var(--zemin-3);border:1px solid var(--cizgi);color:var(--metin);font-size:16px}
   .kutu-ayri{margin-top:var(--a6);padding-top:var(--a5);border-top:1px solid var(--cizgi)}
-  .kutu-ayri h2{font-size:1.15rem;margin-bottom:var(--a3)}
+  .kutu-ayri h2{font-size:1.25rem;margin-bottom:var(--a3)}
   .tehlike{border:1px solid var(--kirmizi);border-radius:var(--r);padding:var(--a4);
     background:color-mix(in srgb,var(--kirmizi) 8%,transparent)}
   .uyari{display:none;gap:var(--a3);padding:var(--a4);border-radius:var(--r);
-    font-size:14px;line-height:1.55;margin-bottom:var(--a4);align-items:flex-start;color:var(--metin)}
+    font-size:13px;line-height:1.55;margin-bottom:var(--a4);align-items:flex-start;color:var(--metin)}
   .uyari.gorunur{display:flex}
   .uyari.hata{background:color-mix(in srgb,var(--kirmizi) 14%,transparent);border:1px solid var(--kirmizi)}
   .uyari.iyi{background:var(--yesil-los);border:1px solid var(--yesil)}
@@ -139,7 +139,7 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
               <label>
                 <span class="ad">Yeni parola</span>
                 <input id="yeni-parola" type="password" autocomplete="new-password" placeholder="••••••••">
-                <span style="font-size:12.5px;color:var(--metin-3)">En az 8 karakter, bir harf ve bir rakam.</span>
+                <span style="font-size:13px;color:var(--metin-3)">En az 8 karakter, bir harf ve bir rakam.</span>
               </label>
               <button class="dugme ikincil" id="parola-kaydet" type="button" style="justify-self:start">
                 Parolayı değiştir
@@ -150,7 +150,7 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
           <div class="kutu-ayri">
             <h2>Hesabı sil</h2>
             <div class="tehlike">
-              <p style="font-size:14px;line-height:1.6;margin-bottom:var(--a3)">
+              <p style="font-size:13px;line-height:1.6;margin-bottom:var(--a3)">
                 Hesabını ve favorilerini kalıcı olarak silmek istiyorsan yaz — talebin
                 <strong>en geç 7 gün içinde</strong> karşılanır. Onaylanmış fiyat paylaşımların
                 kimliğinden koparılarak kalır; kimin gönderdiği zaten hiçbir yerde görünmüyor.

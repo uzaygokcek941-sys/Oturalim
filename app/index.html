@@ -31,7 +31,7 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   }
   .kahraman h1{max-width:30ch}
   .kahraman h1 em{font-style:normal;color:var(--vurgu)}
-  .kahraman .giris{margin-top:var(--a4);font-size:clamp(16px,15px+.3vw,19px);max-width:52ch}
+  .kahraman .giris{margin-top:var(--a4);font-size:clamp(16px,15px + .3vw,19px);max-width:52ch}
 
   /* ---- bütçe kutusu: sayfanın asıl işi ---- */
     .kahraman-izgara{
@@ -44,7 +44,7 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
     border-radius:var(--r-b);padding:var(--a5);box-shadow:var(--golge-3);max-width:660px;
   }
   .secim legend{
-    font-size:12.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+    font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
     color:var(--metin-3);margin-bottom:var(--a3);display:block;padding:0;
   }
   .secim fieldset{border:0;margin-bottom:var(--a5)}
@@ -56,14 +56,14 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
     display:grid;place-items:center;line-height:1.25;text-align:center;
     transition:var(--hiz) var(--egri);font-variant-numeric:tabular-nums;
   }
-  .butce-cip small{display:block;font-size:11.5px;font-weight:500;color:var(--metin-3);letter-spacing:.02em}
+  .butce-cip small{display:block;font-size:11px;font-weight:500;color:var(--metin-3);letter-spacing:.02em}
   .butce-cip:hover{border-color:var(--cizgi-2);color:var(--metin)}
   .butce-cip[aria-pressed="true"]{background:var(--vurgu);border-color:var(--vurgu);color:var(--vurgu-metin)}
   .butce-cip[aria-pressed="true"] small{color:color-mix(in srgb,var(--vurgu-metin) 72%,transparent)}
   .sehir-satir{display:flex;gap:var(--a3);align-items:flex-end;flex-wrap:wrap}
   .sehir-satir label{flex:1 1 220px}
   select.alan{
-    width:100%;min-height:52px;padding:0 40px 0 15px;border-radius:var(--r);
+    width:100%;min-height:52px;padding:0 48px 0 16px;border-radius:var(--r);
     background:var(--zemin-3);border:1px solid var(--cizgi);color:var(--metin);
     font-size:16px;font-weight:600;cursor:pointer;appearance:none;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23b3a695' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
@@ -76,9 +76,9 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   .sayilar{display:grid;gap:var(--a5)}
   @media (min-width:981px){.sayilar{padding-top:var(--a2)}}
   .sayilar div{border-left:2px solid var(--vurgu);padding-left:var(--a3)}
-  .sayilar b{display:block;font-family:var(--font-baslik);font-size:clamp(1.5rem,1.1rem+1.4vw,2.1rem);
+  .sayilar b{display:block;font-family:var(--font-baslik);font-size:clamp(1.5rem,1.1rem + 1.4vw,2.1rem);
     font-weight:600;letter-spacing:-.03em;font-variant-numeric:tabular-nums;color:var(--metin)}
-  .sayilar span{font-size:13px;color:var(--metin-3);line-height:1.4;display:block;margin-top:2px}
+  .sayilar span{font-size:13px;color:var(--metin-3);line-height:1.4;display:block;margin-top:4px}
   @media (max-width:980px){.sayilar{grid-template-columns:repeat(4,1fr);gap:var(--a4)}}
   @media (max-width:700px){.sayilar{grid-template-columns:repeat(2,1fr);gap:var(--a5) var(--a4)}}
 
@@ -98,10 +98,10 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   .vitrin{display:grid;grid-template-columns:repeat(auto-fill,minmax(272px,1fr));gap:var(--a4)}
   .v-kart{display:flex;flex-direction:column;gap:var(--a3)}
   .v-kart .ust{display:flex;justify-content:space-between;align-items:flex-start;gap:var(--a3)}
-  .v-kart h3{font-size:17px;line-height:1.25}
-  .v-kart .yer{font-size:13px;color:var(--metin-3);margin-top:3px}
+  .v-kart h3{font-size:16px;line-height:1.25}
+  .v-kart .yer{font-size:13px;color:var(--metin-3);margin-top:4px}
   .v-kart .tutar{
-    font-family:var(--font-baslik);font-size:22px;font-weight:600;color:var(--vurgu);
+    font-family:var(--font-baslik);font-size:20px;font-weight:600;color:var(--vurgu);
     font-variant-numeric:tabular-nums;white-space:nowrap;letter-spacing:-.02em;text-align:right;
   }
   .v-kart .tutar small{display:block;font-family:var(--font-govde);font-size:11px;
@@ -118,7 +118,7 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
     background:var(--vurgu-los);color:var(--vurgu);
   }
   .adim h3{margin-bottom:var(--a2)}
-  .adim p{font-size:15px}
+  .adim p{font-size:16px}
   @media (max-width:760px){.adimlar{grid-template-columns:1fr;gap:var(--a5)}}
 
   /* ---- dürüstlük ---- */
@@ -127,8 +127,8 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
     padding:clamp(24px,4vw,44px);display:grid;grid-template-columns:1fr 1fr;gap:var(--a6);
   }
   .durust ul{list-style:none;display:grid;gap:var(--a3)}
-  .durust li{display:flex;gap:var(--a3);font-size:15px;color:var(--metin-2);line-height:1.55}
-  .durust li svg{width:19px;height:19px;flex:0 0 auto;margin-top:2px}
+  .durust li{display:flex;gap:var(--a3);font-size:16px;color:var(--metin-2);line-height:1.55}
+  .durust li svg{width:19px;height:19px;flex:0 0 auto;margin-top:4px}
   .durust .evet svg{color:var(--yesil)}
   .durust .hayir svg{color:var(--metin-3)}
   .durust h3{margin-bottom:var(--a4);font-family:var(--font-govde);font-size:13px;
@@ -142,7 +142,7 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
     padding:clamp(32px,5vw,60px) var(--a5);
   }
   .cagri h2{max-width:20ch;margin-inline:auto}
-  .cagri p{max-width:52ch;margin:var(--a3) auto var(--a5);font-size:16.5px}
+  .cagri p{max-width:52ch;margin:var(--a3) auto var(--a5);font-size:16px}
   .cagri .dugmeler{display:flex;gap:var(--a3);justify-content:center;flex-wrap:wrap}
 </style>
 </head>
@@ -351,7 +351,7 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
           </svg>
           <span>Otur<em>alım</em></span>
         </a>
-        <p style="font-size:14.5px;max-width:38ch">
+        <p style="font-size:16px;max-width:38ch">
           Bütçene göre otur. Türkiye'deki mekanları gerçek fiyat bilgisiyle gösteren
           bağımsız bir proje.
         </p>
