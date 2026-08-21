@@ -11,6 +11,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Karla:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="stil.css">
+<link rel="stylesheet" href="sahne.css">
+<script>document.documentElement.classList.add("js-sahne");</script>
 <script>
 try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.dataset.tema=t;}catch(e){}
 </script>
@@ -64,7 +66,7 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   .uyari svg{width:19px;height:19px;flex:0 0 auto;margin-top:1px}
 </style>
 </head>
-<body>
+<body class="sahne-cep">
 <a class="atla" href="#ana">İçeriğe atla</a>
 
 <header class="ust">
@@ -119,7 +121,7 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
           <span id="uyari-metin"></span>
         </div>
 
-        <section id="bolum-favoriler"></section>
+        <section id="bolum-favoriler" data-giris="sicrama"></section>
         <section id="bolum-paylasimlar" hidden></section>
 
         <section id="bolum-ayarlar" hidden>
@@ -164,6 +166,7 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
 </main>
 
 <script src="ortak.js" defer></script>
+<script src="sahne.js" defer></script>
 <script src="yapilandirma.js"></script>
 <script type="module">
 import Kimlik, { parolaSorunu } from "./kimlik.js";

@@ -280,3 +280,131 @@
   #kartlar .kart:has(+ .kart:hover){ filter:none; opacity:1 }
   .js-sahne #kartlar.ilk-cizim .kart{ opacity:1; animation:none }
 }
+
+
+/* ============================================================
+   İÇ SAYFALAR — aynı filmin ayrı sahneleri
+   Kural: iç sayfa ana sayfanın zayıf kopyası değil. Her birinin
+   kendi kompozisyonu var; ortak kabuk bu sahneleri destekler,
+   düzlemez.
+   ============================================================ */
+
+/* ---------- PAYLAŞ — fiş ---------- */
+/* Türkiye'de her kasadan fiş alırsın. Ödediğini bildiren form da fiş
+   gibi görünsün: dar, rakamları hizalı, kesikli ayraçlı, altı yırtık. */
+.sahne-fis .alan-grup{
+  max-width:34rem;
+  padding:clamp(20px,3vw,30px);
+  background:var(--yuzey);
+  border:1px solid var(--cizgi);
+  box-shadow:var(--golge-2);
+  position:relative;
+  font-variant-numeric:tabular-nums;
+}
+.sahne-fis .alan-grup > * + *{
+  border-top:1px dashed var(--cizgi-2);
+  padding-top:var(--a4);
+  margin-top:var(--a4);
+}
+/* Yırtık alt kenar: fişin koparıldığı yer */
+.sahne-fis .alan-grup::after{
+  content:""; position:absolute; left:0; right:0; bottom:-9px; height:9px;
+  background:var(--yuzey);
+  clip-path:polygon(0 0,4% 100%,8% 0,12% 100%,16% 0,20% 100%,24% 0,28% 100%,
+    32% 0,36% 100%,40% 0,44% 100%,48% 0,52% 100%,56% 0,60% 100%,64% 0,
+    68% 100%,72% 0,76% 100%,80% 0,84% 100%,88% 0,92% 100%,96% 0,100% 100%);
+  border-inline:1px solid var(--cizgi);
+}
+/* Fiş yukarıdan basılır: dikey perde */
+.js-sahne [data-giris="fis"]{ clip-path:inset(0 0 100% 0) }
+[data-giris="fis"].gorunur{
+  clip-path:inset(0 0 0 0);
+  transition:clip-path .9s cubic-bezier(.65,0,.35,1);
+}
+
+/* ---------- GİRİŞ — kapalı kapı ---------- */
+/* Sitenin nefes anı. Neredeyse hiçbir şey: tek dar açıklık, karanlık.
+   Kısıtlama burada bir tasarım aracı, eksiklik değil. */
+/* main'e daraltildi: body'ye uygulanirsa baslik ve altbilgi de grid
+   hucresine dusup ortalaniyor, sayfa duzeni bozuluyor. */
+.sahne-kapi main{
+  min-height:70svh;
+  display:grid; place-items:center;
+  background:var(--asfalt);
+}
+.sahne-kapi main .kap{
+  max-width:32rem;
+  padding:clamp(28px,4vw,44px);
+  border:1px solid color-mix(in oklab,var(--neon-sari) 26%,transparent);
+  background:color-mix(in oklab,var(--zemin) 82%,transparent);
+}
+.js-sahne [data-giris="iris"]{ clip-path:circle(0% at 50% 50%) }
+[data-giris="iris"].gorunur{
+  clip-path:circle(85% at 50% 50%);
+  transition:clip-path 1.2s var(--egri);
+}
+
+/* ---------- HESABIM — cep ---------- */
+/* Sakladıkların. Cüzdanda biriken fişler gibi istiflenmiş, sol omurgadan
+   tutturulmuş. Izgara değil, yığın. */
+.sahne-cep .liste-satir{
+  position:relative;
+  padding-left:calc(var(--a5) + 4px);
+  border-left:3px solid color-mix(in oklab,var(--vurgu) 55%,transparent);
+  background:linear-gradient(90deg,
+    color-mix(in oklab,var(--vurgu) 5%,transparent), transparent 34%);
+}
+.sahne-cep .liste-satir + .liste-satir{ margin-top:-1px }
+.sahne-cep .liste-satir:hover{
+  border-left-color:var(--vurgu);
+  background:linear-gradient(90deg,
+    color-mix(in oklab,var(--vurgu) 10%,transparent), transparent 40%);
+}
+
+/* ---------- HAKKINDA — itiraf ---------- */
+/* Metin yıldız; sayılar istatistik ızgarası değil, kenarda duran not.
+   Float + negatif kaydırma denendi ve BOZULDU: sayı şeridi ile makale
+   ayrı .kap bloklarında, aynı akışta değiller — negatif margin şeridi
+   kaptan dışarı, ekranın soluna atıyordu (ölçüldü: sol -149px).
+   Onun yerine marjinalya hissi hizayla kuruluyor: dar ölçü, sağa
+   dayalı, kılcal ayraç. Geometri numarası yok. */
+.sahne-itiraf .rakam-serit{
+  display:grid;
+  gap:var(--a3);
+  max-width:16rem;
+  text-align:right;
+  padding-right:var(--a4);
+  border-right:1px solid var(--cizgi-2);
+  border-left:none;
+}
+.sahne-itiraf .rakam-serit > div{ border-left:none; padding-left:0 }
+.sahne-itiraf .rakam-serit b{
+  color:var(--vurgu);
+  font-variant-numeric:tabular-nums;
+}
+.sahne-itiraf .yazi{ max-width:62ch }
+
+/* ---------- GİZLİLİK — ince yazı ---------- */
+/* Bilerek en az sinematik sayfa. Hukuki metne saygı okunabilirlikle
+   gösterilir, dekorla değil. Giriş animasyonu YOK (bilinçli none). */
+.sahne-yazi .yazi{
+  max-width:64ch;
+  line-height:1.75;
+}
+.sahne-yazi .yazi h2{
+  margin-top:var(--a7);
+  padding-top:var(--a4);
+  border-top:1px solid var(--cizgi);
+}
+.sahne-yazi .yazi h2::before{
+  content:"§ ";
+  color:var(--metin-3);
+  font-weight:400;
+}
+
+/* ---------- YÖNETİM — arka oda ---------- */
+/* Saf araç. Keşfetteki rayı ödünç alıyor, başka hiçbir şey yok. */
+.sahne-arka .kap > .liste-satir,
+.sahne-arka #liste{
+  border-left:1px solid color-mix(in oklab,var(--vurgu) 22%,var(--cizgi));
+}

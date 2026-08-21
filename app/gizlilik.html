@@ -15,6 +15,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Karla:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="stil.css">
+<link rel="stylesheet" href="sahne.css">
+<script>document.documentElement.classList.add("js-sahne");</script>
 <script>
 try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.dataset.tema=t;}catch(e){}
 </script>
@@ -42,7 +44,7 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
     padding-top:var(--a4);border-top:1px solid var(--cizgi)}
 </style>
 </head>
-<body>
+<body class="sahne-yazi">
 <a class="atla" href="#ana">İçeriğe atla</a>
 
 <header class="ust">
@@ -287,6 +289,7 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
 </footer>
 
 <script src="ortak.js" defer></script>
+<script src="sahne.js" defer></script>
 <script src="yapilandirma.js"></script>
 <script type="module" src="kimlik.js"></script>
 </body>
