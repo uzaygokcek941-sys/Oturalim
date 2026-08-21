@@ -89,7 +89,8 @@ def kalem_ayikla(metin):
         e = KALEM_SATIRI.match(satir)
         if not e:
             continue
-        ad = e.group("ad").strip(" .·…-:")
+        # "=" de ayirici olarak kullaniliyor: "ADANA KEBAP = 740 TL"
+        ad = e.group("ad").strip(" .·…-:=–—")
         if len(ad) < 3 or not re.search(r"[A-Za-zÇĞİÖŞÜçğıöşü]{3}", ad):
             continue
         try:
@@ -306,6 +307,10 @@ Tel: 0322 233 60 60
         "bosluklu binlik yanlis okundu: %s" % s
     # binlik ve ondalik ayraci karistirilmamali
     assert _sayi("1.190") == 1190.0 and _sayi("450,00") == 450.0 and _sayi("3 230") == 3230.0
+
+    # Cukuraga bicimi: "=" ayirici, urun adinda kalmamali
+    e = dict(kalem_ayikla("ADANA KEBAP = 740 TL\nİÇLİ KÖFTE = 140 TL"))
+    assert e == {"ADANA KEBAP": 740.0, "İÇLİ KÖFTE": 140.0}, e
     assert "Çay" not in c, "25 TL taban altinda, alinmamali"
     assert "Sayfa" not in c, c
     assert not any(a.startswith("Tel") for a in c), c
