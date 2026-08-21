@@ -1,6 +1,7 @@
 # Ara veri — Overpass ham ciktilari (9 MB, isletme wifi parolalari iceriyor).
 # Gerekirse turkiye_cek.py ile yeniden uretilir.
 ham/
+ham_eglence/
 
 # Gizli anahtarlar — asla depoya girmez
 .env

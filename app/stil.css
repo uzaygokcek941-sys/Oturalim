@@ -224,6 +224,7 @@ header.ust > .kap{display:flex;align-items:center;gap:var(--a4);width:100%}
 .seviye.hesapli,.meta > .seviye.hesapli{color:var(--bant-ucuz)}
 .seviye.ust,.meta > .seviye.ust{color:var(--bant-tuz)}
 .seviye.icki,.meta > .seviye.icki{color:var(--metin-3)}
+.seviye.biletli,.meta > .seviye.biletli{color:var(--metin-3)}
 .rozet.mesafe,.meta > .rozet.mesafe{color:var(--vurgu);font-variant-numeric:tabular-nums}
 
 /* ---------- 7. Kutular ---------- */

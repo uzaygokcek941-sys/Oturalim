@@ -100,6 +100,16 @@ const MUTFAK_HESAPLI = new Set(["burger","kebab","pizza","sandwich","chicken",
 const MUTFAK_UST = new Set(["steak_house","sushi","japanese","seafood","fish",
   "italian","french","international","fine_dining"]);
 
+/* Eğlence mekanlarının menüsü yok; fiyat bilgisi tür seviyesinde kalıyor.
+   Müze ve galeri Türkiye'de çoğunlukla düşük ücretli ya da ücretsiz; aquapark
+   ve tema parkı günlük biletle pahalı. Ortada kalanlara "biletli" deyip
+   rakam iddia etmiyoruz. */
+const EGLENCE_UCUZ   = new Set(["Müze","Sanat galerisi","Sanat merkezi"]);
+const EGLENCE_PAHALI = new Set(["Aquapark","Tema parkı","Kumarhane"]);
+const EGLENCE_BILETLI= new Set(["Sinema","Tiyatro","Canlı müzik","Bowling",
+  "Oyun salonu","Kaçış oyunu","Buz pisti","Trambolin parkı","Mini golf",
+  "Hayvanat bahçesi","Akvaryum","Etkinlik alanı","Oyun merkezi","Dans salonu"]);
+
 function seviye(m){
   if (m.min != null)
     return { sinif:"olcum", ad:tl(m.min) + "–" + tl(m.max), olculdu:true };
@@ -109,6 +119,9 @@ function seviye(m){
   if (mut.some(x => MUTFAK_UST.has(x)))     return { sinif:"ust",     ad:"üst segment" };
   if (mut.some(x => MUTFAK_HESAPLI.has(x))) return { sinif:"hesapli", ad:"hesaplı" };
   if (m.tur === "Bar" || m.tur === "Pub")   return { sinif:"icki",    ad:"içki mekanı" };
+  if (EGLENCE_UCUZ.has(m.tur))  return { sinif:"hesapli", ad:"hesaplı" };
+  if (EGLENCE_PAHALI.has(m.tur))return { sinif:"ust",     ad:"biletli, pahalı" };
+  if (EGLENCE_BILETLI.has(m.tur))return { sinif:"biletli", ad:"biletli" };
   return null;
 }
 

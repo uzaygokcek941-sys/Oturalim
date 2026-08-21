@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""turkiye_mekanlar.csv + menu verisi -> uygulamanin okudugu JSON dosyalari.
+"""turkiye_mekanlar.csv + turkiye_eglence.csv + menu verisi -> uygulama JSON'lari.
 
 Kullanim:  python app_veri.py
 
@@ -60,7 +60,18 @@ IL_ADI = {
 }
 
 TUR_TR = {"cafe": "Kafe", "restaurant": "Restoran", "bar": "Bar",
-          "pub": "Pub", "fast_food": "Fast food", "ice_cream": "Dondurma"}
+          "pub": "Pub", "fast_food": "Fast food", "ice_cream": "Dondurma",
+          # eglence_cek.py'nin topladiklari
+          "nightclub": "Gece kulübü", "cinema": "Sinema", "theatre": "Tiyatro",
+          "music_venue": "Canlı müzik", "arts_centre": "Sanat merkezi",
+          "events_venue": "Etkinlik alanı", "casino": "Kumarhane",
+          "bowling_alley": "Bowling", "amusement_arcade": "Oyun salonu",
+          "escape_game": "Kaçış oyunu", "water_park": "Aquapark",
+          "ice_rink": "Buz pisti", "trampoline_park": "Trambolin parkı",
+          "miniature_golf": "Mini golf", "dance": "Dans salonu",
+          "adult_gaming_centre": "Oyun merkezi", "museum": "Müze",
+          "theme_park": "Tema parkı", "zoo": "Hayvanat bahçesi",
+          "aquarium": "Akvaryum", "gallery": "Sanat galerisi"}
 
 # Menu kalemi sayilabilecek makul araliklar (TL). Disari cikan degerler
 # perakende urun / hediye paketi / veri hatasidir.
@@ -219,6 +230,18 @@ def mekan_kaydi(m, menu):
 def main():
     menu = menuleri_oku()
     mekanlar = list(csv.DictReader(open("turkiye_mekanlar.csv", encoding="utf-8-sig")))
+
+    # Eglence mekanlari (eglence_cek.py). Ayni alanlari tasiyorlar ama menuleri
+    # yok; mekan_kaydi zaten menusuz kayda tolerant. Dosya yoksa sessizce
+    # atlanir -- eglence cekimi yapilmamis kurulumda boru hatti calismaya devam
+    # etsin diye.
+    if os.path.exists("turkiye_eglence.csv"):
+        eglence = list(csv.DictReader(open("turkiye_eglence.csv", encoding="utf-8-sig")))
+        varolan = {m["osm_id"] for m in mekanlar}
+        yeni_kayit = [e for e in eglence if e["osm_id"] not in varolan]
+        mekanlar.extend(yeni_kayit)
+        print("eglence: %d kayit eklendi (%d tekrar atlandi)"
+              % (len(yeni_kayit), len(eglence) - len(yeni_kayit)))
 
     # Ikinci kaynak: PDF metni, sayfa metni ve gorsel OCR ile toplananlar.
     # Ayni mekana iki kaynaktan kalem gelirse ikisi de kalir; tekrar eden
