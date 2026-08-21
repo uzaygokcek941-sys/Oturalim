@@ -15,6 +15,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Karla:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="stil.css">
+<link rel="stylesheet" href="sahne.css">
+<script>/* Sahne girisleri yalniz JS varken gizlenir. Bu satir olmazsa
+  JS yuklenmeyen veya arka planda acilan sekmede sayfa bos gorunur. */
+document.documentElement.classList.add("js-sahne");</script>
 <script>/* FOUC olmasın: tema tercihini boyamadan önce uygula */
 try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.dataset.tema=t;}catch(e){}</script>
 <style>
@@ -172,15 +176,16 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
 <main id="ana">
 
   <!-- kahraman -->
-  <section class="kahraman">
+  <section class="kahraman sahne">
+    <canvas class="sokak" aria-hidden="true"></canvas>
     <div class="kap">
+      <div class="cerceve" data-giris="odak">
       <h1>Yakınında <em>nerede</em> hesaplı oturulur?</h1>
       <p class="giris">
         Konumunu ver, en yakındaki kafe, restoran ve barları mesafeye göre sırala.
         Üyelik yok, reklam yok, ücret yok.
       </p>
 
-      <div class="kahraman-izgara">
       <div class="konum-kutu">
         <button class="dugme buyuk" type="button" id="yakinimdakiler">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-5.686 7-11a7 7 0 1 0-14 0c0 5.314 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg>
@@ -188,8 +193,9 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
         </button>
         <p class="not" id="konum-durum">Konumun yalnız tarayıcında kullanılır, hiçbir yere gönderilmez.</p>
       </div>
+      </div><!-- /cerceve: karar burada biter, yedek yol disarida -->
 
-      <form class="secim" id="secim">
+      <form class="secim yedek" id="secim">
         <fieldset>
           <legend>Kişi başı bütçen</legend>
           <div class="butceler" role="group" id="butceler">
@@ -223,12 +229,11 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
         </p>
       </form>
 
-      <div class="sayilar">
+      <div class="sayilar" data-giris="sicrama">
         <div><b class="sayi" data-s="toplam">—</b><span>mekan</span></div>
         <div><b class="sayi" data-s="il">—</b><span>il, hepsi kapsandı</span></div>
         <div><b class="sayi" data-s="kalem">—</b><span>menü kalemi, gerçek fiyat</span></div>
         <div><b class="sayi">0 ₺</b><span>ücret, üyelik, reklam</span></div>
-      </div>
       </div>
     </div>
   </section>
@@ -240,7 +245,7 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
         <span class="etiket">Ne arıyorsun</span>
         <h2 id="b-tur">Türe göre başla</h2>
       </div>
-      <div class="turler" id="turler"></div>
+      <div class="turler odaklanir" id="turler" data-giris="perde"></div>
     </div>
   </section>
 
@@ -255,7 +260,7 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
           Gösterilen tutar menünün <strong>medyan</strong> kalem fiyatı — hesabın tamamı değil.
         </p>
       </div>
-      <div class="vitrin" id="vitrin"></div>
+      <div class="vitrin odaklanir" id="vitrin" data-giris="gecis"></div>
     </div>
   </section>
 
@@ -377,6 +382,7 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
 </footer>
 
 <script src="ortak.js" defer></script>
+<script src="sahne.js" defer></script>
 <script src="yapilandirma.js"></script>
 <script type="module" src="kimlik.js"></script>
 <script defer>
