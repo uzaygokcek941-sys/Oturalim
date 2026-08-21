@@ -191,6 +191,21 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
     display:flex;gap:var(--a4);padding:9px 0;border-bottom:1px dotted var(--cizgi);
     font-size:14.5px;align-items:baseline;
   }
+  /* Ürün kırılımı — menü listesinden ayrı okunsun diye biraz daha iri */
+  .kat{
+    display:flex;gap:var(--a3);padding:10px 0;align-items:center;
+    border-bottom:1px dotted var(--cizgi);font-size:15px;
+  }
+  .kat:last-child{border-bottom:0}
+  .kat > span{flex:1 1 auto;min-width:0}
+  .kat i{font-style:normal;font-size:12.5px;color:var(--metin-3)}
+  .kat b{margin-left:auto;color:var(--vurgu);font-weight:700;
+         font-variant-numeric:tabular-nums;white-space:nowrap}
+  .kat .rozet{font-size:11.5px;padding:2px 8px}
+  .kat .rozet.ucuz{color:var(--bant-ucuz);border-color:transparent;
+    background:color-mix(in oklab,var(--bant-ucuz) 15%,transparent)}
+  .kat .rozet.tuz{color:var(--bant-tuz);border-color:transparent;
+    background:color-mix(in oklab,var(--bant-tuz) 15%,transparent)}
   .kalem:last-child{border-bottom:0}
   .kalem b{margin-left:auto;color:var(--vurgu);font-weight:700;
     font-variant-numeric:tabular-nums;white-space:nowrap}

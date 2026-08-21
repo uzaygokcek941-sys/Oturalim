@@ -195,6 +195,46 @@ async function paylasimlariYukle(il){
 
 /* Medyan kisi basi tutar. Ortalama degil: tek bir asiri kayit
    ortalamayi kaydirir, medyan kaydirmaz. */
+/* Ürün kategorisi ölçütü: "Ankara'da latte kaç TL olmalı".
+   Dosya yoksa kırılım yine gösterilir, sadece ucuz/pahalı işareti çıkmaz. */
+let olcut = null;
+
+function olcutYukle(){
+  if (olcut) return Promise.resolve(olcut);
+  return fetch("veri/fiyat_olcut.json")
+    .then(r => r.ok ? r.json() : null)
+    .then(d => (olcut = d || { turkiye:{}, il:{} }))
+    .catch(() => (olcut = { turkiye:{}, il:{} }));
+}
+
+/* Ölçüt dosyasındaki il adları kaynak CSV'den geldiği için ASCII
+   ("Istanbul"), uygulamadaki liste ise düzgün Türkçe ("İstanbul").
+   Karşılaştırmadan önce ikisini de sadeleştiriyoruz. */
+const TR_SADE = { "ç":"c","ğ":"g","ı":"i","ö":"o","ş":"s","ü":"u",
+                  "Ç":"c","Ğ":"g","İ":"i","I":"i","Ö":"o","Ş":"s","Ü":"u" };
+const sadeIl = s => (s || "").replace(/[çğıöşüÇĞİIÖŞÜ]/g, c => TR_SADE[c]).toLowerCase();
+
+/* Ölçüt kaç markadan çıktı ve bandı ne kadar geniş — ikisi de tutmuyorsa
+   rozet gösterilmez. 32 kategoriden yalnız 8'i bu eşiği geçiyor; kalanında
+   "pahalı" demek 5-7 markalık bir örnekleme dayanmak olurdu. */
+const OLCUT_EN_AZ_MARKA = 8;
+const OLCUT_EN_GENIS_BANT = 0.8;
+
+/* Mekanın kategori fiyatını ölçütle kıyaslar. İl ölçütü varsa o, yoksa ülke.
+   Yalnız bandın DIŞINA taşan işaretlenir: bandın içi "normal" değil,
+   "bir şey söyleyemiyoruz". */
+function olcutKiyas(ilAd, kategori, fiyat){
+  if (!olcut) return null;
+  const anahtar = Object.keys(olcut.il).find(k => sadeIl(k) === sadeIl(ilAd));
+  const o = (anahtar && olcut.il[anahtar][kategori]) || olcut.turkiye[kategori];
+  if (!o || !o.alt || !o.ust || !o.medyan) return null;
+  if (o.kaynak < OLCUT_EN_AZ_MARKA) return null;
+  if ((o.ust - o.alt) / o.medyan > OLCUT_EN_GENIS_BANT) return null;
+  if (fiyat < o.alt) return { sinif:"ucuz", ad:"ucuz",   medyan:o.medyan };
+  if (fiyat > o.ust) return { sinif:"tuz",  ad:"pahalı", medyan:o.medyan };
+  return null;
+}
+
 function paylasimOzet(mekanId){
   const l = paylasimHaritasi.get(mekanId);
   if (!l || !l.length) return null;
@@ -206,6 +246,33 @@ function paylasimOzet(mekanId){
 
 /* ?test=1 ile medyan hesabini dogrula: tek asiri kayit ortalamayi kaydirir,
    medyan kaydirmamali. */
+/* ?test=1 ile ölçüt kıyasını doğrula: Türkçe il adı eşleşmesi ve
+   "az markadan rozet basma" eşiği. İkisi de sessizce bozulabilecek türden. */
+function olcutKontrol(){
+  if (!new URLSearchParams(location.search).has("test")) return [];
+  const yedek = olcut;
+  olcut = {
+    turkiye: { Kebap:{ kaynak:16, medyan:748, alt:474, ust:900 } },
+    il: { Istanbul: {
+      Kebap: { kaynak:11, medyan:755, alt:470, ust:900 },
+      Cay:   { kaynak:3,  medyan:45,  alt:35,  ust:250 },   // marka az
+      Pizza: { kaynak:18, medyan:480, alt:19,  ust:547 }    // bant çok geniş
+    } }
+  };
+  const T = [
+    ["il olcutu ascii/turkce eslesmeli",
+     olcutKiyas("İstanbul", "Kebap", 1250) && olcutKiyas("İstanbul","Kebap",1250).sinif, "tuz"],
+    ["band altinda ucuz", olcutKiyas("İstanbul", "Kebap", 300).sinif, "ucuz"],
+    ["band icinde rozet yok", olcutKiyas("İstanbul", "Kebap", 600), null],
+    ["az markali olcut rozet basmaz", olcutKiyas("İstanbul", "Cay", 9999), null],
+    ["genis bantli olcut rozet basmaz", olcutKiyas("İstanbul", "Pizza", 9999), null],
+    ["il yoksa ulke olcutune duser", olcutKiyas("Bilinmeyen", "Kebap", 1250).sinif, "tuz"],
+    ["bilinmeyen kategori", olcutKiyas("İstanbul", "Yok", 100), null]
+  ];
+  olcut = yedek;
+  return T.filter(t => JSON.stringify(t[1]) !== JSON.stringify(t[2]));
+}
+
 function paylasimKontrol(){
   if (!new URLSearchParams(location.search).has("test")) return;
   const yedek = paylasimHaritasi;
@@ -221,12 +288,14 @@ function paylasimKontrol(){
     ["kayit yok",      (paylasimHaritasi = new Map(), paylasimOzet("yok")), null]
   ];
   paylasimHaritasi = yedek;
-  const hata = T.filter(t => JSON.stringify(t[1]) !== JSON.stringify(t[2]));
+  const hata = T.filter(t => JSON.stringify(t[1]) !== JSON.stringify(t[2]))
+    .concat(olcutKontrol());
+  const gecen = T.length + 7;
   document.body.insertAdjacentHTML("afterbegin",
     '<pre style="margin:0;padding:10px 16px;font:13px ui-monospace,monospace;color:#fff;' +
     'background:' + (hata.length ? "#5b1a1a" : "#1d3a17") + '">' +
-    (hata.length ? "PAYLASIM MEDYAN BASARISIZ: " + JSON.stringify(hata)
-                 : T.length + " medyan kontrolu gecti") + "</pre>");
+    (hata.length ? "KONTROL BASARISIZ: " + JSON.stringify(hata)
+                 : gecen + " kontrol gecti (medyan + olcut kiyasi)") + "</pre>");
 }
 
 /* ---------- favoriler ----------
@@ -339,6 +408,25 @@ function ac(id){
         { day:"numeric", month:"long", year:"numeric" }) + ".</p></div>";
   }
 
+  /* Ürün kırılımı: 40 kalemlik listeyi taramak yerine "çay kaç, kebap kaç"
+     tek bakışta görünsün. Fiyatlar mekanın kendi menüsünden, alt medyan. */
+  if (m.kat){
+    const ilAd = el("#il").selectedOptions[0]
+      ? el("#il").selectedOptions[0].textContent.trim() : "";
+    const sirali = Object.entries(m.kat).sort((a,b) => a[1].med - b[1].med);
+    govde +=
+      '<div class="d-menu-bas"><h3>Ne kaça</h3><span>' +
+      sayi(sirali.length) + " kategori</span></div><div class=\"kat-liste\">" +
+      sirali.map(([ad, o]) => {
+        const k = olcutKiyas(ilAd, ad, o.med);
+        return '<div class="kat">' +
+          "<span>" + kacir(ad) +
+          (o.n > 1 ? ' <i>' + sayi(o.n) + " kalem</i>" : "") + "</span>" +
+          (k ? '<em class="rozet ' + k.sinif + '">' + k.ad + "</em>" : "") +
+          "<b>" + tl(o.med) + "</b></div>";
+      }).join("") + "</div>";
+  }
+
   if (m.menu){
     /* Menü ucuzdan pahalıya: bütçesi olan kullanıcı önce ne alabileceğini
        görsün, listenin dibine inmek zorunda kalmasın. */
@@ -388,6 +476,7 @@ function ilYukle(kod, ilkAcilis){
     return r.json();
   }).then(v => {
     mekanlar = v.mekanlar;
+    olcutYukle();
     paylasimlariYukle(kod).then(() => ciz(false));
     limit = SAYFA;
     secili = null;
