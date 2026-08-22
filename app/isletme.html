@@ -59,6 +59,7 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
     <span class="tur" id="tur"></span>
   </div>
   <p id="nerede" class="soluk"></p>
+  <p id="sayac" class="soluk" hidden></p>
 
   <dl class="bilgi" id="bilgi"></dl>
 
@@ -171,6 +172,7 @@ function goster(m, ilAd){
   }
 
   document.getElementById("govde").hidden = false;
+  sayacCalistir(ID);
 }
 
 if (!ID || !IL || IL === "00"){
@@ -184,6 +186,55 @@ if (!ID || !IL || IL === "00"){
       else document.getElementById("hata").hidden = false;
     })
     .catch(() => { document.getElementById("hata").hidden = false; });
+}
+
+/* ---------- goruntulenme sayaci ----------
+   "Sayfani bu ay 47 kisi gordu" cumlesi butun satis anlatisini tasiyor, o
+   yuzden sayi sisirilebilir olmamali. Tekillik veritabaninda: (mekan, gun,
+   cihaz) birincil anahtar -- sayfayi 40 kez yenilemek sayiyi artirmiyor.
+
+   KVKK: cihaz kimligi HER GUN yenileniyor. Ayni kisinin iki gunku ziyareti
+   birbirine baglanamaz; kalici ziyaretci kimligi tutulmuyor.
+
+   Yapilandirma bos ya da tablo kurulmamissa hicbir sey olmuyor: sayfa
+   normal calisiyor, satir gizli kaliyor. Sifir gosterilmiyor -- "0 kisi
+   bakti" hem cesaret kirici hem de "calismiyor" ile ayirt edilemez. */
+const SAYAC_ANAHTAR = "oturalim.cihaz";
+
+function gunlukCihaz(){
+  const bugun = new Date().toISOString().slice(0, 10);
+  try {
+    const k = JSON.parse(localStorage.getItem(SAYAC_ANAHTAR) || "{}");
+    if (k.gun === bugun && k.id) return k.id;
+    const id = crypto.randomUUID();
+    localStorage.setItem(SAYAC_ANAHTAR, JSON.stringify({ gun:bugun, id }));
+    return id;
+  } catch (e) { return null; }        /* localStorage kapaliysa sayma */
+}
+
+async function sayacCalistir(mekanId){
+  const a = window.OTURALIM || {};
+  if (!a.supabaseUrl || !a.supabaseAnahtar) return;
+  const cihaz = gunlukCihaz();
+  if (!cihaz) return;
+  try {
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.45.4");
+    const sb = createClient(a.supabaseUrl, a.supabaseAnahtar,
+      { auth:{ persistSession:false } });
+
+    /* Ayni gun ikinci kez bakinca cakisir; hata degil, beklenen durum. */
+    await sb.from("goruntulenme").insert({ mekan_id:mekanId, cihaz });
+
+    const { data, error } = await sb.rpc("mekan_sayaci", { p_mekan_id:mekanId });
+    if (error || !data || !data.length) return;
+    const s = Array.isArray(data) ? data[0] : data;
+    if (!s || !s.son30) return;
+
+    const el = document.getElementById("sayac");
+    el.textContent = "Bu sayfaya son 30 günde " + sayi(s.son30) +
+      " kişi baktı" + (s.bugun ? " · bugün " + sayi(s.bugun) : "") + ".";
+    el.hidden = false;
+  } catch (e) { /* tablo yok, ag yok, engellendi: sayfa etkilenmez */ }
 }
 
 /* Tek calisir kontrol: eksik bulucu dogru mu. Sessizce yanlis eksik listesi =
