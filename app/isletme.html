@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>İşletme — Oturalım</title>
+<meta name="description" content="Bu işletmenin Oturalım'daki sayfası.">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="business.business">
+<meta property="og:locale" content="tr_TR">
+<meta name="theme-color" content="#15110e">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2315110e'/%3E%3Cpath d='M20 16v12a12 12 0 0 0 24 0V16' stroke='%23f08a3c' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3Cpath d='M32 40v10' stroke='%23f08a3c' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Karla:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="stil.css">
+<link rel="stylesheet" href="sahne.css">
+<script>document.documentElement.classList.add("js-sahne");</script>
+<script>
+try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.dataset.tema=t;}catch(e){}
+</script>
+<style>
+  .kunye{display:flex;flex-wrap:wrap;gap:var(--a2);align-items:baseline;margin-bottom:var(--a2)}
+  .kunye .tur{font-size:.9rem;letter-spacing:.09em;text-transform:uppercase;color:var(--soluk)}
+
+  .bilgi{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+         gap:var(--a3) var(--a4);margin:var(--a4) 0}
+  .bilgi div{border-top:1px solid var(--cizgi);padding-top:var(--a2)}
+  .bilgi dt{font-size:.82rem;letter-spacing:.08em;text-transform:uppercase;
+            color:var(--soluk);margin-bottom:4px}
+  .bilgi dd{margin:0;font-size:1.05rem}
+
+  /* eksik paneli: sayfanin cekirdegi, sus degil */
+  .eksik{border:1px solid var(--vurgu);border-radius:var(--yuvarlak);
+         padding:var(--a4);margin:var(--a5) 0}
+  .eksik h2{margin:0 0 var(--a2)}
+  .eksik ul{margin:var(--a3) 0 0;padding:0;list-style:none}
+  .eksik li{display:flex;flex-wrap:wrap;gap:var(--a3);padding:var(--a2) 0;
+            border-top:1px solid var(--cizgi)}
+  .eksik li b{flex:0 0 8.5rem;font-weight:600}
+  .eksik li span{flex:1 1 14rem;color:var(--soluk)}
+  .tamam{color:var(--soluk);font-style:italic}
+
+  .sahiplen{display:inline-block;margin-top:var(--a4)}
+  .kaynak{font-size:.85rem;color:var(--soluk);margin-top:var(--a5);
+          border-top:1px solid var(--cizgi);padding-top:var(--a3)}
+</style>
+</head>
+<body>
+
+<header class="ust">
+  <a class="marka" href="index.html">Oturalım</a>
+  <nav><a href="kesfet.html">Keşfet</a> <a href="hakkinda.html">Hakkında</a></nav>
+</header>
+
+<main class="kap" id="govde" hidden>
+  <div class="kunye">
+    <h1 id="ad"></h1>
+    <span class="tur" id="tur"></span>
+  </div>
+  <p id="nerede" class="soluk"></p>
+
+  <dl class="bilgi" id="bilgi"></dl>
+
+  <section class="eksik" id="eksik" data-giris="perde">
+    <h2>Bu sayfada eksik olanlar</h2>
+    <p id="eksikGiris"></p>
+    <ul id="eksikListe"></ul>
+    <a class="dugme birincil sahiplen" id="sahiplenDugme" hidden>Bu işletme benim</a>
+    <p id="sahiplenNot" class="soluk" style="margin-top:var(--a2);font-size:.9rem"></p>
+  </section>
+
+  <p class="kaynak">
+    Bu sayfadaki bilgiler
+    <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap katkıcılarından</a>
+    (ODbL) geliyor ve eksik olabilir. Sayfa, kamuya açık veriden otomatik
+    oluşturulmuştur. <a href="gizlilik.html">Düzeltme ve kaldırma talebi</a>.
+  </p>
+</main>
+
+<div class="kap" id="hata" hidden>
+  <h1>Bu işletme bulunamadı</h1>
+  <p class="soluk">Bağlantı eksik olabilir veya kayıt kaldırılmış olabilir.</p>
+  <p><a class="dugme birincil" href="kesfet.html">Keşfet'e dön</a></p>
+</div>
+
+<script src="yapilandirma.js"></script>
+<script src="ortak.js"></script>
+<script>
+/* Isletme sayfasi.
+   Il kodu URL'de gelir (?il=34). Baglantilari biz uretiyoruz, hep dolu.
+   ponytail: 36 bin kayitlik global id->il dizini kurulmadi; ~900 KB'lik
+   dosyayi her ziyarette indirmek elle duzenlenmis tek bir baglantiyi
+   kurtarmaya degmez. Paylasilan baglantilarda il dusmeye baslarsa eklenir. */
+
+const S  = new URLSearchParams(location.search);
+const ID = S.get("id") || "";
+const IL = (S.get("il") || "").padStart(2, "0");
+
+/* Eksik alanin isletmeye MALIYETI. Her cumle iki tarafi birden tarif ediyor:
+   bizim onerememizle onun gorunmemesi ayni sey. Satis dili degil, mekanik. */
+const EKSIK = {
+  saat:  ["Açılış–kapanış saati",
+          "“Şu an açık” filtresi bu işletmeyi eleyip geçiyor. Akşam 21.00'de yakınında arama yapan kişiye çıkmıyor."],
+  tel:   ["Telefon",
+          "Sayfayı gören kişi arayamıyor; aramak için Google'a geri dönmesi gerekiyor."],
+  menu:  ["Fiyat / menü",
+          "“Hesaplı yer” arayan kullanıcıya hiç çıkmıyor; fiyat filtresi yalnızca fiyatı bilinen mekanları gösterebiliyor."],
+  adres: ["Açık adres",
+          "Haritada nokta olarak var ama tarif yok; yürüyerek gelen kişi kayboluyor."],
+  web:   ["Site / sosyal medya",
+          "Fotoğraf, menü ve duyuru gösterilemiyor."]
+};
+const YEME_ICME = new Set(["Restoran","Kafe","Fast food","Bar","Pub","Dondurma","Pastane"]);
+
+function eksikleriBul(m){
+  return Object.keys(EKSIK).filter(k => {
+    if (k === "menu") return YEME_ICME.has(m.tur) && m.min == null;
+    return !String(m[k] == null ? "" : m[k]).trim();
+  });
+}
+
+function goster(m, ilAd){
+  document.title = m.ad + " — Oturalım";
+  document.getElementById("ad").textContent  = m.ad;
+  document.getElementById("tur").textContent = m.tur;
+  document.getElementById("nerede").textContent =
+    [m.adres, ilAd].filter(Boolean).join(" · ");
+
+  const sv = seviye(m);
+  const satirlar = [
+    ["Tür",     m.tur],
+    ["Mutfak",  m.mutfak],
+    ["Saatler", m.saat],
+    ["Telefon", m.tel],
+    ["Adres",   m.adres],
+    /* yalniz OLCULEN fiyat gosterilir. Mutfaktan tahmin edilen "hesapli",
+       asagidaki "fiyat bilgisi yok" satiriyla ayni sayfada celisiyordu. */
+    ["Fiyat",   sv && sv.olculdu ? sv.ad : ""],
+    ["Bahçe",   m.bahce ? "var" : ""],
+    ["Wi-Fi",   m.wifi  ? "var" : ""]
+  ].filter(s => s[1]);
+  document.getElementById("bilgi").innerHTML = satirlar.map(s =>
+    "<div><dt>" + kacir(s[0]) + "</dt><dd>" + kacir(String(s[1])) + "</dd></div>").join("");
+
+  const eksik = eksikleriBul(m);
+  const giris = document.getElementById("eksikGiris");
+  const liste = document.getElementById("eksikListe");
+  if (!eksik.length){
+    giris.innerHTML = '<span class="tamam">Bu sayfada eksik bir şey görünmüyor.</span>';
+  } else {
+    giris.textContent =
+      "Oturalım kullanıcıya yalnızca doğrulayabildiğini önerir. Aşağıdaki " +
+      eksik.length + " bilgi bizde olmadığı için bu işletme bazı aramalarda hiç çıkmıyor.";
+    liste.innerHTML = eksik.map(k =>
+      "<li><b>" + kacir(EKSIK[k][0]) + "</b><span>" + kacir(EKSIK[k][1]) + "</span></li>").join("");
+  }
+
+  const no = (window.OTURALIM || {}).sahiplenmeWhatsapp || "";
+  const dugme = document.getElementById("sahiplenDugme");
+  const not   = document.getElementById("sahiplenNot");
+  if (no){
+    const metin = "Merhaba, " + m.ad + " işletmesi benim. Sayfayı güncellemek istiyorum. (" + ID + ")";
+    dugme.href = "https://wa.me/" + no + "?text=" + encodeURIComponent(metin);
+    dugme.rel = "noopener";
+    dugme.target = "_blank";
+    dugme.hidden = false;
+    not.textContent = "Ücretsiz. Bilgileri düzeltmek için ödeme ya da üyelik gerekmiyor.";
+  } else {
+    not.textContent = "Düzeltme talebi için gizlilik sayfasındaki iletişim adresini kullanabilirsin.";
+  }
+
+  document.getElementById("govde").hidden = false;
+}
+
+if (!ID || !IL || IL === "00"){
+  document.getElementById("hata").hidden = false;
+} else {
+  fetch("veri/" + encodeURIComponent(IL) + ".json")
+    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    .then(d => {
+      const m = (d.mekanlar || []).find(x => x.id === ID);
+      if (m) goster(m, d.il);
+      else document.getElementById("hata").hidden = false;
+    })
+    .catch(() => { document.getElementById("hata").hidden = false; });
+}
+
+/* Tek calisir kontrol: eksik bulucu dogru mu. Sessizce yanlis eksik listesi =
+   isletmeye yanlis cumle = guven kaybi. #kontrol ile gorunur. */
+(function kontrol(){
+  const t = [
+    [{tur:"Kafe", tel:"0312", saat:"Mo-Su 09:00-23:00", adres:"X", web:"y", min:20},
+     [], "hepsi dolu"],
+    [{tur:"Kafe"}, ["saat","tel","menu","adres","web"], "hepsi bos"],
+    [{tur:"Müze", tel:"0312", saat:"a", adres:"b", web:"c"},
+     [], "muzede menu beklenmez"],
+    [{tur:"Kafe", tel:" ", saat:"a", adres:"b", web:"c", min:1},
+     ["tel"], "bosluk dolu sayilmaz"]
+  ];
+  const hata = t.filter(x =>
+    JSON.stringify(eksikleriBul(x[0]).sort()) !== JSON.stringify(x[1].slice().sort()));
+  if (hata.length && location.hash === "#kontrol")
+    document.body.insertAdjacentHTML("afterbegin",
+      '<pre style="margin:0;padding:12px;background:#5b1a1a;color:#fff">eksikleriBul BASARISIZ: ' +
+      hata.map(h => h[2]).join(", ") + "</pre>");
+})();
+</script>
+</body>
+</html>
