@@ -133,6 +133,23 @@ def main(plakalar):
 
     os.makedirs("app/veri", exist_ok=True)
     yol = "app/veri/etkinlik.json"
+
+    # EMNIYET: yarim cekim iyi veriyi ezmesin. Servis gecici olarak
+    # cevap vermezse veya ag koparsa elimizde 5 illik dosya kalir ve
+    # uygulama dun calisirken bugun bos gorunur. Tam calistirmada
+    # (81 il) yeni sonuc eskinin yarisindan azsa YAZILMIYOR.
+    if len(plakalar) >= 40 and os.path.exists(yol):
+        try:
+            with open(yol, encoding="utf-8") as f:
+                eski = len(json.load(f).get("iller", {}))
+        except Exception:
+            eski = 0
+        if eski and len(veri) < eski * 0.5:
+            print()
+            print("YAZILMADI: yeni sonuc %d il, mevcut dosya %d il. "
+                  "Yarim cekim suphesi -- eski dosya korundu." % (len(veri), eski))
+            sys.exit(1)
+
     gecici = yol + ".tmp"
     with open(gecici, "w", encoding="utf-8") as f:
         json.dump({"guncelleme": datetime.now(TR).isoformat(), "iller": veri},
