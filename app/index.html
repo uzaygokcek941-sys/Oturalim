@@ -191,7 +191,7 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
           Yakınımdakileri göster
         </button>
         <p class="not" id="konum-durum">Konumun yalnız tarayıcında kullanılır, hiçbir yere gönderilmez.</p>
-        <div id="oneri-kutu" hidden><div id="oneriler"></div></div>
+        <div id="oneri-kutu" hidden><div id="oneriler"></div><div id="etkinlikler"></div></div>
       </div>
       </div><!-- /cerceve: karar burada biter, yedek yol disarida -->
 
@@ -550,6 +550,43 @@ document.addEventListener("DOMContentLoaded", () => {
     el("#oneri-kutu").hidden = false;
     konumDurum.textContent = il.ad + " · en yakın üçü";
     konumDugme.hidden = true;
+    etkinlikGetir(il);
+  }
+
+  /* ---------- etkinlik ----------
+     Kaynak: etkinlik.io RSS. Mekan koordinati YOK, o yuzden bunlar
+     mesafeye gore degil ZAMANA gore secliyor: once baslayan once.
+     "Yakininda" demiyoruz, "senin sehrinde" diyoruz -- veri onu destekliyor. */
+  function saatYaz(iso){
+    const t = new Date(iso), simdi = new Date();
+    const gun = Math.round((new Date(t.toDateString()) - new Date(simdi.toDateString())) / 86400000);
+    const sa = t.toLocaleTimeString("tr-TR", { hour:"2-digit", minute:"2-digit" });
+    if (gun === 0) return "bugün " + sa;
+    if (gun === 1) return "yarın " + sa;
+    return t.toLocaleDateString("tr-TR", { day:"numeric", month:"long" }) + " " + sa;
+  }
+
+  function etkinlikGetir(il){
+    fetch("veri/etkinlik.json")
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => {
+        const simdi = Date.now();
+        /* Dosya bayatlayabilir; gecmis etkinlik gosterilmez. Cekim
+           sirasinda da eleniyor ama burada da kontrol var -- veri
+           tazelenmezse sayfa yanlis sey soylemesin. */
+        const liste = (d.iller[il.kod] || [])
+          .filter(e => Date.parse(e.bas) > simdi)
+          .slice(0, 3);
+        if (!liste.length) return;
+        el("#etkinlikler").innerHTML =
+          '<p class="etkinlik-bas">' + kacir(il.ad) + " · yaklaşan etkinlikler</p>" +
+          liste.map(e =>
+            '<a class="etkinlik" href="' + kacir(e.link) + '" target="_blank" rel="noopener">' +
+            "<h4>" + kacir(e.ad) + "</h4>" +
+            '<p class="ne-zaman">' + kacir(saatYaz(e.bas)) + " · " + kacir(e.tur) + "</p></a>"
+          ).join("");
+      })
+      .catch(() => {});   /* etkinlik dosyasi yoksa oneri yine calisir */
   }
 
   /* 81 satirlik sehir menusu on kapida durmuyor. Kullanici "yakinimda

@@ -446,3 +446,25 @@
   margin-top:32px; font-size:13px; color:var(--metin-2);
 }
 .kapsam b{ color:var(--vurgu); font-variant-numeric:tabular-nums }
+
+
+/* ---------- ETKİNLİK ----------
+   Mekan önerisinden görsel olarak ayrı: mekan mesafeye göre seçiliyor,
+   etkinlik zamana göre. İkisini aynı kartta göstermek yanlış olurdu —
+   RSS'te koordinat yok, "yakınında" diyemeyiz, "şehrinde" diyoruz. */
+.etkinlik-bas{
+  margin-top:24px; padding-bottom:8px;
+  font-size:13px; color:var(--metin-2);
+  border-bottom:1px solid var(--cizgi);
+}
+.etkinlik{
+  display:block; padding:12px 0;
+  border-bottom:1px solid var(--cizgi);
+  text-decoration:none; color:inherit;
+}
+.etkinlik:hover h4,.etkinlik:focus-visible h4{ color:var(--vurgu) }
+.etkinlik h4{ font-size:16px; font-weight:600; line-height:1.3 }
+.etkinlik .ne-zaman{
+  margin-top:4px; font-size:13px; color:var(--vurgu);
+  font-variant-numeric:tabular-nums;
+}
