@@ -77,6 +77,53 @@ TUR_TR = {"cafe": "Kafe", "restaurant": "Restoran", "bar": "Bar",
 # perakende urun / hediye paketi / veri hatasidir.
 ALT_SINIR, UST_SINIR = 25, 2000
 
+# --- Tema demosu tespiti -------------------------------------------------
+# Cok sayida isletme hazir bir restoran temasi kurup ORNEK MENUYU HIC
+# SILMIYOR. O sayfalar gercek gibi kaziniyor ama icerik temanin demosu:
+#   "Meat Cheese", "Behold Meat", "Coffee Cup"  -> 11 kalemin hepsi 30,00 TL
+#   "Stylish Flower Pot", "Decorative Telescope" -> mobilya, yemek degil
+# Bu, OCR uydurmasindan daha sinsi: veri isletmenin KENDI sitesinden geliyor,
+# o yuzden kaynak dogrulamasi yakalamiyor. Yapisal izlerden tespit ediliyor.
+
+# 2026 gercegi: bu esiklerin altinda bir mekan medyani gercek fiyat degildir.
+TUR_ALT_MEDYAN = {"Restoran": 80, "Bar": 60, "Pub": 60,
+                  "Kafe": 30, "Fast food": 35, "Dondurma": 25}
+
+# Yemek olmayan fiziksel urun ve hizmet: kupa, surahi, elbise, sac orgusu,
+# yillik abonelik... Menu sayfasinda ayni tabloda duruyorlar.
+URUN_HIZMET = re.compile(r"\b(mug|kupa|sürahi|dress|elbise|tişört|t-shirt|termos|"
+                         r"fincan|demlik|öğütücü|abonelik|yıllık üyelik|üyelik|masaj)", re.I)   # sonda sinir yok: Türkçe ek alıyorlar
+
+SOS_AD = re.compile(r"\b(sos|mayonez|ketçap|hardal|wasabi|turşu|garnitür|"
+                    r"sriracha|cheddar sos|ranch|barbekü|bbq)(u|su|ları|leri|lar|ler)?[^A-Za-zÇĞİÖŞÜçğıöşü]*$", re.I)   # sona demirli: baş isim sonda
+
+# Malzeme listesi kalem adi degildir: "DOMATES SOS, MOZZARELLA, MANTAR, ..."
+MALZEME_AD = re.compile(r"^[A-ZÇĞİÖŞÜ][A-ZÇĞİÖŞÜ ,0-9()]{17,}$")
+
+
+def demo_menu_mu(kalemler, tur):
+    """Kalem listesi tema demosu mu? Sebebini dondurur, degilse None."""
+    if len(kalemler) < 3:
+        return None
+    fiyatlar = sorted(k["f"] for k in kalemler)
+    orta = fiyatlar[len(fiyatlar) // 2]
+
+    if len(set(fiyatlar)) == 1 and len(kalemler) >= 4:
+        return "tum kalemler ayni fiyat (%.0f TL)" % orta
+
+    adlar = [k["a"].strip() for k in kalemler]
+    if len(set(adlar)) <= len(adlar) / 2:
+        return "kalem adlari tekrar ediyor"
+
+    if sum(1 for a in adlar if MALZEME_AD.match(a)) >= len(adlar) / 2:
+        return "kalem adlari malzeme listesi"
+
+    esik = TUR_ALT_MEDYAN.get(tur)
+    if esik and orta < esik:
+        return "medyan %.0f TL, %s icin %d TL esiginin altinda" % (orta, tur, esik)
+    return None
+
+
 # Menu kalemi olmayan satir adlari
 COP_AD = re.compile(r"(kargo|teslimat|hediye|paket|abonelik|kupon|bagis|bağış|"
                     r"sepet|toplam|indirim)", re.I)
@@ -196,15 +243,34 @@ def kategori_dokumu(kalemler):
     return dokum
 
 
+ELENEN_DEMO = []          # rapor icin: (mekan, tur, sebep)
+
+
 def mekan_kaydi(m, menu):
     tum_kalemler = menu.get((m["il"], m["ad"]), [])
+    tur_tr = TUR_TR.get(m["tur"], m["tur"])
+
+    # Sos ve garnitur kalem degildir; hepsi alt sinira yigilip medyani
+    # asagi cekiyor ve mekani oldugundan ucuz gosteriyordu.
+    tum_kalemler = [k for k in tum_kalemler
+                    if not SOS_AD.search(k["a"])
+                    and not URUN_HIZMET.search(k["a"])]
+
+    # Tema demosu ise menunun TAMAMI dusuyor. Guvenilmeyen fiyati yanlis
+    # gostermektense hic gostermemek dogru: uygulama "hesapli yer" vaat
+    # ediyor, sahte ucuzluk en kotu hata.
+    sebep = demo_menu_mu(tum_kalemler, tur_tr) if tum_kalemler else None
+    if sebep:
+        ELENEN_DEMO.append((m["ad"], tur_tr, sebep))
+        tum_kalemler = []
+
     # Kategori dokumu TAM listeden: kayda giren 40 kalem en ucuzlar oldugu icin
     # onlardan hesaplanan kirilim sistematik olarak asagi kayardi.
     kalemler = sorted(tum_kalemler, key=lambda x: x["f"])[:40]
     kayit = {
         "id": m["osm_id"],
         "ad": m["ad"],
-        "tur": TUR_TR.get(m["tur"], m["tur"]),
+        "tur": tur_tr,
         "lat": round(float(m["lat"]), 6),
         "lon": round(float(m["lon"]), 6),
     }
@@ -289,6 +355,14 @@ def main():
     dizin.sort(key=lambda d: -d["n"])
     with open("app/veri/index.json", "w", encoding="utf-8") as f:
         json.dump({"varsayilan": "06", "iller": dizin}, f, ensure_ascii=False)
+
+    if ELENEN_DEMO:
+        print()
+        print("tema demosu olarak elenen menu: %d mekan" % len(ELENEN_DEMO))
+        for ad, tur, sebep in ELENEN_DEMO[:12]:
+            print("  %-30s %-12s %s" % (ad[:30], tur, sebep))
+        if len(ELENEN_DEMO) > 12:
+            print("  ... %d tane daha" % (len(ELENEN_DEMO) - 12))
 
     toplam = sum(d["n"] for d in dizin)
     assert len(dizin) == 81, f"81 il bekleniyordu, {len(dizin)} yazildi"
