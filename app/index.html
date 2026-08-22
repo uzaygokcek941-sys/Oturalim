@@ -255,7 +255,8 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
         <h2 id="b-vitrin">Menüsü elimizde olan mekanlar</h2>
         <p>
           Bu mekanların menü fiyatları biliniyor, o yüzden bütçeye göre süzülebiliyorlar.
-          Gösterilen tutar menünün <strong>medyan</strong> kalem fiyatı — hesabın tamamı değil.
+          Gösterilen tutar bir <strong>yemeğin</strong> ortalama fiyatı — içecekler hariç,
+          hesabın tamamı değil.
         </p>
       </div>
       <div class="vitrin odaklanir" id="vitrin" data-giris="gecis"></div>
@@ -429,14 +430,35 @@ document.addEventListener("DOMContentLoaded", () => {
         "<b>" + kacir(t[0]) + "</b></a>"
     ).join("");
 
-    el("#vitrin").innerHTML = v.vitrin.map(m =>
+    /* Vitrin fiyati yemekFiyati() ile hesaplaniyor, vitrin.json'daki
+       "medyan" alaniyla DEGIL: o medyan icecekleri de sayiyordu ve vitrin
+       en ucuzdan siralandigi icin yapisal olarak tema demosu menuleri one
+       cikariyordu (Marache Coffee 49 TL, Uzunlar Kebap 36 TL). Olculemeyen
+       mekan vitrine hic girmiyor -- yanlis ucuzluk, ucuzluk yoklugundan kotu. */
+    /* Ayni zincirin sekiz subesi vitrin degil duvar olur: ad tekrari eleniyor,
+       tur basina en fazla 3 birakiliyor. */
+    const gorulenAd = new Set(), turSayaci = {};
+    const vit = v.vitrin
+      .map(m => ({ m, fiyat: yemekFiyati(m) }))
+      .filter(x => x.fiyat != null)
+      .sort((a, b) => a.fiyat - b.fiyat)
+      .filter(({ m }) => {
+        const ad = m.ad.trim().toLocaleLowerCase("tr");
+        if (gorulenAd.has(ad)) return false;
+        if ((turSayaci[m.tur] || 0) >= 3) return false;
+        gorulenAd.add(ad);
+        turSayaci[m.tur] = (turSayaci[m.tur] || 0) + 1;
+        return true;
+      })
+      .slice(0, 12);
+
+    el("#vitrin").innerHTML = vit.map(({ m, fiyat }) =>
       '<a class="kutu tiklanir v-kart" href="kesfet.html?il=' + encodeURIComponent(m.il) +
         "&mekan=" + encodeURIComponent(m.id) + '">' +
         '<div class="ust"><div><h3>' + kacir(m.ad) + "</h3>" +
           '<div class="yer">' + kacir(m.tur) + " · " + kacir(m.ilAd) + "</div></div>" +
-          '<div class="tutar">' + tl(m.medyan) + "<small>medyan</small></div></div>" +
-        '<div class="satir"><span class="rozet">' + sayi(m.n) + " kalem</span>" +
-          '<span class="rozet vurgulu">' + tl(m.min) + " – " + tl(m.max) + "</span></div></a>"
+          '<div class="tutar">' + tl(fiyat) + "<small>yemek</small></div></div>" +
+        '<div class="satir"><span class="rozet">' + sayi(m.n) + " kalem</span></div></a>"
     ).join("");
   }).catch(() => {
     el("#vitrin").innerHTML =

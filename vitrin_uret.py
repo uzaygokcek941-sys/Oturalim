@@ -33,19 +33,34 @@ for kod in sorted(d["kod"] for d in ix["iller"]):
             "min": m["min"], "max": m["max"], "n": len(m["menu"]),
             "medyan": round(statistics.median(k["f"] for k in m["menu"])),
             "id": m["id"],
+            # Fiyat burada HESAPLANMIYOR. Icecegi yemekten ayiran kural
+            # app/ortak.js icindeki yemekFiyati()'nde; ayni kurali iki dilde
+            # tutmak, ikisinin ayrisip ayni mekana iki farkli fiyat soylemesi
+            # demek. Ham alanlar tasiniyor, hesabi tarayici yapiyor.
+            "kat": m.get("kat"),
+            "menu": [{"a": k["a"]} for k in m["menu"]],
         })
 
-# Vitrin: temsili olsun diye once yeterli kalemi olanlar (tek kalemlik bir
-# dondurmaci medyani yaniltici), sonra tur cesitliligi gozetilerek ucuzdan pahaliya.
-aday = [x for x in ornekler if x["n"] >= 8]
-aday.sort(key=lambda x: x["medyan"])
-vitrin, kota = [], {}
-for x in aday:                       # her turden en fazla 2, toplam 12
-    if kota.get(x["tur"], 0) >= 2:
+# Aday havuzu. Once yeterli kalemi olanlar (tek kalemlik bir dondurmaci
+# medyani yaniltici), sonra tur cesitliligi. ESKIDEN buradan "en ucuz 12"
+# secilliyordu ve o medyan icecekleri de sayiyordu: vitrin yapisal olarak
+# en kotu veriyi one cikariyordu -- tema demosu menuler hep en ucuz gorunur.
+# Artik havuz genis birakiliyor, eleme ve siralama tarayicida yapiliyor.
+# Havuza yalniz "kat" verisi olanlar girer: onsuz tarayici icecegi yemekten
+# ayiramaz, mekan zaten elenir -- bosuna tasimanin anlami yok. Ayni zincirin
+# on subesi de havuzu doldurmasin diye ad tekrari burada eleniyor. Bunlar veri
+# secimi; FIYAT kurali degil, o hala yalniz ortak.js'te.
+aday = [x for x in ornekler if x["n"] >= 8 and x["kat"]]
+aday.sort(key=lambda x: x["ad"])
+vitrin, kota, gorulen = [], {}, set()
+for x in aday:                       # her turden en fazla 10, toplam 30 aday
+    ad = x["ad"].strip().lower()
+    if ad in gorulen or kota.get(x["tur"], 0) >= 10:
         continue
+    gorulen.add(ad)
     kota[x["tur"]] = kota.get(x["tur"], 0) + 1
     vitrin.append(x)
-    if len(vitrin) == 12:
+    if len(vitrin) == 30:
         break
 
 cikti = {
@@ -63,6 +78,6 @@ with open(yol, "w", encoding="utf-8") as f:
 print("yazildi:", yol)
 print("toplam %d mekan / %d il / fiyatli %d / kalem %d" % (toplam, cikti["il"], fiyatli, kalem))
 print("turler:", cikti["turler"])
-print("vitrin medyan araligi: %d - %d TL" % (vitrin[0]["medyan"], vitrin[-1]["medyan"]))
+print("vitrin aday havuzu: %d mekan (eleme ve siralama tarayicida)" % len(vitrin))
 
 assert toplam > 30000 and fiyatli > 0 and kalem > 0, "veri beklenenden kucuk"
