@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Oturalım — bütçene göre otur</title>
-<meta name="description" content="Türkiye'deki 33.552 kafe, restoran ve barı bütçene, bahçesine ve şu an açık olup olmadığına göre filtrele. Ücretsiz, üyeliksiz, reklamsız.">
+<title>Oturalım — yakınında nerede oturulur</title>
+<meta name="description" content="Türkiye'deki 36.102 kafe, restoran ve barı bütçene, bahçesine ve şu an açık olup olmadığına göre filtrele. Ücretsiz, üyeliksiz, reklamsız.">
 <meta property="og:title" content="Oturalım — bütçene göre otur">
-<meta property="og:description" content="33.552 mekan, 81 il. Nerede oturulur, kaça oturulur.">
+<meta property="og:description" content="36.102 mekan, 81 il. Nerede oturulur, kaça oturulur.">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="tr_TR">
 <meta name="theme-color" content="#15110e">
@@ -182,8 +182,7 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
       <div class="cerceve" data-giris="odak">
       <h1>Yakınında <em>nerede</em> hesaplı oturulur?</h1>
       <p class="giris">
-        Konumunu ver, en yakındaki kafe, restoran ve barları mesafeye göre sırala.
-        Üyelik yok, reklam yok, ücret yok.
+        Konumunu ver, sana üç yer önereyim. Üyelik yok, reklam yok, ücret yok.
       </p>
 
       <div class="konum-kutu">
@@ -192,10 +191,11 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
           Yakınımdakileri göster
         </button>
         <p class="not" id="konum-durum">Konumun yalnız tarayıcında kullanılır, hiçbir yere gönderilmez.</p>
+        <div id="oneri-kutu" hidden><div id="oneriler"></div></div>
       </div>
       </div><!-- /cerceve: karar burada biter, yedek yol disarida -->
 
-      <form class="secim yedek" id="secim">
+      <form class="secim yedek" id="secim" hidden>
         <fieldset>
           <legend>Kişi başı bütçen</legend>
           <div class="butceler" role="group" id="butceler">
@@ -229,12 +229,10 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
         </p>
       </form>
 
-      <div class="sayilar" data-giris="sicrama">
-        <div><b class="sayi" data-s="toplam">—</b><span>mekan</span></div>
-        <div><b class="sayi" data-s="il">—</b><span>il, hepsi kapsandı</span></div>
-        <div><b class="sayi" data-s="kalem">—</b><span>menü kalemi, gerçek fiyat</span></div>
-        <div><b class="sayi">0 ₺</b><span>ücret, üyelik, reklam</span></div>
-      </div>
+      <p class="kapsam" data-giris="sicrama">
+        <span><b class="sayi" data-s="toplam">—</b> mekan, 81 ilde</span>
+        <span>Ücretsiz, üyeliksiz, reklamsız</span>
+      </p>
     </div>
   </section>
 
@@ -296,7 +294,7 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
           <h3 id="b-durust">Elimizde ne var</h3>
           <ul class="evet">
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 13 4 4L19 7"/></svg>
-              <span><strong id="d-toplam">33.552</strong> mekanın konumu, türü, açılış saati — OpenStreetMap'ten, açık lisanslı.</span></li>
+              <span><strong id="d-toplam">36.102</strong> mekanın konumu, türü, açılış saati — OpenStreetMap'ten, açık lisanslı.</span></li>
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 13 4 4L19 7"/></svg>
               <span><strong id="d-kalem">9.490</strong> menü kalemi, <strong id="d-fiyatli">383</strong> mekandan — işletmelerin kendi sitelerinden.</span></li>
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 13 4 4L19 7"/></svg>
@@ -428,7 +426,7 @@ document.addEventListener("DOMContentLoaded", () => {
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" ' +
         'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
         (TUR_IKON[t[0]] || "") + "</svg>" +
-        "<b>" + kacir(t[0]) + "</b><span>" + sayi(t[1]) + " mekan</span></a>"
+        "<b>" + kacir(t[0]) + "</b></a>"
     ).join("");
 
     el("#vitrin").innerHTML = v.vitrin.map(m =>
@@ -470,10 +468,104 @@ document.addEventListener("DOMContentLoaded", () => {
     return iyi;
   }
 
+  /* ---------- öneri ----------
+     Sıralama öneri değildir. Kullanıcı "yakınımda nerede yenir" diye
+     soruyor; 2.300 kartlık liste bu sorunun cevabı değil, ödevin kendisi.
+     Burada üç mekan seçilip GEREKÇESİYLE gösteriliyor. */
+  function uzaklikKm(a, b, lat, lon){
+    const dx = (a - lon) * 85, dy = (b - lat) * 111;   // km, kaba
+    return Math.hypot(dx, dy);
+  }
+
+  function onerVer(il, lat, lon){
+    konumDurum.textContent = il.ad + " çevresine bakılıyor…";
+    fetch("veri/" + il.kod + ".json")
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(v => {
+        const aday = v.mekanlar
+          .map(m => ({ m, uz: uzaklikKm(m.lon, m.lat, lat, lon) }))
+          .filter(x => x.uz < 3)
+          .sort((a, b) => a.uz - b.uz)
+          .slice(0, 60);
+
+        if (!aday.length){
+          konumDugme.disabled = false;
+          konumDurum.innerHTML = "Yakınında kayıtlı mekan bulamadım. " +
+            '<a href="kesfet.html?il=' + il.kod + '">' + kacir(il.ad) + " listesine bak</a>.";
+          return;
+        }
+
+        /* Puan: mesafe esas, açık olmak ve hesaplı olmak öne çeker.
+           Uydurma bir "eşleşme yüzdesi" yok -- her puan bileşeni karta
+           gerekçe olarak yazılıyor, kullanıcı neden önerildiğini görüyor. */
+        for (const x of aday){
+          const a = acikMi(x.m.saat), sv = seviye(x.m);
+          x.acik = a; x.sv = sv;
+          x.puan = x.uz
+            - (a === true ? 0.45 : 0)
+            - (sv && sv.sinif === "hesapli" ? 0.30 : 0)
+            - (sv && sv.olculdu ? 0.25 : 0);
+        }
+        aday.sort((a, b) => a.puan - b.puan);
+
+        /* Aynı türden üç tane önermek öneri değil tekrar olur. */
+        const secim = [], gorulenTur = new Set();
+        for (const x of aday){
+          if (secim.length === 3) break;
+          if (gorulenTur.has(x.m.tur) && secim.length < 3 &&
+              aday.length > 6) continue;
+          gorulenTur.add(x.m.tur); secim.push(x);
+        }
+        while (secim.length < 3 && aday.length > secim.length)
+          for (const x of aday) if (!secim.includes(x)){ secim.push(x); break; }
+
+        cizOneri(il, secim);
+      })
+      .catch(() => {
+        konumDugme.disabled = false;
+        yedegiAc("Mekan verisi yüklenemedi. Şehir seçebilirsin.");
+      });
+  }
+
+  function mesafeYaz(km){
+    return km < 1 ? Math.round(km * 1000) + " m" : km.toFixed(1) + " km";
+  }
+
+  function cizOneri(il, secim){
+    const kart = x => {
+      const neden = [];
+      neden.push(mesafeYaz(x.uz));
+      if (x.acik === true) neden.push("şu an açık");
+      if (x.sv && x.sv.olculdu) neden.push("menü " + x.sv.ad);
+      else if (x.sv && x.sv.sinif === "hesapli") neden.push("hesaplı");
+      return '<a class="oneri" href="kesfet.html?il=' + il.kod +
+        "&mekan=" + encodeURIComponent(x.m.id) + '">' +
+        "<h3>" + kacir(x.m.ad) + "</h3>" +
+        '<p class="neden">' + neden.map(kacir).join(" · ") + "</p>" +
+        '<span class="tur">' + kacir(x.m.tur) + "</span></a>";
+    };
+    el("#oneriler").innerHTML = secim.map(kart).join("") +
+      '<a class="hepsi" href="kesfet.html?il=' + il.kod + '&sirala=yakin">' +
+      "Yakındaki her yeri gör</a>";
+    el("#oneri-kutu").hidden = false;
+    konumDurum.textContent = il.ad + " · en yakın üçü";
+    konumDugme.hidden = true;
+  }
+
+  /* 81 satirlik sehir menusu on kapida durmuyor. Kullanici "yakinimda
+     nerede yenir" diye soruyor; cevap 81 secenekli bir liste degil.
+     Konum reddedilir veya calismazsa aciliyor -- o zaman gercekten lazim. */
+  function yedegiAc(mesaj){
+    const f = el("#secim");
+    f.hidden = false;
+    konumDurum.textContent = mesaj;
+    f.scrollIntoView({ block:"nearest", behavior:"smooth" });
+  }
+
   const konumDugme = el("#yakinimdakiler"), konumDurum = el("#konum-durum");
   konumDugme.addEventListener("click", () => {
     if (!navigator.geolocation){
-      konumDurum.textContent = "Tarayıcın konum desteklemiyor. Aşağıdan şehir seçebilirsin.";
+      yedegiAc("Tarayıcın konum desteklemiyor. Şehir seçebilirsin.");
       return;
     }
     konumDugme.disabled = true;
@@ -483,17 +575,17 @@ document.addEventListener("DOMContentLoaded", () => {
         const il = enYakinIl(p.coords.latitude, p.coords.longitude);
         if (!il){
           konumDugme.disabled = false;
-          konumDurum.textContent = "Şehir listesi yüklenemedi. Aşağıdan seçebilirsin.";
+          yedegiAc("Şehir listesi yüklenemedi. Elle seçebilirsin.");
           return;
         }
         try { localStorage.setItem("oturalim.il", il.kod); } catch (e) {}
-        location.href = "kesfet.html?il=" + il.kod + "&sirala=yakin";
+        onerVer(il, p.coords.latitude, p.coords.longitude);
       },
       err => {
         konumDugme.disabled = false;
-        konumDurum.textContent = err.code === 1
-          ? "Konum izni verilmedi. Aşağıdan şehir seçebilirsin."
-          : "Konum alınamadı. Aşağıdan şehir seçebilirsin.";
+        yedegiAc(err.code === 1
+          ? "Konum izni verilmedi. Şehir seçebilirsin."
+          : "Konum alınamadı. Şehir seçebilirsin.");
       },
       { timeout: 10000, maximumAge: 300000 }
     );
