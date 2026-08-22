@@ -66,14 +66,17 @@ function suzulmus(){
     /* Bütçe süzgeci yalnız fiyatı bilinenleri eler. Fiyatı olmayan mekanı
        elemiyoruz: "bilinmiyor" ile "pahalı" aynı şey değil, listeden
        düşürmek kullanıcıyı yanıltır. */
-    if (butce && m.min != null && m.min > butce) return false;
+    /* Karsilastirma YEMEK fiyatiyla; m.min menudeki en ucuz icecek. */
+    const yf = yemekFiyati(m);
+    if (butce && yf != null && yf > butce) return false;
     if (arama && !((m.ad + " " + (m.mutfak || "") + " " + (m.adres || ""))
         .toLocaleLowerCase("tr").includes(arama))) return false;
     return true;
   });
 
   if (sirala === "ucuz")
-    l.sort((a,b) => (a.min == null ? Infinity : a.min) - (b.min == null ? Infinity : b.min)
+    l.sort((a,b) => ((yemekFiyati(a) == null) ? Infinity : yemekFiyati(a)) -
+                    ((yemekFiyati(b) == null) ? Infinity : yemekFiyati(b))
                     || a.ad.localeCompare(b.ad, "tr"));
   else if (sirala === "yakin" && konum)
     l.sort((a,b) => uzaklik(a) - uzaklik(b));
@@ -100,7 +103,8 @@ function kartHTML(m){
     (u != null ? ' style="--uzak:' + u.toFixed(3) + '"' : "") +
     (secili === m.id ? ' aria-current="true"' : "") + ">" +
     '<div class="ust"><h3>' + kacir(m.ad) + "</h3>" +
-    (m.min != null ? '<span class="tutar">' + tl(m.min) + "+</span>" : "") +
+    (yemekFiyati(m) != null
+      ? '<span class="tutar">~' + tl(yemekFiyati(m)) + "</span>" : "") +
     '</div><div class="meta"><span>' + kacir(m.tur) + "</span>" +
     (a === true  ? '<span class="rozet acik">açık</span>' : "") +
     (a === false ? '<span class="rozet kapali">kapalı</span>' : "") +
@@ -185,7 +189,7 @@ function katmanCiz(l, ortala){
   const sonuk = stil.getPropertyValue("--metin-3").trim() || "#7d7264";
 
   l.slice(0, HARITA_UST).forEach(m => {
-    const fiyatli = m.min != null;
+    const yf = yemekFiyati(m), fiyatli = yf != null;
     const i = L.circleMarker([m.lat, m.lon], {
       radius: fiyatli ? 7 : 5, weight:1.5,
       color: fiyatli ? vurgu : sonuk,
@@ -193,7 +197,7 @@ function katmanCiz(l, ortala){
       fillOpacity: fiyatli ? .8 : .45
     }).addTo(katman);
     i.bindPopup("<b>" + kacir(m.ad) + "</b><br>" + kacir(m.tur) +
-                (fiyatli ? " · " + tl(m.min) + "–" + tl(m.max) : ""));
+                (fiyatli ? " · yemek ~" + tl(yf) : ""));
     i.on("click", () => ac(m.id));
     isaretler.set(m.id, i);
     noktalar.push([m.lat, m.lon]);

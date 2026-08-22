@@ -83,11 +83,14 @@ function acikMi(ifade, simdi){
 /* ---------- bütçe bandı ----------
    Kişi başı bütçeyi mekanın menü fiyatlarıyla karşılaştırır.
    "Bu bütçeyle bu mekanda ne alınabilir" sorusunun cevabı; ortalama hesap değil. */
+/* Butce karsilastirmasi YEMEK fiyatiyla yapilir. m.min ile yapilinca 100 TL
+   butce giren kisiye ana yemegi 400 TL olan balikci "butcende" diye
+   gosteriliyordu -- cunku m.min menudeki en ucuz icecekti. */
 function bant(m, butce){
-  if (m.min == null || !butce) return null;
-  if (m.min > butce)  return { sinif:"tuz",  ad:"bütçe üstü" };
-  if (m.max <= butce) return { sinif:"ucuz", ad:"menü tamamen bütçende" };
-  return { sinif:"orta", ad:"bütçene giren seçenek var" };
+  const f = yemekFiyati(m);
+  if (f == null || !butce) return null;
+  if (f > butce) return { sinif:"tuz",  ad:"bütçe üstü" };
+  return { sinif:"ucuz", ad:"bütçene giriyor" };
 }
 
 /* ---------- fiyat seviyesi ----------
@@ -132,9 +135,46 @@ function turUyar(secili, tur){
   return false;
 }
 
+/* Menudeki en ucuz kalem neredeyse her zaman bir ICECEK. m.min'i fiyat diye
+   gostermek pahali bir baligiyi "25 TL'den baslar" yapiyordu (Milos Balik:
+   min=25 "Aci Bal", ana yemek 350-590 TL). Kullaniciya lazim olan sey
+   "burada bir YEMEK kac lira" -- icecek ve tatli disi kategorilerin medyani. */
+const ICECEK_KAT = new Set(["Ayran","Kola / gazlı","Meyve suyu","Su","Filtre kahve",
+  "Espresso","Çay","Türk kahvesi","Latte","Americano","Rakı / içkiler","Matcha",
+  "Şarap","Bira","Sıcak çikolata"]);
+const TATLI_KAT = new Set(["Tatlı","Dondurma"]);
+
+/* Tema demosu esigi. 2026-08 fiyatlariyla bir ogun bunun altinda olmaz;
+   enflasyonla birlikte yukseltilmeli, yoksa gercek ucuz yerleri eler. */
+const YEMEK_ALT_SINIR = 80;
+const TR_HARF = /[çğıöşüÇĞİÖŞÜ]/;
+
+function yemekFiyati(m){
+  const kat = m.kat;
+  if (!kat) return null;                  /* kategori yoksa icecegi ayiramayiz */
+  let ana = Object.keys(kat).filter(k => !ICECEK_KAT.has(k) && !TATLI_KAT.has(k));
+  if (!ana.length) ana = Object.keys(kat).filter(k => TATLI_KAT.has(k));
+  if (!ana.length) return null;
+
+  const med = [];
+  for (const k of ana) for (let i = 0; i < kat[k].n; i++) med.push(kat[k].med);
+  med.sort((a, b) => a - b);
+  const orta = Math.round(med[med.length >> 1]);
+
+  /* Tema demosu: WordPress sablonundan gelen menuler Ingilizce ve ucuzdur
+     ("Fish Tacos" 32 TL). Ikisi birden ise guvenme -- yanlis ucuzluk bu
+     uygulamada yapilabilecek en kotu hata. */
+  if (orta < YEMEK_ALT_SINIR){
+    const mn = m.menu || [];
+    if (mn.length >= 8 && !mn.some(k => TR_HARF.test(k.a))) return null;
+  }
+  return orta;
+}
+
 function seviye(m){
-  if (m.min != null)
-    return { sinif:"olcum", ad:tl(m.min) + "–" + tl(m.max), olculdu:true };
+  const yf = yemekFiyati(m);
+  if (yf != null)
+    return { sinif:"olcum", ad:"yemek ~" + tl(yf), olculdu:true };
   if (m.tur === "Fast food" || m.tur === "Dondurma")
     return { sinif:"hesapli", ad:"hesaplı" };
   const mut = (m.mutfak || "").toLowerCase().split(/[;,]/).map(x => x.trim());
@@ -191,9 +231,24 @@ function kendiniKontrolEt(){
     ["acikMi kapanmis",         acikMi("11:00-02:00", g03),        false],
     ["acikMi gun tutmuyor",     acikMi("Fr-Sa 20:00-23:00", g14),  false],
     ["acikMi bilgi yok",        acikMi("", g14),                   null],
-    ["bant butce ustu",     (bant({min:300,max:900}, 200)||{}).sinif, "tuz"],
-    ["bant tamamen icinde", (bant({min:30,max:120}, 200)||{}).sinif,  "ucuz"],
-    ["bant kismen",         (bant({min:100,max:900}, 200)||{}).sinif, "orta"],
+    /* yemekFiyati: icecek fiyatinin yemek yerine gecmedigini kanitlar */
+    ["yemek icecegi saymaz",
+      yemekFiyati({kat:{"Kebap":{n:3,med:980},"Su":{n:1,med:30},"Çay":{n:1,med:40}}}), 980],
+    ["yemek kat yoksa null", yemekFiyati({min:25, max:290}),          null],
+    ["yemek tatlicida tatli",
+      yemekFiyati({kat:{"Tatlı":{n:2,med:150},"Çay":{n:1,med:30}}}),  150],
+    ["yemek tema demosu elenir",
+      yemekFiyati({kat:{"Tavuk":{n:4,med:36}},
+        menu:[{a:"Fish Tacos",f:32},{a:"Chicken Alfredo",f:36},{a:"French Fries",f:29},
+              {a:"Prawns Fry",f:31},{a:"Vegetable Roll",f:25},{a:"Americano",f:38},
+              {a:"Pizza Margherita",f:51},{a:"Berry Chocolate",f:29}]}), null],
+    ["yemek ucuz ama turkce kalir",
+      yemekFiyati({kat:{"Çorba":{n:2,med:60}},
+        menu:[{a:"Mercimek Çorbası",f:60},{a:"Ayran",f:30}]}),        60],
+    ["bant butce ustu",
+      (bant({kat:{"Kebap":{n:1,med:400}}}, 200)||{}).sinif,           "tuz"],
+    ["bant butce icinde",
+      (bant({kat:{"Çorba":{n:1,med:120}}}, 200)||{}).sinif,           "ucuz"],
     ["bant fiyatsiz",       bant({min:null,max:null}, 200),           null],
     ["tl bicim",            tl(1250),                                 "1.250 ₺"],
     ["kacir xss",           kacir('<img src=x onerror=1>'),

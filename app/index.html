@@ -627,6 +627,19 @@ document.addEventListener("DOMContentLoaded", () => {
       '<p class="ne-zaman">' + kacir(saatYaz(e.bas)) + " · " + kacir(e.tur) + "</p></a>";
   }
 
+  /* Yedek yol. Konum alinamazsa (izin yok, zaman asimi, veri inmedi) kullanici
+     tikanip kalmasin diye sehir secici burada aciliyor. Dort hata yolunun
+     dordu de buraya cikiyor -- tanimsizken hepsi ReferenceError firlatiyordu ve
+     ekran "Konum aliniyor..." da doniyordu. */
+  function yedegiAc(mesaj){
+    konumDurum.textContent = mesaj;
+    const form = el("#secim");
+    if (form){
+      form.hidden = false;
+      form.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }
+
   const konumDugme = el("#yakinimdakiler"), konumDurum = el("#konum-durum");
   konumDugme.addEventListener("click", () => {
     if (!navigator.geolocation){
