@@ -631,6 +631,21 @@ document.addEventListener("DOMContentLoaded", () => {
     ciz(true);
   });
 
+  /* Acik konum dugmesi. Basari durumunu yaziyla bildiriyor: sessizce hicbir
+     sey olmamasi, kullanicinin "calismiyor" diye birakmasinin sebebi. */
+  const konumDug = el("#konum-al");
+  if (konumDug) konumDug.addEventListener("click", () => {
+    if (!navigator.geolocation){ konumDug.textContent = "konum desteklenmiyor"; return; }
+    konumDug.disabled = true;
+    konumDug.textContent = "konum alınıyor…";
+    const bitir = () => {
+      konumDug.disabled = false;
+      konumDug.textContent = konum ? "konumun kullanılıyor" : "konum alınamadı";
+      ciz(false);
+    };
+    konumIste(bitir);
+  });
+
   /* mobil sekme */
   document.querySelectorAll(".sekme button").forEach(b =>
     b.addEventListener("click", () => {

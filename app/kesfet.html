@@ -280,6 +280,13 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
         <option value="ucuz">Önce ucuz</option>
         <option value="yakin">Bana yakın</option>
       </select>
+      <!-- Konum yalniz "Bana yakin" siralamasindan isteniyordu; o menuyu
+           acmayan kullaniciya konum hic sorulmuyor, mesafe rozeti hic
+           cikmiyordu. Acik dugme. -->
+      <button class="mini" type="button" id="konum-al" title="Konumumu kullan">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-5.686 7-11a7 7 0 1 0-14 0c0 5.314 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg>
+        Konumum
+      </button>
     </div>
 
     <div class="arac-satir" style="flex-wrap:wrap">
