@@ -570,33 +570,61 @@ document.addEventListener("DOMContentLoaded", () => {
     fetch("veri/etkinlik.json")
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => {
-        const simdi = Date.now();
-        /* Dosya bayatlayabilir; gecmis etkinlik gosterilmez. Cekim
-           sirasinda da eleniyor ama burada da kontrol var -- veri
-           tazelenmezse sayfa yanlis sey soylemesin. */
+        const simdi = Date.now(), GUN = 86400000;
+        /* Dosya bayatlayabilir; geçmiş etkinlik gösterilmez. Çekimde de
+           eleniyor ama veri tazelenmezse sayfa yanlış şey söylemesin. */
         const liste = (d.iller[il.kod] || [])
           .filter(e => Date.parse(e.bas) > simdi)
-          .slice(0, 3);
+          .sort((a, b) => Date.parse(a.bas) - Date.parse(b.bas));
         if (!liste.length) return;
-        el("#etkinlikler").innerHTML =
-          '<p class="etkinlik-bas">' + kacir(il.ad) + " · yaklaşan etkinlikler</p>" +
-          liste.map(e =>
-            '<a class="etkinlik" href="' + kacir(e.link) + '" target="_blank" rel="noopener">' +
-            "<h4>" + kacir(e.ad) + "</h4>" +
-            '<p class="ne-zaman">' + kacir(saatYaz(e.bas)) + " · " + kacir(e.tur) + "</p></a>"
-          ).join("");
+
+        /* İki AYRI soru var, tek listede karıştırmıyoruz:
+           "bu akşam ne var" ve "ileride ne var".
+           Veri bunu doğruluyor: bugünkü 46 etkinliğin hepsi konser,
+           festival ve fuarın %94'ü bir haftadan uzakta. Festival aylar
+           öncesinden duyurulur, konser sık ve yakındır. Bu akşamki
+           konserin yanına 6 hafta sonraki fuarı koymak, kimsenin
+           sormadığı soruya cevap vermek olurdu. */
+        const pencere = liste.filter(e => Date.parse(e.bas) - simdi < 14 * GUN);
+        const yakin = pencere.slice(0, 3);
+
+        /* Yakın pencerede festival/fuar varsa ama ilk üçe girememişse
+           (konserler sayıca eziyor) üçüncüyü onunla değiştir. Tür
+           çeşitliliği ancak GERÇEKTEN yakınsa zorlanır -- 6 hafta
+           sonraki fuarı bu akşamki konserin yanına koymak yanlış olurdu. */
+        if (yakin.length === 3 && !yakin.some(e => e.tur !== "Konser")){
+          const senlik = pencere.find(e => e.tur === "Festival" || e.tur === "Fuar");
+          if (senlik) yakin[2] = senlik;
+        }
+
+        /* "İleride" YALNIZ pencere dışındakiler için. Yarınki bir festivali
+           "ileride" diye sunmak yanlış olurdu. */
+        const ileri = liste.find(e =>
+          (e.tur === "Festival" || e.tur === "Fuar") &&
+          Date.parse(e.bas) - simdi >= 14 * GUN);
+
+        let html = "";
+        if (yakin.length){
+          html += '<p class="etkinlik-bas">' + kacir(il.ad) + " · yaklaşan etkinlikler</p>" +
+            yakin.map(satir).join("");
+        } else {
+          /* Yakında hiçbir şey yoksa 3 ay sonrakini "yaklaşan" diye
+             sunmak yanlış olur; ne zaman olduğunu açıkça söylüyoruz. */
+          html += '<p class="etkinlik-bas">' + kacir(il.ad) +
+            " · yakın günlerde etkinlik yok</p>" + satir(liste[0]);
+        }
+        if (ileri){
+          html += '<p class="etkinlik-bas">ileride</p>' + satir(ileri);
+        }
+        el("#etkinlikler").innerHTML = html;
       })
-      .catch(() => {});   /* etkinlik dosyasi yoksa oneri yine calisir */
+      .catch(() => {});   /* etkinlik dosyası yoksa mekan önerisi yine çalışır */
   }
 
-  /* 81 satirlik sehir menusu on kapida durmuyor. Kullanici "yakinimda
-     nerede yenir" diye soruyor; cevap 81 secenekli bir liste degil.
-     Konum reddedilir veya calismazsa aciliyor -- o zaman gercekten lazim. */
-  function yedegiAc(mesaj){
-    const f = el("#secim");
-    f.hidden = false;
-    konumDurum.textContent = mesaj;
-    f.scrollIntoView({ block:"nearest", behavior:"smooth" });
+  function satir(e){
+    return '<a class="etkinlik" href="' + kacir(e.link) + '" target="_blank" rel="noopener">' +
+      "<h4>" + kacir(e.ad) + "</h4>" +
+      '<p class="ne-zaman">' + kacir(saatYaz(e.bas)) + " · " + kacir(e.tur) + "</p></a>";
   }
 
   const konumDugme = el("#yakinimdakiler"), konumDurum = el("#konum-durum");
