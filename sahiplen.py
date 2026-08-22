@@ -61,10 +61,17 @@ def yogunluk_haritasi(mekanlar):
     return mekanlar
 
 
+def bos_mu(m, k):
+    """isletme.html icindeki eksikleriBul ile AYNI kurali uygular.
+    Ikisi ayrisirsa isletmeye mesajda bir sey, sayfasinda baskasi soylenir --
+    sistemin tek vaadi bu ikisinin ayni olmasi, o yuzden kural tek yerde."""
+    if k == "menu":
+        return m.get("tur") in YEME_ICME and m.get("min") is None
+    return not str(m.get(k, "")).strip()
+
+
 def degerlendir(m):
-    eksik = [k for k in AGIRLIK
-             if not str(m.get(k, "")).strip()
-             and not (k == "menu" and m.get("tur") not in YEME_ICME)]
+    eksik = [k for k in AGIRLIK if bos_mu(m, k)]
     m["eksik"] = eksik
     bosluk = sum(AGIRLIK[k] for k in eksik)
     # yogunluk log ile yumusatilir: 200 komsulu cadde 20 komsuludan 10 kat
