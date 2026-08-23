@@ -240,6 +240,21 @@ const Kimlik = {
     return data || [];
   },
 
+  async katkilarim(){
+    if (!sb || !oturum) return [];
+    const { data, error } = await sb.from("katkilar")
+      .select("id, mekan_id, mekan_ad, il, alan, deger, durum, olusturuldu")
+      .order("olusturuldu", { ascending: false });
+    if (error){ console.error("katkilarim:", error.message); return []; }
+    return data || [];
+  },
+
+  async katkiSil(id){
+    if (!sb || !oturum) throw new Error("Giriş yapılmamış.");
+    const { error } = await sb.from("katkilar").delete().eq("id", id);
+    if (error) throw new Error(hataMetni(error));
+  },
+
   async katkiYonetimListesi(durum){
     if (!sb || !oturum) return [];
     let s = sb.from("katkilar")

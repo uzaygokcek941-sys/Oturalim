@@ -44,6 +44,11 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   .liste-satir .islem{display:flex;gap:var(--a2);align-items:center}
   .tutar-b{font-family:var(--font-baslik);font-size:16px;font-weight:600;color:var(--vurgu);
     font-variant-numeric:tabular-nums;white-space:nowrap}
+  /* Katkinin degeri metin, tutar degil: .tutar-b'nin nowrap'i uzun bir adres
+     ya da baglantiyi mobilde tasiriyordu. Kirilabilir ve genisligi sinirli. */
+  .katki-deger{font-family:var(--font-baslik);font-size:15px;font-weight:600;
+    color:var(--vurgu);max-width:min(22rem,60vw);overflow-wrap:anywhere;
+    text-align:right;line-height:1.35}
   .sil{width:44px;height:44px;display:grid;place-items:center;border-radius:var(--r-s);
     color:var(--metin-3);border:1px solid transparent}
   .sil:hover{color:var(--kirmizi);border-color:var(--kirmizi);background:var(--zemin-3)}
@@ -113,6 +118,7 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
         <div class="sekmeler" role="tablist" id="sekmeler">
           <button role="tab" type="button" aria-selected="true"  data-bolum="favoriler">Favorilerim</button>
           <button role="tab" type="button" aria-selected="false" data-bolum="paylasimlar">Paylaşımlarım</button>
+          <button role="tab" type="button" aria-selected="false" data-bolum="katkilar">Katkılarım</button>
           <button role="tab" type="button" aria-selected="false" data-bolum="ayarlar">Ayarlar</button>
         </div>
 
@@ -123,6 +129,7 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
 
         <section id="bolum-favoriler" data-giris="sicrama"></section>
         <section id="bolum-paylasimlar" hidden></section>
+        <section id="bolum-katkilar" hidden></section>
 
         <section id="bolum-ayarlar" hidden>
           <div class="alanlar">
@@ -262,17 +269,71 @@ async function paylasimlariCiz(){
     }));
 }
 
+/* ---------- katkilarim ----------
+   Faz 1'de katki gonderilebiliyordu ama gonderen kisi ne oldugunu goremiyordu:
+   "kontrol edilince gorunecek" deyip ortada birakmak, katkiyi bir daha
+   yapmamanin en kisa yolu. Paylasimlarim ile ayni desende, tek farkla:
+   burada tutar yerine GONDERILEN DEGER gosteriliyor -- kisinin merak ettigi
+   sey kendi yazdigi seyin ne oldugu ve kabul edilip edilmedigi. */
+async function katkilariCiz(){
+  const yuva = el("#bolum-katkilar");
+  yuva.innerHTML = '<p class="bos"><strong>Yükleniyor…</strong></p>';
+  const liste = await Kimlik.katkilarim();
+
+  if (!liste.length){
+    yuva.innerHTML =
+      '<p class="bos">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>' +
+      "<strong>Henüz bilgi eklemedin</strong>" +
+      "Mekanların çoğunda saat ve telefon eksik. Bir yerdeysen, kapıda yazanı " +
+      "eklemek yarım dakika sürüyor." +
+      '<a class="dugme" style="margin-top:var(--a4)" href="kesfet.html">Keşfet\'e git</a></p>';
+    return;
+  }
+
+  yuva.innerHTML = liste.map(k => {
+    const d = DURUM_ETIKET[k.durum] || DURUM_ETIKET.bekliyor;
+    /* KATKI_ALAN ortak.js'te; isletme sayfasi ve yonetim ayni etiketi
+       kullaniyor, uc yerde ayri isim olmasin. */
+    const alanAd = (typeof KATKI_ALAN === "object" && KATKI_ALAN[k.alan]) || k.alan;
+    const sayfa = k.il && k.mekan_id
+      ? "isletme.html?il=" + encodeURIComponent(k.il) + "&id=" + encodeURIComponent(k.mekan_id)
+      : null;
+    return '<div class="liste-satir">' +
+      '<div class="bilgi"><h3>' +
+        (sayfa ? '<a href="' + kacir(sayfa) + '">' + kacir(k.mekan_ad) + "</a>" : kacir(k.mekan_ad)) +
+      "</h3>" +
+      '<div class="alt"><span>' + kacir(alanAd) + "</span>" +
+        "<span>" + tarihTR(k.olusturuldu) + "</span>" +
+        '<span class="rozet ' + d.sinif + '">' + d.ad + "</span></div></div>" +
+      '<div class="islem"><span class="katki-deger">' + kacir(k.deger) + "</span>" +
+      (k.durum === "bekliyor"
+        ? '<button class="sil" type="button" data-ksil="' + k.id + '" aria-label="Katkıyı sil">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button>'
+        : "") +
+      "</div></div>";
+  }).join("");
+
+  yuva.querySelectorAll("[data-ksil]").forEach(b =>
+    b.addEventListener("click", async () => {
+      b.disabled = true;
+      try { await Kimlik.katkiSil(Number(b.dataset.ksil)); await katkilariCiz(); uyar("iyi", "Katkı silindi."); }
+      catch (e){ uyar("hata", e.message); b.disabled = false; }
+    }));
+}
+
 /* ---------- sekmeler ---------- */
 el("#sekmeler").addEventListener("click", e => {
   const b = e.target.closest("button[data-bolum]");
   if (!b) return;
   document.querySelectorAll("#sekmeler button").forEach(x =>
     x.setAttribute("aria-selected", String(x === b)));
-  ["favoriler","paylasimlar","ayarlar"].forEach(ad => {
+  ["favoriler","paylasimlar","katkilar","ayarlar"].forEach(ad => {
     el("#bolum-" + ad).hidden = ad !== b.dataset.bolum;
   });
   if (b.dataset.bolum === "favoriler")   favorileriCiz();
   if (b.dataset.bolum === "paylasimlar") paylasimlariCiz();
+  if (b.dataset.bolum === "katkilar")    katkilariCiz();
 });
 
 /* ---------- ayarlar ---------- */
