@@ -26,4 +26,8 @@ Thumbs.db
 
 # Tarama ara ciktisi — menu_pdf_tara.py yeniden uretir
 taranmamis.txt
+
+# Saha ciktilari — sahiplen.py yeniden uretir, elle doldurulan
+# sutunlar (dogrulandi_mi / ziyaret_edildi_mi) depoya girmez.
 sahiplenme_hedef.csv
+sahiplenme_kume.csv
