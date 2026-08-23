@@ -41,6 +41,12 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   .eksik li span{flex:1 1 14rem;color:var(--soluk)}
   .tamam{color:var(--soluk);font-style:italic}
 
+  /* fis katmani: eksik panelinden ayri dursun, ikisi farkli okuyucuya bakiyor
+     (fis musteriye, eksik isletmeye) */
+  .fis{border-top:1px solid var(--cizgi);padding-top:var(--a4);margin-top:var(--a4)}
+  .fis h2{margin:0 0 var(--a2)}
+  .fis p{margin:0 0 var(--a3)}
+
   .sahiplen{display:inline-block;margin-top:var(--a4)}
   .kaynak{font-size:.85rem;color:var(--soluk);margin-top:var(--a5);
           border-top:1px solid var(--cizgi);padding-top:var(--a3)}
@@ -62,6 +68,12 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   <p id="sayac" class="soluk" hidden></p>
 
   <dl class="bilgi" id="bilgi"></dl>
+
+  <section class="fis" id="fis" hidden>
+    <h2>Buraya gidenler ne ödemiş</h2>
+    <p id="fisOzet"></p>
+    <a class="dugme ikincil" id="fisEkle" href="paylas.html">Ödediğini ekle</a>
+  </section>
 
   <section class="eksik" id="eksik" data-giris="perde">
     <h2>Bu sayfada eksik olanlar</h2>
@@ -173,6 +185,7 @@ function goster(m, ilAd){
 
   document.getElementById("govde").hidden = false;
   sayacCalistir(ID);
+  fisKatmani(ID, m.ad, IL);
 }
 
 if (!ID || !IL || IL === "00"){
@@ -186,6 +199,62 @@ if (!ID || !IL || IL === "00"){
       else document.getElementById("hata").hidden = false;
     })
     .catch(() => { document.getElementById("hata").hidden = false; });
+}
+
+/* ---------- fis katmani (agin ilk halkasi) ----------
+   Fiyatin kaynagi menu degil, GIDEN INSAN. Menu fiyati bir kalemin fiyati;
+   fis "3 kisi gittik, 850 verdik" diyor -- kullanicinin sordugu soru bu.
+
+   ESIK KURALI: ortalama ancak 3 fisten sonra gosteriliyor. Iki sebep:
+   (1) tek fis bir kisinin o gunku secimidir, mekanin fiyati degil;
+   (2) k-anonimlik -- tek fis, tanidigi biri tarafindan kisiye baglanabilir.
+   Esigin altinda sayi gizlenip KAC FIS KALDIGI soyleniyor; boylece esik
+   kendisi katki cagrisina donusuyor. */
+const FIS_ESIK = 3;
+
+/* Saf: fis listesi -> gosterilecek cumle. Ayri duruyor cunku esik mantigi
+   sessizce bozulursa ya kisiyi ifsa ederiz ya da katki cagrisi kaybolur. */
+function fisOzeti(l){
+  if (!l || !l.length)
+    return "Buranın fiyatını kimse yazmamış. Gittiysen ödediğini yaz — " +
+           "bir sonraki kişi kazık yemeden gitsin.";
+  if (l.length < FIS_ESIK)
+    return "Şu ana kadar " + sayi(l.length) + " fiş var. " +
+           (FIS_ESIK - l.length) + " tane daha gelince ortalama burada görünecek.";
+  const kb = l.map(p => Number(p.tutar) / Math.max(1, p.kisi)).sort((x, y) => x - y);
+  const o = kb.length >> 1;
+  const medyan = Math.round(kb.length % 2 ? kb[o] : (kb[o - 1] + kb[o]) / 2);
+  const kisi = new Set(l.map(p => p.kullanici).filter(Boolean)).size;
+  return "Kişi başı ~" + tl(medyan) + " · " +
+         (kisi ? sayi(kisi) + " kişinin " : "") + sayi(l.length) + " fişinden.";
+}
+
+async function fisKatmani(mekanId, mekanAd, ilKod){
+  const bol = document.getElementById("fis");
+  const ozet = document.getElementById("fisOzet");
+  const ekle = document.getElementById("fisEkle");
+
+  ekle.href = "paylas.html?mekan=" + encodeURIComponent(mekanAd) +
+              "&il=" + encodeURIComponent(ilKod) +
+              "&mekanId=" + encodeURIComponent(mekanId);
+
+  let l = [];
+  const a = window.OTURALIM || {};
+  if (a.supabaseUrl && a.supabaseAnahtar){
+    try {
+      const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.45.4");
+      const sb = createClient(a.supabaseUrl, a.supabaseAnahtar,
+        { auth:{ persistSession:false } });
+      const { data } = await sb.from("paylasimlar")
+        .select("tutar,kisi,tarih,kullanici")
+        .eq("mekan_id", mekanId).eq("durum", "onaylandi")
+        .order("tarih", { ascending:false }).limit(200);
+      l = data || [];
+    } catch (e) { /* ag yok, tablo yok: davet yine gorunsun */ }
+  }
+
+  ozet.textContent = fisOzeti(l);
+  bol.hidden = false;
 }
 
 /* ---------- goruntulenme sayaci ----------
@@ -251,10 +320,25 @@ async function sayacCalistir(mekanId){
   ];
   const hata = t.filter(x =>
     JSON.stringify(eksikleriBul(x[0]).sort()) !== JSON.stringify(x[1].slice().sort()));
-  if (hata.length && location.hash === "#kontrol")
+
+  /* Fis esigi: altinda SAYI SIZDIRMAMALI (k-anonimlik), ustunde medyan
+     kisi basina gore olmali. Ucu de sessizce bozulabilecek yerler. */
+  const f = (n, tutar, kisi, kul) => Array.from({length:n},
+    (_, i) => ({ tutar, kisi, kullanici: kul ? "k" + (i % kul) : null }));
+  const fisT = [
+    [/kimse yazmamış/.test(fisOzeti([])),                    "bos -> davet"],
+    [/2 tane daha/.test(fisOzeti(f(1, 300, 1))),             "1 fis -> 2 daha lazim"],
+    [!/₺/.test(fisOzeti(f(2, 300, 1))),                      "esik alti tutar sizdirmiyor"],
+    [/300/.test(fisOzeti(f(3, 300, 1))),                     "3 fis -> medyan cikiyor"],
+    [/150/.test(fisOzeti(f(3, 300, 2))),                     "medyan KISI BASINA"],
+    [/2 kişinin 4 fişinden/.test(fisOzeti(f(4, 300, 2, 2))), "tekil katkici sayilir"]
+  ].filter(x => !x[0]);
+
+  if ((hata.length || fisT.length) && location.hash === "#kontrol")
     document.body.insertAdjacentHTML("afterbegin",
-      '<pre style="margin:0;padding:12px;background:#5b1a1a;color:#fff">eksikleriBul BASARISIZ: ' +
-      hata.map(h => h[2]).join(", ") + "</pre>");
+      '<pre style="margin:0;padding:12px;background:#5b1a1a;color:#fff">BASARISIZ: ' +
+      hata.map(h => h[2]).concat(fisT.map(x => x[1])).join(", ") + "</pre>");
+
 })();
 </script>
 </body>
