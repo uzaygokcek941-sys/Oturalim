@@ -402,19 +402,17 @@ async function fisKatmani(mekanId, mekanAd, ilKod){
               "&mekanId=" + encodeURIComponent(mekanId);
 
   let l = [];
-  const a = window.OTURALIM || {};
-  if (a.supabaseUrl && a.supabaseAnahtar){
-    try {
-      const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.45.4");
-      const sb = createClient(a.supabaseUrl, a.supabaseAnahtar,
-        { auth:{ persistSession:false } });
+  try {
+    await Kimlik.hazir;
+    const sb = Kimlik.istemci();
+    if (sb){
       const { data } = await sb.from("paylasimlar")
         .select("tutar,kisi,tarih,kullanici")
         .eq("mekan_id", mekanId).eq("durum", "onaylandi")
         .order("tarih", { ascending:false }).limit(200);
       l = data || [];
-    } catch (e) { /* ag yok, tablo yok: davet yine gorunsun */ }
-  }
+    }
+  } catch (e) { /* ag yok, tablo yok: davet yine gorunsun */ }
 
   ozet.textContent = fisOzeti(l);
   bol.hidden = false;
@@ -438,12 +436,10 @@ async function fisKatmani(mekanId, mekanAd, ilKod){
    normal calisiyor, satir gizli kaliyor. Sifir gosterilmiyor -- "0 kisi
    bakti" hem cesaret kirici hem de "calismiyor" ile ayirt edilemez. */
 async function sayacCalistir(mekanId){
-  const a = window.OTURALIM || {};
-  if (!a.supabaseUrl || !a.supabaseAnahtar) return;
   try {
-    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.45.4");
-    const sb = createClient(a.supabaseUrl, a.supabaseAnahtar,
-      { auth:{ persistSession:false } });
+    await Kimlik.hazir;
+    const sb = Kimlik.istemci();
+    if (!sb) return;
 
     /* Ayni gun ikinci kez bakinca sunucuda cakisir; hata degil, beklenen
        durum -- fonksiyon sessizce hicbir sey yapmiyor. */

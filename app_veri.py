@@ -271,8 +271,12 @@ def mekan_kaydi(m, menu):
         "id": m["osm_id"],
         "ad": m["ad"],
         "tur": tur_tr,
-        "lat": round(float(m["lat"]), 6),
-        "lon": round(float(m["lon"]), 6),
+        # 5 basamak ~1,1 m. 6 basamak (~11 cm) haritada bir isaretci icin
+        # anlamsiz hassasiyet ve 81 dosyada bedava yer kapliyor: yalniz
+        # Istanbul'da gzip sonrasi 16 KB. Kesfet ekrani da anasayfa onerisi
+        # de kilometre olceginde calisiyor.
+        "lat": round(float(m["lat"]), 5),
+        "lon": round(float(m["lon"]), 5),
     }
     for anahtar, deger in (("mutfak", m["mutfak"]), ("tel", m["telefon"]),
                            ("web", m["website"]), ("saat", m["saatler"]),

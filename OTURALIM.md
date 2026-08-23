@@ -291,10 +291,19 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
 - [ ] Faz 4 — sahiplenme kodu ve doğrulama akışı
 
 **Kodda kalan teknik borç:**
-- [ ] Leaflet ve supabase-js CDN'den SRI'siz geliyor
-- [ ] `app/veri/34.json` 1,7 MB — İstanbul ilk açılışı ağır
+- [x] Leaflet SRI ile geliyor (özet npm tarball'ından, resmî değerlerle doğrulandı)
+- [ ] **supabase-js hâlâ SRI'siz** — `import()` integrity desteklemiyor, yerele
+      almak da derleme adımı ister. Üç import noktası bire indirildi; kalan tek
+      yer `kimlik.js`. Gerçek çözüm: sürüm sabit, esm.sh'e güveniliyor.
+- [x] `isletme.html`'in mükerrer Supabase istemcileri kaldırıldı (`Kimlik.istemci()`)
+- [x] Koordinatlar 5 basamağa indi — İstanbul 414 → 400 KB gzip
+- [ ] **İstanbul dosyası hâlâ 1,7 MB ham / 400 KB gzip.** Ölçüldü: geri kalan
+      ağırlığın tamamı keşfet ekranının gerçekten kullandığı alanlar. Menü/kategori
+      ayrı dosyaya alınamıyor (bütçe süzgeci çizimden önce onlara bakıyor);
+      hafif dosya + tam dosya ayrımı ana huniyi (anasayfa → keşfet) kötüleştiriyor,
+      çünkü ikisi aynı önbelleği paylaşıyor. Gerçek çözüm coğrafi bölmeleme, o da
+      veri düzenini ve iki tüketiciyi birden değiştirir.
 - [ ] `?test=1` / `#kontrol` kontrolleri CI'da koşmuyor
-- [ ] `isletme.html` hâlâ iki ayrı Supabase istemcisi kuruyor (sayaç + fiş)
 - [ ] Fiyat verisi büyüdükçe "ucuz/orta/pahalı" bandını hesapla
 
 ---

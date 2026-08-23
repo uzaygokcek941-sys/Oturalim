@@ -205,6 +205,14 @@ const Kimlik = {
     if (error) throw new Error(hataMetni(error));
   },
 
+  /* Ham Supabase istemcisi. Sayfaların kendi `createClient` çağrısını
+     kurmasına gerek kalmasın diye açıldı: isletme.html üç ayrı yerde üç
+     istemci kuruyordu, yani aynı CDN modülü üç kez içeri giriyordu ve sürüm
+     bir yerde güncellenip diğerinde unutulabiliyordu. Tek yerden geliyor.
+     `kur()` çalışmadıysa (yapılandırma boş) null döner — çağıran bunu
+     "özellik kapalı" diye okur. Önce `await Kimlik.hazir`. */
+  istemci(){ return sb; },
+
   /* ---------- eksik bilgi katkısı ----------
      Tablo kurulu değilse (katki.sql çalıştırılmamışsa) sayfa çökmesin:
      okuma boş dizi döner, yazma anlaşılır bir cümleyle hata verir. */
