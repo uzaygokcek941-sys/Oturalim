@@ -51,6 +51,11 @@ function hataMetni(e){
   if (m.includes("password should be at least")) return "Parola en az 8 karakter olmalı.";
   if (m.includes("rate limit") || m.includes("too many"))
     return "Çok fazla deneme oldu. Birkaç dakika sonra tekrar dene.";
+  /* Veritabanindaki gunluk gonderim siniri (sema.sql). Ham SQL cumlesi
+     kullaniciya bir sey anlatmiyor; ne oldugunu ve ne zaman gececegini
+     soyleyen bir metin veriliyor. */
+  if (m.includes("gunluk gonderim siniri"))
+    return "Bugünlük gönderim sınırına ulaştın. Yarın devam edebilirsin.";
   if (m.includes("unique") || m.includes("duplicate"))
     return "Bu mekan için bugün zaten bir paylaşım göndermişsin.";
   if (m.includes("failed to fetch") || m.includes("networkerror"))

@@ -304,6 +304,7 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
       çünkü ikisi aynı önbelleği paylaşıyor. Gerçek çözüm coğrafi bölmeleme, o da
       veri düzenini ve iki tüketiciyi birden değiştirir.
 - [x] Kontroller CI'da koşuyor (`python test.py` · GitHub Actions, her itmede)
+- [x] `kacir()` tek tırnağı da kaçırıyor; paylaşım/katkı günlük gönderim sınırı kondu
 - [ ] Fiyat verisi büyüdükçe "ucuz/orta/pahalı" bandını hesapla
 
 ---

@@ -50,6 +50,14 @@ create unique index if not exists katkilar_tek_bekleyen_idx
   on public.katkilar (kullanici, mekan_id, alan)
   where durum = 'bekliyor' and kullanici is not null;
 
+-- Günlük gönderim sınırı: fonksiyon sema.sql'de tanımlı, aynı kural iki
+-- kuyruğu birden koruyor. Tekil kısıt yalnız AYNI mekan+alan tekrarını
+-- durduruyor; farklı mekanlarla sınırsız kayıt açmayı durdurmuyordu.
+drop trigger if exists katki_gunluk_sinir on public.katkilar;
+create trigger katki_gunluk_sinir
+  before insert on public.katkilar
+  for each row execute function public.gunluk_gonderim_siniri();
+
 -- ============================================================
 -- RLS — yetki burada, istemcide değil
 -- ============================================================
@@ -98,6 +106,11 @@ begin
   if not exists (select 1 from pg_proc where proname = 'yonetici_mi'
                  and pronamespace = 'public'::regnamespace) then
     raise exception 'Once sema.sql calistirilmali: yonetici_mi() yok';
+  end if;
+
+  if not exists (select 1 from pg_proc where proname = 'gunluk_gonderim_siniri'
+                 and pronamespace = 'public'::regnamespace) then
+    raise exception 'Once sema.sql calistirilmali: gunluk_gonderim_siniri() yok';
   end if;
 
   if not exists (select 1 from pg_tables

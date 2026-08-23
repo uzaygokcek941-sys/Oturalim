@@ -41,8 +41,13 @@ function temaKur(){
 /* ---------- biçimlendirme ---------- */
 const tl = n => n == null ? "" : Math.round(n).toLocaleString("tr-TR") + " ₺";
 const sayi = n => Number(n || 0).toLocaleString("tr-TR");
+/* Tek tirnak da kaciriliyor. Bugun her oznitelik cift tirnakli, yani
+   teknik olarak gerekli degildi; ama kacir()'in guvenli oldugunu varsayip
+   href='...' yazan biri icin sessiz bir tuzakti. Kacis dizisi bir yerde
+   eksikse, o eksigi bilmeyen kisi acigi acan kisi olur. */
 const kacir = s => String(s == null ? "" : s)
-  .replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
+  .replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;",
+                               '"':"&quot;", "'":"&#39;" }[c]));
 
 /* ---------- açılış saati ----------
    OSM opening_hours'un tamamı çok geniş; Türkiye'de fiilen görülen biçimler:
@@ -296,6 +301,12 @@ function kendiniKontrolEt(){
     ["tl bicim",            tl(1250),                                 "1.250 ₺"],
     ["kacir xss",           kacir('<img src=x onerror=1>'),
                             "&lt;img src=x onerror=1&gt;"],
+    /* Tek tirnakli oznitelik yazan biri icin: kacmazsa oznitelikten
+       cikilip yeni oznitelik acilabiliyordu. */
+    ["kacir tek tirnak",    kacir("' onmouseover='kotu()"),
+                            "&#39; onmouseover=&#39;kotu()"],
+    ["kacir cift tirnak",   kacir('" onclick="x'), "&quot; onclick=&quot;x"],
+    ["kacir ampersand once", kacir("<&>"), "&lt;&amp;&gt;"],
     /* katkiSorunu: null = kabul. Saatin ayrıştırılabilirliği acikMi ile
        ölçülüyor, o yüzden burada asıl sınanan şey ikisinin bağlı kalması. */
     ["katki saat duz",      katkiSorunu("saat", "09:00-23:00"),          null],

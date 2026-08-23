@@ -209,6 +209,39 @@ def _jwt_rolu(jeton):
         return None
 
 
+def sema_tutarli_mi():
+    """SQL tarafinda sessizce dusebilecek korumalar.
+
+    Bunlar politika degil TETIKLEYICI oldugu icin sema.sql'in kendi politika
+    sayaci onlari gormuyor: biri silinse dosya yine "kuruldu" der."""
+    s = []
+    sema = oku("veritabani", "sema.sql")
+    katki = oku("veritabani", "katki.sql")
+
+    if "function public.gunluk_gonderim_siniri()" not in sema:
+        s.append("sema.sql: gunluk_gonderim_siniri() tanimi yok")
+    for dosya, metin, tetik in (("sema.sql", sema, "paylasim_gunluk_sinir"),
+                                ("katki.sql", katki, "katki_gunluk_sinir")):
+        if ("create trigger " + tetik) not in metin:
+            s.append("%s: '%s' tetikleyicisi yok — gunluk sinir o tabloda islemez" % (dosya, tetik))
+
+    # katki.sql sema.sql'e bagli; bagimlilik kontrolu dosyanin icinde olmali
+    # ki yanlis sirada calistiran kisi sessiz bir kurulum almasin.
+    if "gunluk_gonderim_siniri" not in katki:
+        s.append("katki.sql: sema.sql bagimliligi kontrol edilmiyor")
+
+    # Yonetici alanini koruyan tetikleyici (sema.sql) da ayni sekilde
+    # politika sayacinin disinda.
+    if "create trigger profil_yonetici_koru" not in sema:
+        s.append("sema.sql: profil_yonetici_koru tetikleyicisi yok")
+
+    # Sayac: dogrudan yazma yolunun kapali kaldigi.
+    sayac = oku("veritabani", "sayac.sql")
+    if "revoke all on table public.goruntulenme from anon" not in sayac:
+        s.append("sayac.sql: goruntulenme uzerindeki GRANT geri alinmiyor")
+    return s
+
+
 def sirlar_sizmis_mi():
     """Depoya girmemesi gerekenler.
 
@@ -253,6 +286,7 @@ def main():
     kayit("degismez: katki alanlari dort dosyada ayni", alanlar_ayni_mi())
     kayit("degismez: veri, index ve vitrin tutarli", veri_tutarli_mi())
     kayit("degismez: sayfa meta ve sekme tutarli", sayfalar_tutarli_mi())
+    kayit("degismez: sema korumalari yerinde", sema_tutarli_mi())
     kayit("degismez: sir sizmamis", sirlar_sizmis_mi())
 
     hata = atlanan = 0

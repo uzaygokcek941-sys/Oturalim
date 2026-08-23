@@ -99,6 +99,45 @@ create unique index if not exists paylasimlar_tek_kayit_idx
   on public.paylasimlar (kullanici, mekan_ad, tarih)
   where kullanici is not null;
 
+-- ---------- Günlük gönderim sınırı ----------
+-- Tekil kısıt "aynı kişi aynı mekan için aynı gün bir kayıt" diyor ama
+-- FARKLI mekan adlarıyla sınırsız kayıt açmayı durdurmuyordu. Kuyruğu tek
+-- kişi temizlediği için bu, sistemi çalışamaz hale getirmenin en ucuz yolu.
+--
+-- Sınır cömert: gerçekten katkı veren biri bir günde 50 kayıt açmaz, ama
+-- 50 satır bir yöneticinin elle temizleyebileceği miktardır.
+--
+-- Yönetici muaf: sahadan toplu veri giren kişi aynı zamanda onaylayan kişi.
+create or replace function public.gunluk_gonderim_siniri()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  adet  int;
+  sinir constant int := 50;
+begin
+  if new.kullanici is null or public.yonetici_mi() then
+    return new;
+  end if;
+  -- tg_table_name sistemden geliyor; yine de %I ile tirnaklaniyor.
+  execute format(
+    'select count(*) from public.%I where kullanici = $1 and olusturuldu >= current_date',
+    tg_table_name) into adet using new.kullanici;
+  if adet >= sinir then
+    raise exception 'gunluk gonderim siniri doldu (%)', sinir
+      using errcode = 'check_violation';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists paylasim_gunluk_sinir on public.paylasimlar;
+create trigger paylasim_gunluk_sinir
+  before insert on public.paylasimlar
+  for each row execute function public.gunluk_gonderim_siniri();
+
 -- ============================================================
 -- RLS — satır seviyesi güvenlik
 -- ============================================================
