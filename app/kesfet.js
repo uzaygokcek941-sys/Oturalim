@@ -486,6 +486,8 @@ function ac(id){
   el("#d-paylas").href = "paylas.html?mekan=" + encodeURIComponent(m.ad) +
                          "&il=" + encodeURIComponent(el("#il").value) +
                          "&mekanId=" + encodeURIComponent(m.id);
+  el("#d-sayfa").href = "isletme.html?il=" + encodeURIComponent(el("#il").value) +
+                        "&id=" + encodeURIComponent(m.id);
   favoriDugmesiniTazele(m);
   el("#detay").showModal();
 

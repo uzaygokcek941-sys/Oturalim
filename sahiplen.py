@@ -32,7 +32,49 @@ EKSIK_CUMLE = {
 YEME_ICME = {"Restoran", "Kafe", "Fast food", "Bar", "Pub", "Dondurma", "Pastane"}
 
 
+# Turkce casefold tuzagi: "Istanbul".casefold() -> "i̇stanbul" (i + birlesen
+# nokta), "istanbul" onun alt dizisi DEGIL. Klavyeden "Istanbul" yazan kullanici
+# hicbir sey bulamiyordu. Karsilastirma icin harfleri ASCII'ye indiriyoruz --
+# yalniz eslestirmede, gosterilen ad hep orijinal kaliyor.
+_SADE = str.maketrans("çğıİöşüÇĞÖŞÜ", "cgiiosucgosu")
+
+
+def sade(x):
+    return (x or "").translate(_SADE).lower()
+
+
+def ilce_haritasi():
+    """osm_id -> ilce. Ilce bilgisi app/veri'de yok, ham CSV'de var (%20,1).
+
+    CSV'de ayni ilce iki yazimla geciyor (Sariyer/sariyer, Merkez/merkez...):
+    69 cift olcuLdu. Ilce bazli her rapor bundan bolunuyordu. Kanonik ad
+    UYDURULMUYOR -- harf duzeltmesi Turkce'de tuzakli (istanbul -> Istanbul
+    olur, Istanbul olmaz). Bunun yerine ayni yazimlarin EN SIK olani secilir:
+    veriye dayali, tahmin yok."""
+    import collections
+    sayim = collections.Counter()
+    ham = {}
+    for dosya in ("turkiye_mekanlar.csv", "turkiye_eglence.csv"):
+        if not os.path.exists(dosya):
+            continue
+        with io.open(dosya, encoding="utf-8-sig") as f:
+            for x in csv.DictReader(f):
+                ad = (x.get("ilce") or "").strip()
+                if not ad:
+                    continue
+                sayim[ad] += 1
+                ham[x["osm_id"]] = ad
+
+    kanonik = {}
+    for ad, n in sayim.items():
+        k = ad.casefold()
+        if k not in kanonik or n > sayim[kanonik[k]]:
+            kanonik[k] = ad
+    return {oid: kanonik[ad.casefold()] for oid, ad in ham.items()}
+
+
 def yukle():
+    ilce = ilce_haritasi()
     mekanlar = []
     for yol in sorted(glob.glob(os.path.join(VERI, "*.json"))):
         ad = os.path.basename(yol)
@@ -43,6 +85,7 @@ def yukle():
         for m in d.get("mekanlar", []):
             m["il"] = il
             m["kod"] = ad[:2]
+            m["ilce"] = ilce.get(m["id"], "")
             mekanlar.append(m)
     return mekanlar
 
@@ -88,7 +131,17 @@ def kanca(m):
     return EKSIK_CUMLE[en]
 
 
-def main(secili_il=None):
+def kontrol():
+    """Sessizce bozulursa filtre bos liste dondurur ve kimse fark etmez."""
+    assert sade("İstanbul") == "istanbul"     # buyuk I noktali
+    assert sade("Sarıyer") == "sariyer"       # tr harfleri
+    assert sade("FATIH") == "fatih"
+    assert sade("Istanbul") in sade("İstanbul")  # yazim farki eslesmeli
+    assert sade(None) == ""
+
+
+def main(secili_il=None, secili_ilce=None):
+    kontrol()
     mekanlar = yogunluk_haritasi(yukle())
     for m in mekanlar:
         degerlendir(m)
@@ -96,15 +149,17 @@ def main(secili_il=None):
     # Ulasilabilir = telefonu var. Telefonsuza mesaj atilamaz, listeye girmez.
     hedef = [m for m in mekanlar if str(m.get("tel", "")).strip() and m["eksik"]]
     if secili_il:
-        hedef = [m for m in hedef if secili_il.lower() in m["il"].lower()]
+        hedef = [m for m in hedef if sade(secili_il) in sade(m["il"])]
+    if secili_ilce:
+        hedef = [m for m in hedef if sade(secili_ilce) in sade(m["ilce"])]
     hedef.sort(key=lambda m: -m["puan"])
 
     with io.open(CIKTI, "w", encoding="utf-8-sig", newline="") as f:
         y = csv.writer(f)
-        y.writerow(["puan", "il", "tur", "ad", "tel", "eksikler", "kanca",
+        y.writerow(["puan", "il", "ilce", "tur", "ad", "tel", "eksikler", "kanca",
                     "yogunluk", "sayfa", "dogrulandi_mi"])
         for m in hedef:
-            y.writerow([m["puan"], m["il"], m["tur"], m["ad"], m.get("tel", ""),
+            y.writerow([m["puan"], m["il"], m["ilce"], m["tur"], m["ad"], m.get("tel", ""),
                         "+".join(m["eksik"]), kanca(m), m["yogunluk"],
                         "/isletme.html?il=" + m["kod"] + "&id=" + m["id"], ""])
 
@@ -119,9 +174,10 @@ def main(secili_il=None):
     for k, n in say.most_common():
         print("  %-6s %6d  (%%%.1f)" % (k, n, 100.0 * n / len(mekanlar)))
     print()
-    print("--- hedef listesi il bazinda ilk 10 ---")
-    for il, n in collections.Counter(m["il"] for m in hedef).most_common(10):
-        print("  %-12s %4d" % (il, n))
+    print("--- hedef listesi ilce bazinda ilk 10 ---")
+    for (il, ilc), n in collections.Counter(
+            (m["il"], m["ilce"] or "(ilce yok)") for m in hedef).most_common(10):
+        print("  %-24s %4d" % (ilc + ", " + il, n))
     print()
     print("UYARI: 'web yok' OSM'de kayitli olmadigi anlamina gelir, sitesi")
     print("olmadigi anlamina GELMEZ. Mesaj oncesi elle dogrula, dogrulandi_mi")
@@ -130,4 +186,5 @@ def main(secili_il=None):
 
 if __name__ == "__main__":
     import sys
-    main(sys.argv[1] if len(sys.argv) > 1 else None)
+    main(sys.argv[1] if len(sys.argv) > 1 else None,
+         sys.argv[2] if len(sys.argv) > 2 else None)
