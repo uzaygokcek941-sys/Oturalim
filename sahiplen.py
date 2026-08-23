@@ -428,5 +428,12 @@ def kume_uret(mekanlar, secili_il=None, secili_ilce=None):
 
 if __name__ == "__main__":
     import sys
+    # "test": yalniz kendini kontrol et, veri okuma ve CSV yazma yok.
+    # Diger betiklerle ayni arayuz olsun diye eklendi (test.py hepsini
+    # ayni sekilde cagiriyor).
+    if len(sys.argv) > 1 and sys.argv[1] == "test":
+        kontrol()
+        print("kontrol gecti: turkce sadelestirme, mesafe, kumeleme, rota")
+        sys.exit(0)
     main(sys.argv[1] if len(sys.argv) > 1 else None,
          sys.argv[2] if len(sys.argv) > 2 else None)

@@ -505,11 +505,19 @@ async function sayacCalistir(mekanId){
     [/2 kişinin 4 fişinden/.test(fisOzeti(f(4, 300, 2, 2))), "tekil katkici sayilir"]
   ].filter(x => !x[0]);
 
-  if ((hata.length || fisT.length || katkiT.length) && location.hash === "#kontrol")
-    document.body.insertAdjacentHTML("afterbegin",
-      '<pre style="margin:0;padding:12px;background:#5b1a1a;color:#fff">BASARISIZ: ' +
-      hata.map(h => h[2]).concat(fisT.map(x => x[1]))
-          .concat(katkiT.map(x => x[1])).join(", ") + "</pre>");
+  /* Basarida da yaziyor, sadece hatada degil. Sebep: sessiz gecen bir
+     kontrol ile SILINMIS bir kontrol disaridan ayirt edilemiyordu --
+     test_tarayici.mjs "hic cikti yok" gordugunde ikisini de gecti sayiyordu.
+     ortak.js ve kesfet.js zaten boyle davraniyor. */
+  if (location.hash !== "#kontrol") return;
+  const tumu = hata.map(h => h[2])
+    .concat(fisT.map(x => x[1])).concat(katkiT.map(x => x[1]));
+  const gecen = t.length + 6 + 7 - tumu.length;
+  document.body.insertAdjacentHTML("afterbegin",
+    '<pre style="margin:0;padding:12px;color:#fff;background:' +
+    (tumu.length ? "#5b1a1a" : "#1d3a17") + '">' +
+    (tumu.length ? "BASARISIZ: " + tumu.join(", ")
+                 : gecen + " kontrol gecti (eksik bulucu + fis + katki)") + "</pre>");
 
 })();
 </script>

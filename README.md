@@ -59,6 +59,17 @@ python sunucu.py
 
 → http://localhost:8123
 
+Kontroller tek komutla:
+
+```bash
+python test.py
+```
+
+Betiklerin kendi kontrolleri, tarayıcı kontrolleri (sayfayı açmadan) ve
+dosyalar arası değişmezler birlikte koşar. Her itmede GitHub Actions da
+aynısını çalıştırıyor. `node` kurulu değilse tarayıcı grubu **atlanır** —
+geçtiği söylenmez.
+
 Giriş sistemi olmadan da tam çalışır; hesap özellikleri kapalı görünür.
 Kurmak için: [KURULUM.md](KURULUM.md) (~15 dakika, ücretsiz, kart istemiyor).
 
@@ -84,6 +95,9 @@ veritabani/sayac.sql Görüntülenme sayacı
 veritabani/katki.sql Eksik bilgi katkıları
 *.py                 Veri toplama ve işleme betikleri
 sahiplen.py          İşletme hedefleri + saha yürüyüş kümeleri
+site_haritasi.py     sitemap.xml + robots.txt üretimi
+test.py              Bütün kontroller (tek giriş noktası)
+test_tarayici.mjs    Tarayıcı kontrollerini tarayıcısız koşturur
 ```
 
 ## Güvenlik

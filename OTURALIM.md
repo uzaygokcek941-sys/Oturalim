@@ -303,7 +303,7 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
       hafif dosya + tam dosya ayrımı ana huniyi (anasayfa → keşfet) kötüleştiriyor,
       çünkü ikisi aynı önbelleği paylaşıyor. Gerçek çözüm coğrafi bölmeleme, o da
       veri düzenini ve iki tüketiciyi birden değiştirir.
-- [ ] `?test=1` / `#kontrol` kontrolleri CI'da koşmuyor
+- [x] Kontroller CI'da koşuyor (`python test.py` · GitHub Actions, her itmede)
 - [ ] Fiyat verisi büyüdükçe "ucuz/orta/pahalı" bandını hesapla
 
 ---
