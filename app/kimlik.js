@@ -205,6 +205,60 @@ const Kimlik = {
     if (error) throw new Error(hataMetni(error));
   },
 
+  /* ---------- eksik bilgi katkısı ----------
+     Tablo kurulu değilse (katki.sql çalıştırılmamışsa) sayfa çökmesin:
+     okuma boş dizi döner, yazma anlaşılır bir cümleyle hata verir. */
+  async katkiGonder(k){
+    if (!sb || !oturum) throw new Error("Katkı için giriş yap.");
+    const { error } = await sb.from("katkilar").insert({
+      kullanici: oturum.user.id,
+      mekan_id: k.mekanId,
+      il: k.il || null,
+      mekan_ad: String(k.mekanAd).trim(),
+      alan: k.alan,
+      deger: String(k.deger).trim(),
+      durum: "bekliyor"
+    });
+    if (!error) return;
+    /* Tekil kısıt burada "aynı gün" değil "sırada bekleyen" demek;
+       hataMetni'nin paylaşım cümlesi bu tabloda yanlış olurdu. */
+    const m = String(error.message || "").toLowerCase();
+    if (m.includes("unique") || m.includes("duplicate"))
+      throw new Error("Bu bilgiyi zaten göndermişsin, sırada bekliyor.");
+    throw new Error(hataMetni(error));
+  },
+
+  /* Onaylanmış katkılar herkese açık — giriş gerekmiyor.
+     İşletme sayfası bunları OSM verisinin yanına işliyor. */
+  async onaylanmisKatkilar(mekanId){
+    if (!sb) return [];
+    const { data, error } = await sb.from("katkilar")
+      .select("alan, deger, olusturuldu")
+      .eq("mekan_id", mekanId).eq("durum", "onaylandi")
+      .order("olusturuldu", { ascending: false });
+    if (error){ console.error("katkilar:", error.message); return []; }
+    return data || [];
+  },
+
+  async katkiYonetimListesi(durum){
+    if (!sb || !oturum) return [];
+    let s = sb.from("katkilar")
+      .select("id, mekan_id, mekan_ad, il, alan, deger, durum, olusturuldu")
+      .order("olusturuldu", { ascending: false }).limit(200);
+    if (durum) s = s.eq("durum", durum);
+    const { data, error } = await s;
+    if (error){ console.error("katki yonetim:", error.message); return []; }
+    return data || [];
+  },
+
+  async katkiKarar(id, durum){
+    if (!sb || !oturum) throw new Error("Giriş yapılmamış.");
+    if (!["onaylandi","reddedildi","bekliyor"].includes(durum))
+      throw new Error("Geçersiz durum.");
+    const { error } = await sb.from("katkilar").update({ durum }).eq("id", id);
+    if (error) throw new Error(hataMetni(error));
+  },
+
   /* ---------- yönetim ---------- */
   async yonetimListesi(durum){
     if (!sb || !oturum) return [];

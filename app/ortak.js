@@ -80,6 +80,49 @@ function acikMi(ifade, simdi){
   return sonuc;
 }
 
+/* ---------- katkı doğrulama ----------
+   Kullanıcıdan gelen eksik alan bilgisi. Onaya gitmeden ÖNCE burada eleniyor;
+   yöneticiye ancak kullanılabilir biçimde olanlar ulaşsın.
+
+   Saat için ayrı bir kural YAZILMADI: değer acikMi()'ye veriliyor ve
+   ayrıştırılabiliyor mu diye bakılıyor. Kendi regex'ini yazsaydım "Her gün
+   09:00-23:00" gibi bir değer doğrulamadan geçer, onaylanır, sonra "şu an
+   açık" süzgeci onu sessizce hiç okuyamazdı. Süzgecin okuyamadığı bilgi
+   yayımlanmış sayılmaz. */
+const KATKI_ALAN = { saat:"Açılış–kapanış", tel:"Telefon", adres:"Adres", web:"Site" };
+
+/* Duz "KATKI_ALAN[alan]" yetmiyor: alan="constructor" gelirse Object'ten
+   miras kalan alan dondugu icin kontrol geciliyordu. Deger istemciden
+   geliyor, o yuzden yalniz KENDI anahtarlarina bakiliyor. */
+const katkiAlaniVar = a => Object.prototype.hasOwnProperty.call(KATKI_ALAN, a);
+
+function katkiSorunu(alan, deger){
+  if (!katkiAlaniVar(alan)) return "Bilinmeyen alan.";
+  const d = String(deger == null ? "" : deger).trim();
+  if (d.length < 2)   return "Boş bırakma.";
+  if (d.length > 200) return "Çok uzun, 200 karakteri geçmesin.";
+
+  if (alan === "saat")
+    return acikMi(d) === null
+      ? "Saati şu biçimde yaz: 09:00-23:00 · Mo-Su 09:00-23:00 · 24/7"
+      : null;
+
+  if (alan === "tel"){
+    const r = d.replace(/\D/g, "");
+    /* 5321234567 (10) · 05321234567 (11) · 905321234567 (12) · +90… (13'e
+       kadar). Alt sınırı 10'un altına indirmek kısa numarayı geçirir. */
+    return r.length < 10 || r.length > 13 ? "Telefon eksik ya da fazla haneli." : null;
+  }
+
+  if (alan === "adres")
+    return d.length < 5 ? "Adresi biraz daha aç (cadde, no)." : null;
+
+  /* Site: "@kullanici" KABUL EDİLMİYOR. Hangi platform olduğunu tahmin
+     etmek gerekirdi ve tahmin veri uydurmaktır; tam bağlantı isteniyor. */
+  return /^(https?:\/\/)?[a-z0-9-]+(\.[a-z0-9-]+)+(\/[^\s]*)?$/i.test(d)
+    ? null : "Tam bağlantı yaz: instagram.com/… ya da site adresi.";
+}
+
 /* ---------- bütçe bandı ----------
    Kişi başı bütçeyi mekanın menü fiyatlarıyla karşılaştırır.
    "Bu bütçeyle bu mekanda ne alınabilir" sorusunun cevabı; ortalama hesap değil. */
@@ -252,7 +295,26 @@ function kendiniKontrolEt(){
     ["bant fiyatsiz",       bant({min:null,max:null}, 200),           null],
     ["tl bicim",            tl(1250),                                 "1.250 ₺"],
     ["kacir xss",           kacir('<img src=x onerror=1>'),
-                            "&lt;img src=x onerror=1&gt;"]
+                            "&lt;img src=x onerror=1&gt;"],
+    /* katkiSorunu: null = kabul. Saatin ayrıştırılabilirliği acikMi ile
+       ölçülüyor, o yüzden burada asıl sınanan şey ikisinin bağlı kalması. */
+    ["katki saat duz",      katkiSorunu("saat", "09:00-23:00"),          null],
+    ["katki saat gunlu",    katkiSorunu("saat", "Mo-Su 09:00-23:00"),    null],
+    ["katki saat 24/7",     katkiSorunu("saat", "24/7"),                 null],
+    ["katki saat turkce yazim elenir",
+      typeof katkiSorunu("saat", "Her gün 09:00-23:00"),                 "string"],
+    ["katki saat serbest metin elenir",
+      typeof katkiSorunu("saat", "sabah aksam"),                         "string"],
+    ["katki tel 10 hane",   katkiSorunu("tel", "5321234567"),            null],
+    ["katki tel bosluklu",  katkiSorunu("tel", "+90 532 123 45 67"),     null],
+    ["katki tel kisa elenir", typeof katkiSorunu("tel", "12345"),        "string"],
+    ["katki adres kisa elenir", typeof katkiSorunu("adres", "abc"),      "string"],
+    ["katki web tam bag",   katkiSorunu("web", "instagram.com/oturalim"), null],
+    ["katki web https",     katkiSorunu("web", "https://a.com/b"),       null],
+    ["katki web handle elenir", typeof katkiSorunu("web", "@oturalim"),  "string"],
+    ["katki bos elenir",    typeof katkiSorunu("adres", "  "),           "string"],
+    ["katki bilinmeyen alan elenir",
+      typeof katkiSorunu("menu", "100"),                                 "string"]
   ];
   const hata = kontroller.filter(k => JSON.stringify(k[1]) !== JSON.stringify(k[2]));
   document.body.insertAdjacentHTML("afterbegin",

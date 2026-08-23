@@ -47,6 +47,21 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   .fis h2{margin:0 0 var(--a2)}
   .fis p{margin:0 0 var(--a3)}
 
+  /* katki formu: eksik listesinin ALTINDA duruyor, cunku okuyan kisi neyin
+     eksik oldugunu tam o an gormus oluyor. Ayri sayfaya tasimak arayi aciyor. */
+  .katki{border-top:1px solid var(--cizgi);margin-top:var(--a4);padding-top:var(--a4)}
+  .katki p{margin:0 0 var(--a3)}
+  .katki-satir{display:flex;flex-wrap:wrap;gap:var(--a2)}
+  .katki-satir select{flex:0 0 11rem}
+  .katki-satir input{flex:1 1 13rem;min-width:0}
+  .katki-not{font-size:.88rem;color:var(--soluk);margin-top:var(--a2)}
+  .katki-not.kotu{color:var(--vurgu)}
+
+  /* Kullanicidan gelen alan isaretli duruyor: kaynak dipnotu "hepsi OSM'den"
+     diyor, isaretlemezsek o cumle yalan olur. */
+  .bilgi dd .kaynak-katki{font-size:.72rem;letter-spacing:.06em;
+     text-transform:uppercase;color:var(--soluk);margin-left:.5rem}
+
   .sahiplen{display:inline-block;margin-top:var(--a4)}
   .kaynak{font-size:.85rem;color:var(--soluk);margin-top:var(--a5);
           border-top:1px solid var(--cizgi);padding-top:var(--a3)}
@@ -79,6 +94,19 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
     <h2>Bu sayfada eksik olanlar</h2>
     <p id="eksikGiris"></p>
     <ul id="eksikListe"></ul>
+
+    <form class="katki" id="katkiForm" hidden>
+      <p><strong>Buradaysan, biliyorsundur.</strong> Kapıda yazan bilgiyi ekle;
+         kontrol ettikten sonra bu sayfada görünür.</p>
+      <div class="katki-satir">
+        <select id="katkiAlan" aria-label="Hangi bilgiyi ekliyorsun"></select>
+        <input id="katkiDeger" type="text" maxlength="200" autocomplete="off"
+               aria-label="Bilgi" required>
+        <button class="dugme birincil kucuk" type="submit" id="katkiGonder">Ekle</button>
+      </div>
+      <p class="katki-not" id="katkiNot"></p>
+    </form>
+
     <a class="dugme birincil sahiplen" id="sahiplenDugme" hidden>Bu işletme benim</a>
     <p id="sahiplenNot" class="soluk" style="margin-top:var(--a2);font-size:.9rem"></p>
   </section>
@@ -87,7 +115,9 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
     Bu sayfadaki bilgiler
     <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap katkıcılarından</a>
     (ODbL) geliyor ve eksik olabilir. Sayfa, kamuya açık veriden otomatik
-    oluşturulmuştur. <a href="gizlilik.html">Düzeltme ve kaldırma talebi</a>.
+    oluşturulmuştur. <strong>kullanıcıdan</strong> diye işaretli satırlar
+    ziyaretçilerin eklediği, tarafımızdan kontrol edilmiş bilgilerdir.
+    <a href="gizlilik.html">Düzeltme ve kaldırma talebi</a>.
   </p>
 </main>
 
@@ -99,7 +129,14 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
 
 <script src="yapilandirma.js"></script>
 <script src="ortak.js"></script>
-<script>
+<script type="module">
+import Kimlik from "./kimlik.js";
+/* Modul oldu: katki formu icin oturum lazim ve Kimlik ES modulu.
+   ortak.js klasik betik olarak once calisiyor, global'leri (seviye, kacir,
+   sayi, katkiSorunu) burada aynen okunabiliyor.
+   Sayac ve fis katmani kendi istemcilerini kurmaya devam ediyor -- calisan
+   ve dogrulanmis yol, Faz 1'in isi degil. */
+
 /* Isletme sayfasi.
    Il kodu URL'de gelir (?il=34). Baglantilari biz uretiyoruz, hep dolu.
    ponytail: 36 bin kayitlik global id->il dizini kurulmadi; ~900 KB'lik
@@ -141,20 +178,35 @@ function goster(m, ilAd){
     [m.adres, ilAd].filter(Boolean).join(" · ");
 
   const sv = seviye(m);
+  /* Sema yoksa https varsayiliyor. "javascript:..." gibi bir deger http ile
+     baslamadigi icin "https://javascript:..." olur ve zararsiz kalir --
+     kacir() ayrica tirnak kaciriyor. */
+  const bag = u => {
+    const t = /^https?:\/\//i.test(u) ? u : "https://" + u;
+    return '<a href="' + kacir(t) + '" target="_blank" rel="noopener nofollow">' +
+           kacir(u.replace(/^https?:\/\//i, "")) + "</a>";
+  };
+  /* Ucuncu sutun: alan anahtari. Kullanicidan gelen deger isaretlensin diye
+     var; kaynak dipnotu "hepsi OSM'den" diyor, isaretsiz birakmak onu
+     yanlisa cevirirdi. */
   const satirlar = [
-    ["Tür",     m.tur],
-    ["Mutfak",  m.mutfak],
-    ["Saatler", m.saat],
-    ["Telefon", m.tel],
-    ["Adres",   m.adres],
+    ["Tür",     kacir(m.tur || ""),          null],
+    ["Mutfak",  kacir(m.mutfak || ""),       null],
+    ["Saatler", kacir(m.saat || ""),         "saat"],
+    ["Telefon", kacir(m.tel || ""),          "tel"],
+    ["Adres",   kacir(m.adres || ""),        "adres"],
+    ["Site",    m.web ? bag(String(m.web)) : "", "web"],
     /* yalniz OLCULEN fiyat gosterilir. Mutfaktan tahmin edilen "hesapli",
        asagidaki "fiyat bilgisi yok" satiriyla ayni sayfada celisiyordu. */
-    ["Fiyat",   sv && sv.olculdu ? sv.ad : ""],
-    ["Bahçe",   m.bahce ? "var" : ""],
-    ["Wi-Fi",   m.wifi  ? "var" : ""]
+    ["Fiyat",   sv && sv.olculdu ? kacir(sv.ad) : "", null],
+    ["Bahçe",   m.bahce ? "var" : "",        null],
+    ["Wi-Fi",   m.wifi  ? "var" : "",        null]
   ].filter(s => s[1]);
   document.getElementById("bilgi").innerHTML = satirlar.map(s =>
-    "<div><dt>" + kacir(s[0]) + "</dt><dd>" + kacir(String(s[1])) + "</dd></div>").join("");
+    "<div><dt>" + kacir(s[0]) + "</dt><dd>" + s[1] +
+    (s[2] && m._katki && m._katki.has(s[2])
+      ? '<span class="kaynak-katki">kullanıcıdan</span>' : "") +
+    "</dd></div>").join("");
 
   const eksik = eksikleriBul(m);
   const giris = document.getElementById("eksikGiris");
@@ -183,9 +235,112 @@ function goster(m, ilAd){
     not.textContent = "Düzeltme talebi için gizlilik sayfasındaki iletişim adresini kullanabilirsin.";
   }
 
+  katkiFormu(m, eksik);
   document.getElementById("govde").hidden = false;
   sayacCalistir(ID);
   fisKatmani(ID, m.ad, IL);
+}
+
+/* ============================================================
+   Eksik bilgi katkisi
+
+   Ulasilamayan isletme sayisi 30.728 (%85,1): ne webi ne telefonu var, yani
+   onlara uzaktan sorulamiyor. Bilgiyi bilen tek kisi o an orada oturan
+   kullanici; form bu yuzden mekanin KENDI sayfasinda, eksik listesinin
+   hemen altinda duruyor.
+
+   Onay sart: yanlis saat, saat olmamasindan kotudur -- "su an acik" suzgeci
+   kullaniciyi kapali mekana yollar.
+   ============================================================ */
+const KATKI_IPUCU = {
+  saat:  "Örnek: 09:00-23:00 · Mo-Su 09:00-23:00 · 24/7",
+  tel:   "Örnek: 0312 123 45 67",
+  adres: "Cadde ve numara yeter.",
+  web:   "Tam bağlantı: instagram.com/… ya da site adresi."
+};
+
+/* Onaylanmis katkilar OSM verisinin uzerine DEGIL, bosluguna yaziliyor.
+   Ezme yetkisi dogrulanmis isletme sahibinde olmali; katkida degil. */
+function katkiBirlestir(m, liste){
+  m._katki = new Set();
+  for (const k of liste || []){
+    /* KATKI_ALAN ile ayni gerekce: miras alanlar ("constructor") gecmesin. */
+    if (!Object.prototype.hasOwnProperty.call(KATKI_IPUCU, k.alan)) continue;
+    if (!String(m[k.alan] == null ? "" : m[k.alan]).trim()){
+      m[k.alan] = k.deger;                       // liste yeniden eskiye: ilki kalir
+      m._katki.add(k.alan);
+    }
+  }
+  return m;
+}
+
+async function katkilariUygula(m){
+  m._katki = new Set();
+  if (!Kimlik.acik) return;
+  try {
+    await Kimlik.hazir;
+    katkiBirlestir(m, await Kimlik.onaylanmisKatkilar(m.id));
+  } catch (e) { /* tablo yok ya da ag yok: sayfa OSM verisiyle calisir */ }
+}
+
+function katkiFormu(m, eksik){
+  const form = document.getElementById("katkiForm");
+  /* Kimlik kurulu degilse form hic gorunmez: calismayan bir kutu
+     gostermek, hic gostermemekten kotu. */
+  if (!Kimlik.acik) return;
+
+  /* menu BILEREK disarida: fiyatin hatti paylas.html + fis katmani.
+     Ayni veriyi iki yerden toplamak iki ayri dogruya yol acar. */
+  const alanlar = eksik.filter(k => Object.prototype.hasOwnProperty.call(KATKI_IPUCU, k));
+  if (!alanlar.length) return;
+
+  const sec = document.getElementById("katkiAlan");
+  const gir = document.getElementById("katkiDeger");
+  const not = document.getElementById("katkiNot");
+  const dug = document.getElementById("katkiGonder");
+
+  sec.innerHTML = alanlar.map(k =>
+    '<option value="' + kacir(k) + '">' + kacir(KATKI_ALAN[k]) + "</option>").join("");
+
+  const ipucu = () => {
+    not.classList.remove("kotu");
+    not.textContent = KATKI_IPUCU[sec.value] || "";
+    gir.value = "";
+  };
+  sec.addEventListener("change", ipucu);
+  ipucu();
+
+  const donus = "isletme.html?il=" + encodeURIComponent(IL) + "&id=" + encodeURIComponent(ID);
+  Kimlik.izle(d => { dug.textContent = d.girisli ? "Ekle" : "Giriş yap ve ekle"; });
+
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+    if (!Kimlik.girisli){
+      location.href = "giris.html?donus=" + encodeURIComponent(donus);
+      return;
+    }
+    const alan = sec.value, deger = gir.value.trim();
+    /* Dogrulama ortak.js'te: saat kurali acikMi()'nin kendisiyle olculuyor,
+       burada ikinci bir kural yazmak ikisini ayristirirdi. */
+    const sorun = katkiSorunu(alan, deger);
+    if (sorun){ not.textContent = sorun; not.classList.add("kotu"); gir.focus(); return; }
+
+    dug.disabled = true;
+    const eskiMetin = dug.textContent;
+    dug.textContent = "Gönderiliyor…";
+    try {
+      await Kimlik.katkiGonder({ mekanId: ID, il: IL, mekanAd: m.ad, alan, deger });
+      form.innerHTML = '<p><strong>Teşekkürler, aldım.</strong> ' +
+        "Kontrol ettikten sonra bu sayfada görünecek.</p>";
+    } catch (hata) {
+      not.textContent = hata.message;
+      not.classList.add("kotu");
+      dug.disabled = false;
+      dug.textContent = eskiMetin;
+    }
+  });
+
+  form.hidden = false;
 }
 
 if (!ID || !IL || IL === "00"){
@@ -193,10 +348,14 @@ if (!ID || !IL || IL === "00"){
 } else {
   fetch("veri/" + encodeURIComponent(IL) + ".json")
     .then(r => r.ok ? r.json() : Promise.reject(r.status))
-    .then(d => {
+    .then(async d => {
       const m = (d.mekanlar || []).find(x => x.id === ID);
-      if (m) goster(m, d.il);
-      else document.getElementById("hata").hidden = false;
+      if (!m){ document.getElementById("hata").hidden = false; return; }
+      /* Katkilar cizimden ONCE uygulaniyor: bilgi listesi, eksik paneli ve
+         katki formu ayni m nesnesini okuyor. Sonradan yamamak, sayfanin bir
+         yerinde "telefon yok" derken otekinde telefon gostermek demekti. */
+      await katkilariUygula(m);
+      goster(m, d.il);
     })
     .catch(() => { document.getElementById("hata").hidden = false; });
 }
@@ -321,6 +480,26 @@ async function sayacCalistir(mekanId){
   const hata = t.filter(x =>
     JSON.stringify(eksikleriBul(x[0]).sort()) !== JSON.stringify(x[1].slice().sort()));
 
+  /* Katki birlestirme: bos alan dolar, DOLU alan ezilmez, eksik listesi
+     bunun ardindan kuculur. Ucu de sessizce bozulabilecek yerler --
+     ezilme olursa dogrulanmis bilgiyi kullanici katkisi siliyor demektir. */
+  const kb = (m, l) => katkiBirlestir(m, l);
+  const katkiT = [
+    [kb({tur:"Kafe"}, [{alan:"tel", deger:"0312"}]).tel === "0312",  "bos alan dolar"],
+    [kb({tur:"Kafe", tel:"0111"}, [{alan:"tel", deger:"0312"}]).tel === "0111",
+                                                                     "dolu alan EZILMEZ"],
+    [!kb({tur:"Kafe", tel:"0111"}, [{alan:"tel", deger:"0312"}])._katki.has("tel"),
+                                                                     "ezilmeyen alan isaretlenmez"],
+    [kb({tur:"Kafe"}, [{alan:"tel", deger:"yeni"}, {alan:"tel", deger:"eski"}]).tel === "yeni",
+                                                                     "en yeni katki kazanir"],
+    [kb({tur:"Kafe"}, [{alan:"menu", deger:"100"}]).menu === undefined,
+                                                                     "tanimsiz alan yazilmaz"],
+    [eksikleriBul(kb({tur:"Kafe", saat:"a", adres:"b", min:1},
+                     [{alan:"tel", deger:"0312"}, {alan:"web", deger:"a.com"}])).length === 0,
+                                                                     "katki eksik listesini kucultur"],
+    [kb({tur:"Kafe"}, null)._katki.size === 0,                       "bos liste sorun degil"]
+  ].filter(x => !x[0]);
+
   /* Fis esigi: altinda SAYI SIZDIRMAMALI (k-anonimlik), ustunde medyan
      kisi basina gore olmali. Ucu de sessizce bozulabilecek yerler. */
   const f = (n, tutar, kisi, kul) => Array.from({length:n},
@@ -334,10 +513,11 @@ async function sayacCalistir(mekanId){
     [/2 kişinin 4 fişinden/.test(fisOzeti(f(4, 300, 2, 2))), "tekil katkici sayilir"]
   ].filter(x => !x[0]);
 
-  if ((hata.length || fisT.length) && location.hash === "#kontrol")
+  if ((hata.length || fisT.length || katkiT.length) && location.hash === "#kontrol")
     document.body.insertAdjacentHTML("afterbegin",
       '<pre style="margin:0;padding:12px;background:#5b1a1a;color:#fff">BASARISIZ: ' +
-      hata.map(h => h[2]).concat(fisT.map(x => x[1])).join(", ") + "</pre>");
+      hata.map(h => h[2]).concat(fisT.map(x => x[1]))
+          .concat(katkiT.map(x => x[1])).join(", ") + "</pre>");
 
 })();
 </script>

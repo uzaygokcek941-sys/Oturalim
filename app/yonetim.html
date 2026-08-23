@@ -121,6 +121,30 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
         </div>
 
         <div id="liste"></div>
+
+        <!-- Ikinci kuyruk: eksik bilgi katkilari. Fiyattan ayri durusunun
+             sebebi ikisinin farkli olcutle degerlendirilmesi: fiyatta aykiri
+             rakam aranir, burada bilginin dogrulugu. -->
+        <div class="bolum-bas" style="margin:var(--a6) 0 var(--a5)">
+          <span class="etiket">Yönetim</span>
+          <h2 style="font-size:32px">Eksik bilgi katkıları</h2>
+          <p>
+            Kullanıcıların eklediği açılış saati, telefon, adres ve site bilgisi.
+            Onayladığın değer işletmenin sayfasında <b>kullanıcıdan</b> işaretiyle
+            görünür. Yanlış saat, saat olmamasından kötüdür — emin değilsen reddet.
+          </p>
+        </div>
+
+        <div class="ozet" id="katkiOzet"></div>
+
+        <div class="suzgec" id="katkiSuzgec">
+          <button class="cip" data-durum="bekliyor"   aria-pressed="true">Bekleyen</button>
+          <button class="cip" data-durum="onaylandi"  aria-pressed="false">Onaylanan</button>
+          <button class="cip" data-durum="reddedildi" aria-pressed="false">Reddedilen</button>
+          <button class="cip" data-durum=""           aria-pressed="false">Hepsi</button>
+        </div>
+
+        <div id="katkiListe"></div>
       </div>
 
     </div>
@@ -219,6 +243,90 @@ async function listeyiCiz(){
     }));
 }
 
+/* ---------- ikinci kuyruk: eksik bilgi katkilari ----------
+   Fiyat kuyrugunun aynisi, tek farkla: kararin ciktisi bir rakam degil bir
+   BILGI. Bu yuzden karttan isletme sayfasina dogrudan bag var -- yonetici
+   degeri onaylamadan once yerinde gorebilsin. */
+let katkiSuzgec = "bekliyor";
+
+async function katkiOzetiCiz(){
+  const hepsi = await Kimlik.katkiYonetimListesi("");
+  const say = d => hepsi.filter(x => x.durum === d).length;
+  el("#katkiOzet").innerHTML =
+    '<div><b class="sayi">' + sayi(say("bekliyor"))   + "</b><span>bekleyen</span></div>" +
+    '<div><b class="sayi">' + sayi(say("onaylandi"))  + "</b><span>onaylanan</span></div>" +
+    '<div><b class="sayi">' + sayi(say("reddedildi")) + "</b><span>reddedilen</span></div>" +
+    '<div><b class="sayi">' + sayi(hepsi.length)      + "</b><span>toplam</span></div>";
+}
+
+async function katkiListesiniCiz(){
+  const yuva = el("#katkiListe");
+  yuva.innerHTML = '<p class="bos"><strong>Yükleniyor…</strong></p>';
+  const liste = await Kimlik.katkiYonetimListesi(katkiSuzgec);
+
+  if (!liste.length){
+    yuva.innerHTML = '<p class="bos">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 13 4 4L19 7"/></svg>' +
+      "<strong>Bu listede kayıt yok</strong>" +
+      (katkiSuzgec === "bekliyor" ? "Bekleyen katkı kalmadı." : "Başka bir süzgeç dene.") +
+      "</p>";
+    return;
+  }
+
+  yuva.innerHTML = liste.map(k => {
+    const d = DURUM[k.durum] || DURUM.bekliyor;
+    /* KATKI_ALAN ortak.js'te ve isletme sayfasiyla ayni: yoneticinin gordugu
+       etiketle kullanicinin sectigi etiket ayrisirsa karar yanlis alana gider. */
+    const alanAd = (typeof KATKI_ALAN === "object" && KATKI_ALAN[k.alan]) || k.alan;
+    const sayfa = k.il && k.mekan_id
+      ? ' · <a href="isletme.html?il=' + encodeURIComponent(k.il) +
+        "&id=" + encodeURIComponent(k.mekan_id) + '" target="_blank" rel="noopener">sayfayı aç</a>'
+      : "";
+    return '<article class="kayit ' + kacir(k.durum) + '">' +
+      "<div><h3>" + kacir(k.mekan_ad) + "</h3>" +
+        '<div class="satir">' +
+          "<span>" + kacir(alanAd) + "</span>" +
+          (k.il ? "<span>il " + kacir(k.il) + "</span>" : "") +
+          "<span>" + tarihTR(k.olusturuldu) + "</span>" +
+          '<span class="rozet ' + d.sinif + '">' + d.ad + "</span>" +
+        "</div>" +
+        '<div class="aciklama"><b>' + kacir(k.deger) + "</b>" + sayfa + "</div>" +
+      "</div>" +
+      '<div><div class="kararlar">' +
+        (k.durum !== "onaylandi"
+          ? '<button class="dugme kucuk onay" type="button" data-kkarar="onaylandi" data-id="' + k.id + '">Onayla</button>' : "") +
+        (k.durum !== "reddedildi"
+          ? '<button class="dugme ikincil kucuk ret" type="button" data-kkarar="reddedildi" data-id="' + k.id + '">Reddet</button>' : "") +
+        (k.durum !== "bekliyor"
+          ? '<button class="dugme duz kucuk" type="button" data-kkarar="bekliyor" data-id="' + k.id + '">Geri al</button>' : "") +
+      "</div></div></article>";
+  }).join("");
+
+  yuva.querySelectorAll("[data-kkarar]").forEach(b =>
+    b.addEventListener("click", async () => {
+      const kardesler = b.closest(".kararlar").querySelectorAll("button");
+      kardesler.forEach(x => { x.disabled = true; });
+      try {
+        await Kimlik.katkiKarar(Number(b.dataset.id), b.dataset.kkarar);
+        uyar("iyi", b.dataset.kkarar === "onaylandi" ? "Onaylandı, işletme sayfasında görünecek."
+             : b.dataset.kkarar === "reddedildi" ? "Reddedildi." : "Beklemeye alındı.");
+        await Promise.all([katkiListesiniCiz(), katkiOzetiCiz()]);
+      } catch (e){
+        uyar("hata", e.message);
+        kardesler.forEach(x => { x.disabled = false; });
+      }
+    }));
+}
+
+el("#katkiSuzgec").addEventListener("click", e => {
+  const b = e.target.closest("button[data-durum]");
+  if (!b) return;
+  katkiSuzgec = b.dataset.durum;
+  document.querySelectorAll("#katkiSuzgec button").forEach(x =>
+    x.setAttribute("aria-pressed", String(x === b)));
+  katkiListesiniCiz();
+});
+
 el("#suzgec").addEventListener("click", e => {
   const b = e.target.closest("button[data-durum]");
   if (!b) return;
@@ -239,7 +347,7 @@ Kimlik.hazir.then(async acik => {
      yonetici_mi() politikası — yetkisiz istek zaten boş sonuç döner. */
   if (!Kimlik.yonetici){ el("#yetkisiz").hidden = false; return; }
   el("#icerik").hidden = false;
-  await Promise.all([ozetiCiz(), listeyiCiz()]);
+  await Promise.all([ozetiCiz(), listeyiCiz(), katkiOzetiCiz(), katkiListesiniCiz()]);
 });
 </script>
 </body>

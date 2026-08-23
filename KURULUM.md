@@ -28,6 +28,17 @@ Toplam süre: ~15 dakika. Ücret yok, kart istenmiyor.
    `Sema kuruldu: 3 tablo, RLS acik, 9 politika`
    Hata verirse dosyayı baştan yapıştırıp tekrar çalıştır — dosya
    tekrar çalıştırılabilir yazıldı, bozulmaz.
+5. Aynı yöntemle şu iki dosyayı da çalıştır (ikisi de `sema.sql`'e bağlı,
+   ondan **sonra** gelmeli):
+
+   | Dosya | Ne açar | Çalıştırmazsan |
+   |---|---|---|
+   | `veritabani/sayac.sql` | İşletme sayfası görüntülenme sayacı | Sayaç satırı hiç görünmez |
+   | `veritabani/katki.sql` | Eksik bilgi katkı formu | Form hiç görünmez |
+
+   İkisi de kurulmadığında sayfa normal çalışır; yalnız o bölümler
+   sessizce gizli kalır. Beklenen çıktılar:
+   `Katki tablosu kuruldu: RLS acik, 6 politika`
 
 ## 3. Anahtarları siteye yapıştır
 
@@ -91,6 +102,11 @@ Sırayla dene:
       → Favorilerim'de görünüyor mu
 - [ ] `paylas.html` → fiyat gönder → Paylaşımlarım'da "onay bekliyor" mu
 - [ ] `yonetim.html` → paylaşımı **Onayla** → durum "yayımlandı" oldu mu
+- [ ] `kesfet.html` → bir mekan aç → **Sayfasını aç** → eksik listesinin altında
+      katkı formu görünüyor mu (bilgileri tam olan mekanda görünmemeli)
+- [ ] Katkı gönder → `yonetim.html` → **Eksik bilgi katkıları** bölümünde
+      göründü mü → **Onayla** → işletme sayfasında "kullanıcıdan" işaretiyle
+      çıktı mı ve o satır eksik listesinden düştü mü
 - [ ] Çıkış yap → `hesabim.html` adresine git → girişe yönlendiriyor mu
 
 ---
