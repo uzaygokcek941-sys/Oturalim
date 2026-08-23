@@ -1,0 +1,18 @@
+# Oturalım — https://github.com/uzaygokcek941-sys/Otural-m
+#
+# Isletme sayfalari (isletme.html?il=..&id=..) taranabilir: uzun kuyruk
+# aramasinin ("X mahallesinde kafe") karsiligi onlar. Ancak sitemap'e
+# yalniz ICERIGI OLAN sayfalar konuyor -- 36.102 mekanin 23.715'i yalniz
+# ad + harita noktasi, o sayfalari indekse itmek ince icerik olur.
+# Ayrinti: site_haritasi.py
+
+User-agent: *
+Allow: /
+
+# Hesap ve yonetim ekranlari zaten <meta name="robots" content="noindex">
+# tasiyor; burada da yaziliyor ki tarayici bosuna istek atmasin.
+Disallow: /giris.html
+Disallow: /hesabim.html
+Disallow: /yonetim.html
+
+# Sitemap satiri alan adi belli olunca site_haritasi.py tarafindan yazilir.

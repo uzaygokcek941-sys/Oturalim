@@ -128,7 +128,7 @@ Günde 1. Telefonla çek, kurgu yok. Kapanış çağrısı: **"Uygulamada hepsi 
 - [ ] İlk 3 içeriği çek ve yayınla (1, 2, 11)
 
 ### Ürün — TAMAMLANDI (tarayıcıda doğrulandı)
-- [x] 81 il çekimi — **33.552 mekan**, hiçbir il eksik değil
+- [x] 81 il çekimi — **36.102 mekan** (eğlence dahil), hiçbir il eksik değil
 - [x] `app_veri.py` ile il il JSON (`app/veri/<kod>.json` + `index.json`)
 - [x] Harita + liste ekranı (Leaflet, OSM/CARTO döşeme)
 - [x] Şehir seçici, tercih localStorage'da saklanıyor
@@ -167,7 +167,7 @@ paylaşılabilir), mobilde liste/harita sekmesi, iskelet yükleme, boş durum ek
 
 Eski tek dosyalık sürüm `app/kesfet-eski-yedek.html` olarak duruyor.
 
-### Giriş sistemi — KURULDU (2026-08-20), Supabase anahtarı bekliyor
+### Giriş sistemi — KURULDU (2026-08-20), anahtarlar girildi
 
 Kimlik katmanı eklendi. **Anahtarlar girilene kadar site aynen önceki gibi
 çalışıyor**; giriş özellikleri kapalı görünüyor.
@@ -263,17 +263,38 @@ yeni anon anahtar `app/yapilandirma.js` içine yazılmalı.
 
 Yerelde çalıştırmak için: `python -m http.server 8123 --directory app`
 
-### Yayın için kalan (bunlar sende)
-- [ ] **Google Form oluştur** (mekan adı, ödenen tutar, kişi sayısı, tarih, fiş)
-      ve linkini `app/index.html` içindeki `PAYLAS_FORM` sabitine yapıştır
-- [ ] KVKK metnindeki `iletisim@oturalim.app` adresini kendi adresinle değiştir
-      (iki yerde: `#kvkk` ve `#bildir` pencerelerinde)
-- [ ] Vercel'e `app` klasörünü yükle
-- [ ] `@oturalim` handle'ını al, ilk 3 içeriği paylaş
+### Kalanlar — tek liste (2026-08-23'te gerçeğe göre yenilendi)
 
-### Sonraki
-- [ ] Günde 1 içerik, kesintisiz
-- [ ] Gelen her DM'e ilk 10 dakikada cevap
+İlerleme daha önce üç ayrı yerde yazılıydı ve bir kısmı gerçeğin gerisinde
+kalmıştı. Aşağısı tek kaynak; kapananlar listeden düşürüldü.
+
+**Kapandı, listeden düştü:** Google Form (yerine `paylas.html` + `paylasimlar`
+tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
+(gerçek adres üç dosyada da yerinde) · Supabase anahtarları (girildi).
+
+**Sende (kod değil):**
+- [ ] `app/yapilandirma.js` → `sahiplenmeWhatsapp` doldur — **Faz 3 buna kilitli**
+- [ ] `veritabani/sayac.sql` ve `katki.sql`'i Supabase'de çalıştır
+- [ ] `@oturalim` handle (Instagram + TikTok), bio, ilk 3 içerik
+- [ ] Vercel yayını
+- [ ] Günde 1 içerik, gelen DM'e ilk 10 dakikada cevap
+
+**Üründe — ağ mekanikleri (fiş katmanı commit'inde sayılmıştı, hiçbiri başlamadı):**
+- [ ] Bütçe akranları
+- [ ] Bayat fiyat hatırlatması
+- [ ] Mahalle statüsü
+
+**Üründe — dijitalleşmemiş işletme planı:**
+- [x] Faz 1 — eksik bilgi katkı hattı (`katki.sql`, form, onay, takip)
+- [x] Faz 2 — yürüyüş kümeleri (`sahiplen.py` → `sahiplenme_kume.csv`)
+- [ ] Faz 3 — saha: en yoğun 3 küme, QR kart, sayaçtan ölçüm
+- [ ] Faz 4 — sahiplenme kodu ve doğrulama akışı
+
+**Kodda kalan teknik borç:**
+- [ ] Leaflet ve supabase-js CDN'den SRI'siz geliyor
+- [ ] `app/veri/34.json` 1,7 MB — İstanbul ilk açılışı ağır
+- [ ] `?test=1` / `#kontrol` kontrolleri CI'da koşmuyor
+- [ ] `isletme.html` hâlâ iki ayrı Supabase istemcisi kuruyor (sayaç + fiş)
 - [ ] Fiyat verisi büyüdükçe "ucuz/orta/pahalı" bandını hesapla
 
 ---

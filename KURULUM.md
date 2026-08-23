@@ -25,7 +25,7 @@ Toplam süre: ~15 dakika. Ücret yok, kart istenmiyor.
 2. `veritabani/sema.sql` dosyasının **tamamını** kopyalayıp yapıştır.
 3. **Run**.
 4. Alt panelde şuna benzer bir satır görmelisin:
-   `Sema kuruldu: 3 tablo, RLS acik, 9 politika`
+   `Sema kuruldu: 3 tablo, RLS acik, 11 politika`
    Hata verirse dosyayı baştan yapıştırıp tekrar çalıştır — dosya
    tekrar çalıştırılabilir yazıldı, bozulmaz.
 5. Aynı yöntemle şu iki dosyayı da çalıştır (ikisi de `sema.sql`'e bağlı,
@@ -119,16 +119,41 @@ Sırayla dene:
 
 ---
 
-## Değiştirmen gereken e-posta adresleri
+## Yayın öncesi kalan tek ayar
 
-Kod içinde `iletisim@oturalim.app` yer tutucu olarak duruyor. Kendi adresinle
-değiştir:
+E-posta adresleri **yapıldı** — `uzaygokcek941@gmail.com` üç dosyada da yerinde
+(`gizlilik.html`, `hesabim.html`, `paylas.html`). Yer tutucu kalmadı.
 
-| Dosya | Nerede |
-|---|---|
-| `app/gizlilik.html` | veri sorumlusu ve KVKK başvuru adresi (2 yer) |
-| `app/hesabim.html` | `EPOSTA` sabiti — hesap silme talebi |
-| `app/paylas.html` | `EPOSTA` sabiti — kimlik kapalıyken yedek yol |
+Kalan tek boş alan `app/yapilandirma.js` içindeki **`sahiplenmeWhatsapp`**:
+
+```js
+sahiplenmeWhatsapp: "905XXXXXXXXX",   // faturasız, ayrı bir hat
+```
+
+Boş kaldığı sürece işletme sayfası normal çalışır, yalnız **"Bu işletme benim"**
+düğmesi gizli kalır. Kişisel hattını yazma — numara işletmelere görünüyor.
+
+## Alan adı belli olunca: site haritası
+
+`sitemap.xml` mutlak adres istiyor, o yüzden depoda hazır durmuyor —
+uydurulmuş alan adıyla üretilmiş bir site haritası, üretilmemiş olandan
+kötüdür. Vercel adresin belli olunca bir kez çalıştır:
+
+```bash
+python site_haritasi.py oturalim.vercel.app --isletmeler
+```
+
+Bu iki dosyayı yazar ve **ikisi de depoya girmeli** (derleme adımı yok,
+Vercel `app/` klasörünü olduğu gibi servis ediyor):
+
+- `app/sitemap.xml` — ana sayfalar + içeriği olan işletme sayfaları
+- `app/robots.txt` — `Sitemap:` satırı eklenir (tekrar çalıştırınca çoğalmaz)
+
+`--isletmeler` olmadan yalnız ana sayfalar girer. Girdiğinde bile her mekan
+alınmıyor: 36.102 mekanın **23.715'inde** ad ve harita noktasından başka
+bilgi yok; o sayfaları indekse itmek ince içerik üretmek olur. Şu an
+**12.387 işletme sayfası** (%34,3) eşiği geçiyor — kullanıcı katkısı geldikçe
+bu sayı büyüyor, o yüzden ara ara yeniden çalıştırmak mantıklı.
 
 ## Güvenlik notu
 
@@ -147,6 +172,10 @@ Hesap açıldığı andan itibaren kişisel veri işliyorsun. Şunlar hazır:
 - Aydınlatma metni `gizlilik.html` içinde, hangi verinin niçin işlendiği yazılı
 - Silme talebi kanalı `hesabim.html` → Ayarlar → Hesabı sil
 - Veri en aza indirildi: e-posta ve parola özeti; ad isteğe bağlı
+- Veri sorumlusu iletişim adresi yerinde (yer tutucu kalmadı)
+- Görüntülenme sayacının IP işlemesi `gizlilik.html` → *İşletme sayfası
+  görüntülenme sayısı* başlığı altında açıklanmış: ham IP saklanmıyor,
+  özet her gün yenileniyor, hukuki sebep yazılı
 
-Eksik olan: **veri sorumlusu olarak gerçek bir iletişim adresi**. Yer tutucu
-adresi kendi adresinle değiştirmeden yayına çıkma.
+Hesap açmayan ziyaretçi için işlenen tek kişisel veri, sayacın kullandığı
+IP + tarayıcı bilgisidir; o da geri döndürülemez özete çevrilip saklanır.
