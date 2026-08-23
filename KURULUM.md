@@ -38,7 +38,15 @@ Toplam süre: ~15 dakika. Ücret yok, kart istenmiyor.
 
    İkisi de kurulmadığında sayfa normal çalışır; yalnız o bölümler
    sessizce gizli kalır. Beklenen çıktılar:
-   `Katki tablosu kuruldu: RLS acik, 6 politika`
+
+   ```
+   Sayac kuruldu: dogrudan yazma kapali, kimlik sunucuda uretiliyor
+   Katki tablosu kuruldu: RLS acik, 6 politika
+   ```
+
+   > `sayac.sql`'i daha önceki bir sürümüyle çalıştırdıysan tekrar çalıştır:
+   > eski sürüm tarayıcının gönderdiği kimliğe güveniyordu ve sayı
+   > şişirilebiliyordu. Yeni sürüm o yolu kapatıyor, birikmiş veriyi silmiyor.
 
 ## 3. Anahtarları siteye yapıştır
 

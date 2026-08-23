@@ -63,8 +63,10 @@ create policy "katki onaylanmis herkese acik" on public.katkilar
 
 -- Giriş şartı KASTEN var. Anonim yazmaya açmak katkıyı kolaylaştırırdı ama
 -- kuyruğu tek kişinin temizlediği bir sistemde, kimliksiz çöp gönderimini
--- durduracak hiçbir şey kalmazdı. (goruntulenme tablosu anonim yazıyor;
--- oradaki hata payı bir sayı, buradaki hata payı yanlış bilgi.)
+-- durduracak hiçbir şey kalmazdı.
+-- (Sayaç girişsiz sayıyor ama oraya serbest metin girmiyor: istemci yalnız
+-- mekan kimliği veriyor, kalanını sunucu üretiyor ve en kötü hâli yanlış bir
+-- SAYI. Buradaki en kötü hâl yanlış BİLGİ, ve o kullanıcıya gösteriliyor.)
 drop policy if exists "katki kendi ekler" on public.katkilar;
 create policy "katki kendi ekler" on public.katkilar
   for insert with check (kullanici = auth.uid() and durum = 'bekliyor');

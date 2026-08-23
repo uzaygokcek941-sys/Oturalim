@@ -418,40 +418,32 @@ async function fisKatmani(mekanId, mekanAd, ilKod){
 
 /* ---------- goruntulenme sayaci ----------
    "Sayfani bu ay 47 kisi gordu" cumlesi butun satis anlatisini tasiyor, o
-   yuzden sayi sisirilebilir olmamali. Tekillik veritabaninda: (mekan, gun,
-   cihaz) birincil anahtar -- sayfayi 40 kez yenilemek sayiyi artirmiyor.
+   yuzden sayi sisirilebilir olmamali.
 
-   KVKK: cihaz kimligi HER GUN yenileniyor. Ayni kisinin iki gunku ziyareti
-   birbirine baglanamaz; kalici ziyaretci kimligi tutulmuyor.
+   ONCEDEN BOYLE DEGILDI: cihaz kimligini BURASI uretiyor (crypto.randomUUID)
+   ve dogrudan tabloya yaziyordu. Yani sayiyi belirleyen sey istemcinin
+   sozuydu; rastgele uuid ureten bir dongu istedigi mekani sisirebilirdi.
+   Simdi istemci kimlik GONDERMIYOR: mekan_goruldu() sunucuda, istegin kendi
+   basliklarindan (IP + tarayici + gun + tuz) bir iz turetiyor. Gerekce ve
+   kalan sinirlar veritabani/sayac.sql basinda yazili.
+
+   Yan kazanc: tarayicida artik hicbir sey saklanmiyor, localStorage'daki
+   cihaz kimligi tamamen kalkti.
 
    Yapilandirma bos ya da tablo kurulmamissa hicbir sey olmuyor: sayfa
    normal calisiyor, satir gizli kaliyor. Sifir gosterilmiyor -- "0 kisi
    bakti" hem cesaret kirici hem de "calismiyor" ile ayirt edilemez. */
-const SAYAC_ANAHTAR = "oturalim.cihaz";
-
-function gunlukCihaz(){
-  const bugun = new Date().toISOString().slice(0, 10);
-  try {
-    const k = JSON.parse(localStorage.getItem(SAYAC_ANAHTAR) || "{}");
-    if (k.gun === bugun && k.id) return k.id;
-    const id = crypto.randomUUID();
-    localStorage.setItem(SAYAC_ANAHTAR, JSON.stringify({ gun:bugun, id }));
-    return id;
-  } catch (e) { return null; }        /* localStorage kapaliysa sayma */
-}
-
 async function sayacCalistir(mekanId){
   const a = window.OTURALIM || {};
   if (!a.supabaseUrl || !a.supabaseAnahtar) return;
-  const cihaz = gunlukCihaz();
-  if (!cihaz) return;
   try {
     const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.45.4");
     const sb = createClient(a.supabaseUrl, a.supabaseAnahtar,
       { auth:{ persistSession:false } });
 
-    /* Ayni gun ikinci kez bakinca cakisir; hata degil, beklenen durum. */
-    await sb.from("goruntulenme").insert({ mekan_id:mekanId, cihaz });
+    /* Ayni gun ikinci kez bakinca sunucuda cakisir; hata degil, beklenen
+       durum -- fonksiyon sessizce hicbir sey yapmiyor. */
+    await sb.rpc("mekan_goruldu", { p_mekan_id:mekanId });
 
     const { data, error } = await sb.rpc("mekan_sayaci", { p_mekan_id:mekanId });
     if (error || !data || !data.length) return;
