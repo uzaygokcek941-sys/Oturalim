@@ -41,9 +41,20 @@ KURAL = [
     ("Pide",           [r"\bpide\b", r"pideli"], []),
     ("Kebap",          [r"kebap", r"kebab", r"adana", r"urfa", r"\bsis\b", r"beyti", r"kaburga"], []),
     ("Köfte",          [r"kofte"], []),
-    ("Tavuk",          [r"tavuk", r"chicken", r"kanat", r"nugget"], []),
-    ("Balık",          [r"balik", r"levrek", r"cipura", r"somon", r"hamsi", r"kalamar"], []),
-    ("Tost / sandviç", [r"\btost\b", r"sandvic", r"sandwich", r"bagel"], []),
+    # Malzeme degil YEMEK belirleyici: "Sehriyeli Tavuk Corbasi" bir corba.
+    # Corba kurali asagida oldugu icin tavuk once esleşip ana yemek
+    # sayiliyordu.
+    ("Tavuk",          [r"tavuk", r"chicken", r"kanat", r"nugget"], [r"corba"]),
+    # \bhamsi\b sinirli: sinirsizken "Hamsikoy Sutlac" -- bir TATLI --
+    # balik sayiliyordu. Yer adi malzeme sanildi ve balik pahali oldugu
+    # icin mekanin fiyatini yukari cekiyordu.
+    ("Balık",          [r"balik", r"levrek", r"cipura", r"somon", r"\bhamsi\b",
+                        r"kalamar"], [r"corba"]),
+    # Marka adi jenerik kelimeyi YENER: "Algida Magnum Sandwich" bir
+    # dondurma, tost degil. Dondurma kurali (asagida) bu satirdan sonra
+    # geldigi icin "sandwich" once esleşiyordu; 96 subede tost sayildi.
+    ("Tost / sandviç", [r"\btost\b", r"sandvic", r"sandwich", r"bagel"],
+                       [r"algida", r"magnum", r"cornetto"]),
     ("Makarna",        [r"makarna", r"penne", r"spaghetti", r"fettuc", r"manti"], []),
     ("Çorba",          [r"corba"], []),
     ("Salata",         [r"salata", r"salad"], []),
@@ -229,6 +240,18 @@ def kendini_kontrol_et():
         ("Su", "Su"),
         ("Buzlu Cay", "Meyve suyu"),                     # cay degil, ice tea
         ("Coca-Cola 330 ML", "Kola / gazlı"),
+        # --- kural sirasindan dogan uc gercek hata; veride olculdu ---
+        # Marka adi jenerik kelimeyi yener: dondurma, tost degil.
+        ("Algida Magnum Sandwich", "Dondurma"),
+        ("Magnum Mini Sandwich Badem", "Dondurma"),
+        ("Sucuklu Kasarli Tost", "Tost / sandviç"),      # gercek tost bozulmadi
+        # Yemek belirleyici malzemeyi yener: corba, corbadir.
+        ("Sehriyeli Tavuk Corbasi", "Çorba"),
+        ("Balik Corbasi", "Çorba"),
+        ("Tavuk Sis Porsiyon", "Kebap"),                 # gercek ana yemek bozulmadi
+        # Yer adi malzeme sanilmasin: Hamsikoy sutlaci bir TATLI.
+        ("Findikli Hamsikoy Sutlac", "Tatlı"),
+        ("Hamsi Tava", "Balık"),                         # gercek balik bozulmadi
     ]
     hata = 0
     for ad, beklenen in ornekler:
