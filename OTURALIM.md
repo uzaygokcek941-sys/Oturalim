@@ -473,6 +473,28 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
       (`mekan_fis_ozeti`, `security definer`) — sızıntının sebebi zaten
       o sayımdı. Gösterilen sayı **değişmiyor**: 12 veri kümesinde SQL
       medyanı ile eski JS formülü birebir aynı sonucu verdi.
+- [x] **Bağlantı sorununda kullanıcıya *geliştirici talimatı* gösteriliyordu.**
+      `supabase-js` CDN'den geliyor ve gelmeyebiliyor (kurumsal ağ, okul ağı,
+      ülke çapında engel — Leaflet'te tam olarak bu olmuştu). İki farklı sebep
+      tek bir `false`'a düşüyordu, `giris.html` de ikisine birden *"Giriş
+      sistemi henüz kurulu değil — `app/yapilandirma.js` dosyasını doldur"*
+      diyordu. Yayındaki sitede bu **yanlış**: sistem kurulu ve kullanıcı o
+      dosyaya erişemiyor bile. Artık `Kimlik.sorun` ikisini ayırıyor ve ağ
+      durumunda "Giriş şu an açılamıyor · Tekrar dene" çıkıyor.
+      Aynı geçişte ölçüldü: CDN **askıda** kalırsa sayfa **süresiz** boş
+      kalıyordu. 12 saniyelik sınır kondu (konum bekçisiyle aynı süre);
+      ölçüldü, 12,1 sn'de doğru mesajla açılıyor.
+- [x] **Keşfet ekranının `h1`'i hiç yoktu.** Sitenin indekslenen ana ekranında
+      başlık sıralaması doğrudan kart `h3`'lerine atlıyordu; ekran okuyucu
+      kullanıcısı başlıklarla gezerken sayfanın ne olduğunu söyleyen tek bir
+      başlık bulamıyordu. Görsel olarak yer kaplamayan ama seçili şehirle
+      güncellenen bir `h1` kondu (sabit metin, şehir değişince yalan olurdu).
+      Artık her sayfada **tam bir** görünür `h1` olduğu denetleniyor.
+- [x] **Bütçe kaydırıcısı telefonda 22 piksel yüksekti** — WCAG 2.5.8'in
+      24×24 asgarisinin bile altında. Kutusu 44 px olduğu için gözle fark
+      edilmiyordu ama parmağın ortadaki dar bandı tutturması gerekiyordu.
+      Çizgi ve topuz aynı kaldı, büyüyen tek şey dokunma alanı
+      (ekran görüntüsüyle karşılaştırıldı).
 - [x] **Sahipliği bırakmak kaydı siliyordu.** Yönetici iptali kaydı
       *koruyor* — dosyanın kendi gerekçesi: "kimin neyi ne zaman
       sahiplendiği ve neden geri alındığı kaybolmasın". Ama kullanıcının

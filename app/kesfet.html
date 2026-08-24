@@ -80,7 +80,11 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   .butce-kutu label{font-size:13px;font-weight:600;color:var(--metin-3);white-space:nowrap}
   .butce-kutu output{font-weight:700;font-size:16px;color:var(--vurgu);
     font-variant-numeric:tabular-nums;white-space:nowrap;min-width:74px;text-align:right}
-  input[type=range]{flex:1;min-width:60px;height:22px;appearance:none;background:none;cursor:pointer}
+  /* Yukseklik 22 -> 44. Cizgi ve topuz AYNI kaliyor (ikisinin kendi
+     olculeri var); buyuyen sey yalniz DOKUNMA ALANI. Onceden kutu 44 px,
+     kaydiricinin kendisi 22 px'ti: parmagin ortadaki dar bandi tutturmasi
+     gerekiyordu. WCAG 2.5.8 en az 24x24 istiyor, telefonda 44 makul olan. */
+  input[type=range]{flex:1;min-width:60px;height:44px;appearance:none;background:none;cursor:pointer}
   input[type=range]::-webkit-slider-runnable-track{height:5px;border-radius:3px;background:var(--cizgi-2)}
   input[type=range]::-moz-range-track{height:5px;border-radius:3px;background:var(--cizgi-2)}
   input[type=range]::-webkit-slider-thumb{
@@ -297,6 +301,16 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
 <div class="arac" id="arac">
   <div class="kap">
     <div class="arac-satir">
+      <!-- Bu ekranin H1'I HIC YOKTU; baslik siralamasi dogrudan kart
+           h3'lerine atliyordu. Iki somut sonucu var:
+           (1) ekran okuyucu kullanicisi basliklarla gezer, sayfanin ne
+               oldugunu soyleyen tek bir baslik bulamiyordu;
+           (2) sitenin INDEKSLENEN ana ekraninda h1 yok.
+           Gorsel olarak yer kaplamiyor (.gizli), ama secili sehirle
+           guncelleniyor -- sabit bir metin, sehir degistiginde yalan
+           soylerdi. -->
+      <h1 class="gizli" id="baslik">Mekanları keşfet</h1>
+
       <div class="ara-sar">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         <input class="ara" id="ara" type="search" placeholder="Mekan, mutfak veya sokak ara…" aria-label="Mekan ara">

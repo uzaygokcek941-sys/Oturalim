@@ -251,8 +251,11 @@ kosu("kimlik.js (veri katmani, sahte Supabase)", () => {
 
   const sahteModul = "data:text/javascript," + encodeURIComponent(
     "export const createClient = () => globalThis.__sahteIstemci;");
-  const duzenli = kaynak.replace(/await import\("https:\/\/esm\.sh[^"]*"\)/,
-                                 'await import("' + sahteModul + '")');
+  /* "await" ARANMIYOR: import() bir Promise.race icinde de durabiliyor
+     (zaman asimi eklendiginde tam olarak bu oldu ve kalip kacti). Aranan
+     sey CAGRININ KENDISI. */
+  const duzenli = kaynak.replace(/import\("https:\/\/esm\.sh[^"]*"\)/,
+                                 'import("' + sahteModul + '")');
   if (duzenli === kaynak) return ["kimlik.js icindeki esm.sh import'u bulunamadi"];
 
   const yol = path.join(os.tmpdir(), "kimlik-kontrol-" + process.pid + ".mjs");

@@ -207,6 +207,63 @@ def kendini_kontrol_et():
                     sorunlar.append("%s: sayfa bos (%d karakter)" % (yolu, len(govde)))
                 sf.close()
 
+            # 1a2) Her sayfanin TAM BIR gorunur h1'i olmali.
+            #
+            # kesfet.html'in h1'i HIC YOKTU: baslik siralamasi dogrudan
+            # kart h3'lerine atliyordu. Ekran okuyucu kullanicisi
+            # basliklarla gezer ve sitenin ana ekraninda sayfanin ne
+            # oldugunu soyleyen tek bir baslik bulamiyordu; ayrica
+            # indekslenen bir sayfada h1 yoktu.
+            #
+            # "Gorunur" derken CIZILEN kastediliyor: giris.html'de uc h1
+            # var (acik / kurulu degil / baglanti yok) ama ayni anda yalniz
+            # biri cizilir. .gizli ile gorsel olarak gizlenmis bir h1
+            # SAYILIR -- erisilebilirlik agacinda duruyor, ki mesele o.
+            for yolu in SAYFALAR:
+                sf, _ = sayfa_ac(yolu)
+                n = sf.evaluate("""() => [...document.querySelectorAll('h1')]
+                    .filter(e => e.getClientRects().length > 0 ||
+                                 getComputedStyle(e).position === 'absolute')
+                    .filter(e => { let x = e; while (x) {
+                        if (x.hasAttribute && x.hasAttribute('hidden')) return false;
+                        x = x.parentElement; } return true; })
+                    .length""")
+                if n != 1:
+                    sorunlar.append("%s: %d gorunur h1 (tam 1 olmali)" % (yolu, n))
+                sf.close()
+
+            # 1a3) TELEFONDA hicbir denetim 24x24'un altinda olmamali.
+            #
+            # WCAG 2.5.8'in asgarisi 24x24 CSS px. Butce kaydiricisi 22 px
+            # yuksekti -- kutusu 44 px oldugu icin gozle fark edilmiyordu
+            # ama parmagin ortadaki dar bandi tutturmasi gerekiyordu.
+            #
+            # Kapsam BILEREK dar: dugme, alan, secici, sekme ve dugme
+            # gorunumlu baglantilar. Metin icindeki satir ici baglantilar
+            # disarida -- onlar kuralin kendisinden muaf ve dahil edilseydi
+            # kontrol gurultuye bogulup okunmaz olurdu.
+            tel = t.new_page(viewport={"width": 390, "height": 844},
+                             is_mobile=True, has_touch=True)
+            tel.route("**://*/**", lambda r: (r.continue_()
+                      if r.request.url.startswith(TABAN) else r.abort()))
+            for yolu in ("/index.html", "/kesfet.html?il=34", "/paylas.html",
+                         "/giris.html", "/isletme.html?il=34&id=node/8223784325"):
+                tel.goto(TABAN + yolu, wait_until="domcontentloaded", timeout=20000)
+                tel.wait_for_timeout(2200)
+                kucuk = tel.evaluate("""() => [...document.querySelectorAll(
+                    'button, input:not([type=hidden]), select, textarea,'
+                    + ' [role=tab], a.dugme, a.cip')]
+                  .filter(e => e.getClientRects().length > 0)
+                  .map(e => { const r = e.getBoundingClientRect();
+                    return { ad: e.tagName.toLowerCase() + '.'
+                                 + String(e.className || '').split(' ')[0],
+                             g: Math.round(r.width), y: Math.round(r.height) }; })
+                  .filter(x => x.y < 24 || x.g < 24)""")
+                for x in kucuk:
+                    sorunlar.append("%s: %s dokunma hedefi %dx%d (en az 24x24)"
+                                    % (yolu, x["ad"], x["g"], x["y"]))
+            tel.close()
+
             # 1b) Hicbir [data-giris] bolumu KIRPILI kalmamali.
             #
             # sahne.css bu bolumleri perdeyle kapatiyor ve sahne.js
@@ -424,6 +481,83 @@ def kendini_kontrol_et():
                 if "iptal edildi" in govde:
                     sorunlar.append("birakma 'iptal edildi' diye gosteriliyor "
                                     "(yoneticinin karariymis gibi)")
+            sf.close()
+
+            # 1j) "Kurulu degil" ile "su an acilamiyor" ayri sey.
+            #
+            # supabase-js CDN'den geliyor ve gelmeyebiliyor (kurumsal ag,
+            # okul agi, ulke capinda engel -- Leaflet'te tam olarak bu oldu).
+            # Onceden iki sebep de tek bir "false"a dusuyordu ve giris.html
+            # ikisine de "Giris sistemi henuz kurulu degil -- app/
+            # yapilandirma.js dosyasini doldur" diyordu. YAYINDAKI sitede bu
+            # yanlis: sistem kurulu ve kullanici o dosyaya erisemiyor bile.
+            # Kullaniciya, cozemeyecegi bir sey icin gelistirici talimati
+            # gostermek, hicbir sey gostermemekten kotu.
+            sf, _ = sayfa_ac("/giris.html")          # dis baglantilar kapali
+            g = sf.inner_text("main") or ""
+            if "açılamıyor" not in g:
+                sorunlar.append("giris.html: supabase-js gelmeyince baglanti "
+                                "mesaji cikmiyor")
+            if "yapilandirma.js" in g or "kurulu değil" in g:
+                sorunlar.append("giris.html: ag sorununda KURULUM talimati "
+                                "gosteriliyor (site kurulu, kullanici o dosyaya "
+                                "erisemez)")
+            if not sf.query_selector("#tekrar"):
+                sorunlar.append("giris.html: baglanti kutusunda 'Tekrar dene' yok")
+            sf.close()
+
+            # 1k) Yapilandirma GERCEKTEN bossa kurulum metni cikmali.
+            # Yukaridaki duzeltmenin dogru mesaji bastirmadigini gormek icin
+            # sart: tek basina "acilamiyor" aramak, kurulum ekranini tamamen
+            # silmek suretiyle de gecerdi.
+            sf = t.new_page()
+            sf.route("**://*/**", lambda r: (
+                r.fulfill(status=200, headers={"content-type": "text/javascript"},
+                          body="window.OTURALIM={supabaseUrl:'',supabaseAnahtar:''};")
+                if r.request.url.endswith("yapilandirma.js")
+                else (r.continue_() if r.request.url.startswith(TABAN) else r.abort())))
+            sf.goto(TABAN + "/giris.html", wait_until="domcontentloaded", timeout=20000)
+            sf.wait_for_timeout(2000)
+            g = sf.inner_text("main") or ""
+            if "kurulu değil" not in g:
+                sorunlar.append("giris.html: yapilandirma bosken kurulum metni yok")
+            sf.close()
+
+            # 1l) CDN ASILI kalirsa sayfa sonsuza kadar beklememeli.
+            # Olculdu: cevaplanmayan bir istekte sayfa SURESIZ bos kaliyordu.
+            # kimlik.js'te 12 sn'lik sinir var; burada sonucu olculuyor.
+            sf = t.new_page()
+            asili = []
+            def asili_birak(r):
+                u = r.request.url
+                if u.startswith(TABAN):
+                    return r.continue_()
+                if "supabase-js" in u:
+                    asili.append(r)      # cevaplamadan birak
+                    return
+                return r.abort()
+            sf.route("**://*/**", asili_birak)
+            sf.add_init_script("window.__t0 = Date.now();")
+            sf.goto(TABAN + "/giris.html", wait_until="domcontentloaded", timeout=20000)
+            cikti = None
+            for _ in range(44):          # en fazla 22 sn
+                cikti = sf.evaluate("""() => {
+                  const m = document.querySelector('main');
+                  const t = ((m && m.innerText) || '').trim();
+                  return t.length > 20 ? (Date.now() - window.__t0) / 1000 : null; }""")
+                if cikti:
+                    break
+                sf.wait_for_timeout(500)
+            if not cikti:
+                sorunlar.append("giris.html: supabase-js asili kalinca sayfa "
+                                "hic acilmiyor (sinirsiz bekliyor)")
+            elif cikti > 16:
+                sorunlar.append("giris.html: bos ekran %.0f sn surdu" % cikti)
+            for r in asili:
+                try:
+                    r.abort()
+                except Exception:
+                    pass
             sf.close()
 
             # 2) Harita YOKKEN kesfet calismali. Asil bulunan hata buydu.

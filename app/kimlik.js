@@ -17,10 +17,38 @@ let oturum = null;
 let profil = null;
 const dinleyiciler = new Set();
 
+/* Istemci NICIN kurulamadi. Iki sebep var ve ikisi cok farkli sey:
+     "yapilandirma" -> anahtarlar bos. SITE SAHIBININ yapacagi bir sey var.
+     "ag"           -> anahtarlar dolu ama supabase-js CDN'den gelmedi.
+                       KULLANICININ yapacagi bir sey yok, beklemesi yeter.
+   Onceden ikisi de tek bir "false"a dusuyordu ve giris.html ikisine de
+   "Giris sistemi henuz kurulu degil -- app/yapilandirma.js dosyasini
+   doldur" diyordu. Yayindaki sitede bu YANLIS: sistem kurulu, kullanici
+   da o dosyaya erisemiyor. Kurumsal ag, okul agi ve ulke capinda engel
+   gercek; Leaflet'te tam olarak bu oldu. */
+let sorun = ACIK ? null : "yapilandirma";
+
+/* CDN asili kalirsa sayfa SONSUZA KADAR bekliyordu (olculdu: 8 sn asili
+   birakilan bir istekte hesabim.html 8 sn bos kaldi, sonra yonlendirdi).
+   Bekleme sinirli; gec gelen modul artik kullanilmiyor cunku kullaniciya
+   çoktan "tekrar dene" denmis oluyor. Sure konum bekcisiyle ayni. */
+const AG_BEKLEME = 12000;
+
 /* ---------- kurulum ---------- */
 async function kur(){
   if (!ACIK) return false;
-  const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.45.4");
+  let mod;
+  try {
+    mod = await Promise.race([
+      import("https://esm.sh/@supabase/supabase-js@2.45.4"),
+      new Promise((_, hata) => setTimeout(
+        () => hata(new Error("supabase-js zaman asimi")), AG_BEKLEME))
+    ]);
+  } catch (e){
+    sorun = "ag";
+    throw e;                 /* hazir zinciri false'a dusuyor */
+  }
+  const { createClient } = mod;
   sb = createClient(AYAR.supabaseUrl, AYAR.supabaseAnahtar, {
     auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
   });
@@ -107,6 +135,10 @@ async function profilGetir(){
    ============================================================ */
 const Kimlik = {
   acik: ACIK,
+  /* null (sorun yok) | "yapilandirma" (anahtar bos) | "ag" (CDN gelmedi).
+     Sayfalar buna gore FARKLI sey soylemeli: birincisinde yapacak is site
+     sahibinde, ikincisinde kullanicida hicbir sey yok. */
+  get sorun(){ return sorun; },
   hazir: null,          // kur() sözü; sayfalar bunu bekler
 
   get girisli(){ return !!oturum; },
@@ -492,6 +524,12 @@ function menuyuGuncelle(durum){
 window.Kimlik = Kimlik;
 Kimlik.hazir = kur()
   .then(a => { Kimlik.izle(menuyuGuncelle); return a; })
-  .catch(e => { console.error("Kimlik kurulamadı:", e); return false; });
+  .catch(e => {
+    /* Beklenmedik bir hata da (modul geldi ama createClient patladi gibi)
+       kullanici acisindan ag sorunudur: yapacagi bir sey yok. */
+    if (sorun === null) sorun = "ag";
+    console.error("Kimlik kurulamadı:", e);
+    return false;
+  });
 
 export default Kimlik;

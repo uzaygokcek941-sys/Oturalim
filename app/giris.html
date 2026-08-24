@@ -106,6 +106,29 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   <div class="kap" data-giris="iris">
     <div class="kimlik-kap">
 
+      <!-- Baglanti sorunu. AYRI bir kutu, cunku "kurulu degil" ile
+           "su an acilamiyor" kullanici icin bambaska iki sey: birincisinde
+           yapacak is site sahibinde, ikincisinde beklemekten baska bir sey
+           yok. Yayindaki sitede kurulum metnini gostermek hem YANLIS hem de
+           kullaniciyi erisemedigi bir dosyaya yolluyordu. -->
+      <div id="agyok" hidden>
+        <h1 style="font-size:40px;margin-bottom:var(--a4)">Giriş şu an açılamıyor</h1>
+        <div class="kapali-kutu">
+          <h2>Ne oldu</h2>
+          <p class="ipucu">
+            Giriş için gereken bir dosya yüklenemedi. Genellikle geçici bir
+            bağlantı sorunudur — internetin yavaşsa ya da ağın bazı adresleri
+            engelliyorsa olur. Hesabında bir sorun yok.
+          </p>
+          <p class="ipucu">
+            Sitenin geri kalanı normal çalışıyor: mekan arama, harita,
+            filtreler ve fiyatlar giriş gerektirmiyor.
+          </p>
+          <button class="dugme" type="button" id="tekrar">Tekrar dene</button>
+          <a class="dugme ikincil" href="kesfet.html">Mekanlara dön</a>
+        </div>
+      </div>
+
       <div id="kapali" hidden>
         <h1 style="font-size:40px;margin-bottom:var(--a4)">Giriş sistemi henüz kurulu değil</h1>
         <div class="kapali-kutu">
@@ -317,9 +340,16 @@ el("#form").addEventListener("submit", async e => {
 });
 
 /* açılış */
+el("#tekrar").addEventListener("click", () => location.reload());
+
 Kimlik.hazir.then(acik => {
-  el("#kapali").hidden = acik;
-  el("#acik").hidden = !acik;
+  /* Uc hal, uc AYRI ekran. Kimlik.sorun ikisini ayirt ediyor:
+     "yapilandirma" -> anahtar bos, site sahibinin yapacagi is var
+     "ag"           -> anahtar dolu ama supabase-js gelmedi */
+  const agSorunu = !acik && Kimlik.sorun === "ag";
+  el("#agyok").hidden  = !agSorunu;
+  el("#kapali").hidden = acik || agSorunu;
+  el("#acik").hidden   = !acik;
   if (!acik) return;
 
   /* Parola sıfırlama bağlantısıyla gelindiyse doğrudan yenileme kipi.

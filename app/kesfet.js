@@ -172,6 +172,11 @@ function ciz(haritayiOrtala){
 
   el("#sayac").textContent = sayi(l.length) + " mekan";
   el("#sayac-ek").textContent = butce ? "· bütçe " + tl(butce) : "";
+
+  /* Gorunmez h1 secili sehri soyluyor. Sabit birakmak, sehir
+     degistiginde sayfanin basligini yanlis yapardi. */
+  const b = el("#baslik");
+  if (b) b.textContent = (ilAdi() || "Türkiye") + " mekanları — Oturalım";
   el("#sifirla").hidden = !suzuluyor;
 
   /* Sicrama girisi YALNIZ ilk cizimde. Her filtre degisiminde tekrar
