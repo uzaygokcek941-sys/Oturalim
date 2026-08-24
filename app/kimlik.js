@@ -63,6 +63,15 @@ function hataMetni(e){
   /* Veritabani kisiti: istemci ayni sinirlari zaten kontrol ediyor, yani
      buraya ancak istemci atlanirsa ya da iki taraf ayrisirsa gelinir.
      Ikisinde de kullaniciya ham SQL cumlesi gostermenin anlami yok. */
+  /* Sahiplenme. "kod gecersiz" bilerek tek mesaj: gecersiz kod ile
+     kullanilmis/suresi gecmis kodu ayirt ettirmek, gecerli kod aramak
+     icin bir sinyal olurdu. Istemci de o ayrimi uydurmuyor. */
+  if (m.includes("kod gecersiz"))
+    return "Kod geçersiz, süresi dolmuş ya da daha önce kullanılmış.";
+  if (m.includes("zaten sahiplenilmis"))
+    return "Bu işletme başka bir hesap tarafından sahiplenilmiş. Sana ait olduğunu düşünüyorsan bildir.";
+  if (m.includes("sahiplenme icin giris"))
+    return "Sahiplenmek için önce giriş yap.";
   if (m.includes("violates check constraint") || m.includes("check constraint"))
     return "Girdiğin değerlerden biri kabul edilmedi. Alanları gözden geçir.";
   if (m.includes("value too long"))
@@ -291,6 +300,76 @@ const Kimlik = {
     if (!["onaylandi","reddedildi","bekliyor"].includes(durum))
       throw new Error("Geçersiz durum.");
     const { error } = await sb.from("katkilar").update({ durum }).eq("id", id);
+    if (error) throw new Error(hataMetni(error));
+  },
+
+  /* ---------- işletme sahipliği (Faz 4) ----------
+     Kod sahada elden veriliyor; ne kanitladigi sahiplenme.sql'in basinda
+     yazili: FIZIKSEL OLARAK ORADA BULUNMAK, tapu degil. Bu yuzden yetki
+     sinirli ve sahiplik geri alinabilir.
+
+     Tablolar kurulu degilse (sahiplenme.sql calistirilmamissa) sayfa
+     cokmesin: okuma bos doner, yazma anlasilir cumle verir. */
+  async sahiplikTalep(kod){
+    if (!sb) throw new Error("Giriş sistemi kurulu değil.");
+    if (!oturum) throw new Error("Sahiplenmek için önce giriş yap.");
+    const temiz = String(kod || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+    /* Istemci tarafi on eleme: bos ya da kisa kodu sunucuya hic gondermeyip
+       kullaniciya aninda soyluyoruz. Asil karar yine sunucuda. */
+    if (temiz.length < 6) throw new Error("Kod eksik görünüyor, karttaki 8 haneyi yaz.");
+    const { data, error } = await sb.rpc("sahiplenme_kodu_kullan", { p_kod: temiz });
+    if (error) throw new Error(hataMetni(error));
+    /* Fonksiyon tablo donuyor; tek satir bekleniyor. */
+    const k = Array.isArray(data) ? data[0] : data;
+    if (!k) throw new Error("Kod kabul edildi ama işletme bilgisi gelmedi.");
+    return { mekanId: k.mekan_id, il: k.il, mekanAd: k.mekan_ad };
+  },
+
+  async sahipliklerim(){
+    if (!sb || !oturum) return [];
+    const { data, error } = await sb.from("sahiplik")
+      .select("id, mekan_id, mekan_ad, il, dogrulandi, durum")
+      .eq("kullanici", oturum.user.id)
+      .order("dogrulandi", { ascending: false });
+    if (error){ console.error("sahipliklerim:", error.message); return []; }
+    return data || [];
+  },
+
+  /* Mekan sahiplenilmis mi. Giris GEREKMIYOR: isletme sayfasi bu rozeti
+     herkese gosteriyor. Sahibin KIMLIGI dondurulmuyor -- gorunur olan
+     bilgi "dogrulanmis", "kim dogruladi" degil. */
+  async mekanSahiplenilmis(mekanId){
+    if (!sb) return false;
+    const { data, error } = await sb.from("sahiplik")
+      .select("id").eq("mekan_id", mekanId).eq("durum", "aktif").limit(1);
+    if (error){ console.error("sahiplik:", error.message); return false; }
+    return !!(data && data.length);
+  },
+
+  /* Kullanici kendi sahipligini birakabilir: yanlis mekani sahiplenen ya da
+     isletmeyi devreden kisi yoneticiyi beklemesin. */
+  async sahiplikBirak(id){
+    if (!sb || !oturum) throw new Error("Giriş yapılmamış.");
+    const { error } = await sb.from("sahiplik").delete().eq("id", id);
+    if (error) throw new Error(hataMetni(error));
+  },
+
+  async sahiplikYonetimListesi(){
+    if (!sb || !oturum) return [];
+    const { data, error } = await sb.from("sahiplik")
+      .select("id, kullanici, mekan_id, mekan_ad, il, dogrulandi, durum, iptal_notu")
+      .order("dogrulandi", { ascending: false }).limit(200);
+    if (error){ console.error("sahiplik yonetim:", error.message); return []; }
+    return data || [];
+  },
+
+  /* Iptal SILME degil: kayit duruyor, durum 'iptal' oluyor. Kimin neyi
+     ne zaman sahiplendigi ve neden geri alindigi kaybolmasin. */
+  async sahiplikIptal(id, notu){
+    if (!sb || !oturum) throw new Error("Giriş yapılmamış.");
+    const { error } = await sb.from("sahiplik")
+      .update({ durum: "iptal", iptal_notu: String(notu || "").slice(0, 300) || null })
+      .eq("id", id);
     if (error) throw new Error(hataMetni(error));
   },
 

@@ -119,6 +119,7 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
           <button role="tab" type="button" aria-selected="true"  data-bolum="favoriler">Favorilerim</button>
           <button role="tab" type="button" aria-selected="false" data-bolum="paylasimlar">Paylaşımlarım</button>
           <button role="tab" type="button" aria-selected="false" data-bolum="katkilar">Katkılarım</button>
+          <button role="tab" type="button" aria-selected="false" data-bolum="isletmeler">İşletmelerim</button>
           <button role="tab" type="button" aria-selected="false" data-bolum="ayarlar">Ayarlar</button>
         </div>
 
@@ -130,6 +131,7 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
         <section id="bolum-favoriler" data-giris="sicrama"></section>
         <section id="bolum-paylasimlar" hidden></section>
         <section id="bolum-katkilar" hidden></section>
+        <section id="bolum-isletmeler" hidden></section>
 
         <section id="bolum-ayarlar" hidden>
           <div class="alanlar">
@@ -325,18 +327,77 @@ async function katkilariCiz(){
     }));
 }
 
+/* ---------- işletmelerim (Faz 4) ----------
+   Sahiplik bir YETKI: kullanici neyi sahiplendigini ve o yetkinin ne
+   verdigini gorebilmeli. Gormedigi bir yetki, farkinda olmadan tasidigi
+   bir sorumluluktur. */
+async function isletmeleriCiz(){
+  const yuva = el("#bolum-isletmeler");
+  yuva.innerHTML = '<p class="bos"><strong>Yükleniyor…</strong></p>';
+  const liste = await Kimlik.sahipliklerim();
+
+  if (!liste.length){
+    yuva.innerHTML =
+      '<p class="bos">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg>' +
+      "<strong>Sahiplendiğin işletme yok</strong>" +
+      "İşletmenin kapısına bıraktığımız kartta bir kod var. O kodu " +
+      "işletmenin sayfasında girersen sayfa senin olur: eklediğin saat, " +
+      "telefon, adres ve site bilgisi sıraya girmeden yayına çıkar." +
+      '<a class="dugme" style="margin-top:var(--a4)" href="kesfet.html">Mekanlara git</a></p>';
+    return;
+  }
+
+  yuva.innerHTML = liste.map(o => {
+    const iptal = o.durum === "iptal";
+    const sayfa = o.il && o.mekan_id
+      ? "isletme.html?il=" + encodeURIComponent(o.il) + "&id=" + encodeURIComponent(o.mekan_id)
+      : null;
+    return '<div class="liste-satir">' +
+      '<div class="bilgi"><h3>' +
+        (sayfa ? '<a href="' + kacir(sayfa) + '">' + kacir(o.mekan_ad) + "</a>"
+               : kacir(o.mekan_ad)) + "</h3>" +
+      '<div class="alt"><span>' + tarihTR(o.dogrulandi) + " tarihinde doğrulandı</span>" +
+        /* Rozet siniflari DURUM_ETIKET ile ayni kural: "acik" yesil,
+           "kapali" soluk. Yeni sinif uydurmak, tasarim sisteminde iki
+           ayri dogru olmasi demekti. */
+        '<span class="rozet ' + (iptal ? "kapali" : "acik") + '">' +
+        (iptal ? "iptal edildi" : "doğrulanmış") + "</span></div></div>" +
+      '<div class="islem">' +
+      (iptal ? "" :
+        '<button class="sil" type="button" data-birak="' + o.id +
+        '" aria-label="Sahipliği bırak">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button>') +
+      "</div></div>";
+  }).join("") +
+  '<p class="bos" style="text-align:left;padding-top:var(--a3)">' +
+  "Doğrulanmış işletmede eklediğin <strong>saat, telefon, adres ve site</strong> " +
+  "bilgisi sıraya girmeden yayına çıkar. Fiyat bunun dışında: fiyat paylaşımı " +
+  "herkes için aynı kontrolden geçer.</p>";
+
+  yuva.querySelectorAll("[data-birak]").forEach(b =>
+    b.addEventListener("click", async () => {
+      if (!confirm("Bu işletmenin sahipliğini bırakıyorsun. Emin misin?")) return;
+      b.disabled = true;
+      try { await Kimlik.sahiplikBirak(Number(b.dataset.birak));
+            await isletmeleriCiz(); uyar("iyi", "Sahiplik bırakıldı."); }
+      catch (e){ uyar("hata", e.message); b.disabled = false; }
+    }));
+}
+
 /* ---------- sekmeler ---------- */
 el("#sekmeler").addEventListener("click", e => {
   const b = e.target.closest("button[data-bolum]");
   if (!b) return;
   document.querySelectorAll("#sekmeler button").forEach(x =>
     x.setAttribute("aria-selected", String(x === b)));
-  ["favoriler","paylasimlar","katkilar","ayarlar"].forEach(ad => {
+  ["favoriler","paylasimlar","katkilar","isletmeler","ayarlar"].forEach(ad => {
     el("#bolum-" + ad).hidden = ad !== b.dataset.bolum;
   });
   if (b.dataset.bolum === "favoriler")   favorileriCiz();
   if (b.dataset.bolum === "paylasimlar") paylasimlariCiz();
   if (b.dataset.bolum === "katkilar")    katkilariCiz();
+  if (b.dataset.bolum === "isletmeler")  isletmeleriCiz();
 });
 
 /* ---------- ayarlar ---------- */

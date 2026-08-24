@@ -60,6 +60,14 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   .katki-satir input{flex:1 1 13rem;min-width:0}
   .katki-not{font-size:.88rem;color:var(--soluk);margin-top:var(--a2)}
   .katki-not.kotu{color:var(--vurgu)}
+  /* Dogrulanmis isletme: rozet, katki formuyla ayni hizada dursun ama
+     onun gibi bir EYLEM gibi gorunmesin -- bu bir DURUM bildirimi. */
+  .sahiplik-rozet{border-top:1px solid var(--cizgi);margin-top:var(--a4);
+    padding-top:var(--a4);display:flex;flex-direction:column;gap:var(--a1)}
+  .sahiplik-rozet strong{color:var(--yesil,#3f7d2e)}
+  .sahiplik-rozet span{font-size:.9rem;color:var(--soluk)}
+  .sahiplik-form input{text-transform:uppercase;letter-spacing:.12em;
+    font-family:ui-monospace,monospace}
 
   /* Kullanicidan gelen alan isaretli duruyor: kaynak dipnotu "hepsi OSM'den"
      diyor, isaretlemezsek o cumle yalan olur. */
@@ -109,6 +117,28 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
         <button class="dugme birincil kucuk" type="submit" id="katkiGonder">Ekle</button>
       </div>
       <p class="katki-not" id="katkiNot"></p>
+    </form>
+
+    <!-- Sahiplenme (Faz 4). Uc hal var ve ucu de bu bolumde:
+         (a) mekan sahiplenilmis  -> rozet, form yok
+         (b) kart kodu var        -> kod formu
+         (c) kod yok              -> WhatsApp yolu (Faz 2'den kalan) -->
+    <div id="sahiplikRozet" class="sahiplik-rozet" hidden>
+      <strong>✓ İşletme doğruladı</strong>
+      <span>Bu sayfadaki bilgileri işletmenin kendisi güncelleyebiliyor.</span>
+    </div>
+
+    <form class="katki sahiplik-form" id="sahiplikForm" hidden>
+      <p><strong>Kapına bir kart bıraktıysak</strong>, üstündeki 8 haneli kodu
+         yaz. Sayfa senin olsun: eklediğin saat, telefon, adres ve site
+         bilgisi sıraya girmeden yayına çıksın.</p>
+      <div class="katki-satir">
+        <input id="sahiplikKod" type="text" maxlength="12" autocomplete="off"
+               inputmode="latin" spellcheck="false"
+               placeholder="Karttaki kod" aria-label="Sahiplenme kodu" required>
+        <button class="dugme birincil kucuk" type="submit" id="sahiplikGonder">Doğrula</button>
+      </div>
+      <p class="katki-not" id="sahiplikNot"></p>
     </form>
 
     <a class="dugme birincil sahiplen" id="sahiplenDugme" hidden>Bu işletme benim</a>
@@ -225,6 +255,8 @@ function goster(m, ilAd){
       "<li><b>" + kacir(EKSIK[k][0]) + "</b><span>" + kacir(EKSIK[k][1]) + "</span></li>").join("");
   }
 
+  sahiplikKatmani(m);
+
   const no = (window.OTURALIM || {}).sahiplenmeWhatsapp || "";
   const dugme = document.getElementById("sahiplenDugme");
   const not   = document.getElementById("sahiplenNot");
@@ -287,6 +319,91 @@ async function katkilariUygula(m){
     await Kimlik.hazir;
     katkiBirlestir(m, await Kimlik.onaylanmisKatkilar(m.id));
   } catch (e) { /* tablo yok ya da ag yok: sayfa OSM verisiyle calisir */ }
+}
+
+/* ============================================================
+   Isletme sahipligi (Faz 4)
+
+   Kod SAHADA elden veriliyor; ne kanitladigi veritabani/sahiplenme.sql'in
+   basinda yazili: fiziksel olarak orada bulunmak, tapu degil. Bu yuzden
+   yetki sinirli (yalniz olgusal alanlar) ve sahiplik geri alinabilir.
+
+   Uc hal:
+     (a) mekan sahiplenilmis -> rozet, form yok
+     (b) giris yapilmis      -> kod formu (QR'dan geldiyse kod dolu gelir)
+     (c) giris yok           -> girise yonlendir, KODU KAYBETME
+   ============================================================ */
+async function sahiplikKatmani(m){
+  const rozet = document.getElementById("sahiplikRozet");
+  const form  = document.getElementById("sahiplikForm");
+  const kutu  = document.getElementById("sahiplikKod");
+  const not   = document.getElementById("sahiplikNot");
+  if (!Kimlik.acik) return;         /* kimlik kurulu degil: hic gosterme */
+
+  /* Karttaki QR isletme sayfasina ?kod=... ile geliyor. Kodu adres
+     cubugunda birakmiyoruz: tarayici gecmisinde ve paylasilan baglantida
+     kalir, oysa tek kullanimlik bir sir. */
+  const P = new URLSearchParams(location.search);
+  const kartKodu = (P.get("kod") || "").trim();
+  if (kartKodu){
+    P.delete("kod");
+    history.replaceState(null, "", location.pathname +
+      (P.toString() ? "?" + P : "") + location.hash);
+  }
+
+  /* Once istemci kurulsun: hazir beklenmeden yapilan sorgu sessizce
+     bos doner ve mekan "sahiplenilmemis" gorunur. */
+  try { await Kimlik.hazir; } catch (e) { return; }
+
+  let sahipli = false;
+  try { sahipli = await Kimlik.mekanSahiplenilmis(m.id); }
+  catch (e) { return; }             /* tablo yok: sayfa sahiplenmesiz calisir */
+
+  if (sahipli){
+    rozet.hidden = false;
+    return;                          /* (a) */
+  }
+
+  if (!Kimlik.girisli){
+    /* (c) Giris sayfasina giderken kodu YANIMIZDA goturuyoruz; donuste
+       kullanici kodu bir daha yazmasin. */
+    if (kartKodu){
+      const donus = location.pathname + "?" +
+        new URLSearchParams({ il: IL, id: m.id, kod: kartKodu });
+      form.hidden = false;
+      kutu.value = kartKodu;
+      kutu.disabled = true;
+      not.innerHTML = 'Kodu aldık. <a href="giris.html?donus=' +
+        encodeURIComponent(donus) + '">Giriş yap</a>, sayfa senin olsun.';
+      document.getElementById("sahiplikGonder").disabled = true;
+    }
+    return;
+  }
+
+  form.hidden = false;              /* (b) */
+  if (kartKodu) kutu.value = kartKodu;
+
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+    const dugme = document.getElementById("sahiplikGonder");
+    dugme.disabled = true;
+    not.className = "katki-not";
+    not.textContent = "Kontrol ediliyor…";
+    try {
+      await Kimlik.sahiplikTalep(kutu.value);
+      form.hidden = true;
+      rozet.hidden = false;
+      /* Sahiplik katki formunun davranisini degistiriyor (artik kuyruga
+         girmiyor), o yuzden metni de guncelliyoruz. */
+      const kn = document.getElementById("katkiNot");
+      if (kn) kn.textContent =
+        "Sayfa artık senin: eklediğin bilgi sıraya girmeden yayına çıkıyor.";
+    } catch (err){
+      not.className = "katki-not kotu";
+      not.textContent = err.message;
+      dugme.disabled = false;
+    }
+  });
 }
 
 function katkiFormu(m, eksik){

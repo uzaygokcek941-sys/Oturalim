@@ -145,6 +145,24 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
         </div>
 
         <div id="katkiListe"></div>
+
+        <!-- Ucuncu bolum: sahiplik. Kuyruk DEGIL -- burada onaylanacak bir
+             sey yok, sahiplik kodla kazaniliyor. Burasi bir DENETIM listesi:
+             kim neyi sahiplenmis ve gerekirse geri alma. -->
+        <div class="bolum-bas" style="margin:var(--a6) 0 var(--a5)">
+          <span class="etiket">Yönetim</span>
+          <h2 style="font-size:32px">İşletme sahiplikleri</h2>
+          <p>
+            Sahadaki karttan alınan kodla kazanılıyor, onay gerektirmiyor.
+            Kod <b>orada bulunmayı</b> kanıtlar, tapuyu değil — bu liste o
+            yüzden var. Sahibin eklediği saat/telefon/adres/site sıraya
+            girmeden yayına çıkıyor; şüpheli bir kayıt görürsen iptal et.
+            İptal kaydı silmez, durumu değiştirir.
+          </p>
+        </div>
+
+        <div class="ozet" id="sahiplikOzet"></div>
+        <div id="sahiplikListe"></div>
       </div>
 
     </div>
@@ -259,6 +277,63 @@ async function katkiOzetiCiz(){
     '<div><b class="sayi">' + sayi(hepsi.length)      + "</b><span>toplam</span></div>";
 }
 
+/* ---------- işletme sahiplikleri (Faz 4) ---------- */
+async function sahiplikCiz(){
+  const yuva = el("#sahiplikListe");
+  yuva.innerHTML = '<p class="bos"><strong>Yükleniyor…</strong></p>';
+  const liste = await Kimlik.sahiplikYonetimListesi();
+
+  const aktif = liste.filter(o => o.durum === "aktif").length;
+  /* Ozet biciminde diger iki kuyrukla ayni kural: <b class="sayi">.
+     Kendi kutum, tasarim sisteminde ucuncu bir ozet bicimi olurdu. */
+  el("#sahiplikOzet").innerHTML =
+    '<div><b class="sayi">' + sayi(aktif) + "</b><span>aktif</span></div>" +
+    '<div><b class="sayi">' + sayi(liste.length - aktif) + "</b><span>iptal</span></div>" +
+    '<div><b class="sayi">' + sayi(liste.length) + "</b><span>toplam</span></div>";
+
+  if (!liste.length){
+    yuva.innerHTML = '<p class="bos">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18M5 21V8l7-5 7 5v13"/></svg>' +
+      "<strong>Henüz sahiplenme yok</strong>" +
+      "Saha kartları dağıtılınca burada görünür." +
+      "</p>";
+    return;
+  }
+
+  yuva.innerHTML = liste.map(o => {
+    const iptal = o.durum === "iptal";
+    const sayfa = o.il && o.mekan_id
+      ? ' · <a href="isletme.html?il=' + encodeURIComponent(o.il) +
+        "&id=" + encodeURIComponent(o.mekan_id) + '" target="_blank" rel="noopener">sayfayı aç</a>'
+      : "";
+    return '<article class="kayit ' + (iptal ? "reddedildi" : "onaylandi") + '">' +
+      "<div><h3>" + kacir(o.mekan_ad) + "</h3>" +
+        '<div class="satir">' +
+          (o.il ? "<span>il " + kacir(o.il) + "</span>" : "") +
+          "<span>" + tarihTR(o.dogrulandi) + "</span>" +
+          '<span class="rozet ' + (iptal ? "kapali" : "acik") + '">' +
+          (iptal ? "iptal" : "aktif") + "</span>" +
+        "</div>" +
+        '<div class="aciklama"><b>' + kacir(o.mekan_id) + "</b>" + sayfa +
+        (o.iptal_notu ? " · " + kacir(o.iptal_notu) : "") + "</div>" +
+      "</div>" +
+      '<div><div class="kararlar">' +
+        (iptal ? "" :
+          '<button class="dugme kucuk ret" type="button" data-siptal="' + o.id + '">İptal et</button>') +
+      "</div></div></article>";
+  }).join("");
+
+  yuva.querySelectorAll("[data-siptal]").forEach(b =>
+    b.addEventListener("click", async () => {
+      const notu = prompt("İptal gerekçesi (kayıtta kalır):", "");
+      if (notu === null) return;
+      b.disabled = true;
+      try { await Kimlik.sahiplikIptal(Number(b.dataset.siptal), notu);
+            await sahiplikCiz(); uyar("iyi", "Sahiplik iptal edildi."); }
+      catch (e){ uyar("hata", e.message); b.disabled = false; }
+    }));
+}
+
 async function katkiListesiniCiz(){
   const yuva = el("#katkiListe");
   yuva.innerHTML = '<p class="bos"><strong>Yükleniyor…</strong></p>';
@@ -350,7 +425,8 @@ Kimlik.hazir.then(async acik => {
      yonetici_mi() politikası — yetkisiz istek zaten boş sonuç döner. */
   if (!Kimlik.yonetici){ el("#yetkisiz").hidden = false; return; }
   el("#icerik").hidden = false;
-  await Promise.all([ozetiCiz(), listeyiCiz(), katkiOzetiCiz(), katkiListesiniCiz()]);
+  await Promise.all([ozetiCiz(), listeyiCiz(), katkiOzetiCiz(),
+                     katkiListesiniCiz(), sahiplikCiz()]);
 });
 </script>
 </body>
