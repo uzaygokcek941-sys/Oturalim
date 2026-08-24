@@ -212,12 +212,41 @@ const YEMEK_ALT_SINIR = 80;
 const YEMEK_ASGARI_KALEM = 2;
 const TR_HARF = /[çğıöşüÇĞİÖŞÜ]/;
 
-function yemekFiyati(m){
+/* Mekanin ANA URUN turu(leri).
+
+   Icecegi ve tatliyi elemek yetmiyordu: Domino's'ta pizza 15 kalem @480 TL
+   ama yaninda "Citir Tavuk Toplari / Tavuk Parcalari" 7 kalem @185 TL ve
+   "Algida Magnum Sandwich" tost sayilmis 1 kalem @105 TL duruyor. Hepsinin
+   ortalamasi 428 TL cikiyordu -- garnitur, pizzacinin fiyatini asagi
+   cekiyor. 400 TL'lik pizzayla 15 TL'lik suyu ortalamak ne kadar sacmaysa
+   patates kizartmasiyla ortalamak da oyle.
+
+   Global bir "su kategoriler ana yemektir" listesi TUTULMUYOR, cunku ayni
+   kategori mekana gore degisiyor: borekcide poğaça ana urun, kebapcida yan.
+   Onun yerine mekanin KENDI dagilimina bakiliyor -- en cok kalemi olan tur
+   o mekanin ana urunu; hacmi ona yakin olanlar (yarisi kadar ve ustu) da
+   sayiliyor ki dengeli menuler tek ture indirgenmesin.
+
+   Olculdu (165 mekan): 132'sinde fiyat yukseldi, 15'inde dustu, ortalama
+   kayma +67 TL. Yon dogru -- yan urunler fiyati sistematik olarak asagi
+   cekiyormus. */
+const ANA_URUN_ORANI = 0.5;
+
+function anaKategoriler(m){
   const kat = m.kat;
   if (!kat) return null;                  /* kategori yoksa icecegi ayiramayiz */
   let ana = Object.keys(kat).filter(k => !ICECEK_KAT.has(k) && !TATLI_KAT.has(k));
+  /* Yalniz tatli varsa (pastane) tatli ana urundur. */
   if (!ana.length) ana = Object.keys(kat).filter(k => TATLI_KAT.has(k));
   if (!ana.length) return null;
+  const enCok = Math.max.apply(null, ana.map(k => kat[k].n));
+  return ana.filter(k => kat[k].n >= enCok * ANA_URUN_ORANI);
+}
+
+function yemekFiyati(m){
+  const kat = m.kat;
+  const ana = anaKategoriler(m);
+  if (!ana) return null;
 
   /* ORTALAMA. Onceden kategori medyanlarinin medyani aliniyordu; o, "tipik
      bir kalem kac lira" sorusunun cevabiydi. Kullanicinin sordugu soru
@@ -325,6 +354,26 @@ function kendiniKontrolEt(){
       yemekFiyati({kat:{"Kebap":{n:2,med:300}}}),                     300],
     ["ortalama pahali kalemi yutmaz",
       yemekFiyati({kat:{"Balık":{n:4,med:200,top:2000}}}),            500],
+    /* ANA URUN: Domino's vakasi. Pizza 15 kalem, yaninda 7 tavuk garnituru
+       ve tost sayilmis bir dondurma; hepsi sayilirsa 428, ana urunle 480. */
+    ["ana urun yan urunu eler",
+      yemekFiyati({kat:{"Pizza":{n:15,med:480,top:7200},
+                        "Tavuk":{n:7,med:185,top:1295},
+                        "Tost / sandviç":{n:1,med:105,top:105}}}),    480],
+    ["dengeli menude hepsi sayilir",
+      yemekFiyati({kat:{"Balık":{n:5,med:600,top:3000},
+                        "Köfte":{n:5,med:300,top:1500}}}),            450],
+    ["esikteki tur (yarisi kadar) sayilir",
+      yemekFiyati({kat:{"Pizza":{n:4,med:400,top:1600},
+                        "Çorba":{n:2,med:100,top:200}}}),             300],
+    ["esigin altindaki tur elenir",
+      yemekFiyati({kat:{"Pizza":{n:4,med:400,top:1600},
+                        "Çorba":{n:1,med:100,top:100}}}),             400],
+    ["pastanede tatli ana urundur",
+      yemekFiyati({kat:{"Tatlı":{n:3,med:100,top:300},
+                        "Çay":{n:9,med:40,top:360}}}),                100],
+    ["anaKategoriler en cok kalemliyi secer",
+      anaKategoriler({kat:{"Pizza":{n:15},"Tavuk":{n:7}}}).join(),    "Pizza"],
     ["yemek kat yoksa null", yemekFiyati({min:25, max:290}),          null],
     ["yemek tatlicida tatli",
       yemekFiyati({kat:{"Tatlı":{n:2,med:150},"Çay":{n:1,med:30}}}),  150],

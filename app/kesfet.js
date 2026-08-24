@@ -483,8 +483,15 @@ function ac(id){
     const aralik = (kirpik ? "en ucuz " : "") + sayi(m.menu.length) + " kalem · " +
                    tl(m.min) + " – " + tl(m.max) +
                    (kirpik ? " <i>(toplam " + sayi(m.kalem_n) + ")</i>" : "");
+    /* Ortalamanin NEYIN ortalamasi oldugu yaziyor: "ortalama 480 TL (pizza)".
+       Rakami aciklamayan sayi, kullanicinin dogrulayamadigi bir iddiadir --
+       tur yazilinca menuye bakip kendisi kontrol edebiliyor. Uc ve ustu
+       turde liste uzuyor, orada yalniz rakam kaliyor. */
+    const anaTur = ort != null ? (anaKategoriler(m) || []) : [];
+    const turAd = anaTur.length && anaTur.length <= 2
+      ? " <i>(" + kacir(anaTur.join(", ").toLocaleLowerCase("tr")) + ")</i>" : "";
     const baslik = ort != null
-      ? "ortalama <b>" + tl(ort) + "</b> · " + aralik
+      ? "ortalama <b>" + tl(ort) + "</b>" + turAd + " · " + aralik
       : aralik;
     govde +=
       '<div class="d-menu-bas"><h3>Menü</h3><span>' + baslik + "</span></div>" +

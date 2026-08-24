@@ -280,6 +280,15 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
 - [ ] Günde 1 içerik, gelen DM'e ilk 10 dakikada cevap
 
 **Fiyat verisi — 2026-08-23'te ölçülüp düzeltilenler:**
+- [x] Ortalama **ana ürün türü** üzerinden alınıyor. İçecek/tatlıyı elemek
+      yetmiyordu: Domino's'ta pizza 15 kalem @480 ₺ ama yanındaki 7 tavuk
+      garnitürü ve tost sayılmış bir dondurma ortalamayı 428 ₺'ye çekiyordu.
+      Global "şu kategoriler ana yemek" listesi tutulmuyor — aynı kategori
+      mekana göre değişiyor (fırında börek ana ürün, kebapçıda yan). Mekanın
+      kendi dağılımına bakılıyor: en çok kalemli tür ana ürün, hacmi onun
+      yarısı ve üstündekiler de sayılıyor. Ölçüldü: 132 mekanda fiyat
+      yükseldi, 15'inde düştü, ortalama kayma +67 ₺. Hangi türden hesaplandığı
+      ekranda yazıyor ("ortalama 528 ₺ (pizza)").
 - [x] Gösterilen rakam **ortalama** oldu. Önce kategori medyanlarının medyanı
       alınıyordu; o "tipik bir kalem kaç lira" sorusunun cevabıydı, kullanıcının
       sorusu ise "burada kaça oturulur". Ölçüldü: 164 mekanın 131'inde rakam
