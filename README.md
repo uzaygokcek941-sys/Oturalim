@@ -136,6 +136,8 @@ veritabani/sema.sql  Tablolar + RLS politikaları
 veritabani/sayac.sql Görüntülenme sayacı
 veritabani/katki.sql Eksik bilgi katkıları
 *.py                 Veri toplama ve işleme betikleri
+menu_cikar.py        HTML'den fiyat çıkarma (TR/EN sayı biçimleri)
+etkinlik_cek.py      etkinlik.io RSS → app/veri/etkinlik.json
 sahiplen.py          İşletme hedefleri + saha yürüyüş kümeleri
 site_haritasi.py     sitemap.xml + robots.txt üretimi
 test.py              Bütün kontroller (tek giriş noktası)

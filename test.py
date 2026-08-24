@@ -30,8 +30,8 @@ KOK = os.path.dirname(os.path.abspath(__file__))
 VERI = os.path.join(KOK, "app", "veri")
 
 # Kendi kontrolu olan betikler. Hepsi "test" argumanini ayni sekilde anliyor.
-BETIKLER = ["app_veri.py", "fiyat_analiz.py", "menu_ocr.py", "menu_pdf_tara.py",
-            "sahiplen.py", "site_haritasi.py"]
+BETIKLER = ["app_veri.py", "etkinlik_cek.py", "fiyat_analiz.py", "menu_cikar.py",
+            "menu_ocr.py", "menu_pdf_tara.py", "sahiplen.py", "site_haritasi.py"]
 
 # Turkiye siniri, genis pay. Disina dusen koordinat cekimde bir sey
 # kaymis demektir; haritada Atlantik'te bir nokta olarak gorunur.

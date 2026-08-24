@@ -162,5 +162,52 @@ def main(plakalar):
           % (toplam, len(veri), yol, os.path.getsize(yol) / 1024))
 
 
+def kendini_kontrol_et():
+    """python etkinlik_cek.py test — aga cikmadan ayristirma mantigini dogrular.
+
+    Buradaki hatalarin hepsi SESSIZ: tarih cozulemezse kayit "gecmis"
+    sayilip atiliyor, plaka eslesmezse il atlaniyor. Ikisinde de dosya
+    yaziliyor, sadece icinde daha az sey oluyor.
+    """
+    # pubDate: saniyeli ve saniyesiz bicim, ikisi de RSS'te goruldu.
+    assert tarih_coz("Sat, 22 Aug 2026 19:00:00 +0300") == "2026-08-22T19:00:00+03:00"
+    assert tarih_coz("Sat, 22 Aug 2026 19:00 +0300")    == "2026-08-22T19:00:00+03:00"
+    assert tarih_coz("22 Aug 2026 19:00:00")            == "2026-08-22T19:00:00+03:00"
+    # Saniye gercekten okunmali: sabit 0 yazmak sessizce gecerdi.
+    assert tarih_coz("Sat, 22 Aug 2026 19:00:45 +0300") == "2026-08-22T19:00:45+03:00"
+    # Bozuk girdi None donmeli, catmamalı.
+    for kotu in ("", None, "yarin aksam", "Sat, 22 Zzz 2026 19:00:00 +0300"):
+        assert tarih_coz(kotu) is None, kotu
+
+    # Plaka -> sehir kimligi: 81 il, tekrar eden kimlik olmamali. Tekrar,
+    # iki ilin ayni akisi cekmesi demek.
+    assert len(SEHIR) == 81, len(SEHIR)
+    assert len(set(SEHIR.values())) == 81, "iki plaka ayni sehir kimligine bakiyor"
+    assert sorted(SEHIR) == ["%02d" % i for i in range(1, 82)], "plaka listesi eksik"
+
+    # kayitlar(): gecmis etkinlik yazilmaz, gelecek olan yazilir, sirali gelir.
+    gecmis = (datetime.now(TR) - timedelta(days=2)).strftime("%a, %d %b %Y %H:%M:%S +0300")
+    yakin  = (datetime.now(TR) + timedelta(days=2)).strftime("%a, %d %b %Y %H:%M:%S +0300")
+    uzak   = (datetime.now(TR) + timedelta(days=9)).strftime("%a, %d %b %Y %H:%M:%S +0300")
+    xml = ("<rss><channel>"
+           "<item><title>Gecmis</title><pubDate>%s</pubDate><link>a</link>"
+           "<category>Konser</category></item>"
+           "<item><title>Uzak</title><pubDate>%s</pubDate><link>b</link>"
+           "<category>Konser</category>"
+           "<enclosure url='http://x/y.jpg'/></item>"
+           "<item><title>Yakin</title><pubDate>%s</pubDate><link>c</link></item>"
+           "<item><title>Tarihsiz</title><pubDate>zzz</pubDate><link>d</link></item>"
+           "</channel></rss>") % (gecmis, uzak, yakin)
+    k = kayitlar(ET.fromstring(xml))
+    assert [e["ad"] for e in k] == ["Yakin", "Uzak"], k
+    assert k[1]["gorsel"] == "http://x/y.jpg", k[1]
+    assert k[0]["gorsel"] == "" and k[0]["tur"] == "", k[0]
+
+    print("kontrol gecti: tarih cozme, 81 plaka eslesmesi, gecmis eleme")
+    return True
+
+
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "test":
+        sys.exit(0 if kendini_kontrol_et() else 1)
     main(sys.argv[1:] or sorted(SEHIR))
