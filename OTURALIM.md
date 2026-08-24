@@ -409,6 +409,12 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
 - [x] Konum izni **yanıtlanmazsa** kullanıcı kilitleniyordu: `getCurrentPosition`
       timeout'u izin istemi cevaplanana kadar saymaya başlamıyor, yani hiçbir
       geri çağrı gelmiyor. Sayfanın kendi bekçisi kondu.
+- [x] **Arama Türkçe harfe duyarlıydı.** Kullanıcıların çoğu Türkçe harfsiz
+      yazıyor; ölçüldü (İstanbul): "köfte" 574 mekan buluyordu ama "kofte"
+      33, "çiğ" 343 ama "cig" 12, "şişli" 4 ama "sisli" 1. Yani harfsiz
+      yazan kullanıcı sonuçların **%94'ünü** hiç görmüyordu. Hem sorgu hem
+      aranan metin aynı sadeleştirmeden geçiyor; sonuç ayrıca **arttı**
+      (574 → 607), çünkü OSM'de harfsiz yazılmış mekanlar da geliyor.
 - [x] Instagram toplanıyor ama uygulamaya hiç ulaşmıyordu: **192 mekanın**
       instagramı var ve sitesi yok, onlara hem sayfada hem saha kartında
       "sosyal medya bağınız yok" diyorduk.

@@ -26,6 +26,7 @@ iki kafe, aynı kahve, iki kat fark olabiliyor. Uygulamanın tek işi:
   eklediği saat/telefon/adres/site sıraya girmeden yayına çıkıyor
 - Açık/koyu tema (harita döşemesi de birlikte döner)
 - Filtre durumu URL'de — görünüm olduğu gibi paylaşılabilir
+- Arama Türkçe harfe duyarsız — "kofte" ile "köfte" aynı sonucu verir
 - İsteğe bağlı hesap: favori mekanlar, fiyat paylaşımı, yönetici onayı
 
 ## Veri nereden geliyor

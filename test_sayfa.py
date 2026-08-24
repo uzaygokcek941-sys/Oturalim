@@ -165,6 +165,26 @@ def kendini_kontrol_et():
                     sorunlar.append("Konum alinamayinca sehir secici acilmiyor")
             sf.close()
 
+            # 1d) Turkce harfsiz arama ayni sonucu vermeli.
+            #
+            # Kullanicilarin cogu "kofte" yaziyor. Olculdu: sadelestirme
+            # yokken "köfte" 574 mekan buluyordu, "kofte" 33 -- yani
+            # harfsiz yazan kullanici sonuclarin %94'unu hic gormuyordu.
+            sf, _ = sayfa_ac("/kesfet.html?il=34")
+            sf.wait_for_timeout(1200)
+            sayilar = {}
+            for q in ("köfte", "kofte", "şişli", "sisli"):
+                sf.fill("#ara", q)
+                sf.wait_for_timeout(700)
+                sayilar[q] = sf.inner_text("#sayac").strip()
+            if sayilar["köfte"] != sayilar["kofte"]:
+                sorunlar.append("arama: 'köfte' %s ama 'kofte' %s"
+                                % (sayilar["köfte"], sayilar["kofte"]))
+            if sayilar["şişli"] != sayilar["sisli"]:
+                sorunlar.append("arama: 'şişli' %s ama 'sisli' %s"
+                                % (sayilar["şişli"], sayilar["sisli"]))
+            sf.close()
+
             # 2) Harita YOKKEN kesfet calismali. Asil bulunan hata buydu.
             sf, hata = sayfa_ac("/kesfet.html?il=06")
             kart = sf.eval_on_selector_all(".kart", "n => n.length")

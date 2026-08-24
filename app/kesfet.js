@@ -13,11 +13,26 @@ const HARITA_UST = 700;   // haritaya basılan en fazla nokta (üstü donduruyor
 const el = s => document.querySelector(s);
 const P  = new URLSearchParams(location.search);
 
+const TR_SADE = { "ç":"c","ğ":"g","ı":"i","ö":"o","ş":"s","ü":"u",
+                  "â":"a","î":"i","û":"u",
+                  "Ç":"c","Ğ":"g","İ":"i","I":"i","Ö":"o","Ş":"s","Ü":"u",
+                  "Â":"a","Î":"i","Û":"u" };
+/* Turkce harfleri ASCII'ye indirip kucultur. Ada gore ARAMA da bunu
+   kullaniyor: kullanicilarin cogu Turkce harfsiz yaziyor ve eslesme
+   olmayinca sonuc yok saniyorlar. Olculdu (Istanbul):
+     "köfte" 574 mekan  ama  "kofte"  33
+     "çiğ"   343        ama  "cig"    12
+     "şişli"   4        ama  "sisli"   1
+   Yani harfsiz yazan kullanici sonuclarin %94'unu hic gormuyordu.
+   Once degistirip SONRA kucultmek onemli: "İ".toLowerCase() birlesen
+   bir ust nokta birakiyor ve hicbir seye eslesmiyor. */
+const sade = s => (s || "").replace(/[çğıöşüâîûÇĞİIÖŞÜÂÎÛ]/g, c => TR_SADE[c]).toLowerCase();
+
 /* ---------- durum ---------- */
 let mekanlar = [],
     turler   = new Set(P.getAll("tur").filter(Boolean)),
     bayraklar= new Set(P.getAll("bayrak").filter(Boolean)),
-    arama    = P.get("q") || "",
+    arama    = sade(P.get("q") || ""),
     sirala   = P.get("sirala") || "ad",
     butce    = +(P.get("butce") || 0),
     konum    = null,
@@ -75,8 +90,10 @@ function suzulmus(){
     /* Karsilastirma YEMEK fiyatiyla; m.min menudeki en ucuz icecek. */
     const yf = yemekFiyati(m);
     if (butce && yf != null && yf > butce) return false;
-    if (arama && !((m.ad + " " + (m.mutfak || "") + " " + (m.adres || ""))
-        .toLocaleLowerCase("tr").includes(arama))) return false;
+    /* Aranan metin de aranan yer de AYNI sadelestirmeden geciyor:
+       "kofte" yazan da "köfte" yazan da ayni sonucu gormeli. */
+    if (arama && !sade(m.ad + " " + (m.mutfak || "") + " " + (m.adres || ""))
+        .includes(arama)) return false;
     return true;
   });
 
@@ -298,10 +315,7 @@ function olcutYukle(){
 
 /* Ölçüt dosyasındaki il adları kaynak CSV'den geldiği için ASCII
    ("Istanbul"), uygulamadaki liste ise düzgün Türkçe ("İstanbul").
-   Karşılaştırmadan önce ikisini de sadeleştiriyoruz. */
-const TR_SADE = { "ç":"c","ğ":"g","ı":"i","ö":"o","ş":"s","ü":"u",
-                  "Ç":"c","Ğ":"g","İ":"i","I":"i","Ö":"o","Ş":"s","Ü":"u" };
-const sadeIl = s => (s || "").replace(/[çğıöşüÇĞİIÖŞÜ]/g, c => TR_SADE[c]).toLowerCase();
+   Karşılaştırmadan önce ikisi de sade() ile sadeleştiriliyor (yukarıda). */
 
 /* Ölçüt kaç markadan çıktı ve bandı ne kadar geniş — ikisi de tutmuyorsa
    rozet gösterilmez. 32 kategoriden yalnız 8'i bu eşiği geçiyor; kalanında
@@ -321,7 +335,7 @@ function olcutSaglam(o){
 
 function olcutKiyas(ilAd, kategori, fiyat){
   if (!olcut) return null;
-  const anahtar = Object.keys(olcut.il).find(k => sadeIl(k) === sadeIl(ilAd));
+  const anahtar = Object.keys(olcut.il).find(k => sade(k) === sade(ilAd));
   /* En OZEL olcut kazanir ama yalniz olcu barini gecerse. Onceden il
      kaydi VARSA o kullaniliyordu; 4 markalik bir il olcutu, 16 markalik
      ulke olcutunu bastiriyor ve cevabi susturuyordu. Daha zayif kanit
@@ -434,6 +448,18 @@ function olcutKontrol(){
     ["il olcutu saglamsa o kullanilir",
      olcutKiyas("İstanbul", "Kebap", 465).sinif,                      "ucuz"],
     ["bilinmeyen kategori", olcutKiyas("İstanbul", "Yok", 100), null],
+
+    /* --- arama sadelestirmesi ---
+       Kullanicilarin cogu Turkce harfsiz yaziyor. Olculdu: "kofte" 574
+       mekanin 33'unu buluyordu, %94'u gorunmuyordu. */
+    ["sade turkce harfi indirir",     sade("Köfte"),        "kofte"],
+    ["sade buyuk I ile i ayni",       sade("IŞIK"),         sade("ışık")],
+    /* "İ".toLowerCase() birlesen ust nokta birakiyor; once degistirip
+       sonra kucultmek sart. */
+    ["sade birlesen nokta birakmaz",  sade("İSKENDER"),     "iskender"],
+    ["sade sapkali harf",             sade("Hakkâri"),      "hakkari"],
+    ["sade bos girdi",                sade(null),           ""],
+    ["sade ascii bozulmaz",           sade("Domino's 2"),   "domino's 2"],
 
     /* --- mekan bandi --- */
     ["mekan bandi ana urune gore ucuz",
@@ -825,7 +851,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let zaman;
   el("#ara").addEventListener("input", e => {
     clearTimeout(zaman);
-    const v = e.target.value.toLocaleLowerCase("tr");
+    const v = sade(e.target.value);
     zaman = setTimeout(() => { arama = v; limit = SAYFA; ciz(false); }, 180);
   });
 
