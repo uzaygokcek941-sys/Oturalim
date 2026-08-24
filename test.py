@@ -580,6 +580,22 @@ def sql_kontrolleri():
     if eksik:
         return kayit("SQL davranisi (gercek Postgres)",
                      ["%s kosumu sonuna ulasmadi" % a for a in eksik])
+    # KURULUM.md, kullaniciya "su cikti gorunmeli" diyor. O satirlar
+    # SQL'in gercekten bastigi seyle ayni olmali; ayrisirsa kullanici
+    # ekranda baska bir sey gorup kurulumun bozuldugunu sanar.
+    # Bu gercek bir kayma oldu: politika sayisi 4'ten 3'e indi (kullanicinin
+    # dogrudan silme politikasi kaldirilinca) ama belge 4 demeye devam etti.
+    import io as _io
+    kur = _io.open(os.path.join(KOK, "KURULUM.md"), encoding="utf-8").read()
+    s2 = []
+    for satir in cikti.splitlines():
+        m = re.search(r"NOTICE:\s+((?:Sema|Sayac|Katki tablosu|Sahiplenme) kuruldu[^\n]*)",
+                      satir)
+        if m and m.group(1).strip() not in kur:
+            s2.append("KURULUM.md bu ciktiyi soz vermiyor: %r" % m.group(1).strip())
+    if s2:
+        return kayit("SQL davranisi (gercek Postgres)", s2)
+
     kayit("SQL davranisi (gercek Postgres)", [])
 
 

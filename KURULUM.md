@@ -43,7 +43,7 @@ Toplam süre: ~15 dakika. Ücret yok, kart istenmiyor.
    ```
    Sayac kuruldu: dogrudan yazma kapali, kimlik sunucuda uretiliyor
    Katki tablosu kuruldu: RLS acik, 6 politika
-   Sahiplenme kuruldu: kod tablosu kapali, sahiplik 4 politika
+   Sahiplenme kuruldu: kod tablosu kapali, sahiplik 3 politika
    ```
 
    > Üçünü de istediğin sırada, istediğin kadar tekrar çalıştırabilirsin.
