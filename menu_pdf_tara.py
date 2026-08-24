@@ -23,6 +23,7 @@ atlanir, uzun tarama yarida kesilse de bastan baslamaz.
 """
 import asyncio
 import csv
+import datetime
 import io
 import os
 import re
@@ -249,8 +250,10 @@ def yaz_bulgu(b):
 
 
 def yaz_kalem(satir, url, kalemler):
-    _ekle(KALEM, ["mekan", "il", "website", "kaynak_url", "kalem", "fiyat"],
-          [[satir["mekan"], satir.get("il", ""), satir["website"], url, ad, f]
+    # tarih: fiyatin derlendigi gun. Bkz. menu_topla.ALANLAR.
+    _ekle(KALEM, ["mekan", "il", "website", "kaynak_url", "kalem", "fiyat", "tarih"],
+          [[satir["mekan"], satir.get("il", ""), satir["website"], url, ad, f,
+            datetime.date.today().isoformat()]
            for ad, f in kalemler])
 
 

@@ -18,6 +18,8 @@
   --vurgu-metin:#1a0e04;
   --yesil:#7dbb6a;          --yesil-los:#1c2a17;
   --kirmizi:#e2685b;
+  /* eskimis fiyat serit rengi: uyari ama hata degil */
+  --sari:#d9a441;
 
   /* Bütçe bantları — hem renk hem metin taşır (renk körlüğü uyumu) */
   --bant-ucuz:#7dbb6a;      --bant-orta:#e8b24c;    --bant-tuz:#e2685b;
@@ -67,7 +69,7 @@
     --vurgu:#b2560f;        --vurgu-koyu:#8f4409;   --vurgu-los:#fbe8d6;
     --vurgu-metin:#ffffff;
     --yesil:#3f7d2e;        --yesil-los:#e6f2e0;
-    --kirmizi:#b8362a;
+    --kirmizi:#b8362a;      --sari:#9a6b12;
     --bant-ucuz:#3f7d2e;    --bant-orta:#8a6108;    --bant-tuz:#b8362a;
     /* Acik temada neon gunduz vitrinine doner: doygunluk duser, koyulasir */
     --neon-sari:#b8860b;   --neon-sari-los:rgba(184,134,11,.10);
@@ -87,7 +89,7 @@
   --vurgu:#b2560f;          --vurgu-koyu:#8f4409;   --vurgu-los:#fbe8d6;
   --vurgu-metin:#ffffff;
   --yesil:#3f7d2e;          --yesil-los:#e6f2e0;
-  --kirmizi:#b8362a;
+  --kirmizi:#b8362a;      --sari:#9a6b12;
   --bant-ucuz:#3f7d2e;      --bant-orta:#8a6108;    --bant-tuz:#b8362a;
   --golge-1:0 1px 2px rgba(60,42,20,.08);
   --golge-2:0 6px 20px -6px rgba(60,42,20,.14);

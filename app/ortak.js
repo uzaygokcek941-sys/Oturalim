@@ -136,8 +136,8 @@ function katkiSorunu(alan, deger){
 /* Butce karsilastirmasi YEMEK fiyatiyla yapilir. m.min ile yapilinca 100 TL
    butce giren kisiye ana yemegi 400 TL olan balikci "butcende" diye
    gosteriliyordu -- cunku m.min menudeki en ucuz icecekti. */
-function bant(m, butce){
-  const f = yemekFiyati(m);
+function bant(m, butce, bugun){
+  const f = yemekFiyati(m, bugun);
   if (f == null || !butce) return null;
   if (f > butce) return { sinif:"tuz",  ad:"bütçe üstü" };
   return { sinif:"ucuz", ad:"bütçene giriyor" };
@@ -212,6 +212,62 @@ const YEMEK_ALT_SINIR = 80;
 const YEMEK_ASGARI_KALEM = 2;
 const TR_HARF = /[çğıöşüÇĞİÖŞÜ]/;
 
+/* ---------- fiyatin yasi ----------
+   Enflasyonda tarihsiz fiyat bir iddia degil, bir tahmindir. Veri artik her
+   mekanin menusuyle birlikte derlendigi AYI da tasiyor (m.tarih = "YYYY-AA",
+   kalemlerin en eskisi -- yeni kalem eskisini tazelemez).
+
+   Uc bant, tek gerekce: bu uygulamanin isi ucuz yeri pahali yerden ayirmak.
+   Turkiye'de yillik enflasyon o ayrimin kendisinden buyuk oldugu icin bir
+   yasin otesinde sayi, dogru sirayi bile vermiyor.
+
+     0-6 ay    tarih yazilir, baska bir sey denmez
+     6-12 ay   tarih "eski" isaretiyle yazilir
+     12+ ay    SAYI GOSTERILMEZ -- mekan olculmemis mekanlar gibi davranir
+
+   Sinir yemekFiyati()'nin icinde: fiyati kim sorarsa sorsun (kart, butce
+   suzgeci, detay basligi, "fiyati bilinen" filtresi) ayni cevabi alsin.
+   Ayni kural tek yerde dursun. */
+const FIYAT_TAZE_AY = 6;
+const FIYAT_SON_AY  = 12;
+
+const AY_ADI = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran",
+                "Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
+
+/* "2026-08" -> Ocak 1970'ten beri gecen ay sayisi; bozuksa null. */
+function _ayNo(tarih){
+  const e = /^(\d{4})-(\d{2})/.exec(tarih || "");
+  if (!e) return null;
+  const ay = +e[2];
+  if (ay < 1 || ay > 12) return null;
+  return (+e[1]) * 12 + (ay - 1);
+}
+
+/* Fiyatin kac aylik oldugu. Tarihsiz veri null doner: yasi BILINMIYOR,
+   sifir degil. Ileriye donuk tarih de null -- saati yanlis kurulmus bir
+   cihaz yuzunden fiyat gizlenmesin. */
+function fiyatYasi(m, bugun){
+  const t = _ayNo(m && m.tarih);
+  if (t == null) return null;
+  const d = bugun || new Date();
+  const su = d.getFullYear() * 12 + d.getMonth();
+  return su >= t ? su - t : null;
+}
+
+/* Ekranda okunacak hali: "Ağustos 2026". Tarih yoksa bos. */
+function fiyatTarihi(m){
+  const e = /^(\d{4})-(\d{2})/.exec((m && m.tarih) || "");
+  return e ? AY_ADI[+e[2] - 1] + " " + e[1] : "";
+}
+
+/* Fiyatin yas etiketi: {ad, eski} ya da null. */
+function fiyatYasEtiketi(m, bugun){
+  const ay = fiyatYasi(m, bugun);
+  const tarih = fiyatTarihi(m);
+  if (!tarih) return null;
+  return { ad: tarih, eski: ay != null && ay >= FIYAT_TAZE_AY };
+}
+
 /* Mekanin ANA URUN turu(leri).
 
    Icecegi ve tatliyi elemek yetmiyordu: Domino's'ta pizza 15 kalem @480 TL
@@ -243,10 +299,14 @@ function anaKategoriler(m){
   return ana.filter(k => kat[k].n >= enCok * ANA_URUN_ORANI);
 }
 
-function yemekFiyati(m){
+function yemekFiyati(m, bugun){
   const kat = m.kat;
   const ana = anaKategoriler(m);
   if (!ana) return null;
+
+  /* Bir yildan eski fiyat sayi olarak gosterilmez. Bkz. FIYAT_SON_AY. */
+  const yas = fiyatYasi(m, bugun);
+  if (yas != null && yas >= FIYAT_SON_AY) return null;
 
   /* ORTALAMA. Onceden kategori medyanlarinin medyani aliniyordu; o, "tipik
      bir kalem kac lira" sorusunun cevabiydi. Kullanicinin sordugu soru
@@ -272,8 +332,8 @@ function yemekFiyati(m){
   return orta;
 }
 
-function seviye(m){
-  const yf = yemekFiyati(m);
+function seviye(m, bugun){
+  const yf = yemekFiyati(m, bugun);
   if (yf != null)
     return { sinif:"olcum", ad:"ortalama " + tl(yf), olculdu:true };
   if (m.tur === "Fast food" || m.tur === "Dondurma")
@@ -385,6 +445,49 @@ function kendiniKontrolEt(){
     ["yemek ucuz ama turkce kalir",
       yemekFiyati({kat:{"Çorba":{n:2,med:60}},
         menu:[{a:"Mercimek Çorbası",f:60},{a:"Ayran",f:30}]}),        60],
+
+    /* --- fiyatin yasi ---
+       "Bugun" disaridan veriliyor: kontrolun sonucu takvime bagli olmasin,
+       yoksa yazildiktan bir yil sonra kendiliginden kirmiziya doner. */
+    ["yas ayi dogru sayar",
+      fiyatYasi({tarih:"2026-02"}, new Date(2026, 7, 15)),            6],
+    ["yas ayni ay sifir",
+      fiyatYasi({tarih:"2026-08"}, new Date(2026, 7, 15)),            0],
+    ["yas yil siniri gecer",
+      fiyatYasi({tarih:"2025-11"}, new Date(2026, 1, 3)),             3],
+    ["yas tarihsizde BILINMIYOR (sifir degil)",
+      fiyatYasi({min:30}, new Date(2026, 7, 15)),                     null],
+    ["yas bozuk tarihte null",
+      fiyatYasi({tarih:"2026-13"}, new Date(2026, 7, 15)),            null],
+    ["yas ileri tarihte null (cihaz saati)",
+      fiyatYasi({tarih:"2027-01"}, new Date(2026, 7, 15)),            null],
+    ["tarih okunur hale gelir", fiyatTarihi({tarih:"2026-08"}), "Ağustos 2026"],
+    ["tarih yoksa bos",         fiyatTarihi({min:30}),                ""],
+    ["6 aylik fiyat eski isaretlenir",
+      fiyatYasEtiketi({tarih:"2026-02"}, new Date(2026, 7, 15)).eski, true],
+    ["5 aylik fiyat taze",
+      fiyatYasEtiketi({tarih:"2026-03"}, new Date(2026, 7, 15)).eski, false],
+    /* Sinirin yemekFiyati icinde olmasi sart: kart, butce suzgeci ve
+       "fiyati bilinen" filtresi ayni fonksiyonu cagiriyor. */
+    ["11 aylik fiyat hala gosterilir",
+      yemekFiyati({tarih:"2025-09", kat:{"Kebap":{n:2,med:300,top:700}}},
+                  new Date(2026, 7, 15)),                             350],
+    ["12 aylik fiyat GOSTERILMEZ",
+      yemekFiyati({tarih:"2025-08", kat:{"Kebap":{n:2,med:300,top:700}}},
+                  new Date(2026, 7, 15)),                             null],
+    ["tarihsiz eski veri gosterilmeye devam eder",
+      yemekFiyati({kat:{"Kebap":{n:2,med:300,top:700}}},
+                  new Date(2026, 7, 15)),                             350],
+    ["eskiyen fiyat butce suzgecinden de duser",
+      bant({tarih:"2025-08", kat:{"Kebap":{n:2,med:300,top:700}}}, 500,
+           new Date(2026, 7, 15)),                                    null],
+    ["eskimemis fiyat butce suzgecinde kalir",
+      (bant({tarih:"2026-05", kat:{"Kebap":{n:2,med:300,top:700}}}, 500,
+            new Date(2026, 7, 15)) || {}).sinif,                      "ucuz"],
+    ["eskiyen fiyat seviyeden de duser",
+      (seviye({tur:"Restoran", tarih:"2025-08",
+               kat:{"Kebap":{n:2,med:300,top:700}}},
+              new Date(2026, 7, 15)) || {}).olculdu,                  undefined],
     /* Girdiler iki kalemli: bu kontrollerin isi bant'in KARSILASTIRMASI,
        asgari kalem esigi degil. Tek kalemli fixture ile yazilmislardi ve
        esik gelince ikisi birden kirmizi yandi -- kosum takimi yakaladi. */

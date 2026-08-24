@@ -236,6 +236,10 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
     background:var(--zemin-3);border-left:3px solid var(--vurgu);
     font-size:13px;color:var(--metin-3);line-height:1.55;
   }
+  /* Eskimis fiyat: sari serit. Rakam hala dogru olabilir ama kullanici
+     kac aylik bir sayiya baktigini gormeli. Bir yildan eskisi zaten
+     gosterilmiyor (ortak.js FIYAT_SON_AY). */
+  .uyari.eski{border-left-color:var(--sari);color:var(--metin-2)}
   @media (max-width:620px){
     dialog#detay{
       max-width:none;width:100%;margin:0 0 auto;position:fixed;bottom:0;top:auto;

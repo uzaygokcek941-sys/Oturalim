@@ -301,14 +301,24 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
       "yemek ~480 ₺" derken detay "40 kalem · 35 – 165 ₺" gösteriyordu.
 - [x] "Fiyatı olan" çipi `yemekFiyati` ile hizalandı — 203 mekan fiyat vaat
       edip fiyatsız kart veriyordu.
-- [ ] Fiyatların YAŞI yok: veride tarih alanı hiç tutulmuyor, "bayat fiyat
-      hatırlatması" bu yüzden henüz kurulamıyor. Önce üretim tarihi yazılmalı.
+- [x] Menü olmayan listeler menü diye gösteriliyordu. 367 menülü mekanın
+      75'inde liste kalem pil, kitap adı, küpe, sinema seansı, çadır
+      konaklama ücreti ya da sayfanın kendi arayüz yazısıydı ("Normal fiyat",
+      "55k kişi favoriledi!"). İki kapı kondu: kalem düzeyinde `ARAYUZ_AD`,
+      mekan düzeyinde `menu_degil_mi` (33 türden hiçbirine uymayan liste
+      düşer). Menülü mekan 367 → 292, fiyat iddiası 165 → 164.
+- [x] Fiyatların YAŞI kondu. Toplayıcı betikler her satıra derleme gününü
+      yazıyor; veri `tarih: "YYYY-AA"` taşıyor (kalemlerin **en eskisi** —
+      yeni kalem eskisini tazelemez). Üç bant: 0-6 ay tarih yazılır, 6-12 ay
+      "eski" işaretiyle, 12 aydan sonra **sayı gösterilmez**. Sınır
+      `yemekFiyati()` içinde, yani kart, bütçe süzgeci ve "fiyatı bilinen"
+      filtresi aynı cevabı alıyor.
 - [ ] Zincir menüsünün şubeye uygulanması sorgulanmadı: Domino's için makul,
       "Beltur / Hafta İçi 600 ₺" gibi kira fiyatları için değil.
 
 **Üründe — ağ mekanikleri (fiş katmanı commit'inde sayılmıştı, hiçbiri başlamadı):**
 - [ ] Bütçe akranları
-- [ ] Bayat fiyat hatırlatması
+- [x] Bayat fiyat hatırlatması — veri artık tarih taşıyor, uyarı ekranda
 - [ ] Mahalle statüsü
 
 **Üründe — dijitalleşmemiş işletme planı:**

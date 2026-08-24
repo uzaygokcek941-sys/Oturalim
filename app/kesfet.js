@@ -493,11 +493,23 @@ function ac(id){
     const baslik = ort != null
       ? "ortalama <b>" + tl(ort) + "</b>" + turAd + " · " + aralik
       : aralik;
+    /* Fiyatin YASI rakamin yaninda duruyor. Enflasyonda tarihsiz fiyat
+       kullanicinin dogrulayamadigi bir iddia: kac aylik bir sayiya baktigini
+       bilmeden "pahali" da diyemez "ucuz" da. Bir yildan eskiyse rakam zaten
+       yemekFiyati() icinde dusuyor, burada yalnizca kalan menu listesinin
+       tarihi yaziliyor. */
+    const yas = fiyatYasEtiketi(m);
+    const tarihSatiri = yas
+      ? '<p class="uyari' + (yas.eski ? " eski" : "") + '">' +
+        (yas.eski ? "⚠ " : "") + kacir(yas.ad) + " tarihinde derlendi" +
+        (yas.eski ? " — güncelliğini yitirmiş olabilir." : ".") + "</p>"
+      : "";
     govde +=
       '<div class="d-menu-bas"><h3>Menü</h3><span>' + baslik + "</span></div>" +
       sirali.map(k =>
         '<div class="kalem' + (butce && k.f > butce ? " disi" : "") + '">' +
         "<span>" + kacir(k.a) + "</span><b>" + tl(k.f) + "</b></div>").join("") +
+      tarihSatiri +
       '<p class="uyari">İşletmenin kendi sitesinde yayımladığı fiyatlar. ' +
       "Ortalama hesap değildir, değişmiş olabilir.</p>";
   } else {

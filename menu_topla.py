@@ -13,6 +13,7 @@ Not: JavaScript ile basilan menuler ikisiyle de gelmez; bunlar "js" olarak
 isaretlenir ve gercek tarayici gerektirir.
 """
 import csv
+import datetime
 import json
 import subprocess
 import sys
@@ -29,7 +30,12 @@ UA = "Mozilla/5.0 (compatible; OturalimBot/0.1)"
 WOO_UCLARI = ("/wp-json/wc/store/v1/products?per_page=100",
               "/wp-json/wc/store/products?per_page=100")
 
-ALANLAR = ["mekan", "il", "tur", "website", "kaynak", "kategori", "kalem", "fiyat"]
+# tarih: fiyatin DERLENDIGI gun. Enflasyonda tarihsiz fiyat bir iddia
+# degil, bir tahmindir; kullanici kac aylik bir sayiya baktigini bilmeli.
+BUGUN = datetime.date.today().isoformat()
+
+ALANLAR = ["mekan", "il", "tur", "website", "kaynak", "kategori", "kalem",
+           "fiyat", "tarih"]
 
 
 def getir(url):
@@ -122,7 +128,7 @@ def main(kaynak="cankaya_mekanlar.csv", onek="cankaya"):
         for kat, ad, fiyat in kalemler:
             satirlar.append({"mekan": m["ad"], "il": m.get("il", ""), "tur": m["tur"],
                              "website": taban, "kaynak": kaynak_ad, "kategori": kat,
-                             "kalem": ad, "fiyat": f"{fiyat:.2f}"})
+                             "kalem": ad, "fiyat": f"{fiyat:.2f}", "tarih": BUGUN})
         fiyatlar = sorted(f for _, _, f in kalemler)
         medyan = fiyatlar[len(fiyatlar) // 2] if fiyatlar else 0
         ozet.append({"mekan": m["ad"], "tur": m["tur"], "website": taban,

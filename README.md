@@ -54,6 +54,13 @@ fiyat iddiası üretmiyordu ama **Menü** başlığı altında duruyordu; başl�
 yalan söylüyordu. Listenin hiçbir kalemi 33 yiyecek/içecek türünden birine
 uymuyorsa liste bütünüyle düşüyor.
 
+Beşinci katman, fiyatın **yaşı**. Enflasyonda tarihsiz fiyat bir iddia değil
+bir tahmindir; veri artık her menünün derlendiği ayı taşıyor. Altı aydan
+eskiyse tarih uyarı şeridiyle, bir yıldan eskiyse **rakam hiç gösterilmiyor**
+— mekan ölçülmemiş mekanlar gibi davranıyor. Bu sınır tek yerde (`yemekFiyati`)
+duruyor, dolayısıyla kart, bütçe kaydırıcısı ve "fiyatı bilinen" filtresi
+aynı cevabı veriyor.
+
 Denenen sitelerin yalnızca **%7'sinden** fiyat çıkarılabildi, geri kalanı
 menüsünü JavaScript ile basıyor. Bu yüzden fiyat verisi bugün zayıf ve ancak
 kullanıcı paylaşımıyla büyür.

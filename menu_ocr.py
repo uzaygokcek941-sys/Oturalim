@@ -22,6 +22,7 @@ ayni gorsele bakip dogrulayabilir.
 import base64
 import collections
 import csv
+import datetime
 import io
 import json
 import os
@@ -255,8 +256,11 @@ def yaz(mekan, site, url, kalemler):
     with io.open(CIKTI, "a", encoding="utf-8", newline="") as f:
         y = csv.writer(f)
         if yeni:
-            y.writerow(["mekan", "website", "kaynak_url", "kalem", "fiyat", "model"])
-        y.writerows([[mekan, site, url, ad, fiyat, MODEL] for ad, fiyat in kalemler])
+            y.writerow(["mekan", "website", "kaynak_url", "kalem", "fiyat",
+                        "model", "tarih"])
+        bugun = datetime.date.today().isoformat()   # bkz. menu_topla.ALANLAR
+        y.writerows([[mekan, site, url, ad, fiyat, MODEL, bugun]
+                     for ad, fiyat in kalemler])
 
 
 def kendini_kontrol_et():

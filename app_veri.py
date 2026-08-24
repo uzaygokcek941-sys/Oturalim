@@ -77,6 +77,20 @@ TUR_TR = {"cafe": "Kafe", "restaurant": "Restoran", "bar": "Bar",
 # perakende urun / hediye paketi / veri hatasidir.
 ALT_SINIR, UST_SINIR = 25, 2000
 
+# --- Fiyatin yasi -------------------------------------------------------
+# Enflasyonda tarihsiz fiyat bir iddia degil, bir tahmindir. Toplayici
+# betikler (menu_topla, menu_pdf_tara, menu_ocr) artik her satira derleme
+# gununu yaziyor. Bu sabit YALNIZ o kolondan onceki satirlar icin:
+# tr_menu.csv'nin depoya girdigi gun. Kesin derleme gunu degil, UST SINIR --
+# veri o gunden once toplandi, sonra degil. Uydurmak yerine bildigimiz
+# siniri yaziyoruz.
+TARIHSIZ_TABAN = "2026-08-20"
+
+
+def _tarih(satir):
+    t = (satir.get("tarih") or "").strip()[:10]
+    return t if len(t) == 10 and t[4] == "-" else TARIHSIZ_TABAN
+
 # --- Tema demosu tespiti -------------------------------------------------
 # Cok sayida isletme hazir bir restoran temasi kurup ORNEK MENUYU HIC
 # SILMIYOR. O sayfalar gercek gibi kaziniyor ama icerik temanin demosu:
@@ -207,7 +221,8 @@ def menuleri_oku(yol="tr_menu.csv"):
                 continue
             if kalem_atilir(ad):
                 continue
-            menu[(r["il"], r["mekan"])].append({"a": ad, "f": fiyat})
+            menu[(r["il"], r["mekan"])].append(
+                {"a": ad, "f": fiyat, "t": _tarih(r)})
     return menu
 
 
@@ -266,7 +281,7 @@ def ek_menuler_oku(mekanlar, yollar=("menu_pdf_kalem.csv", "menu_ocr_kalem.csv")
                     continue
                 if kalem_atilir(ad):
                     continue
-                ek[hedef].append({"a": ad, "f": fiyat})
+                ek[hedef].append({"a": ad, "f": fiyat, "t": _tarih(r)})
     if eslesmeyen:
         print("ek menu: OSM mekaniyla eslesmeyen %d kayit (%s)"
               % (len(eslesmeyen), ", ".join(sorted(eslesmeyen)[:3])))
@@ -350,7 +365,15 @@ def mekan_kaydi(m, menu):
     if m["wifi"] in ("wlan", "yes"):
         kayit["wifi"] = 1
     if kalemler:
-        kayit["menu"] = kalemler
+        # Mekanin fiyat tarihi = kalemlerin EN ESKISI. Bir menude 39 kalem
+        # dun, biri gecen yil derlendiyse o menu bir yillik: yeni kalem
+        # eskisini tazelemiyor. Kullaniciya soylenen sey en kotu hal olmali.
+        #
+        # Ay hassasiyeti: gun bilgisi ekranda hicbir karar degistirmiyor
+        # ("14 Agustos" ile "20 Agustos" arasinda kullanici icin fark yok)
+        # ve 81 dosyada bedava yer kapliyor.
+        kayit["tarih"] = min(k["t"] for k in tum_kalemler)[:7]
+        kayit["menu"] = [{"a": k["a"], "f": k["f"]} for k in kalemler]
         kayit["min"] = kalemler[0]["f"]
         kayit["max"] = kalemler[-1]["f"]
         # Liste kirpildiysa GERCEK kalem sayisi da yaziliyor.
@@ -393,12 +416,19 @@ def main():
     for anahtar, kalemler in ek_menuler_oku(mekanlar).items():
         menu[anahtar].extend(kalemler)
     for anahtar, kalemler in menu.items():
-        gorulen, tekil = set(), []
+        gorulen, tekil = {}, []
         for k in kalemler:
             imza = (k["a"], k["f"])
             if imza not in gorulen:
-                gorulen.add(imza)
+                gorulen[imza] = k
                 tekil.append(k)
+            else:
+                # Ayni kalem iki kaynakta: TAZE tarih kazanir. Kalemi ikinci
+                # kez eklemiyoruz ama yasini gunceliyoruz -- ayni fiyat daha
+                # yeni bir taramada da gorulduyse, o fiyat o gun de gecerliydi.
+                onceki = gorulen[imza]
+                if k["t"] > onceki["t"]:
+                    onceki["t"] = k["t"]
         menu[anahtar] = tekil
     print("menu kalemi: %d -> %d (ek kaynaklar dahil, tekillenmis)"
           % (once, sum(len(v) for v in menu.values())))
@@ -469,6 +499,31 @@ def kendini_kontrol_et():
     # 250g paket porsiyon degil: hic kategoriye girmemeli
     assert "Filtre kahve" not in d, d
     assert d["Kebap"]["med"] == 700.0 and d["Ayran"]["med"] == 60.0
+
+    # Fiyatin yasi: kolonsuz eski satir tabana duser, kolonlu satir kendi
+    # tarihini tasir. Tarih uydurulmuyor -- bilinmeyen icin bildigimiz UST
+    # SINIR yaziliyor.
+    assert _tarih({"tarih": "2026-03-14"}) == "2026-03-14"
+    assert _tarih({"tarih": "2026-03-14T09:22:00Z"}) == "2026-03-14"
+    assert _tarih({}) == TARIHSIZ_TABAN
+    assert _tarih({"tarih": ""}) == TARIHSIZ_TABAN
+    assert _tarih({"tarih": "bozuk"}) == TARIHSIZ_TABAN
+
+    # Arayuz metni kalem adi degildir; gercek ad bozulmadan kalir.
+    for a in ("Normal fiyat", "Regular price", "FİYATI", "Ürün",
+              "55k kişi favoriledi!", "Tüm Fırsatlar"):
+        assert kalem_atilir(a), a
+    for a in ("Fiyatlı Kahvaltı", "Adana Kebap", "Tüm Kahveler Filtre Seti"):
+        assert not kalem_atilir(a), a
+
+    # Listenin menu OLDUGU da dogrulaniyor.
+    assert menu_degil_mi([{"a": "Roxy AA Alkaline Pil", "f": 160.0},
+                          {"a": "Raisa Drop Earrings", "f": 190.0}])
+    assert menu_degil_mi([{"a": "Hafta İçi", "f": 600.0}])
+    assert not menu_degil_mi([{"a": "Roxy AA Alkaline Pil", "f": 160.0},
+                              {"a": "Adana Kebap", "f": 700.0}])
+    assert not menu_degil_mi([{"a": "1 KG KIYMALI KOL BÖREĞİ", "f": 900.0}])
+    assert menu_degil_mi([]) is None
 
     # Site eslestirme: OSM etiketi yollu, tarama kaydi kok adres olabiliyor
     assert _site_anahtari("https://www.A.com/menu/") == "a.com/menu"
