@@ -236,6 +236,13 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   .odenen-bas b{font-family:var(--font-baslik);font-size:20px;font-weight:600;
     color:var(--metin);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
   .odenen p{font-size:13px;color:var(--metin-2);line-height:1.55;margin-top:var(--a2)}
+  /* Harita yerine gecen kutu: Leaflet gelmediginde. Ayni alani kapliyor
+     ki yerlesim kaymasin. */
+  .harita-yok{height:100%;min-height:200px;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:var(--a2);padding:var(--a5);
+    text-align:center;background:var(--zemin-3);color:var(--metin-3)}
+  .harita-yok strong{color:var(--metin);font-size:15px}
+  .harita-yok span{font-size:13px;max-width:34ch;line-height:1.5}
   .uyari{
     margin-top:var(--a4);padding:var(--a3) var(--a4);border-radius:var(--r-s);
     background:var(--zemin-3);border-left:3px solid var(--vurgu);

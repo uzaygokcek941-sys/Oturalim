@@ -192,8 +192,30 @@ function ciz(haritayiOrtala){
   urlYaz();
 }
 
-/* ---------- harita ---------- */
+/* ---------- harita ----------
+   Leaflet bir CDN'den geliyor ve gelmeyebiliyor: kesinti, kurumsal ag,
+   okul agi, ulke capinda engel. Olculdu -- unpkg erisilemedigi anda
+   "L is not defined" firliyordu ve kesfet ekraninin TAMAMI oluyordu:
+   sifir kart, sayac "…"da donmus, bos sayfa. Oysa liste, filtreler,
+   butce kaydiricisi ve siralama haritaya hic ihtiyac duymuyor.
+
+   Harita artik ISTEGE BAGLI. Yoksa yerine ne oldugunu soyleyen bir kutu
+   konuyor ve sayfanin geri kalani calismaya devam ediyor. */
+function haritaVar(){ return typeof L !== "undefined" && harita; }
+
+function haritaYok(){
+  const kutu = el("#harita");
+  if (kutu) kutu.innerHTML =
+    '<div class="harita-yok">' +
+    "<strong>Harita yüklenemedi</strong>" +
+    "<span>Bağlantı engellenmiş olabilir. Liste, filtreler ve bütçe " +
+    "kaydırıcısı çalışmaya devam ediyor.</span></div>";
+}
+
 function haritaKur(){
+  /* typeof: L tanimli degilse duz "if (!L)" ReferenceError firlatir --
+     korumanin kendisi cokerdi. */
+  if (typeof L === "undefined"){ haritaYok(); return; }
   harita = L.map("harita", { zoomControl:true, preferCanvas:true }).setView([39.92,32.85], 12);
   const koyuMu = () => (document.documentElement.dataset.tema ||
     (matchMedia("(prefers-color-scheme: dark)").matches ? "koyu" : "acik")) === "koyu";
@@ -696,7 +718,7 @@ function ac(id){
   el("#detay").showModal();
 
   const i = isaretler.get(id);
-  if (i){ harita.setView([m.lat, m.lon], Math.max(harita.getZoom(), 15)); i.openPopup(); }
+  if (i && haritaVar()){ harita.setView([m.lat, m.lon], Math.max(harita.getZoom(), 15)); i.openPopup(); }
 }
 
 /* ---------- veri yükleme ---------- */
@@ -860,7 +882,7 @@ document.addEventListener("DOMContentLoaded", () => {
       el("#govde").dataset.gorunum = b.dataset.gorunum;
       /* Leaflet gizliyken boyut alamıyor; görünür olunca yeniden ölçtür. */
       if (b.dataset.gorunum === "harita" && harita)
-        setTimeout(() => harita.invalidateSize(), 60);
+        if (haritaVar()) setTimeout(() => harita.invalidateSize(), 60);
     }));
 
   document.querySelectorAll("[data-kapat]").forEach(b =>

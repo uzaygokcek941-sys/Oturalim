@@ -99,8 +99,9 @@ Kontroller tek komutla:
 python test.py
 ```
 
-Betiklerin kendi kontrolleri, tarayıcı kontrolleri (sayfayı açmadan) ve
-dosyalar arası değişmezler birlikte koşar. Her itmede GitHub Actions da
+Betiklerin kendi kontrolleri, sayfayı **açmadan** koşan tarayıcı
+kontrolleri, sayfaları **gerçek Chromium'da açan** kontroller ve dosyalar
+arası değişmezler birlikte koşar. Her itmede GitHub Actions da
 aynısını çalıştırıyor. `node` kurulu değilse tarayıcı grubu **atlanır** —
 geçtiği söylenmez.
 
@@ -146,6 +147,7 @@ saha.py              Saha kartları (QR + kod), dağıtım sonrası ölçüm
 site_haritasi.py     sitemap.xml + robots.txt üretimi
 test.py              Bütün kontroller (tek giriş noktası)
 test_tarayici.mjs    Tarayıcı kontrollerini tarayıcısız koşturur
+test_sayfa.py        Sayfaları gerçek Chromium'da açar (CDN'ler kapalı)
 ```
 
 ## Güvenlik

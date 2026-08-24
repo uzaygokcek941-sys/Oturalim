@@ -392,9 +392,35 @@ def sirlar_sizmis_mi():
     return s
 
 
+def sayfa_kontrolleri():
+    """Sayfalari GERCEK tarayicida acar (test_sayfa.py).
+
+    test_tarayici.mjs betikleri vm kutusunda calistiriyor: DOM yok,
+    yukleme sirasi yok, CDN yok. Bu yuzden gercek bir hatayi goremedi --
+    Leaflet gelmediginde kesfet ekraninin tamami oluyordu. Tarayici
+    yoksa ATLANIR, gectigi soylenmez."""
+    yol = os.path.join(KOK, "test_sayfa.py")
+    if not os.path.exists(yol):
+        return kayit("test_sayfa.py", ["dosya yok"])
+    try:
+        c = subprocess.run([sys.executable, yol, "test"], capture_output=True,
+                           text=True, timeout=420, cwd=KOK)
+    except subprocess.TimeoutExpired:
+        return kayit("test_sayfa.py (gercek tarayici)", ["zaman asimi"])
+    cikti = (c.stdout or "") + (c.stderr or "")
+    if "ATLANDI" in cikti:
+        return kayit("test_sayfa.py (gercek tarayici)",
+                     [cikti.strip().splitlines()[-1]], atlandi=True)
+    if c.returncode != 0:
+        return kayit("test_sayfa.py (gercek tarayici)",
+                     [x for x in cikti.splitlines() if x.strip()][:8])
+    kayit("test_sayfa.py (gercek tarayici)", [])
+
+
 def main():
     betik_kontrolleri()
     tarayici_kontrolleri()
+    sayfa_kontrolleri()
     kayit("degismez: katki alanlari dort dosyada ayni", alanlar_ayni_mi())
     kayit("degismez: veri, index ve vitrin tutarli", veri_tutarli_mi())
     kayit("degismez: sayfa meta ve sekme tutarli", sayfalar_tutarli_mi())

@@ -36,11 +36,22 @@ jobs:
           node-version: "22"
 
       # Kazima betikleri bu paketleri MODUL DUZEYINDE import ediyor, o yuzden
-      # saf mantik kontrolleri icin bile gerekiyorlar. playwright'in kendisi
-      # kuruluyor ama TARAYICI INDIRILMIYOR (~300 MB): "test" kipi ag'a
-      # cikmiyor, yalniz ayristirma ve suzme mantigini sinuyor.
+      # saf mantik kontrolleri icin bile gerekiyorlar.
       - name: Bagimliliklar
         run: pip install --quiet httpx pymupdf playwright qrcode
+
+      # Chromium ARTIK INDIRILIYOR (~130 MB, onbelleklenmis). Onceden
+      # indirilmiyordu ve test_sayfa.py sessizce atlaniyordu; o kontrol
+      # baska hicbir seyin goremedigi bir hatayi buldu (Leaflet CDN'den
+      # gelmeyince kesfet ekraninin TAMAMI oluyordu). Bir kontrolu
+      # CI'da atlamak, olmamasiyla ayni sey.
+      - name: Tarayici onbellegi
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}
+      - name: Chromium
+        run: python -m playwright install --with-deps chromium
 
       - name: Kontroller
         run: python test.py
