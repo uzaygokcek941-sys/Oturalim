@@ -2,7 +2,7 @@
 #
 # Isletme sayfalari (isletme.html?il=..&id=..) taranabilir: uzun kuyruk
 # aramasinin ("X mahallesinde kafe") karsiligi onlar. Ancak sitemap'e
-# yalniz ICERIGI OLAN sayfalar konuyor -- 35.867 mekanin 23.576'si yalniz
+# yalniz ICERIGI OLAN sayfalar konuyor -- 35.867 mekanin 23.527'si yalniz
 # ad + harita noktasi, o sayfalari indekse itmek ince icerik olur.
 # Ayrinti: site_haritasi.py
 

@@ -210,6 +210,11 @@ const YEME_ICME = new Set(["Restoran","Kafe","Fast food","Bar","Pub","Dondurma",
 function eksikleriBul(m){
   return Object.keys(EKSIK).filter(k => {
     if (k === "menu") return YEME_ICME.has(m.tur) && m.min == null;
+    /* "Site / sosyal medya" INSTAGRAM'i da sayiyor. Olculdu: 194 mekanin
+       instagrami var ve sitesi yok; onlara "sosyal medya baginiz yok"
+       demek, elimizde duran bilgiyi yok saymakti. Turkiye'de kafelerin
+       cogu menuyu ve saati zaten instagramda yayimliyor. */
+    if (k === "web") return !m.web && !m.insta;
     return !String(m[k] == null ? "" : m[k]).trim();
   });
 }
@@ -240,6 +245,10 @@ function goster(m, ilAd){
     ["Telefon", kacir(m.tel || ""),          "tel"],
     ["Adres",   kacir(m.adres || ""),        "adres"],
     ["Site",    m.web ? bag(String(m.web)) : "", "web"],
+    /* Adres gosterim aninda kuruluyor: veride yalniz kullanici adi var. */
+    ["Instagram", m.insta
+      ? '<a href="https://instagram.com/' + encodeURIComponent(m.insta) +
+        '" target="_blank" rel="noopener">@' + kacir(m.insta) + "</a>" : "", null],
     /* yalniz OLCULEN fiyat gosterilir. Mutfaktan tahmin edilen "hesapli",
        asagidaki "fiyat bilgisi yok" satiriyla ayni sayfada celisiyordu. */
     ["Fiyat",   sv && sv.olculdu ? kacir(sv.ad) : "", null],
@@ -290,7 +299,8 @@ function goster(m, ilAd){
 /* ============================================================
    Eksik bilgi katkisi
 
-   Ulasilamayan isletme sayisi 30.728 (%85,1): ne webi ne telefonu var, yani
+   Ulasilamayan isletme sayisi 30.405 (%84,8): ne webi, ne sosyal medyasi,
+   ne telefonu var, yani
    onlara uzaktan sorulamiyor. Bilgiyi bilen tek kisi o an orada oturan
    kullanici; form bu yuzden mekanin KENDI sayfasinda, eksik listesinin
    hemen altinda duruyor.

@@ -397,6 +397,20 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
       sabitlendiğinde eklenmeli: `fonts.googleapis.com`, `fonts.gstatic.com`,
       `unpkg.com`, `esm.sh` ve o kurulumun `*.supabase.co` adresi.
 
+**Gerçek tarayıcıda açınca bulunanlar (`test_sayfa.py`):**
+- [x] Leaflet CDN'den gelmeyince keşfet ekranının **tamamı** ölüyordu
+      (`L is not defined`): sıfır kart, sayaç "…"da donmuş. Harita artık
+      isteğe bağlı; liste, filtreler ve bütçe kaydırıcısı haritasız çalışıyor.
+- [x] `isletme.html` `sahne.js`'i hiç yüklemiyordu; "Bu sayfada eksik olanlar"
+      bölümü — sayfanın çekirdeği — `clip-path` ile kırpılmış hâlde **her
+      ziyaretçide görünmüyordu**. `checkVisibility()` bile "görünür" diyor.
+- [x] Konum izni **yanıtlanmazsa** kullanıcı kilitleniyordu: `getCurrentPosition`
+      timeout'u izin istemi cevaplanana kadar saymaya başlamıyor, yani hiçbir
+      geri çağrı gelmiyor. Sayfanın kendi bekçisi kondu.
+- [x] Instagram toplanıyor ama uygulamaya hiç ulaşmıyordu: **192 mekanın**
+      instagramı var ve sitesi yok, onlara hem sayfada hem saha kartında
+      "sosyal medya bağınız yok" diyorduk.
+
 **Kodda kalan teknik borç:**
 - [x] Leaflet SRI ile geliyor (özet npm tarball'ından, resmî değerlerle doğrulandı)
 - [ ] **supabase-js hâlâ SRI'siz** — `import()` integrity desteklemiyor, yerele

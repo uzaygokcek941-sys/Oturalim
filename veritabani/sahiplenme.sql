@@ -5,7 +5,7 @@
 -- Tekrar çalıştırılabilir: her şey "if not exists" / "or replace".
 -- ÖNCE sema.sql ve katki.sql çalıştırılmış olmalı.
 --
--- NEDEN VAR: 35.867 mekanın 30.522'sinde (%85,1) ne web ne telefon var.
+-- NEDEN VAR: 35.867 mekanın 30.405'inde (%84,8) ne web, ne sosyal medya, ne telefon var.
 -- Bu işletmelere uzaktan ulaşmanın yolu yok; sahiplen.py onları yürüyüş
 -- kümelerine ayırıyor ve saha ziyaretinde kapıya bir kart bırakılıyor.
 -- Kartın üstünde o mekana ait TEK KULLANIMLIK bir kod var. Kodu giren kişi

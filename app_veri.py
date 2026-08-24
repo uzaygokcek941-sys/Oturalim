@@ -219,6 +219,37 @@ PLATFORM = re.compile(
     r"getir|trendyol|foursquare|zomato|tripadvisor|yelp)\.", re.I)
 
 
+# OSM'de instagram dort ayri bicimde yaziliyor (olculdu, 306 kayit):
+#   ortakoyadana                                  164  duz kullanici adi
+#   https://www.instagram.com/guneyyildiziyumurtalik/  140  tam URL
+#   instagram.com/mandalinsound                     1  yolla
+#   @mangocoffee.tr                                 1  @ ile
+# Hepsi tek bicime indiriliyor: yalniz KULLANICI ADI saklaniyor, adres
+# gosterim aninda kuruluyor. Ham degeri tasimak, dort ayri bicimi dort
+# ayri yerde ayristirmak demekti.
+INSTAGRAM_AD = re.compile(r"^[A-Za-z0-9._]{1,30}$")
+
+
+def instagram_adi(ham):
+    """OSM contact:instagram degerinden kullanici adi. Cozulemezse None."""
+    v = (ham or "").strip()
+    if not v:
+        return None
+    v = re.sub(r"^https?://", "", v, flags=re.I)
+    v = re.sub(r"^www\.", "", v, flags=re.I)
+    v = re.sub(r"^(?:m\.)?instagram\.com/", "", v, flags=re.I)
+    v = v.split("?")[0].split("#")[0].strip("@ ")
+    # Yol parcasi kalmissa kullanici adi ilk parca ("x/reels" -> "x").
+    # Ama BASKA bir alan adiysa deger tamamen reddediliyor:
+    # "facebook.com/x" bir instagram kullanicisi degil, ve kirpilinca
+    # "facebook.com" diye gecerli gorunuyordu. Noktali kullanici adlari
+    # ("mangocoffee.tr") gecerli -- onlarda egik cizgi yok.
+    if "/" in v.strip("/"):
+        return None
+    v = v.strip("/")
+    return v if INSTAGRAM_AD.match(v) else None
+
+
 def platform_mu(url):
     """Bu adres isletmenin kendi sitesi degil, bir platform profili mi?"""
     u = re.sub(r"^https?://", "", (url or "").strip().lower())
@@ -462,7 +493,13 @@ def mekan_kaydi(m, menu):
     }
     for anahtar, deger in (("mutfak", m["mutfak"]), ("tel", m["telefon"]),
                            ("web", m["website"]), ("saat", m["saatler"]),
-                           ("adres", m["adres"])):
+                           ("adres", m["adres"]),
+                           # Instagram TOPLANIYORDU ama uygulamaya hic
+                           # ulasmiyordu. Olculdu: 194 mekanin instagrami
+                           # var ve sitesi YOK -- yani o isletmelere hem
+                           # sayfalarinda hem saha kartinda "sosyal medya
+                           # baginiz yok" diyorduk, elimizde dururken.
+                           ("insta", instagram_adi(m.get("instagram")))):
         if deger:
             kayit[anahtar] = deger
     if m["bahce"] == "yes":
@@ -708,6 +745,21 @@ def kendini_kontrol_et():
     # Sonuc calistirma sirasindan bagimsiz olmali.
     karisik = list(reversed(uzak))
     assert sorted(k["id"] for k in kopyalari_birlestir(karisik)[0]) == ["node/1", "node/2"]
+
+    # Instagram: OSM'de dort ayri bicimde yaziliyor, hepsi tek bicime
+    # inmeli. Baska bir alan adi reddedilmeli -- "facebook.com/x"
+    # kirpilinca "facebook.com" diye gecerli bir kullanici adi gorunuyordu.
+    for ham, bekle in (
+            ("ortakoyadana", "ortakoyadana"),
+            ("https://www.instagram.com/guneyyildizi/", "guneyyildizi"),
+            ("instagram.com/mandalinsound", "mandalinsound"),
+            ("@mangocoffee.tr", "mangocoffee.tr"),
+            ("https://instagram.com/abc?igsh=1", "abc"),
+            ("https://m.instagram.com/x/reels", None),
+            ("http://facebook.com/x", None),
+            ("instagram.com/", None),
+            ("a b c", None), ("", None), (None, None)):
+        assert instagram_adi(ham) == bekle, (ham, instagram_adi(ham), bekle)
 
     # Platform profili isletmenin kendi sitesi degildir.
     for u in ("https://www.shopier.com/x", "https://trendyol.com",

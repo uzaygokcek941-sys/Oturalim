@@ -77,8 +77,8 @@ Denenen sitelerin yalnızca **%7'sinden** fiyat çıkarılabildi, geri kalanı
 menüsünü JavaScript ile basıyor. Bu yüzden fiyat verisi bugün zayıf ve ancak
 kullanıcı paylaşımıyla büyür.
 
-İkinci ölçüm, ilkini açıklıyor: mekanların **%92,2'sinin webi**, **%89,2'sinin
-telefonu** açık veride yok; **%85,1'inde ikisi birden yok**. Yani işletmelerin
+İkinci ölçüm, ilkini açıklıyor: mekanların **%91,6'sının webi veya sosyal medyası**, **%89,2'sinin
+telefonu** açık veride yok; **%84,8'inde ikisi birden yok**. Yani işletmelerin
 büyük kısmına uzaktan sorulamıyor bile. `sahiplen.py` bu yüzden iki liste
 üretiyor — telefonu olanlar için iletişim listesi, olmayanlar için yürüyerek
 gezilebilecek kümeler.

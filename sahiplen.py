@@ -131,6 +131,11 @@ def bos_mu(m, k):
     sistemin tek vaadi bu ikisinin ayni olmasi, o yuzden kural tek yerde."""
     if k == "menu":
         return m.get("tur") in YEME_ICME and m.get("min") is None
+    # "Site / sosyal medya" instagrami da sayiyor: 194 mekanin instagrami
+    # var ve sitesi yok. Onlara "sosyal medya baginiz yok" demek, elimizde
+    # duran bilgiyi yok saymak olurdu.
+    if k == "web":
+        return not str(m.get("web", "")).strip() and not str(m.get("insta", "")).strip()
     return not str(m.get(k, "")).strip()
 
 
@@ -380,7 +385,15 @@ def main(secili_il=None, secili_ilce=None):
 
 def kume_uret(mekanlar, secili_il=None, secili_ilce=None):
     """Ikinci kanal: ne webi ne telefonu olanlar -> yuruyus kumeleri."""
+    # Uzaktan ulasilamayanlar: ne site, ne telefon, ne instagram.
+    # bos_mu("web") instagrami zaten sayiyor, o yuzden burada ayrica
+    # yazmaya gerek yok -- ama SAYISI raporlaniyor, cunku instagrami olup
+    # telefonu olmayan mekan iki listeye de girmiyor ve gozden kaybolabilir.
     ulasilamaz = [m for m in mekanlar if bos_mu(m, "web") and bos_mu(m, "tel")]
+    yalniz_insta = [m for m in mekanlar
+                    if str(m.get("insta", "")).strip()
+                    and not str(m.get("web", "")).strip()
+                    and bos_mu(m, "tel")]
     if secili_il:
         ulasilamaz = [m for m in ulasilamaz if sade(secili_il) in sade(m["il"])]
     if secili_ilce:
@@ -401,7 +414,9 @@ def kume_uret(mekanlar, secili_il=None, secili_ilce=None):
     kapsanan = sum(len(u) for u in kumeler)
     print()
     print("=" * 60)
-    print("ulasilamaz (ne web ne tel) : %d" % len(ulasilamaz))
+    print("ulasilamaz (web/tel/insta yok): %d" % len(ulasilamaz))
+    print("  yalniz instagrami olan     : %d  (iki listeye de girmiyor -- "
+          "DM ile ulasilabilir)" % len(yalniz_insta))
     print("yuruyus kumesi             : %d  (>=%d isletme, %d m yaricap)"
           % (len(kumeler), KUME_ESIK, KUME_YARICAP))
     print("kumelerde kapsanan isletme : %d  (ulasilamazlarin %%%.1f'i)  ->  %s"

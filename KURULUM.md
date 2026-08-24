@@ -158,7 +158,7 @@ Vercel `app/` klasörünü olduğu gibi servis ediyor):
 - `app/robots.txt` — `Sitemap:` satırı eklenir (tekrar çalıştırınca çoğalmaz)
 
 `--isletmeler` olmadan yalnız ana sayfalar girer. Girdiğinde bile her mekan
-alınmıyor: 35.867 mekanın **23.576'sında** ad ve harita noktasından başka
+alınmıyor: 35.867 mekanın **23.527'sinde** ad ve harita noktasından başka
 bilgi yok; o sayfaları indekse itmek ince içerik üretmek olur. Şu an
 **12.387 işletme sayfası** (%34,3) eşiği geçiyor — kullanıcı katkısı geldikçe
 bu sayı büyüyor, o yüzden ara ara yeniden çalıştırmak mantıklı.
