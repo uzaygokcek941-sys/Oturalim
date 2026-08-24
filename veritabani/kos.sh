@@ -11,7 +11,7 @@
 #     PGURL=postgres://... sh veritabani/kos.sh   # hazir sunucuya
 set -e
 KOK=$(cd "$(dirname "$0")/.." && pwd)
-DOSYALAR="supabase_taklit sema sayac katki sahiplenme sahiplenme_test"
+DOSYALAR="supabase_taklit sema sayac katki sahiplenme sahiplenme_test sayac_test"
 
 if [ -n "$PGURL" ]; then
   for f in $DOSYALAR; do

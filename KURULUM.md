@@ -176,7 +176,7 @@ bu sayı büyüyor, o yüzden ara ara yeniden çalıştırmak mantıklı.
 ## SQL'i değiştirirsen
 
 Politikaların metnini okumak yetmiyor. Davranışı gerçek bir Postgres'te
-sınayan 15 kontrol var:
+sınayan 26 kontrol var (sahiplenme 15, sayaç 11):
 
 ```bash
 sh veritabani/kos.sh        # kendi geçici Postgres'ini kurar, sonra siler

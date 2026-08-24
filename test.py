@@ -571,11 +571,15 @@ def sql_kontrolleri():
     if c.returncode != 0:
         return kayit("SQL davranisi (gercek Postgres)",
                      [x for x in cikti.splitlines() if x.strip()][-8:])
-    # Dosyanin SONUNA kadar gittigini dogrula: ON_ERROR_STOP olmasa bile
-    # yarida kesilen bir kosum sifir donebiliyor.
-    if "kontrolun hepsi gecti" not in cikti:
+    # HER test dosyasinin SONUNA kadar gittigini dogrula. Tek bir imza
+    # aramak yetmez: iki dosya var ve biri yarida kesilse otekinin bitis
+    # satiri kontrolu yine yesil yapardi.
+    eksik = [ad for ad, imza in (("sahiplenme", "15 kontrolun hepsi gecti"),
+                                 ("sayac", "sayac: 11 kontrolun hepsi gecti"))
+             if imza not in cikti]
+    if eksik:
         return kayit("SQL davranisi (gercek Postgres)",
-                     ["kosum sonuna ulasmadi (bitis satiri yok)"])
+                     ["%s kosumu sonuna ulasmadi" % a for a in eksik])
     kayit("SQL davranisi (gercek Postgres)", [])
 
 
