@@ -44,3 +44,20 @@ jobs:
 
       - name: Kontroller
         run: python test.py
+
+      # Depodaki veri, boru hattinin BUGUN uretecegi veriyle ayni olmali.
+      # test.py ciktinin kendi ICINDE tutarli oldugunu dogruluyor; bu adim
+      # ciktinin KAYNAKLA tutarli oldugunu dogruluyor. Ikisi ayri sey:
+      # betigi degistirip veriyi yeniden uretmeyi unutmak, tam da bu
+      # denetim sirasinda birkac kez oldu ve her seferinde sessiz kaldi.
+      # Uc betik toplam ~2,5 saniye; ucuz bir kural.
+      - name: Veri boru hattindan yeniden uretilebiliyor
+        run: |
+          python app_veri.py > /dev/null
+          python fiyat_analiz.py > /dev/null
+          python vitrin_uret.py > /dev/null
+          if ! git diff --exit-code --stat; then
+            echo "::error::Depodaki veri boru hattinin urettiginden farkli."
+            echo "Duzeltmek icin: python app_veri.py && python fiyat_analiz.py && python vitrin_uret.py"
+            exit 1
+          fi

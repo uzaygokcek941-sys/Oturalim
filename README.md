@@ -102,6 +102,16 @@ dosyalar arası değişmezler birlikte koşar. Her itmede GitHub Actions da
 aynısını çalıştırıyor. `node` kurulu değilse tarayıcı grubu **atlanır** —
 geçtiği söylenmez.
 
+CI ayrıca veriyi yeniden üretip fark olup olmadığına bakıyor: `test.py`
+çıktının kendi **içinde** tutarlı olduğunu doğruluyor, o adım çıktının
+**kaynakla** tutarlı olduğunu. Bir betiği değiştirip veriyi yeniden
+üretmeyi unutmak aksi halde sessiz kalıyor. Veri değiştiren bir düzenleme
+sonrası:
+
+```bash
+python app_veri.py && python fiyat_analiz.py && python vitrin_uret.py
+```
+
 Giriş sistemi olmadan da tam çalışır; hesap özellikleri kapalı görünür.
 Kurmak için: [KURULUM.md](KURULUM.md) (~15 dakika, ücretsiz, kart istemiyor).
 
