@@ -10,7 +10,7 @@ uretilmis sitemap, uretilmemis sitemap'ten kotudur.
     python site_haritasi.py test
 
 INCE ICERIK KURALI: --isletmeler verilse bile her mekan girmiyor. 36.102
-mekanin 23.715'inde (%65,7) ad ve koordinattan baska hicbir sey yok; o
+mekanin 23.742'sinde (%65,8) ad ve koordinattan baska hicbir sey yok; o
 sayfalari indekse itmek arama motoru acisindan ince icerik uretmek olur ve
 sitenin tamamini asagi ceker. Yalniz saat / telefon / adres / site / fiyat
 alanlarindan EN AZ BIRI dolu olan mekan sitemap'e giriyor.

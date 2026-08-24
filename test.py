@@ -251,6 +251,35 @@ def sema_tutarli_mi():
     sayac = oku("veritabani", "sayac.sql")
     if "revoke all on table public.goruntulenme from anon" not in sayac:
         s.append("sayac.sql: goruntulenme uzerindeki GRANT geri alinmiyor")
+
+    # security definer + search_path: fonksiyon cagiranin degil SAHIBININ
+    # yetkisiyle calisiyor. search_path sabitlenmezse, arama yolunda nesne
+    # yaratabilen biri fonksiyonun cagirdigi adi kendi nesnesiyle
+    # golgeleyebilir ve o yetkiyi devralir. Bugun dokuz fonksiyonun dokuzu
+    # da sabitliyor; bu kontrol onuncusu icin var.
+    for dosya in ("sema.sql", "katki.sql", "sayac.sql"):
+        metin = oku("veritabani", dosya)
+        for govde in re.split(r"\bcreate (?:or replace )?function\b", metin)[1:]:
+            basi = govde.split("$$")[0]
+            if "security definer" not in basi.lower():
+                continue
+            ad = re.match(r"\s*([\w.]+)", govde)
+            if "set search_path" not in basi.lower():
+                s.append("%s: %s() security definer ama search_path sabit degil"
+                         % (dosya, ad.group(1) if ad else "?"))
+
+    # Olusturulan her tabloda RLS acik olmali. Politikasiz tablo (sayac_tuz)
+    # da RLS istiyor: RLS'siz tabloda politika yoklugu "herkes gorebilir"
+    # demek, RLS'li tabloda "kimse goremez".
+    for dosya in ("sema.sql", "katki.sql", "sayac.sql"):
+        metin = oku("veritabani", dosya)
+        for t in re.findall(r"create table if not exists public\.(\w+)", metin):
+            # Bosluga duyarsiz: dosyada tablo adlari hizalanmis
+            # ("public.favoriler   enable ..."), duz metin eslesmesi
+            # bunlari kaciriyordu.
+            if not re.search(r"alter\s+table\s+public\.%s\s+enable\s+row\s+level\s+security" % t,
+                             metin):
+                s.append("%s: %s tablosunda RLS acilmiyor" % (dosya, t))
     return s
 
 
