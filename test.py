@@ -543,10 +543,47 @@ def sayfa_kontrolleri():
     kayit("test_sayfa.py (gercek tarayici)", [])
 
 
+def sql_kontrolleri():
+    """SQL davranis kontrollerini GERCEK Postgres'te kosar (veritabani/kos.sh).
+
+    Politikalarin metnini okumak yetmiyor. Bu depoda tam olarak sunlar
+    OLCULEREK bulundu, hicbiri statik okumayla gorunmezdi:
+      - supabase_taklit.sql'de eksik bir grant yuzunden dosya 6. adimda
+        patliyordu; 11 kontrolun ALTISI hic kosmuyordu.
+      - 2. adim ("kullanici sahiplik tablosuna dogrudan yazamaz") YANLIS
+        SEBEPTEN geciyordu: engel politika degil, eksik yetkiydi.
+      - RLS SATIR duzeyinde: "onaylanmis herkese acik" politikalari satiri
+        aciyor ve satirin icindeki `kullanici` uuid'sini de aciyordu.
+
+    Postgres yoksa ATLANIR, gectigi soylenmez."""
+    yol = os.path.join(KOK, "veritabani", "kos.sh")
+    if not os.path.exists(yol):
+        return kayit("veritabani/kos.sh", ["dosya yok"])
+    try:
+        c = subprocess.run(["sh", yol], capture_output=True, text=True,
+                           timeout=300, cwd=KOK)
+    except subprocess.TimeoutExpired:
+        return kayit("SQL davranisi (gercek Postgres)", ["zaman asimi"])
+    cikti = (c.stdout or "") + (c.stderr or "")
+    if "ATLANDI" in cikti:
+        return kayit("SQL davranisi (gercek Postgres)",
+                     [x for x in cikti.splitlines() if "ATLANDI" in x][:1], atlandi=True)
+    if c.returncode != 0:
+        return kayit("SQL davranisi (gercek Postgres)",
+                     [x for x in cikti.splitlines() if x.strip()][-8:])
+    # Dosyanin SONUNA kadar gittigini dogrula: ON_ERROR_STOP olmasa bile
+    # yarida kesilen bir kosum sifir donebiliyor.
+    if "kontrolun hepsi gecti" not in cikti:
+        return kayit("SQL davranisi (gercek Postgres)",
+                     ["kosum sonuna ulasmadi (bitis satiri yok)"])
+    kayit("SQL davranisi (gercek Postgres)", [])
+
+
 def main():
     betik_kontrolleri()
     tarayici_kontrolleri()
     sayfa_kontrolleri()
+    sql_kontrolleri()
     kayit("degismez: katki alanlari dort dosyada ayni", alanlar_ayni_mi())
     kayit("degismez: veri, index ve vitrin tutarli", veri_tutarli_mi())
     kayit("degismez: sayfa meta ve sekme tutarli", sayfalar_tutarli_mi())

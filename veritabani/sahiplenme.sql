@@ -233,6 +233,24 @@ create policy "katki kendi ekler" on public.katkilar
   );
 
 -- ============================================================
+-- Sütun yetkisi — kimin kim olduğu tarayıcıya inmiyor
+--
+-- Gerekce sema.sql'in ayni basligi altinda yazili ve gercek Postgres'te
+-- olculdu: RLS SATIR duzeyinde calisir, satiri actiginda icindeki
+-- `kullanici` sutunu da aciliyordu. Ayni uuid ucuncu tabloda birden
+-- gorundugu icin izler birlestirilebiliyordu.
+--
+-- Burasi ayrica sozu tutmakla ilgili: kimlik.js'te "sahibin KIMLIGI
+-- dondurulmuyor -- gorunur olan bilgi 'dogrulanmis', 'kim dogruladi'
+-- degil" yaziyordu, ama bunu yalniz istemcinin select listesi
+-- sagliyordu. Anahtari olan herkes kendi sorgusunu yazabilir. Politikalar sutun yetkisi
+-- olmadan da calisiyor (olculdu).
+-- ============================================================
+revoke select on public.sahiplik from anon, authenticated;
+grant  select (id, mekan_id, mekan_ad, il, dogrulandi, durum, iptal_notu)
+  on public.sahiplik to anon, authenticated;
+
+-- ============================================================
 -- Kendini kontrol — bu blok hata vermeden geçmeli
 -- ============================================================
 do $$

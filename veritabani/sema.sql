@@ -227,6 +227,72 @@ create policy "yonetici siler" on public.paylasimlar
   for delete using (public.yonetici_mi());
 
 -- ============================================================
+-- Sütun yetkisi — kimin kim olduğu tarayıcıya inmiyor
+--
+-- RLS SATIR duzeyinde calisir, SUTUN duzeyinde degil. "Onaylanmis
+-- paylasimlar herkese acik" politikasi satiri aciyordu ve satirin icinde
+-- `kullanici` de vardi. Yani herkese acik anon anahtariyla su sorgu
+-- calisiyordu ve GERCEK POSTGRES'TE OLCULDU:
+--
+--   select kullanici, mekan_ad, tarih, tutar, kisi from paylasimlar
+--
+-- Tek bir uuid ile bir kisinin nereye, hangi gun, kac kisiyle gittigi ve
+-- ne odedigi cikariliyordu; ayni uuid katkilar ve sahiplik tablolarinda da
+-- gorundugu icin izler birlestirilebiliyordu. Kimlik degil ama SABIT bir
+-- tanimlayiciya bagli disari cikma gecmisi -- gizlilik.html'deki veri
+-- enazlama sozunun ve kimlik.js'teki "sahibin kimligi dondurulmuyor"
+-- yorumunun ikisini birden bozuyordu. Istemcinin select listesine guvenmek
+-- yetmez: anahtari olan herkes kendi sorgusunu yazabilir.
+--
+-- `kullanici` bir IC anahtar. Tarayicinin ona hicbir yerde ihtiyaci yok:
+-- "kac kisinin fisi" sayisi artik sunucuda (mekan_fis_ozeti), kendi
+-- kayitlarini RLS zaten suzuyor, yonetim ekrani uuid'yi hic gostermiyordu.
+--
+-- Olculdu: sutun yetkisi alindiktan sonra politikalar CALISMAYA DEVAM
+-- EDIYOR -- politika ifadesi cagiran rolun sutun yetkisine bagli degil.
+-- ============================================================
+revoke select on public.paylasimlar from anon, authenticated;
+grant  select (id, mekan_id, mekan_ad, il, tutar, kisi, tarih, aciklama,
+               durum, olusturuldu)
+  on public.paylasimlar to anon, authenticated;
+-- insert/update/delete dokunulmuyor: kullanici sutununa YAZMAK gerekiyor
+-- (kendi kaydini acarken), okumak gerekmiyor.
+
+-- ============================================================
+-- Fiş özeti — sayı sunucuda hesaplanıyor
+--
+-- Isletme sayfasi "3 kisinin 5 fisinden" diyebilmek icin FARKLI kullanici
+-- sayisini biliyordu; bunu satirlari cekip tarayicida sayarak yapiyordu,
+-- yani her ziyaretci butun uuid'leri goruyordu. Sayi burada uretiliyor,
+-- kimlikler disari cikmiyor.
+--
+-- Esik kurali ISTEMCIDE kaliyor (FIS_ESIK): bu fonksiyon ham sayilari
+-- veriyor, "gosterilsin mi" karari tek yerde dursun diye.
+-- ============================================================
+create or replace function public.mekan_fis_ozeti(p_mekan_id text)
+returns table (fis int, kisi int, medyan numeric)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  with son as (
+    select tutar, kisi, kullanici
+    from public.paylasimlar
+    where mekan_id = p_mekan_id and durum = 'onaylandi'
+    order by tarih desc
+    limit 200                      -- istemcideki sinirla ayni
+  )
+  select count(*)::int,
+         count(distinct kullanici)::int,
+         round(percentile_cont(0.5) within group
+               (order by tutar / greatest(kisi, 1)))::numeric
+  from son;
+$$;
+revoke all on function public.mekan_fis_ozeti(text) from public;
+grant execute on function public.mekan_fis_ozeti(text) to anon, authenticated;
+
+-- ============================================================
 -- Kendini kontrol — bu blok hata vermeden geçmeli
 -- ============================================================
 do $$

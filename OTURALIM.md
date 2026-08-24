@@ -453,6 +453,35 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
       diyor ve **ölü** bir giriş sayfasına fırlatılıyordu. Formun kendi
       yorumundaki kural buydu zaten: *çalışmayan bir kutu göstermek, hiç
       göstermemekten kötü* — Leaflet'te aynı şey olmuştu.
+- [x] **`kullanici` kimliği herkese açıktı — en ağırı.** RLS **satır**
+      düzeyinde çalışır, sütun düzeyinde değil. "Onaylanmış paylaşımlar
+      herkese açık" politikası satırı açıyordu ve satırın içinde `kullanici`
+      uuid'si de vardı. Gerçek Postgres'te ölçüldü: herkese açık `anon`
+      anahtarıyla `select kullanici, mekan_ad, tarih, tutar, kisi from
+      paylasimlar` çalışıyor; aynı uuid `katkilar` ve `sahiplik`
+      tablolarında da göründüğü için izler birleştirilebiliyordu. Yani tek
+      bir kimlikle **bir kişinin nereye, hangi gün, kaç kişiyle gittiği ve
+      ne ödediği** çıkarılabiliyordu. Kimlik değil ama *sabit* bir
+      tanımlayıcıya bağlı dışarı çıkma geçmişi — `gizlilik.html`'deki veri
+      enazlama sözünü ve `kimlik.js`'teki "sahibin kimliği döndürülmüyor"
+      yorumunu birden bozuyordu. **İstemcinin select listesine güvenmek
+      koruma değil**: anahtarı olan herkes kendi sorgusunu yazar.
+
+      Düzeltme sütun yetkisi (`revoke select ... grant select (…)`) üç
+      tabloda birden. Ölçüldü: politikalar sütun yetkisi olmadan da
+      çalışıyor. "Kaç kişinin fişi" sayımı sunucuya taşındı
+      (`mekan_fis_ozeti`, `security definer`) — sızıntının sebebi zaten
+      o sayımdı. Gösterilen sayı **değişmiyor**: 12 veri kümesinde SQL
+      medyanı ile eski JS formülü birebir aynı sonucu verdi.
+- [x] **SQL davranış kontrolleri fiilen hiç koşmuyormuş.**
+      `sahiplenme_test.sql` yazıldığı gün elle çalıştırılmış, sonra bir daha
+      çalışmamış. Bu arada `supabase_taklit.sql`'de eksik bir `grant` yüzünden
+      dosya 6. adımda patlıyordu: **11 kontrolün altısı** hiç koşmuyordu.
+      Daha kötüsü 2. adım ("kullanıcı sahiplik tablosuna doğrudan yazamaz")
+      **yanlış sebepten** geçiyordu — engel politika değil, eksik yetkiydi.
+      Ayrıca dört adım yalnız satır basıyordu, yani betikten koşturulunca
+      hiçbir şey doğrulamıyordu. Hepsi iddiaya çevrildi, 15'e çıkarıldı ve
+      `veritabani/kos.sh` ile `test.py`'ye ve CI'a bağlandı.
 - [x] **Etkinlik bağlantıları üçüncü taraf RSS'ten geliyor ve şeması hiç
       denetlenmiyordu.** `kacir()` bunu yapmaz — tırnağı kaçırır, şemaya
       bakmaz — yani akışın verdiği `javascript:…` ana sayfada **tıklanabilir**

@@ -52,7 +52,16 @@ exception when insufficient_privilege then raise notice 'gecti: dogrudan yazilam
 end $$;
 
 \echo '--- 3. gecerli kod calisiyor (bosluk/kucuk harf toleransli)'
-select mekan_ad from public.sahiplenme_kodu_kullan(' abcd-2345 ');
+do $$
+declare a text; i text;
+begin
+  select mekan_ad, mekan_id into a, i
+    from public.sahiplenme_kodu_kullan(' abcd-2345 ');
+  if a is distinct from 'Test Kafe' or i is distinct from 'node/1' then
+    raise exception 'BASARISIZ: yanlis isletme dondu (% / %)', i, a;
+  end if;
+  raise notice 'gecti: % (%)', a, i;
+end $$;
 
 \echo '--- 4. ayni kod ikinci kez calismaz'
 do $$ begin
@@ -76,14 +85,30 @@ begin
 end $$;
 
 \echo '--- 6. sahibinin katkisi kuyruga girmiyor'
-insert into public.katkilar (kullanici, mekan_id, il, mekan_ad, alan, deger)
-values (auth.uid(), 'node/1', '06', 'Test Kafe', 'tel', '0312 000 00 00');
-select durum as sahip_katkisi from public.katkilar where mekan_id = 'node/1';
+do $$
+declare d text;
+begin
+  insert into public.katkilar (kullanici, mekan_id, il, mekan_ad, alan, deger)
+  values (auth.uid(), 'node/1', '06', 'Test Kafe', 'tel', '0312 000 00 00');
+  select durum into d from public.katkilar where mekan_id = 'node/1';
+  if d is distinct from 'onaylandi' then
+    raise exception 'BASARISIZ: sahibinin katkisi "%" oldu, "onaylandi" olmaliydi', d;
+  end if;
+  raise notice 'gecti: dogrudan onaylandi';
+end $$;
 
 \echo '--- 7. sahibi olmadigi mekanda katki KUYRUKTA bekliyor'
-insert into public.katkilar (kullanici, mekan_id, il, mekan_ad, alan, deger)
-values (auth.uid(), 'node/7', '06', 'Baska Kafe', 'tel', '0312 111 11 11');
-select durum as yabanci_katki from public.katkilar where mekan_id = 'node/7';
+do $$
+declare d text;
+begin
+  insert into public.katkilar (kullanici, mekan_id, il, mekan_ad, alan, deger)
+  values (auth.uid(), 'node/7', '06', 'Baska Kafe', 'tel', '0312 111 11 11');
+  select durum into d from public.katkilar where mekan_id = 'node/7';
+  if d is distinct from 'bekliyor' then
+    raise exception 'BASARISIZ: yabanci katki "%" oldu, "bekliyor" olmaliydi', d;
+  end if;
+  raise notice 'gecti: kuyrukta bekliyor';
+end $$;
 
 \echo '--- 8. sahibi olmadigi mekana ONAYLI katki yazamaz'
 do $$ begin
@@ -115,5 +140,146 @@ exception when insufficient_privilege then raise notice 'gecti: giris sarti isli
 end $$;
 
 \echo '--- 11. aktif sahiplik anon icin gorunur (isletme rozeti)'
-select count(*) as gorunen_sahiplik from public.sahiplik where durum = 'aktif';
+do $$
+declare n int; k int;
+begin
+  select count(*) into n from public.sahiplik where durum = 'aktif';
+  if n <> 1 then
+    raise exception 'BASARISIZ: anon % aktif sahiplik goruyor, 1 olmaliydi', n;
+  end if;
+  -- Gorunen sey "dogrulanmis", "kim dogruladi" DEGIL: anon sahibin
+  -- kimligini okuyamamali. Onceden yalniz sayiya bakiliyordu, yani sutun
+  -- sizsa bile kontrol yesil kalirdi.
+  begin
+    select count(*) into k from public.sahiplik where kullanici is not null;
+    raise exception 'BASARISIZ: anon sahibin kimligini okuyabiliyor (% satir)', k;
+  exception when insufficient_privilege then null;
+  end;
+  raise notice 'gecti: rozet gorunuyor, sahibin kimligi gorunmuyor';
+end $$;
 reset role;
+
+\echo '--- 12. anon kimseyi tanimiyor: kullanici sutunu uc tabloda da kapali'
+-- RLS SATIR duzeyinde calisir. "Onaylanmis ... herkese acik" politikalari
+-- satiri aciyor ve satirin icinde `kullanici` da vardi. Olculdu: herkese
+-- acik anon anahtariyla bir kisinin nereye/hangi gun/kac kisiyle gittigi ve
+-- ne odedigi tek sorguyla cikiyordu; ayni uuid uc tabloda birden gorundugu
+-- icin izler birlestirilebiliyordu. Sutun yetkisi sema.sql, katki.sql ve
+-- sahiplenme.sql'de aliniyor.
+set role anon;
+do $$
+declare t text;
+begin
+  foreach t in array array['paylasimlar','katkilar','sahiplik'] loop
+    begin
+      execute format('select kullanici from public.%I limit 1', t);
+      raise exception 'BASARISIZ: anon %.kullanici sutununu okuyabiliyor', t;
+    exception when insufficient_privilege then null;
+    end;
+  end loop;
+  raise notice 'gecti: uc tabloda da kimlik gorunmuyor';
+end $$;
+
+\echo '--- 13. giris yapmis kullanici da baskasinin kimligini goremiyor'
+-- Hesap acmak bu veriyi acmamali: onaylanmis kayitlari authenticated de
+-- goruyor, yani yetki yalniz anon'dan alinsaydi kayit olan herkes ayni
+-- izi cikarabilirdi.
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+do $$
+declare t text;
+begin
+  foreach t in array array['paylasimlar','katkilar','sahiplik'] loop
+    begin
+      execute format('select kullanici from public.%I limit 1', t);
+      raise exception 'BASARISIZ: authenticated %.kullanici sutununu okuyabiliyor', t;
+    exception when insufficient_privilege then null;
+    end;
+  end loop;
+  raise notice 'gecti: kayit olmak kimlikleri acmiyor';
+end $$;
+
+\echo '--- 14. kendi kayitlari yine calisiyor (yetki fazla kisilmadi)'
+-- Sutun yetkisini kismak KOLAY; fazla kismak sessizce ozellik goturur.
+-- "Sahipliklerim" listesi kullanici sutununa gore SUZUYORDU ve Postgres'te
+-- WHERE de sutun yetkisi ister -- filtre kalsaydi liste bos donerdi.
+-- SORGULAR ISTEMCININ KENDI SELECT LISTELERI. "count(*)" ile bakmak
+-- yetmiyordu: sutun yetkisini FAZLA kismak da sessizce ozellik goturur ve
+-- count(*) hicbir sutuna dokunmadigi icin yesil kalirdi (sabotajla olculdu
+-- -- sahiplik.id kapatildiginda isletme sayfasindaki sahiplik rozeti
+-- tamamen kaybolur ve kontrol bunu gormuyordu). Listeler kimlik.js ve
+-- isletme.html'deki .select() cagrilariyla birebir ayni.
+do $$
+declare n int;
+begin
+  -- kimlik.js sahipliklerim()
+  select count(*) into n from (
+    select id, mekan_id, mekan_ad, il, dogrulandi, durum from public.sahiplik) t;
+  if n < 1 then raise exception 'BASARISIZ: kendi sahipligini goremiyor'; end if;
+  -- kimlik.js mekanSahiplenilmis()  (anon da bunu cagiriyor, bkz. 11)
+  perform id from public.sahiplik limit 1;
+  -- kimlik.js sahiplikYonetimListesi()
+  perform id, mekan_id, mekan_ad, il, dogrulandi, durum, iptal_notu
+    from public.sahiplik limit 1;
+
+  -- kimlik.js katkilarim() / katkiYonetimListesi()
+  select count(*) into n from (
+    select id, mekan_id, mekan_ad, il, alan, deger, durum, olusturuldu
+      from public.katkilar) t;
+  if n < 1 then raise exception 'BASARISIZ: kendi katkisini goremiyor'; end if;
+  -- kimlik.js onaylanmisKatkilar()
+  perform alan, deger, olusturuldu from public.katkilar limit 1;
+
+  insert into public.paylasimlar (kullanici, mekan_id, mekan_ad, il, tutar, kisi, tarih)
+  values (auth.uid(), 'node/1', 'Test Kafe', '06', 900, 3, current_date);
+  -- kimlik.js paylasimlarim()
+  select count(*) into n from (
+    select id, mekan_ad, il, tutar, kisi, tarih, durum, olusturuldu
+      from public.paylasimlar where mekan_id = 'node/1') t;
+  if n < 1 then raise exception 'BASARISIZ: kendi paylasimini goremiyor'; end if;
+  -- kimlik.js onaylanmisPaylasimlar()  (kesfet ekrani)
+  perform mekan_id, mekan_ad, tutar, kisi, tarih from public.paylasimlar limit 1;
+  -- kimlik.js yonetimListesi()
+  perform id, mekan_id, mekan_ad, il, tutar, kisi, tarih, aciklama, durum, olusturuldu
+    from public.paylasimlar limit 1;
+
+  raise notice 'gecti: istemcinin butun select listeleri calisiyor';
+end $$;
+
+\echo '--- 15. fis ozeti kimlik sizdirmadan sayiyor'
+-- "3 kisinin 5 fisinden" cumlesi FARKLI kullanici sayisini istiyor. Bu sayi
+-- eskiden satirlar cekilip tarayicida hesaplaniyordu, yani sizintinin
+-- sebebi de oydu. Artik sunucuda.
+reset role;
+update public.paylasimlar set durum = 'onaylandi' where mekan_id = 'node/1';
+insert into public.paylasimlar (kullanici, mekan_id, mekan_ad, il, tutar, kisi, tarih, durum)
+values ('22222222-2222-4222-8222-222222222222','node/1','Test Kafe','06',600,2,
+        current_date - 1,'onaylandi'),
+       -- UCUNCU fis, ILK kullanicidan. Sart: boyle olmazsa fis sayisi ile
+       -- FARKLI KISI sayisi esit olur ve "count(distinct kullanici)" yerine
+       -- "count(kullanici)" yazmak kontrolu yine gecerdi. Sabotajla olculdu.
+       ('11111111-1111-4111-8111-111111111111','node/1','Test Kafe','06',1200,4,
+        current_date - 2,'onaylandi');
+set role anon;
+do $$
+declare o record;
+begin
+  select * into o from public.mekan_fis_ozeti('node/1');
+  if o.fis <> 3 then raise exception 'BASARISIZ: fis sayisi % , 3 olmaliydi', o.fis; end if;
+  if o.kisi <> 2 then raise exception 'BASARISIZ: kisi sayisi % , 2 olmaliydi', o.kisi; end if;
+  -- kisi basi: 900/3=300, 600/2=300, 1200/4=300 -> medyan 300
+  if o.medyan <> 300 then raise exception 'BASARISIZ: medyan % , 300 olmaliydi', o.medyan; end if;
+  raise notice 'gecti: % fis / % kisi / medyan %', o.fis, o.kisi, o.medyan;
+end $$;
+do $$
+declare o record;
+begin
+  select * into o from public.mekan_fis_ozeti('hic/yok');
+  if o.fis <> 0 or o.kisi <> 0 or o.medyan is not null then
+    raise exception 'BASARISIZ: bos mekan icin % / % / %', o.fis, o.kisi, o.medyan;
+  end if;
+  raise notice 'gecti: fisi olmayan mekan sifir donuyor';
+end $$;
+reset role;
+
+\echo '=== 15 kontrolun hepsi gecti ==='

@@ -540,21 +540,23 @@ if (!ID || !IL || IL === "00"){
    kendisi katki cagrisina donusuyor. */
 const FIS_ESIK = 3;
 
-/* Saf: fis listesi -> gosterilecek cumle. Ayri duruyor cunku esik mantigi
-   sessizce bozulursa ya kisiyi ifsa ederiz ya da katki cagrisi kaybolur. */
-function fisOzeti(l){
-  if (!l || !l.length)
+/* Saf: fis OZETI -> gosterilecek cumle. Ayri duruyor cunku esik mantigi
+   sessizce bozulursa ya kisiyi ifsa ederiz ya da katki cagrisi kaybolur.
+
+   Girdi artik satir listesi degil, sunucudan gelen ozet: {fis, kisi, medyan}.
+   Onceden satirlar cekiliyor ve KISI SAYISI icin `kullanici` sutunu
+   okunuyordu -- yani her ziyaretci butun uuid'leri goruyordu (bkz.
+   sema.sql "Sutun yetkisi"). Sayim sunucuda; esik karari burada kaldi. */
+function fisOzeti(o){
+  const n = (o && o.fis) || 0;
+  if (!n)
     return "Buranın fiyatını kimse yazmamış. Gittiysen ödediğini yaz — " +
            "bir sonraki kişi kazık yemeden gitsin.";
-  if (l.length < FIS_ESIK)
-    return "Şu ana kadar " + sayi(l.length) + " fiş var. " +
-           (FIS_ESIK - l.length) + " tane daha gelince ortalama burada görünecek.";
-  const kb = l.map(p => Number(p.tutar) / Math.max(1, p.kisi)).sort((x, y) => x - y);
-  const o = kb.length >> 1;
-  const medyan = Math.round(kb.length % 2 ? kb[o] : (kb[o - 1] + kb[o]) / 2);
-  const kisi = new Set(l.map(p => p.kullanici).filter(Boolean)).size;
-  return "Kişi başı ~" + tl(medyan) + " · " +
-         (kisi ? sayi(kisi) + " kişinin " : "") + sayi(l.length) + " fişinden.";
+  if (n < FIS_ESIK)
+    return "Şu ana kadar " + sayi(n) + " fiş var. " +
+           (FIS_ESIK - n) + " tane daha gelince ortalama burada görünecek.";
+  return "Kişi başı ~" + tl(o.medyan) + " · " +
+         (o.kisi ? sayi(o.kisi) + " kişinin " : "") + sayi(n) + " fişinden.";
 }
 
 async function fisKatmani(mekanId, mekanAd, ilKod){
@@ -566,20 +568,13 @@ async function fisKatmani(mekanId, mekanAd, ilKod){
               "&il=" + encodeURIComponent(ilKod) +
               "&mekanId=" + encodeURIComponent(mekanId);
 
-  let l = [];
+  let o = null;
   try {
     await Kimlik.hazir;
-    const sb = Kimlik.istemci();
-    if (sb){
-      const { data } = await sb.from("paylasimlar")
-        .select("tutar,kisi,tarih,kullanici")
-        .eq("mekan_id", mekanId).eq("durum", "onaylandi")
-        .order("tarih", { ascending:false }).limit(200);
-      l = data || [];
-    }
+    o = await Kimlik.fisOzeti(mekanId);
   } catch (e) { /* ag yok, tablo yok: davet yine gorunsun */ }
 
-  ozet.textContent = fisOzeti(l);
+  ozet.textContent = fisOzeti(o);
   bol.hidden = false;
 }
 
@@ -659,15 +654,18 @@ async function sayacCalistir(mekanId){
 
   /* Fis esigi: altinda SAYI SIZDIRMAMALI (k-anonimlik), ustunde medyan
      kisi basina gore olmali. Ucu de sessizce bozulabilecek yerler. */
-  const f = (n, tutar, kisi, kul) => Array.from({length:n},
-    (_, i) => ({ tutar, kisi, kullanici: kul ? "k" + (i % kul) : null }));
+  /* Ozet artik SUNUCUDAN geliyor: {fis, kisi, medyan}. Medyanin kisi
+     basina olmasi sema.sql'de (tutar / greatest(kisi,1)); burada sinanan
+     sey ESIK davranisi ve cumlenin kurulusu. */
+  const f = (fis, medyan, kisi) => ({ fis, medyan, kisi: kisi || 0 });
   const fisT = [
-    [/kimse yazmamış/.test(fisOzeti([])),                    "bos -> davet"],
-    [/2 tane daha/.test(fisOzeti(f(1, 300, 1))),             "1 fis -> 2 daha lazim"],
-    [!/₺/.test(fisOzeti(f(2, 300, 1))),                      "esik alti tutar sizdirmiyor"],
-    [/300/.test(fisOzeti(f(3, 300, 1))),                     "3 fis -> medyan cikiyor"],
-    [/150/.test(fisOzeti(f(3, 300, 2))),                     "medyan KISI BASINA"],
-    [/2 kişinin 4 fişinden/.test(fisOzeti(f(4, 300, 2, 2))), "tekil katkici sayilir"]
+    [/kimse yazmamış/.test(fisOzeti(null)),                  "ozet yok -> davet"],
+    [/kimse yazmamış/.test(fisOzeti(f(0, null))),            "0 fis -> davet"],
+    [/2 tane daha/.test(fisOzeti(f(1, 300))),                "1 fis -> 2 daha lazim"],
+    [!/₺/.test(fisOzeti(f(2, 300))),                         "esik alti tutar sizdirmiyor"],
+    [/300/.test(fisOzeti(f(3, 300))),                        "3 fis -> medyan cikiyor"],
+    [/2 kişinin 4 fişinden/.test(fisOzeti(f(4, 300, 2))),    "tekil katkici sayilir"],
+    [!/kişinin/.test(fisOzeti(f(4, 300, 0))),                "kisi sayisi yoksa uydurmuyor"]
   ].filter(x => !x[0]);
 
   /* Basarida da yaziyor, sadece hatada degil. Sebep: sessiz gecen bir
@@ -677,7 +675,7 @@ async function sayacCalistir(mekanId){
   if (location.hash !== "#kontrol") return;
   const tumu = hata.map(h => h[2])
     .concat(fisT.map(x => x[1])).concat(katkiT.map(x => x[1]));
-  const gecen = t.length + 6 + 7 - tumu.length;
+  const gecen = t.length + 7 + 7 - tumu.length;
   document.body.insertAdjacentHTML("afterbegin",
     '<pre style="margin:0;padding:12px;color:#fff;background:' +
     (tumu.length ? "#5b1a1a" : "#1d3a17") + '">' +

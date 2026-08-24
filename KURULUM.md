@@ -52,6 +52,16 @@ Toplam süre: ~15 dakika. Ücret yok, kart istenmiyor.
    > yetkisini sessizce geri alıyordu. Ölçüldü ve kapatıldı — artık iki
    > dosyanın sırası sonucu değiştirmiyor.
 
+   > **Üç dosyayı da (`sema.sql`, `katki.sql`, `sahiplenme.sql`) yeniden
+   > çalıştırman gerekiyor.** Önceki sürümlerinde `kullanici` sütunu
+   > tarayıcıya açıktı: RLS **satır** düzeyinde çalışır, "onaylanmış
+   > paylaşımlar herkese açık" politikası satırı açtığında satırın içindeki
+   > kullanıcı kimliği de açılıyordu. Herkese açık `anon` anahtarıyla bir
+   > kişinin nereye, hangi gün, kaç kişiyle gittiği ve ne ödediği tek
+   > sorguyla çıkıyordu — gerçek Postgres'te ölçüldü. Yeni sürüm o sütunun
+   > okunmasını kapatıyor; veri silinmiyor, uygulamanın hiçbir özelliği de
+   > kaybolmuyor.
+
    > `sayac.sql`'i daha önceki bir sürümüyle çalıştırdıysan tekrar çalıştır:
    > eski sürüm tarayıcının gönderdiği kimliğe güveniyordu ve sayı
    > şişirilebiliyordu. Yeni sürüm o yolu kapatıyor, birikmiş veriyi silmiyor.
@@ -162,6 +172,21 @@ alınmıyor: 35.852 mekanın **23.519'unda** ad ve harita noktasından başka
 bilgi yok; o sayfaları indekse itmek ince içerik üretmek olur. Şu an
 **12.387 işletme sayfası** (%34,3) eşiği geçiyor — kullanıcı katkısı geldikçe
 bu sayı büyüyor, o yüzden ara ara yeniden çalıştırmak mantıklı.
+
+## SQL'i değiştirirsen
+
+Politikaların metnini okumak yetmiyor. Davranışı gerçek bir Postgres'te
+sınayan 15 kontrol var:
+
+```bash
+sh veritabani/kos.sh        # kendi geçici Postgres'ini kurar, sonra siler
+```
+
+Bu, `python test.py` içinde de koşuyor (Postgres yoksa **atlanır**, geçtiği
+söylenmez). Elle koşan bir kontrolün ne olduğunu bu dosya kendisi gösterdi:
+`supabase_taklit.sql`'de eksik bir `grant` yüzünden test 6. adımda patlıyordu,
+yani 11 kontrolün **altısı** hiç koşmuyordu — ve 2. adım yanlış sebepten
+geçiyordu (yazmayı engelleyen şey politika değil, eksik yetkiydi).
 
 ## Güvenlik notu
 

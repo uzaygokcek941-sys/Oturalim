@@ -53,6 +53,17 @@ jobs:
       - name: Chromium
         run: python -m playwright install --with-deps chromium
 
+      # Postgres ARTIK KURULUYOR. Onceden SQL davranis kontrolleri
+      # (veritabani/sahiplenme_test.sql) yalnizca elle kosuyordu ve
+      # pratikte hic kosmuyordu: supabase_taklit.sql'de eksik bir grant
+      # yuzunden dosya 6. adimda patliyor, yani 11 kontrolun ALTISI
+      # sessizce atlaniyordu. Ustelik 2. adim yanlis sebepten geciyordu.
+      # ubuntu-latest'te postgres kurulu geliyor, ek indirme yok.
+      - name: Postgres
+        run: |
+          sudo systemctl stop postgresql 2>/dev/null || true
+          ls -d /usr/lib/postgresql/*/bin
+
       - name: Kontroller
         run: python test.py
 

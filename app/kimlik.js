@@ -339,9 +339,12 @@ const Kimlik = {
 
   async sahipliklerim(){
     if (!sb || !oturum) return [];
+    /* kullanici sutununa gore SUZMUYORUZ: RLS zaten yalniz kendi
+       satirlarini veriyor ve sutun artik tarayiciya kapali (sema.sql
+       "Sutun yetkisi" basligi). Postgres'te WHERE de sutun yetkisi ister,
+       yani filtre kalsaydi liste bos donerdi. */
     const { data, error } = await sb.from("sahiplik")
       .select("id, mekan_id, mekan_ad, il, dogrulandi, durum")
-      .eq("kullanici", oturum.user.id)
       .order("dogrulandi", { ascending: false });
     if (error){ console.error("sahipliklerim:", error.message); return []; }
     return data || [];
@@ -384,7 +387,7 @@ const Kimlik = {
   async sahiplikYonetimListesi(){
     if (!sb || !oturum) return [];
     const { data, error } = await sb.from("sahiplik")
-      .select("id, kullanici, mekan_id, mekan_ad, il, dogrulandi, durum, iptal_notu")
+      .select("id, mekan_id, mekan_ad, il, dogrulandi, durum, iptal_notu")
       .order("dogrulandi", { ascending: false }).limit(200);
     if (error){ console.error("sahiplik yonetim:", error.message); return []; }
     return data || [];
@@ -400,11 +403,28 @@ const Kimlik = {
     if (error) throw new Error(hataMetni(error));
   },
 
+  /* Bir mekanin fis ozeti: kac fis, kac FARKLI kisi, kisi basi medyan.
+     Onceden isletme.html satirlari cekip tarayicida sayiyordu ve bunun
+     icin `kullanici` sutununu okuyordu -- yani her ziyaretci butun
+     uuid'leri goruyordu. Sayim artik sunucuda (sema.sql mekan_fis_ozeti);
+     kimlikler disari cikmiyor.
+
+     Esik karari BURADA DEGIL, isletme.html'de (FIS_ESIK): fonksiyon ham
+     sayilari veriyor, "gosterilsin mi" kurali tek yerde dursun. */
+  async fisOzeti(mekanId){
+    if (!sb) return null;
+    const { data, error } = await sb.rpc("mekan_fis_ozeti", { p_mekan_id: mekanId });
+    if (error){ console.error("fis ozeti:", error.message); return null; }
+    const o = Array.isArray(data) ? data[0] : data;
+    return o ? { fis: +o.fis || 0, kisi: +o.kisi || 0,
+                 medyan: o.medyan == null ? null : +o.medyan } : null;
+  },
+
   /* ---------- yönetim ---------- */
   async yonetimListesi(durum){
     if (!sb || !oturum) return [];
     let s = sb.from("paylasimlar")
-      .select("id, kullanici, mekan_id, mekan_ad, il, tutar, kisi, tarih, aciklama, durum, olusturuldu")
+      .select("id, mekan_id, mekan_ad, il, tutar, kisi, tarih, aciklama, durum, olusturuldu")
       .order("olusturuldu", { ascending: false }).limit(200);
     if (durum) s = s.eq("durum", durum);
     const { data, error } = await s;

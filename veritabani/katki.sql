@@ -129,6 +129,22 @@ create policy "katki yonetici siler" on public.katkilar
   for delete using (public.yonetici_mi());
 
 -- ============================================================
+-- Sütun yetkisi — kimin kim olduğu tarayıcıya inmiyor
+--
+-- Gerekce sema.sql'in ayni basligi altinda yazili ve gercek Postgres'te
+-- olculdu: RLS SATIR duzeyinde calisir, satiri actiginda icindeki
+-- `kullanici` sutunu da aciliyordu. Ayni uuid ucuncu tabloda birden
+-- gorundugu icin izler birlestirilebiliyordu.
+--
+-- Bu tabloda `kullanici` istemcinin HICBIR sorgusunda secilmiyor;
+-- kendi kayitlarini RLS zaten suzuyor. Politikalar sutun yetkisi
+-- olmadan da calisiyor (olculdu).
+-- ============================================================
+revoke select on public.katkilar from anon, authenticated;
+grant  select (id, mekan_id, mekan_ad, il, alan, deger, durum, olusturuldu)
+  on public.katkilar to anon, authenticated;
+
+-- ============================================================
 -- Kendini kontrol — bu blok hata vermeden geçmeli
 -- ============================================================
 do $$

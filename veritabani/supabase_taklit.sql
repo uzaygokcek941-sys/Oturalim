@@ -21,6 +21,16 @@ do $$ begin
   if not exists (select 1 from pg_roles where rolname='authenticated') then create role authenticated nologin; end if;
 end $$;
 grant usage on schema public to anon, authenticated;
+-- auth semasi da erisilebilir olmali. Supabase'de oyle; burada EKSIKTI ve
+-- sonucu sessizdi: auth.uid() cagiran her sey "permission denied for schema
+-- auth" veriyordu. sahiplenme_test.sql 6. adimda patliyor, yani 11 davranis
+-- kontrolunun ALTISI hic kosmuyordu. Daha kotusu 2. adim ("kullanici
+-- sahiplik tablosuna dogrudan yazamaz") YANLIS SEBEPTEN geciyordu:
+-- yazmayi engelleyen sey politika degil, eksik yetkiydi. Yetki verildikten
+-- sonra tekrar olculdu -- adim yine geciyor, bu kez politika sayesinde.
+grant usage on schema auth to anon, authenticated;
+grant execute on function auth.uid() to anon, authenticated;
+grant select on auth.users to anon, authenticated;
 alter default privileges in schema public grant all on tables to anon, authenticated;
 alter default privileges in schema public grant all on functions to anon, authenticated;
 alter default privileges in schema public grant all on sequences to anon, authenticated;
