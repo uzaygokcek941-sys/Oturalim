@@ -60,6 +60,13 @@ function hataMetni(e){
     return "Bu mekan için bugün zaten bir paylaşım göndermişsin.";
   if (m.includes("failed to fetch") || m.includes("networkerror"))
     return "Sunucuya ulaşılamadı. İnternet bağlantını kontrol et.";
+  /* Veritabani kisiti: istemci ayni sinirlari zaten kontrol ediyor, yani
+     buraya ancak istemci atlanirsa ya da iki taraf ayrisirsa gelinir.
+     Ikisinde de kullaniciya ham SQL cumlesi gostermenin anlami yok. */
+  if (m.includes("violates check constraint") || m.includes("check constraint"))
+    return "Girdiğin değerlerden biri kabul edilmedi. Alanları gözden geçir.";
+  if (m.includes("value too long"))
+    return "Girdiğin metin çok uzun.";
   return (e && e.message) ? e.message : "Beklenmeyen bir hata oldu.";
 }
 

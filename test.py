@@ -307,6 +307,32 @@ def sema_tutarli_mi():
     return s
 
 
+def yayin_basliklari_mi():
+    """vercel.json gecerli mi ve guvenlik basliklari yerinde mi.
+
+    Sessizce bozulabilecek turden: gecersiz JSON'da Vercel yapilandirmayi
+    yok sayip yayina devam eder, yani baslik kaybi hicbir yerde patlamaz.
+
+    CSP BILEREK YOK: Supabase adresi kuruluma gore degisiyor
+    (yapilandirma.js), yani depoda sabit bir CSP yazmak baska bir Supabase
+    projesiyle kuran kisinin girisini sessizce kirardi.
+    """
+    s = []
+    try:
+        v = json.loads(oku("vercel.json"))
+    except Exception as e:
+        return ["vercel.json okunamadi (Vercel bunu sessizce yok sayar): %s" % e]
+    if v.get("outputDirectory") != "app":
+        s.append("vercel.json: outputDirectory 'app' degil")
+    basliklar = {b.get("key") for grup in v.get("headers", [])
+                 for b in grup.get("headers", [])}
+    for gerekli in ("X-Content-Type-Options", "Referrer-Policy",
+                    "X-Frame-Options", "Permissions-Policy"):
+        if gerekli not in basliklar:
+            s.append("vercel.json: %s basligi yok" % gerekli)
+    return s
+
+
 def sirlar_sizmis_mi():
     """Depoya girmemesi gerekenler.
 
@@ -352,6 +378,7 @@ def main():
     kayit("degismez: veri, index ve vitrin tutarli", veri_tutarli_mi())
     kayit("degismez: sayfa meta ve sekme tutarli", sayfalar_tutarli_mi())
     kayit("degismez: sema korumalari yerinde", sema_tutarli_mi())
+    kayit("degismez: yayin yapilandirmasi", yayin_basliklari_mi())
     kayit("degismez: sir sizmamis", sirlar_sizmis_mi())
 
     hata = atlanan = 0

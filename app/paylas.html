@@ -147,7 +147,11 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
           <form class="alan-grup" id="form" data-giris="fis">
             <label>
               <span class="ad">Mekan adı</span>
+              <!-- maxlength veritabanindaki kisitla ayni (2-200): yoksa uzun
+                   bir ad sunucuda reddediliyor ve kullanici ham SQL cumlesi
+                   goruyor. -->
               <input id="mekan" name="mekan" type="text" required
+                     minlength="2" maxlength="200"
                      placeholder="Örn. Kronotrop Kavaklıdere" autocomplete="off">
             </label>
             <label>

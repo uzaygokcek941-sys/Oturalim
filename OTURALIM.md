@@ -371,6 +371,20 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
 - [ ] Faz 3 — saha: en yoğun 3 küme, QR kart, sayaçtan ölçüm  ← **artık açık, engel kalmadı**
 - [ ] Faz 4 — sahiplenme kodu ve doğrulama akışı
 
+**Yayın yapılandırması:**
+- [x] `vercel.json` yalnızca çıktı klasörünü söylüyordu, hiç güvenlik başlığı
+      yoktu. Eklendi: `X-Content-Type-Options`, `Referrer-Policy`,
+      `X-Frame-Options`, `Permissions-Policy` + veri/varlık/HTML için ayrı
+      önbellek kuralları. `test.py` dosyanın geçerli JSON olduğunu ve
+      başlıkların durduğunu denetliyor — geçersiz JSON'da Vercel
+      yapılandırmayı **sessizce yok sayar**, yani başlık kaybı hiçbir yerde
+      patlamaz.
+- [ ] **CSP bilerek yok.** Supabase adresi kuruluma göre değişiyor
+      (`yapilandirma.js`); depoda sabit bir CSP yazmak, başka bir Supabase
+      projesiyle kuran kişinin girişini sessizce kırardı. Tek bir kurulum
+      sabitlendiğinde eklenmeli: `fonts.googleapis.com`, `fonts.gstatic.com`,
+      `unpkg.com`, `esm.sh` ve o kurulumun `*.supabase.co` adresi.
+
 **Kodda kalan teknik borç:**
 - [x] Leaflet SRI ile geliyor (özet npm tarball'ından, resmî değerlerle doğrulandı)
 - [ ] **supabase-js hâlâ SRI'siz** — `import()` integrity desteklemiyor, yerele
