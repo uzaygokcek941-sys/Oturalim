@@ -27,6 +27,10 @@ Thumbs.db
 # Tarama ara ciktisi — menu_pdf_tara.py yeniden uretir
 taranmamis.txt
 
+# Site haritasi — site_haritasi.py alan adiyla birlikte yeniden uretir.
+# Depoda tutulursa alan adi degistiginde sessizce eskir.
+app/sitemap.xml
+
 # Saha ciktilari — sahiplen.py yeniden uretir, elle doldurulan
 # sutunlar (dogrulandi_mi / ziyaret_edildi_mi) depoya girmez.
 sahiplenme_hedef.csv

@@ -54,15 +54,52 @@ const kacir = s => String(s == null ? "" : s)
    "24/7", "09:00-23:00", "Mo-Su 09:00-23:00", "Su-Th 12:00-22:00; Fr-Sa 12:00-23:30" */
 const GUNLER = ["Su","Mo","Tu","We","Th","Fr","Sa"];
 
+/* Turkce gun adlari. OSM'nin kendi bicimi Ingilizce kisaltma ama veride
+   Turkce yazilmislar var ve daha onemlisi: eksik saati KATKI olarak giren
+   kullanici Turkce yaziyor. "Pazartesi-Pazar 10:00-22:00" katki
+   dogrulamasindan GECIYORDU (bicim tanidik) ama gunUyar gunu cozemedigi
+   icin mekan her gun KAPALI gorunuyordu -- onaylanmis bir bilgi, sessizce
+   yanlis. Kisaltmalar tek anlamli secildi: Pzt/Paz ve Cum/Cmt karismasin.
+   Anahtarlar sadelestirilmis (turkce harfsiz, kucuk harf) tutuluyor. */
+const GUN_ADI = {
+  su:0, sun:0, pazar:0, paz:0,
+  mo:1, mon:1, pazartesi:1, pzt:1,
+  tu:2, tue:2, sali:2, sal:2,
+  we:3, wed:3, carsamba:3, car:3,
+  th:4, thu:4, persembe:4, per:4,
+  fr:5, fri:5, cuma:5, cum:5,
+  sa:6, sat:6, cumartesi:6, cmt:6
+};
+const GUN_CEVIR = { "ç":"c","ğ":"g","ı":"i","ö":"o","ş":"s","ü":"u","â":"a","î":"i" };
+const gunSade = s => String(s || "").trim().toLocaleLowerCase("tr")
+  .replace(/[çğıöşüâî]/g, c => GUN_CEVIR[c]);
+
+/* Her gun: "24/7" degil ama "hafta boyunca" demek. */
+const HER_GUN = /^(her\s*gun|hergun|daily|everyday)$/;
+
+const gunNo = a => {
+  const d = gunSade(a);
+  return Object.prototype.hasOwnProperty.call(GUN_ADI, d) ? GUN_ADI[d] : -1;
+};
+
+/* Doner: true (uyuyor), false (uymuyor), null (gun adi HIC taninmadi).
+   null onemli: eskiden taninmayan ad sessizce atlaniyor ve fonksiyon
+   false donuyordu -- "Pazartesi-Pazar 10:00-22:00" gibi bir deger
+   "hicbir gun acik degil" anlamina geliyordu. Cagiran artik ayirt edip
+   ifadeyi OKUNAMADI sayabiliyor. */
 function gunUyar(ifade, gun){
   if (!ifade) return true;
+  let tanindi = false;
   for (const p of ifade.split(",")){
-    const [a,b] = p.split("-");
-    const i = GUNLER.indexOf(a), j = b ? GUNLER.indexOf(b) : i;
-    if (i < 0) continue;
+    const t = p.trim();
+    if (HER_GUN.test(gunSade(t))) return true;
+    const [a, b] = t.split("-");
+    const i = gunNo(a), j = b ? gunNo(b) : i;
+    if (i < 0 || j < 0) continue;
+    tanindi = true;
     if (j >= i ? (gun >= i && gun <= j) : (gun >= i || gun <= j)) return true;
   }
-  return false;
+  return tanindi ? false : null;
 }
 
 function acikMi(ifade, simdi){
@@ -71,10 +108,24 @@ function acikMi(ifade, simdi){
   if (/24\/7/.test(ifade)) return true;
   const gun = simdi.getDay(), dk = simdi.getHours()*60 + simdi.getMinutes();
   let sonuc = null;
-  for (const parca of ifade.split(";")){
-    const m = parca.trim().match(/^(?:([A-Za-z,\-]+)\s+)?(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})$/);
+  /* OSM'de kurallar ";" ile ayrilir ama veride cogu VIRGUL kullanmis:
+     "Mo-Fr 10:00-20:00, Sa-Su 11:00-21:00". Duz virgulden bolmek olmaz --
+     virgul gun listesinde de kullaniliyor ("Mo,We,Fr 09:00-17:00") ve
+     boyle bolunce Mo ile We dusuyordu. Yalniz TAM BIR SAATTEN SONRA gelen
+     virgul kural ayiracidir; gun listesindeki virgulun oncesinde saat
+     olmaz. Olculdu: saati olan 3.714 mekanin 160'i hic okunamiyordu,
+     bunlarin cogu bu yuzden. */
+  for (const parca of ifade.replace(/(\d{1,2}:\d{2})\s*,\s*/g, "$1;").split(";")){
+    /* Gun ifadesi "rakam olmayan her sey": [A-Za-z] Turkce harfleri
+       disariya atiyordu, "Salı 11:00-22:00" ve "Hergün 09:00-23:00" hic
+       eslesmiyordu. Bosluga da izin var ("Her gün", "Mo-Su, PH").
+       Saat ayraci ":" ya da ".": Turkce yazimda "10.00-22.00" yaygin. */
+    const m = parca.trim().match(
+      /^(?:([^\d]+?)\s+)?(\d{1,2})[:.](\d{2})\s*-\s*(\d{1,2})[:.](\d{2})$/);
     if (!m) continue;
-    if (!gunUyar(m[1], gun)) { if (sonuc === null) sonuc = false; continue; }
+    const uy = gunUyar(m[1], gun);
+    if (uy === null) continue;              /* gun adi taninmadi: kural okunmadi */
+    if (!uy) { if (sonuc === null) sonuc = false; continue; }
     const bas = +m[2]*60 + +m[3];
     let bit = +m[4]*60 + +m[5];
     if (bit <= bas) bit += 1440;                            // gece yarısını aşıyor
@@ -109,7 +160,8 @@ function katkiSorunu(alan, deger){
 
   if (alan === "saat")
     return acikMi(d) === null
-      ? "Saati şu biçimde yaz: 09:00-23:00 · Mo-Su 09:00-23:00 · 24/7"
+      ? "Saati şu biçimde yaz: 09:00-23:00 · Hergün 10:00-22:00 · " +
+        "Pazartesi-Cuma 09:00-18:00 · 24/7"
       : null;
 
   if (alan === "tel"){
@@ -392,6 +444,45 @@ function kendiniKontrolEt(){
     ["acikMi kapanmis",         acikMi("11:00-02:00", g03),        false],
     ["acikMi gun tutmuyor",     acikMi("Fr-Sa 20:00-23:00", g14),  false],
     ["acikMi bilgi yok",        acikMi("", g14),                   null],
+
+    /* --- acilis saati: gercek veride olculen bozukluklar ---
+       g14 = 2026-08-19 14:00, CARSAMBA. g01/g03 ayni gunun gece saatleri. */
+    /* OSM kurallari ";" ile ayrilir, veride cogu VIRGUL kullanmis. */
+    ["acikMi virgullu kural ayraci",
+      acikMi("Mo-Fr 10:00-20:00, Sa-Su 11:00-21:00", g14),           true],
+    ["acikMi virgullu kuralda gun tutmayan",
+      acikMi("Mo-Fr 20:00-22:00, Sa-Su 11:00-21:00", g14),           false],
+    ["acikMi virgullu kuralda ikinci kural tutar",
+      acikMi("Mo-Tu 20:00-22:00, We-Su 11:00-21:00", g14),           true],
+    /* Ama gun LISTESINDEKI virgul kural ayraci degil: boyle bolununce
+       Mo ile We dusuyordu. Ayraci saatten sonraki virgul belirliyor. */
+    ["acikMi gun listesindeki virgul bolunmez",
+      acikMi("Mo,We,Fr 09:00-23:00", g14),                           true],
+    ["acikMi gun listesi disindaki gun",
+      acikMi("Tu,Th,Fr 09:00-23:00", g14),                           false],
+    /* Turkce gun adlari: eksik saati giren kullanici bunlari yaziyor. */
+    ["acikMi turkce gun araligi",
+      acikMi("Pazartesi-Pazar 10:00-22:00", g14),                    true],
+    ["acikMi turkce kisaltma",  acikMi("Pzt-Paz 09:00-18:00", g14),  true],
+    ["acikMi tek turkce gun",   acikMi("Çarşamba 11:00-22:00", g14), true],
+    ["acikMi tek turkce gun tutmuyor",
+      acikMi("Salı 11:00-22:00", g14),                               false],
+    ["acikMi her gun",          acikMi("Hergün 09:00-23:00", g14),   true],
+    ["acikMi her gun ayri yazim", acikMi("Her gün 09:00-23:00", g14), true],
+    ["acikMi nokta saat ayraci", acikMi("Mo-Su 10.00-22.00", g14),   true],
+    /* ASIL HATA: taninmayan gun adi "hicbir gun acik degil" DEMEK DEGIL,
+       "okunamadi" demek. Eskiden false donuyordu; deger katki
+       dogrulamasindan geciyor, onaylaniyor ve mekan sonsuza kadar kapali
+       gorunuyordu. */
+    ["acikMi taninmayan gun adi okunamadi sayilir",
+      acikMi("Blah-Blub 10:00-20:00", g14),                          null],
+    ["acikMi taninan gun yaninda taninmayan varsa okunur",
+      acikMi("Mo-Su, PH 08:00-18:00", g14),                          true],
+    /* Katki dogrulamasi bu degerleri gecirmeli/gecirmemeli. */
+    ["katki saat uydurma gun reddedilir",
+      katkiSorunu("saat", "Blah-Blub 10:00-20:00") != null,          true],
+    ["katki saat serbest metin reddedilir",
+      katkiSorunu("saat", "Rezervasyona gore acilir") != null,       true],
     /* yemekFiyati: icecek fiyatinin yemek yerine gecmedigini kanitlar */
     ["yemek icecegi saymaz",
       yemekFiyati({kat:{"Kebap":{n:3,med:980},"Su":{n:1,med:30},"Çay":{n:1,med:40}}}), 980],
@@ -510,8 +601,17 @@ function kendiniKontrolEt(){
     ["katki saat duz",      katkiSorunu("saat", "09:00-23:00"),          null],
     ["katki saat gunlu",    katkiSorunu("saat", "Mo-Su 09:00-23:00"),    null],
     ["katki saat 24/7",     katkiSorunu("saat", "24/7"),                 null],
-    ["katki saat turkce yazim elenir",
-      typeof katkiSorunu("saat", "Her gün 09:00-23:00"),                 "string"],
+    /* Bu kontrol eskiden Turkce yazimin ELENDIGINI dogruluyordu ve karar
+       bilerek degisti: gun adlari artik Turkce de okunuyor. Eski davranis
+       sessiz bir hataya yol aciyordu -- "Pazartesi-Pazar 10:00-22:00"
+       dogrulamadan GECIYOR (bicim tanidik) ama gunUyar gunu cozemedigi
+       icin mekan her gun kapali gorunuyordu. Cozum "Turkce'yi de reddet"
+       degil "Turkce'yi de oku" oldu: kullanicinin dogal yazdigi bicim.
+       Kural hala ayni yerde -- deger acikMi()'ye veriliyor. */
+    ["katki saat turkce yazim kabul",
+      katkiSorunu("saat", "Her gün 09:00-23:00"),                        null],
+    ["katki saat turkce gun araligi kabul",
+      katkiSorunu("saat", "Pazartesi-Pazar 10:00-22:00"),                null],
     ["katki saat serbest metin elenir",
       typeof katkiSorunu("saat", "sabah aksam"),                         "string"],
     ["katki tel 10 hane",   katkiSorunu("tel", "5321234567"),            null],

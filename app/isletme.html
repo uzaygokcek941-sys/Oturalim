@@ -257,7 +257,9 @@ function goster(m, ilAd){
    kullaniciyi kapali mekana yollar.
    ============================================================ */
 const KATKI_IPUCU = {
-  saat:  "Örnek: 09:00-23:00 · Mo-Su 09:00-23:00 · 24/7",
+  /* Turkce ornekler: kullanicinin dogal yazdigi bicim artik okunuyor,
+     ipucu da onu gostersin. Ingilizce kisaltma (Mo-Su) hala calisiyor. */
+  saat:  "Örnek: 09:00-23:00 · Hergün 10:00-22:00 · Pazartesi-Cuma 09:00-18:00 · 24/7",
   tel:   "Örnek: 0312 123 45 67",
   adres: "Cadde ve numara yeter.",
   web:   "Tam bağlantı: instagram.com/… ya da site adresi."
