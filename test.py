@@ -468,6 +468,34 @@ def adres_ve_tarih_mi():
     if "function guvenliDonus" not in okun("ortak.js"):
         s.append("ortak.js: guvenliDonus() yok")
 
+    # Adres semasi: href kuran her yer guvenliBag()'dan gecmeli. kacir()
+    # tirnagi kacirir ama SEMAYA bakmaz; etkinlik baglantilari ucuncu
+    # taraf RSS akislarindan geliyor.
+    if "function guvenliBag" not in okun("ortak.js"):
+        s.append("ortak.js: guvenliBag() yok")
+    # Olumsuz bicim ARAMIYORUZ (bir yazim sekli yasaklanir, yenisi kacar);
+    # olumlu kural aranıyor: satir() e.link'i guvenliBag'dan gecirmeli.
+    ix = _yorumsuz(okun("index.html"))
+    m = re.search(r"function satir\(e\)\{(.*?)\n  \}", ix, re.S)
+    if not m:
+        s.append("index.html: satir(e) bulunamadi (kontrol koru kaldi)")
+    elif "guvenliBag(e.link)" not in m.group(1):
+        s.append("index.html: etkinlik baglantisi guvenliBag'dan gecmiyor")
+    cek = io.open(os.path.join(KOK, "etkinlik_cek.py"), encoding="utf-8").read()
+    if "def guvenli_bag" not in cek:
+        s.append("etkinlik_cek.py: guvenli_bag() yok")
+    if '"link": guvenli_bag(' not in cek:
+        s.append("etkinlik_cek.py: link denetimden gecmeden dosyaya yaziliyor")
+    # Uretilmis dosyada da kalmis olmasin.
+    yol = os.path.join(KOK, "app", "veri", "etkinlik.json")
+    if os.path.exists(yol):
+        d = json.loads(io.open(yol, encoding="utf-8").read())
+        kotu = [e["link"] for il in d.get("iller", {}).values() for e in il
+                if e.get("link") and not re.match(r"^https?://", e["link"], re.I)]
+        if kotu:
+            s.append("etkinlik.json: http/https disi %d baglanti (%s)"
+                     % (len(kotu), kotu[0][:40]))
+
     # toISOString().slice(0,10) = UTC gun. Hicbir yerde kalmamali.
     for ad in ("ortak.js", "kimlik.js", "kesfet.js",
                "paylas.html", "isletme.html", "hesabim.html", "yonetim.html"):

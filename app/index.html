@@ -655,9 +655,20 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function satir(e){
-    return '<a class="etkinlik" href="' + kacir(e.link) + '" target="_blank" rel="noopener">' +
+    /* Etkinlik baglantilari UCUNCU TARAF RSS akislarindan geliyor; sema
+       denetlenmiyordu. kacir() bunu yapmaz -- tirnagi kacirir, semaya
+       bakmaz -- yani akisin verdigi "javascript:..." ana sayfada
+       tiklanabilir bir baglanti olurdu. Kural guvenliBag()'da, webBagi
+       ile ayni yerde. Adres kullanilamiyorsa etkinlik yine gorunuyor,
+       yalniz tiklanmiyor: bilgi kaybolmasin. */
+    const bag = guvenliBag(e.link);
+    const et = bag
+      ? '<a class="etkinlik" href="' + kacir(bag) + '" target="_blank" rel="noopener">'
+      : '<div class="etkinlik">';
+    return et +
       "<h4>" + kacir(e.ad) + "</h4>" +
-      '<p class="ne-zaman">' + kacir(saatYaz(e.bas)) + " · " + kacir(e.tur) + "</p></a>";
+      '<p class="ne-zaman">' + kacir(saatYaz(e.bas)) + " · " + kacir(e.tur) + "</p>" +
+      (bag ? "</a>" : "</div>");
   }
 
   /* Yedek yol. Konum alinamazsa (izin yok, zaman asimi, veri inmedi) kullanici

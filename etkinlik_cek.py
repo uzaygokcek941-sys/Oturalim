@@ -81,6 +81,21 @@ def cek(sehir_id, tur_id):
         return None
 
 
+def guvenli_bag(u):
+    """href'e konulabilir adres, degilse "".
+
+    Baglantilar UCUNCU TARAF RSS akislarindan geliyor ve olduklari gibi
+    app/veri/etkinlik.json'a yaziliyordu. Ana sayfa da onlari href yapiyor:
+    akisin verdigi "javascript:..." tiklanabilir bir baglanti olurdu.
+    Kural sayfa tarafinda da var (ortak.js guvenliBag) -- burasi verinin
+    icine hic girmemesi icin. Ayni ifade iki dilde; test.py ikisinin
+    ayrismadigini denetliyor."""
+    ham = (u or "").strip()
+    if not ham:
+        return ""
+    return ham if re.match(r"^https?://", ham, re.I) else ""
+
+
 def kayitlar(kok):
     simdi = datetime.now(TR)
     cikti = []
@@ -95,7 +110,7 @@ def kayitlar(kok):
             "ad": al("title"),
             "bas": bas,
             "tur": turler[0] if turler else "",
-            "link": al("link"),
+            "link": guvenli_bag(al("link")),
             "gorsel": (enc.get("url") or "") if enc is not None else "",
         })
     cikti.sort(key=lambda x: x["bas"])
@@ -118,11 +133,15 @@ def main(plakalar):
                 continue
             birlesik.extend(kayitlar(kok))
         # Ayni etkinlik birden fazla turde gorunebiliyor; link ile tekille.
+        # BOS link tekillestirmede kullanilmaz: guvenli_bag() kullanilamaz
+        # adresi "" yapiyor ve boyle olan butun etkinlikler tek bir kayda
+        # inerdi -- yani bir bicim denetimi sessizce VERI SILERDI.
         gorulen, k = set(), []
         for e in sorted(birlesik, key=lambda x: x["bas"]):
-            if e["link"] in gorulen:
+            anahtar = e["link"] or ("ad:" + e["ad"] + "|" + e["bas"])
+            if anahtar in gorulen:
                 continue
-            gorulen.add(e["link"])
+            gorulen.add(anahtar)
             k.append(e)
         if k:
             veri[p] = k
@@ -202,8 +221,37 @@ def kendini_kontrol_et():
     assert [e["ad"] for e in k] == ["Yakin", "Uzak"], k
     assert k[1]["gorsel"] == "http://x/y.jpg", k[1]
     assert k[0]["gorsel"] == "" and k[0]["tur"] == "", k[0]
+    # Test XML'indeki link'ler semasiz ("a","b"): kullanilamaz, "" olmali.
+    assert [e["link"] for e in k] == ["", ""], k
 
-    print("kontrol gecti: tarih cozme, 81 plaka eslesmesi, gecmis eleme")
+    # Sema denetimi. Baglantilar ucuncu taraf akislarindan geliyor ve
+    # ana sayfa onlari href yapiyor; kacir() semaya bakmaz.
+    assert guvenli_bag("https://a.test/x") == "https://a.test/x"
+    assert guvenli_bag("HTTP://a.test")    == "HTTP://a.test"
+    assert guvenli_bag("  https://a.test  ") == "https://a.test"
+    for kotu in ("javascript:alert(1)", "JaVaScRiPt:alert(1)", "data:text/html,x",
+                 "vbscript:x", "//a.test/x", "a.test/x", "", None):
+        assert guvenli_bag(kotu) == "", kotu
+
+    # Tekillestirme: BOS link'ler tek kayda inmemeli. guvenli_bag() bozuk
+    # adresi "" yaptigi icin, link'e gore tekillestirmek bir bicim
+    # denetimini sessiz bir VERI SILME'ye cevirebilirdi.
+    xml2 = ("<rss><channel>"
+            "<item><title>Bir</title><pubDate>%s</pubDate><link>javascript:x</link></item>"
+            "<item><title>Iki</title><pubDate>%s</pubDate><link>vbscript:y</link></item>"
+            "</channel></rss>") % (yakin, uzak)
+    tek = kayitlar(ET.fromstring(xml2))
+    gorulen, kalan = set(), []
+    for e in sorted(tek, key=lambda x: x["bas"]):
+        a = e["link"] or ("ad:" + e["ad"] + "|" + e["bas"])
+        if a in gorulen:
+            continue
+        gorulen.add(a)
+        kalan.append(e)
+    assert [e["ad"] for e in kalan] == ["Bir", "Iki"], kalan
+
+    print("kontrol gecti: tarih cozme, 81 plaka eslesmesi, gecmis eleme, "
+          "baglanti semasi")
     return True
 
 

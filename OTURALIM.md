@@ -453,6 +453,18 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
       diyor ve **ölü** bir giriş sayfasına fırlatılıyordu. Formun kendi
       yorumundaki kural buydu zaten: *çalışmayan bir kutu göstermek, hiç
       göstermemekten kötü* — Leaflet'te aynı şey olmuştu.
+- [x] **Etkinlik bağlantıları üçüncü taraf RSS'ten geliyor ve şeması hiç
+      denetlenmiyordu.** `kacir()` bunu yapmaz — tırnağı kaçırır, şemaya
+      bakmaz — yani akışın verdiği `javascript:…` ana sayfada **tıklanabilir**
+      bir bağlantı olurdu. Bugün 774 bağlantının 774'ü `https:`, yani görünür
+      bir değişiklik yok; denetim hiç yoktu. Kural iki yerde birden:
+      `ortak.js → guvenliBag` (gösterim) ve `etkinlik_cek.py → guvenli_bag`
+      (dosyaya hiç girmesin). İkisinin ayrışmasını `test.py` denetliyor.
+      Aynı geçişte veride **iki gerçek yazım hatası** çıktı
+      (`htttps://selfiepark.com.tr`, `htpps://lunapark…`): eskiden bunların
+      başına bir `https://` daha ekleniyor ve hiçbir yere gitmeyen bir
+      *bağlantı* çıkıyordu. Artık metin duruyor, bağlantı kurulmuyor —
+      kullanıcı adresi okuyup kendisi düzeltebiliyor.
 - [x] **Görünmeyen sahne için 60 fps kare üretiliyordu.** Kaydırınca gözlemci
       animasyonu durduruyordu ama `visibilitychange` koşulsuz `baslat()`
       çağırıyordu: başka sekmeye geçip dönünce, sahne hâlâ ekran dışındayken

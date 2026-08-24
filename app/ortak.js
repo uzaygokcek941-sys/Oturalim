@@ -187,12 +187,34 @@ function mutfakYaz(ham){
    sanip site icinde arar ve baglanti kirilir. Olculdu: 120 mekan.
    isletme.html bunu duzeltiyordu, kesfet.js detay paneli duzeltmiyordu --
    ayni kural iki yerde farkliydi, bir yerde eksikti. */
+/* Bir adresin href'e KONULABILIR olmasi. kacir() bunu yapmiyor: tirnak ve
+   koseli parantez kaciriyor ama SEMAYA bakmiyor, yani kacir("javascript:...")
+   sorunsuz bir href uretir. Adreslerin bir kismi ucuncu taraftan geliyor
+   (etkinlik baglantilari RSS akislarindan), yani bu bir varsayim degil.
+
+   Sema YOKSA https varsayiliyor -- OSM'de 117 mekanin web alani
+   "instagram.com/x" gibi semasiz ve bunlar dogru adresler.
+   Sema VARSA http/https olmali; degilse bos doner. */
+function guvenliBag(u){
+  const ham = String(u == null ? "" : u).trim();
+  if (!ham) return "";
+  const tam = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(ham) ? ham : "https://" + ham;
+  return /^https?:\/\//i.test(tam) ? tam : "";
+}
+
 function webBagi(u){
   const ham = String(u == null ? "" : u).trim();
   if (!ham) return "";
-  const tam = /^https?:\/\//i.test(ham) ? ham : "https://" + ham;
+  const gorunen = kacir(ham.replace(/^https?:\/\//i, "").replace(/\/$/, ""));
+  const tam = guvenliBag(ham);
+  /* Adres kullanilamiyorsa METIN yine gosteriliyor, yalniz baglanti
+     kurulmuyor. Veride iki gercek ornek var: "htttps://selfiepark.com.tr"
+     ve "htpps://lunapark...". Eskiden bunlarin basina bir https daha
+     ekleniyor ve hicbir yere gitmeyen bir baglanti cikiyordu; tamamen
+     silmek ise kullanicinin elle duzeltebilecegi bilgiyi goturuyor. */
+  if (!tam) return gorunen;
   return '<a href="' + kacir(tam) + '" target="_blank" rel="noopener nofollow">' +
-         kacir(ham.replace(/^https?:\/\//i, "").replace(/\/$/, "")) + "</a>";
+         gorunen + "</a>";
 }
 
 /* ---------- dönüş adresi ----------
@@ -722,9 +744,11 @@ function kendiniKontrolEt(){
       />([^<]*)<\/a>/.exec(webBagi("https://a.com/"))[1],                    "a.com"],
     ["web bos girdi bos doner",       webBagi(""),                          ""],
     ["web null bos doner",            webBagi(null),                        ""],
-    /* Sema eklemek javascript: adresini de etkisizlestiriyor. */
-    ["web javascript adresi etkisiz",
-      webBagi("javascript:alert(1)").includes('href="https://javascript'),   true],
+    /* Onceden bu adres basina bir "https://" eklenerek etkisizlestiriliyordu;
+       cikan sey hicbir yere gitmeyen bir BAGLANTIYDI. Artik href hic
+       kurulmuyor -- kural guvenliBag()'da, tek yerde. */
+    ["web javascript adresi baglanti kurmuyor",
+      webBagi("javascript:alert(1)").includes("href="),                     false],
     ["web tirnak kacirilir",
       webBagi('a.com" onmouseover="x').includes('onmouseover="'),            false],
 
@@ -776,6 +800,20 @@ function kendiniKontrolEt(){
     ["donus alt klasor",     guvenliDonus("ic/x.html", T),                    null],
     ["donus html degil",     guvenliDonus("veri/34.json", T),                 null],
     ["donus bos",            guvenliDonus("", T),                             null],
+
+    /* adres semasi: yalniz http/https href'e girer */
+    ["bag semasiz",     guvenliBag("instagram.com/x"),   "https://instagram.com/x"],
+    ["bag https",       guvenliBag("https://a.test/b"),  "https://a.test/b"],
+    ["bag http",        guvenliBag("http://a.test"),     "http://a.test"],
+    ["bag javascript",  guvenliBag("javascript:alert(1)"),                 ""],
+    ["bag JaVaScRiPt",  guvenliBag("JaVaScRiPt:alert(1)"),                 ""],
+    ["bag data",        guvenliBag("data:text/html,<b>"),                  ""],
+    ["bag yazim hatasi",guvenliBag("htttps://a.test"),                     ""],
+    ["bag bos",         guvenliBag("   "),                                 ""],
+    ["web bagi kotu semada METNI birakiyor",
+      webBagi("htttps://a.test"),                          "htttps://a.test"],
+    ["web bagi kotu semada baglanti kurmuyor",
+      webBagi("javascript:alert(1)").indexOf("<a"),                        -1],
     ["donus yok",            guvenliDonus(null, T),                           null],
 
     /* bugun: YEREL gun. Gece 01:30'da (UTC hala dun) bugunu vermeli. */
