@@ -273,8 +273,8 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
 (gerçek adres üç dosyada da yerinde) · Supabase anahtarları (girildi).
 
 **Sende (kod değil):**
-- [ ] `app/yapilandirma.js` → `sahiplenmeWhatsapp` doldur — **Faz 3 buna kilitli**
-- [ ] `veritabani/sayac.sql` ve `katki.sql`'i Supabase'de çalıştır
+- [x] `app/yapilandirma.js` → `sahiplenmeWhatsapp` dolduruldu (2026-08-23)
+- [x] `sema.sql`, `sayac.sql`, `katki.sql` Supabase'de çalıştırıldı (2026-08-23)
 - [ ] `@oturalim` handle (Instagram + TikTok), bio, ilk 3 içerik
 - [ ] Vercel yayını
 - [ ] Günde 1 içerik, gelen DM'e ilk 10 dakikada cevap
@@ -314,7 +314,7 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
 **Üründe — dijitalleşmemiş işletme planı:**
 - [x] Faz 1 — eksik bilgi katkı hattı (`katki.sql`, form, onay, takip)
 - [x] Faz 2 — yürüyüş kümeleri (`sahiplen.py` → `sahiplenme_kume.csv`)
-- [ ] Faz 3 — saha: en yoğun 3 küme, QR kart, sayaçtan ölçüm
+- [ ] Faz 3 — saha: en yoğun 3 küme, QR kart, sayaçtan ölçüm  ← **artık açık, engel kalmadı**
 - [ ] Faz 4 — sahiplenme kodu ve doğrulama akışı
 
 **Kodda kalan teknik borç:**

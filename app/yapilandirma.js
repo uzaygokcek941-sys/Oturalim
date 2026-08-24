@@ -22,7 +22,7 @@ window.OTURALIM = {
   /* Sahiplenme hattı. Ayrı, faturasız bir numara olmalı — kişisel
      hattını yazma. Boş kaldığı sürece işletme sayfası normal çalışır,
      yalnızca "bu işletme benim" düğmesi gizlenir. Biçim: 905XXXXXXXXX */
-  sahiplenmeWhatsapp: "",
+  sahiplenmeWhatsapp: "905312918975",
 
   supabaseAnahtar: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsaGxzdGZuYXlvYXl0b3FtbWN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxOTU1MjUsImV4cCI6MjEwMjc3MTUyNX0.FAkfmMRjh3GiKZUkrWrV_fG1vZpobIp3EiStB0KEW7w"
 };
