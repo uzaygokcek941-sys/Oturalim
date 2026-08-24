@@ -279,6 +279,19 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
 - [ ] Vercel yayını
 - [ ] Günde 1 içerik, gelen DM'e ilk 10 dakikada cevap
 
+**Fiyat verisi — 2026-08-23'te ölçülüp düzeltilenler:**
+- [x] Tek kaleme dayanan yemek fiyatı iddiası kaldırıldı (`YEMEK_ASGARI_KALEM=2`).
+      Kahve Dünyası'nın 74 şubesinde perakende ürün katalogundan tek kalem
+      ("Tatlı 1@350") "yemek ~350 ₺" diye yazıyordu. İddia 246 → 164 mekan.
+- [x] Kırpılmış menü artık kırpıldığını söylüyor (`kalem_n`). 131 mekanda kart
+      "yemek ~480 ₺" derken detay "40 kalem · 35 – 165 ₺" gösteriyordu.
+- [x] "Fiyatı olan" çipi `yemekFiyati` ile hizalandı — 203 mekan fiyat vaat
+      edip fiyatsız kart veriyordu.
+- [ ] Fiyatların YAŞI yok: veride tarih alanı hiç tutulmuyor, "bayat fiyat
+      hatırlatması" bu yüzden henüz kurulamıyor. Önce üretim tarihi yazılmalı.
+- [ ] Zincir menüsünün şubeye uygulanması sorgulanmadı: Domino's için makul,
+      "Beltur / Hafta İçi 600 ₺" gibi kira fiyatları için değil.
+
 **Üründe — ağ mekanikleri (fiş katmanı commit'inde sayılmıştı, hiçbiri başlamadı):**
 - [ ] Bütçe akranları
 - [ ] Bayat fiyat hatırlatması

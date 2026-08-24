@@ -195,6 +195,19 @@ const TATLI_KAT = new Set(["Tatlı","Dondurma"]);
 /* Tema demosu esigi. 2026-08 fiyatlariyla bir ogun bunun altinda olmaz;
    enflasyonla birlikte yukseltilmeli, yoksa gercek ucuz yerleri eler. */
 const YEMEK_ALT_SINIR = 80;
+
+/* Tek kalemden yemek fiyati cikarilmiyor.
+   Olculen vaka: Kahve Dunyasi'nin 74 subesinde menu olarak alinan sey
+   perakende urun katalogu (250 g cekirdek, tablet cikolata, 10'lu paket).
+   Bunlardan yalniz BIRI kategorilenebiliyordu -- "Tatli: 1 kalem @350" --
+   ve 74 kafenin kartinda "yemek ~350 TL" yaziyordu. Tek basina duran
+   Redbox "Balik 1@900", Nebyan "Kebap 1@910" da ayni sinifta.
+
+   Gerekce fis katmanindakiyle ayni: tek fis bir kisinin o gunku secimidir,
+   mekanin fiyati degil. Tek kalem de bir urunun fiyatidir, menunun degil.
+   Iki kalem zayif ama gercek bir sinyal; olculdu: esigi 2 yapmak 264
+   mekanin 99'undan iddiayi kaldiriyor ve kalkanlarin 74'u o tek zincir. */
+const YEMEK_ASGARI_KALEM = 2;
 const TR_HARF = /[çğıöşüÇĞİÖŞÜ]/;
 
 function yemekFiyati(m){
@@ -206,6 +219,7 @@ function yemekFiyati(m){
 
   const med = [];
   for (const k of ana) for (let i = 0; i < kat[k].n; i++) med.push(kat[k].med);
+  if (med.length < YEMEK_ASGARI_KALEM) return null;
   med.sort((a, b) => a - b);
   const orta = Math.round(med[med.length >> 1]);
 
@@ -282,6 +296,13 @@ function kendiniKontrolEt(){
     /* yemekFiyati: icecek fiyatinin yemek yerine gecmedigini kanitlar */
     ["yemek icecegi saymaz",
       yemekFiyati({kat:{"Kebap":{n:3,med:980},"Su":{n:1,med:30},"Çay":{n:1,med:40}}}), 980],
+    /* Tek kalem menu degildir: perakende katalogu bu kapidan giriyordu. */
+    ["yemek tek kalemden cikmaz",
+      yemekFiyati({kat:{"Tatlı":{n:1,med:350}}}),                     null],
+    ["yemek tek ana kalem elenir",
+      yemekFiyati({kat:{"Balık":{n:1,med:900},"Çay":{n:5,med:40}}}),  null],
+    ["yemek iki kalem yeter",
+      yemekFiyati({kat:{"Pizza":{n:2,med:440}}}),                     440],
     ["yemek kat yoksa null", yemekFiyati({min:25, max:290}),          null],
     ["yemek tatlicida tatli",
       yemekFiyati({kat:{"Tatlı":{n:2,med:150},"Çay":{n:1,med:30}}}),  150],
@@ -293,10 +314,13 @@ function kendiniKontrolEt(){
     ["yemek ucuz ama turkce kalir",
       yemekFiyati({kat:{"Çorba":{n:2,med:60}},
         menu:[{a:"Mercimek Çorbası",f:60},{a:"Ayran",f:30}]}),        60],
+    /* Girdiler iki kalemli: bu kontrollerin isi bant'in KARSILASTIRMASI,
+       asgari kalem esigi degil. Tek kalemli fixture ile yazilmislardi ve
+       esik gelince ikisi birden kirmizi yandi -- kosum takimi yakaladi. */
     ["bant butce ustu",
-      (bant({kat:{"Kebap":{n:1,med:400}}}, 200)||{}).sinif,           "tuz"],
+      (bant({kat:{"Kebap":{n:2,med:400}}}, 200)||{}).sinif,           "tuz"],
     ["bant butce icinde",
-      (bant({kat:{"Çorba":{n:1,med:120}}}, 200)||{}).sinif,           "ucuz"],
+      (bant({kat:{"Çorba":{n:2,med:120}}}, 200)||{}).sinif,           "ucuz"],
     ["bant fiyatsiz",       bant({min:null,max:null}, 200),           null],
     ["tl bicim",            tl(1250),                                 "1.250 ₺"],
     ["kacir xss",           kacir('<img src=x onerror=1>'),

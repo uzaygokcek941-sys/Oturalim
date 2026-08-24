@@ -291,6 +291,17 @@ def mekan_kaydi(m, menu):
         kayit["menu"] = kalemler
         kayit["min"] = kalemler[0]["f"]
         kayit["max"] = kalemler[-1]["f"]
+        # Liste kirpildiysa GERCEK kalem sayisi da yaziliyor.
+        #
+        # Neden: "menu" en ucuz 40 kalem, "kat" ise TAM listeden. Ikisi ayri
+        # ayri dogru ama arayuz "40 kalem · 35-165 TL" yazip ustunde
+        # "yemek ~480 TL" gosterince celisiyordu -- kullanici menusunde en
+        # pahali kalemi 165 TL olan bir yerde 480 TL iddiasi goruyor.
+        # Olculdu: 367 menulu mekanin 131'inde (%36) kat medyani, gosterilen
+        # menunun max'ini asiyor. Arayuz artik aralgin neyin araligi
+        # oldugunu soyleyebilsin diye sayi buraya yaziliyor.
+        if len(tum_kalemler) > len(kalemler):
+            kayit["kalem_n"] = len(tum_kalemler)
         dokum = kategori_dokumu(tum_kalemler)
         if dokum:
             kayit["kat"] = dokum

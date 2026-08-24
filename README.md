@@ -38,10 +38,15 @@ iki kafe, aynı kahve, iki kat fark olabiliyor. Uygulamanın tek işi:
 Google Maps, Yemeksepeti, Getir gibi platformlardan **hiçbir veri alınmadı**;
 kullanım şartları buna izin vermiyor.
 
-Dürüst not: sonuçta **36.102 mekanın 367'sinde (%1,02)** ölçülmüş fiyat var.
-Denenen sitelerin yalnızca **%7'sinden** fiyat çıkarılabildi, geri
-kalanı menüsünü JavaScript ile basıyor. Bu yüzden fiyat verisi bugün zayıf ve
-ancak kullanıcı paylaşımıyla büyür.
+Dürüst not, üç katmanlı: **36.102 mekanın 367'si (%1,02)** menüsünü
+yayımlamış. O 7.397 kalem bağımsız değil — **%76,5'i zincir tekrarı**, yani
+geriye **121 farklı menü** kalıyor (bir Domino's menüsü 96 şubeye uygulanıyor).
+Ve uygulama bunların yalnız **164'ünde** "yemek şu kadar" diyor: tek kaleme
+dayanan iddia gösterilmiyor.
+
+Denenen sitelerin yalnızca **%7'sinden** fiyat çıkarılabildi, geri kalanı
+menüsünü JavaScript ile basıyor. Bu yüzden fiyat verisi bugün zayıf ve ancak
+kullanıcı paylaşımıyla büyür.
 
 İkinci ölçüm, ilkini açıklıyor: mekanların **%92,2'sinin webi**, **%89,2'sinin
 telefonu** açık veride yok; **%85,1'inde ikisi birden yok**. Yani işletmelerin

@@ -61,7 +61,13 @@ function suzulmus(){
     if (turler.size && !turUyar(turler, m.tur)) return false;
     if (bayraklar.has("bahce") && !m.bahce) return false;
     if (bayraklar.has("wifi")  && !m.wifi)  return false;
-    if (bayraklar.has("menu")  && !m.menu)  return false;
+    /* "Fiyati olan" cipi yemekFiyati'na bakiyor, m.menu varligina DEGIL.
+       Onceden 367 mekan donuyordu ama 203'unun kartinda fiyat yazmiyordu:
+       cip fiyat vaat edip fiyatsiz kart veriyordu. Siralama ("once ucuz"),
+       butce bandi ve haritadaki nokta zaten yemekFiyati kullaniyor; olcut
+       dort yerde ayni olsun. Menuyu gormek isteyen mekan sayfasindan
+       kalem listesine bakabiliyor. */
+    if (bayraklar.has("menu")  && yemekFiyati(m) == null) return false;
     if (bayraklar.has("acik")  && acikMi(m.saat) !== true) return false;
     /* Bütçe süzgeci yalnız fiyatı bilinenleri eler. Fiyatı olmayan mekanı
        elemiyoruz: "bilinmiyor" ile "pahalı" aynı şey değil, listeden
@@ -463,9 +469,18 @@ function ac(id){
     /* Menü ucuzdan pahalıya: bütçesi olan kullanıcı önce ne alabileceğini
        görsün, listenin dibine inmek zorunda kalmasın. */
     const sirali = m.menu.slice().sort((x,y) => x.f - y.f);
+    /* Liste kirpilmis olabilir: veride en ucuz 40 kalem duruyor, kategori
+       medyanlari ise tam listeden geliyor. Basligi "40 kalem · 35-165 TL"
+       diye yazmak, ustteki "yemek ~480 TL" ile celisiyordu. Aralgin neyin
+       araligi oldugu artik yaziyor; sayi uydurmuyoruz, kirpildigini
+       soyluyoruz. */
+    const kirpik = m.kalem_n && m.kalem_n > m.menu.length;
+    const baslik = kirpik
+      ? "en ucuz " + sayi(m.menu.length) + " kalem · " + tl(m.min) + " – " + tl(m.max) +
+        " <i>(toplam " + sayi(m.kalem_n) + ")</i>"
+      : sayi(m.menu.length) + " kalem · " + tl(m.min) + " – " + tl(m.max);
     govde +=
-      '<div class="d-menu-bas"><h3>Menü</h3><span>' + sayi(m.menu.length) +
-      " kalem · " + tl(m.min) + " – " + tl(m.max) + "</span></div>" +
+      '<div class="d-menu-bas"><h3>Menü</h3><span>' + baslik + "</span></div>" +
       sirali.map(k =>
         '<div class="kalem' + (butce && k.f > butce ? " disi" : "") + '">' +
         "<span>" + kacir(k.a) + "</span><b>" + tl(k.f) + "</b></div>").join("") +
