@@ -116,6 +116,11 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
     font-family:var(--font-baslik);font-size:16px;font-weight:600;color:var(--vurgu);
     white-space:nowrap;font-variant-numeric:tabular-nums;
   }
+  /* Eskimis fiyat: rakam duruyor ama kesinligini kaybediyor. Bir yildan
+     eskisi zaten hic gosterilmiyor (ortak.js FIYAT_SON_AY). */
+  .kart .tutar.eski{color:var(--metin-3)}
+  .kart .tutar .eski-not{font-size:11px;color:var(--sari);margin-left:4px;
+    font-weight:700;letter-spacing:.02em}
   .kart .meta{display:flex;gap:var(--a2);flex-wrap:wrap;align-items:center;margin-top:var(--a2)}
   .kart .meta > span{font-size:13px;color:var(--metin-3)}
 

@@ -107,7 +107,7 @@ function ilAdi(){
 /* ---------- çizim ---------- */
 function kartHTML(m){
   const a = acikMi(m.saat), b = bant(m, butce), o = paylasimOzet(m.id),
-        sv = seviye(m), mb = mekanBandi(m, cizimIl);
+        sv = seviye(m), mb = mekanBandi(m, cizimIl), yas = fiyatYasEtiketi(m);
   /* Mesafe cetveli icin 0-1 arasi deger, GORUNEN listeye gore olceklenir.
      Sabit tavan (5 km) ise yaramiyor: sehir merkezinde ilk 120 mekan
      700 m icinde kaliyor, butun centikler ayni uzunlukta cikiyordu.
@@ -117,8 +117,20 @@ function kartHTML(m){
     (u != null ? ' style="--uzak:' + u.toFixed(3) + '"' : "") +
     (secili === m.id ? ' aria-current="true"' : "") + ">" +
     '<div class="ust"><h3>' + kacir(m.ad) + "</h3>" +
+    /* Fiyatin yasi kartta da gorunsun. Detay paneli tarihi yaziyor ama
+       kart listesinde gezen kullanici oraya hic acmiyor olabilir; alti
+       aylik bir sayiyi kayitsiz gostermek, kullanicinin dogrulayamadigi
+       bir iddia. Rozet degil, RAKAMIN KENDISI isaretleniyor: kartta
+       zaten uc rozet var ve dordunculeri asil bilgiyi bogar. */
     (yemekFiyati(m) != null
-      ? '<span class="tutar">~' + tl(yemekFiyati(m)) + "</span>" : "") +
+      ? '<span class="tutar' + (yas && yas.eski ? " eski" : "") + '"' +
+        (yas ? ' title="' + kacir(yas.ad + " tarihinde derlendi") + '"' : "") +
+        ">~" + tl(yemekFiyati(m)) +
+        /* Isaret CSS ::after ile degil GERCEK METIN: ekran okuyucu
+           uretilmis icerigi guvenilir bicimde okumuyor ve title
+           oznitelik tek basina yeterli degil. */
+        (yas && yas.eski ? '<small class="eski-not">eski</small>' : "") +
+        "</span>" : "") +
     '</div><div class="meta"><span>' + kacir(m.tur) + "</span>" +
     (a === true  ? '<span class="rozet acik">açık</span>' : "") +
     (a === false ? '<span class="rozet kapali">kapalı</span>' : "") +

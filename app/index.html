@@ -461,7 +461,9 @@ document.addEventListener("DOMContentLoaded", () => {
         "&mekan=" + encodeURIComponent(m.id) + '">' +
         '<div class="ust"><div><h3>' + kacir(m.ad) + "</h3>" +
           '<div class="yer">' + kacir(m.tur) + " · " + kacir(m.ilAd) + "</div></div>" +
-          '<div class="tutar">' + tl(fiyat) + "<small>yemek</small></div></div>" +
+          '<div class="tutar">' + tl(fiyat) + "<small>" +
+            ((fiyatYasEtiketi(m) || {}).eski ? "eski fiyat" : "yemek") +
+          "</small></div></div>" +
         '<div class="satir"><span class="rozet">' + sayi(m.n) + " kalem</span></div></a>"
     ).join("");
   }).catch(() => {
