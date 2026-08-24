@@ -5,7 +5,7 @@
 Türkiye'deki kafe, restoran ve barları bütçene, bahçesine ve şu an açık olup
 olmadığına göre süzen web uygulaması. Üyelik zorunlu değil, reklam yok, çerez yok.
 
-**36.102 mekan · 81 il · 7.147 menü kalemi · 774 etkinlik**
+**35.867 mekan · 81 il · 7.141 menü kalemi · 774 etkinlik**
 
 ---
 
@@ -39,8 +39,8 @@ iki kafe, aynı kahve, iki kat fark olabiliyor. Uygulamanın tek işi:
 Google Maps, Yemeksepeti, Getir gibi platformlardan **hiçbir veri alınmadı**;
 kullanım şartları buna izin vermiyor.
 
-Dürüst not, dört katmanlı: **36.102 mekanın 292'si (%0,81)** menüsünü
-yayımlamış. O 7.147 kalem bağımsız değil — **%70,9'u zincir tekrarı**, yani
+Dürüst not, dört katmanlı: **35.867 mekanın 291'i (%0,81)** menüsünü
+yayımlamış. O 7.141 kalem bağımsız değil — **%70,8'i zincir tekrarı**, yani
 geriye **85 farklı menü** kalıyor (bir Domino's menüsü 96 şubeye uygulanıyor).
 Ve uygulama bunların yalnız **163'ünde** bir rakam söylüyor: mekanın
 **ana ürün türünün ortalaması**. En ucuz kalem değil, içecek değil, garnitür
@@ -54,6 +54,15 @@ kendi arayüz yazısıydı ("Normal fiyat", "55k kişi favoriledi!"). Hiçbiri
 fiyat iddiası üretmiyordu ama **Menü** başlığı altında duruyordu; başlık
 yalan söylüyordu. Listenin hiçbir kalemi 33 yiyecek/içecek türünden birine
 uymuyorsa liste bütünüyle düşüyor.
+
+Aynı işletmenin iki kaydı da birleştiriliyor. OpenStreetMap'te bir yer hem
+**nokta** (POI) hem **alan** (bina sınırı) olarak etiketlenebiliyor, ya da
+aynı yeri iki kişi ayrı ayrı eklemiş oluyor; ikisi de bize ayrı mekan gibi
+geliyordu — haritada iki işaretçi, listede iki kart. Aynı ilde aynı adı
+taşıyan ve **25 m**'den yakın 235 kayıt birleştirildi. Eşik ölçümle
+seçildi: 40 m'ye çıkınca "Starbucks 54 m", "Çay ocağı 53 m" gibi
+gerçekten ayrı işletmeler karışmaya başlıyor. Düşen kaydın boş olmayan
+alanları kalana taşınıyor, bilgi kaybı yok.
 
 Beşinci katman, fiyatın **yaşı**. Enflasyonda tarihsiz fiyat bir iddia değil
 bir tahmindir; veri artık her menünün derlendiği ayı taşıyor. Altı aydan

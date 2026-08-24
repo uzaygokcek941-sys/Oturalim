@@ -152,6 +152,30 @@ def veri_tutarli_mi():
             s = s[:8] + ["... (kirpildi)"]
             break
 
+    # Ayni mekanin ikinci kaydi ciktida kalmasin. app_veri.py birlestiriyor;
+    # burasi CIKTIYI denetliyor -- boru hatti degisirse ya da veri elle
+    # duzenlenirse kopyalar sessizce geri gelmesin.
+    from math import radians, sin, cos, asin, sqrt
+    for kod in dosyalar:
+        d = json.loads(oku("app", "veri", kod + ".json"))
+        ada = {}
+        for m in d.get("mekanlar", []):
+            ada.setdefault(m["ad"].strip().casefold(), []).append(m)
+        for ad, grup in ada.items():
+            for i in range(len(grup)):
+                for j in range(i + 1, len(grup)):
+                    a, b = grup[i], grup[j]
+                    dl, dn = radians(b["lat"] - a["lat"]), radians(b["lon"] - a["lon"])
+                    h = (sin(dl / 2) ** 2 + cos(radians(a["lat"])) *
+                         cos(radians(b["lat"])) * sin(dn / 2) ** 2)
+                    if 6371000 * 2 * asin(sqrt(h)) <= 25:
+                        s.append("%s.json: '%s' iki kez var, %s ve %s 25 m'den yakin"
+                                 % (kod, m["ad"][:30], a["id"], b["id"]))
+                        break
+        if len(s) > 8:
+            s = s[:8] + ["... (kirpildi)"]
+            break
+
     v = json.loads(oku("app", "vitrin.json"))
     for anahtar, gercek in (("toplam", toplam), ("kalem", kalem), ("fiyatliMekan", fiyatli)):
         if v.get(anahtar) != gercek:

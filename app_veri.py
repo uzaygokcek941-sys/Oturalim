@@ -351,6 +351,78 @@ def kategori_dokumu(kalemler):
     return dokum
 
 
+# --- Ayni mekanin iki kaydi ---------------------------------------------
+# OSM'de bir isletme hem NOKTA (POI) hem ALAN (bina siniri) olarak
+# etiketlenebiliyor; ayrica ayni yeri iki kisi ayri ayri eklemis olabiliyor.
+# Ikisi de bize ayri mekan gibi geliyordu: haritada iki isaretci, listede
+# iki kart, sayilarda bir fazla.
+#
+# Olculdu: ayni ilde ayni ada sahip ve 20 m'den yakin 212 cift var; 40 m'ye
+# cikinca 300, 60 m'ye cikinca 351. Ama uzaklastikca YANLIS eslesme
+# basliyor -- "Starbucks" 54 m, "Burger King" 48 m, "Çay ocağı" 53 m:
+# bunlar gercekten ayri isletmeler olabilir. 25 m secildi: bu mesafede
+# ayni adi tasiyan iki kayit pratikte ayni yerdir.
+#
+# Ad karsilastirmasi TAM: "Kahve Dünyası" ile "Kahve Dunyasi" ayni sayilmaz.
+# Zincir subelerini birlestirmek istemiyoruz, ayni kaydin kopyasini.
+KOPYA_METRE = 25
+
+
+def _metre(a, b):
+    """Iki kayit arasi mesafe (m). sahiplen.metre ile ayni haversine."""
+    from math import radians, sin, cos, asin, sqrt
+    dl = radians(b["lat"] - a["lat"])
+    dn = radians(b["lon"] - a["lon"])
+    h = (sin(dl / 2) ** 2 +
+         cos(radians(a["lat"])) * cos(radians(b["lat"])) * sin(dn / 2) ** 2)
+    return 6371000 * 2 * asin(sqrt(h))
+
+
+BILGI_ALANI = ("saat", "tel", "adres", "web", "menu", "bahce", "wifi", "mutfak")
+
+
+def _zenginlik(k):
+    return sum(1 for a in BILGI_ALANI if k.get(a))
+
+
+def kopyalari_birlestir(kayitlar):
+    """Ayni ad + <=25 m olan kayitlari tek kayda indirir.
+
+    Kalan kayit BILGISI COK OLAN. Esitlikte nokta (POI) tercih ediliyor:
+    alan kaydinin koordinati bina merkezidir, nokta isletmenin kendisini
+    gosterir. Yine esitse kimlik sirasi -- karar her calistirmada ayni olsun.
+
+    Dusen kaydin BOS OLMAYAN alanlari kalana tasiniyor: iki kayittan biri
+    telefonu, digeri saati tasiyor olabiliyor; birlestirme bilgi kaybetmemeli.
+    """
+    gruplar = defaultdict(list)
+    for k in kayitlar:
+        gruplar[k["ad"].strip().casefold()].append(k)
+
+    kalan, birlesen = [], 0
+    for grup in gruplar.values():
+        if len(grup) == 1:
+            kalan.extend(grup)
+            continue
+        # En iyi kayit once: birlestirme hedefi hep o olsun.
+        grup.sort(key=lambda k: (-_zenginlik(k),
+                                 0 if k["id"].startswith("node/") else 1,
+                                 k["id"]))
+        alinan = []
+        for k in grup:
+            for hedef in alinan:
+                if _metre(hedef, k) <= KOPYA_METRE:
+                    for alan, deger in k.items():
+                        if alan not in hedef and deger not in (None, "", 0):
+                            hedef[alan] = deger
+                    birlesen += 1
+                    break
+            else:
+                alinan.append(k)
+        kalan.extend(alinan)
+    return kalan, birlesen
+
+
 ELENEN = []               # rapor icin: (mekan, tur, sebep)
 PLATFORM_ELENEN = set()   # rapor icin: (il, mekan) -- platform profili
 
@@ -499,6 +571,16 @@ def main():
     for m in mekanlar:
         iller[m["il"]].append(mekan_kaydi(m, menu))
 
+    # Kopya kayitlar il icinde birlestiriliyor: ayni isletme iki il dosyasinda
+    # olamaz, il disina bakmanin anlami yok ve karsilastirma karesel.
+    kopya = 0
+    for il in iller:
+        iller[il], n = kopyalari_birlestir(iller[il])
+        kopya += n
+    if kopya:
+        print("ayni mekanin ikinci kaydi (ad ayni, <=%d m): %d kayit birlestirildi"
+              % (KOPYA_METRE, kopya))
+
     os.makedirs("app/veri", exist_ok=True)
     dizin = []
     for il, kayitlar in iller.items():
@@ -595,6 +677,37 @@ def kendini_kontrol_et():
                               {"a": "Adana Kebap", "f": 700.0}])
     assert not menu_degil_mi([{"a": "1 KG KIYMALI KOL BÖREĞİ", "f": 900.0}])
     assert menu_degil_mi([]) is None
+
+    # Kopya kayit birlestirme: bilgi kaybetmeden, dogru kaydi birakarak.
+    a = {"id": "node/1", "ad": "X", "lat": 39.9, "lon": 32.85, "tel": "111"}
+    b = {"id": "way/2",  "ad": "X", "lat": 39.9, "lon": 32.850001, "saat": "24/7"}
+    kalan, n = kopyalari_birlestir([a, b])
+    assert n == 1 and len(kalan) == 1, (n, kalan)
+    assert kalan[0]["tel"] == "111" and kalan[0]["saat"] == "24/7", kalan[0]
+    # Esitlikte NOKTA kalir: alan kaydinin koordinati bina merkezi.
+    assert kalan[0]["id"] == "node/1", kalan[0]["id"]
+
+    # Bilgisi cok olan kalir, kimlik tipi ne olursa olsun.
+    a = {"id": "node/1", "ad": "X", "lat": 39.9, "lon": 32.85}
+    b = {"id": "way/2",  "ad": "X", "lat": 39.9, "lon": 32.850001,
+         "tel": "111", "saat": "24/7"}
+    kalan, _ = kopyalari_birlestir([a, b])
+    assert kalan[0]["id"] == "way/2", kalan[0]["id"]
+
+    # Uzaktaki ayni adli mekan AYRI kalir: zincir subesi kopya degildir.
+    uzak = [{"id": "node/1", "ad": "X", "lat": 39.9, "lon": 32.85},
+            {"id": "node/2", "ad": "X", "lat": 39.91, "lon": 32.85}]   # ~1,1 km
+    kalan, n = kopyalari_birlestir(uzak)
+    assert n == 0 and len(kalan) == 2, (n, kalan)
+
+    # Farkli adlar birlesmez, ayni noktada olsalar bile.
+    ayri = [{"id": "node/1", "ad": "X", "lat": 39.9, "lon": 32.85},
+            {"id": "node/2", "ad": "Y", "lat": 39.9, "lon": 32.85}]
+    assert kopyalari_birlestir(ayri)[1] == 0
+
+    # Sonuc calistirma sirasindan bagimsiz olmali.
+    karisik = list(reversed(uzak))
+    assert sorted(k["id"] for k in kopyalari_birlestir(karisik)[0]) == ["node/1", "node/2"]
 
     # Platform profili isletmenin kendi sitesi degildir.
     for u in ("https://www.shopier.com/x", "https://trendyol.com",

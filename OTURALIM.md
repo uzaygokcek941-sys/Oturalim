@@ -332,6 +332,12 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
       bir mekana **aynı pazaryeri katalogunu** yazmıştı, `trendyol.com` ise
       Trendyol'un arayüzünü ("55k kişi favoriledi!"). Alan adına bakılıyor,
       yola değil — `qrmenu.actdurum.com` işletmenin kendi QR menüsü, kalıyor.
+- [x] Aynı işletmenin iki kaydı ayrı mekan sayılıyordu: OSM'de bir yer hem
+      nokta (POI) hem alan (bina) olarak etiketlenebiliyor. Aynı il + aynı ad
+      + **≤25 m** kuralıyla 235 kayıt birleştirildi (36.102 → 35.867). Eşik
+      ölçümle seçildi; 40 m'de "Starbucks 54 m", "Çay ocağı 53 m" gibi gerçek
+      ayrı işletmeler karışıyor. Düşen kaydın alanları kalana taşınıyor —
+      235 birleşmede bilgi kaybı 0. Çıktı `test.py`'de de denetleniyor.
 - [x] **Ucuz / orta / pahalı bandı.** Mekanın ana ürün türüne göre: pizzacı
       pizzacılarla, kebapçı kebapçılarla kıyaslanıyor. Ülke ortalamasına göre
       söylemek anlamsızdı — 900 ₺'lik balıkçı "pahalı", 480 ₺'lik pizzacı
