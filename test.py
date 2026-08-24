@@ -119,6 +119,11 @@ def veri_tutarli_mi():
     if dizin["varsayilan"] not in kodlar:
         s.append("index.json varsayilan il listede yok: " + dizin["varsayilan"])
 
+    try:
+        from fiyat_analiz import yiyecek_mi
+    except ImportError:
+        yiyecek_mi = None
+
     toplam = kalem = fiyatli = 0
     for kod in dosyalar:
         d = json.loads(oku("app", "veri", kod + ".json"))
@@ -127,6 +132,13 @@ def veri_tutarli_mi():
             kalem += len(m.get("menu") or [])
             if m.get("min") is not None:
                 fiyatli += 1
+            # "Menu" basligi altinda menu olmayan sey durmasin. app_veri.py
+            # bunu uretimde eliyor; burasi ciktinin kendisini denetliyor,
+            # cunku veri elle de duzenlenebiliyor ve JSON kalici.
+            if yiyecek_mi and m.get("menu") and not any(
+                    yiyecek_mi(k["a"]) for k in m["menu"]):
+                s.append("%s.json: %s menusunde tek yiyecek/icecek yok (%r)"
+                         % (kod, m.get("ad"), m["menu"][0]["a"][:40]))
             for alan in ("id", "ad", "tur", "lat", "lon"):
                 if m.get(alan) in (None, ""):
                     s.append("%s.json: %s alani bos (%s)" % (kod, alan, m.get("id")))

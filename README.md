@@ -5,7 +5,7 @@
 Türkiye'deki kafe, restoran ve barları bütçene, bahçesine ve şu an açık olup
 olmadığına göre süzen web uygulaması. Üyelik zorunlu değil, reklam yok, çerez yok.
 
-**36.102 mekan · 81 il · 7.397 menü kalemi · 774 etkinlik**
+**36.102 mekan · 81 il · 7.147 menü kalemi · 774 etkinlik**
 
 ---
 
@@ -38,13 +38,21 @@ iki kafe, aynı kahve, iki kat fark olabiliyor. Uygulamanın tek işi:
 Google Maps, Yemeksepeti, Getir gibi platformlardan **hiçbir veri alınmadı**;
 kullanım şartları buna izin vermiyor.
 
-Dürüst not, üç katmanlı: **36.102 mekanın 367'si (%1,02)** menüsünü
-yayımlamış. O 7.397 kalem bağımsız değil — **%76,5'i zincir tekrarı**, yani
-geriye **121 farklı menü** kalıyor (bir Domino's menüsü 96 şubeye uygulanıyor).
+Dürüst not, dört katmanlı: **36.102 mekanın 292'si (%0,81)** menüsünü
+yayımlamış. O 7.147 kalem bağımsız değil — **%70,9'u zincir tekrarı**, yani
+geriye **85 farklı menü** kalıyor (bir Domino's menüsü 96 şubeye uygulanıyor).
 Ve uygulama bunların yalnız **164'ünde** bir rakam söylüyor: mekanın
 **ana ürün türünün ortalaması**. En ucuz kalem değil, içecek değil, garnitür
 değil — pizzacıda pizzaların, fırında böreklerin ortalaması. Hangi türden
 hesaplandığı ekranda yazıyor. Tek kaleme dayanan iddia gösterilmiyor.
+
+Dördüncü katman: bir listenin menü **olduğu** da doğrulanıyor. Kazıyıcı bazı
+sitelerde menüyü değil başka bir sayfayı bulmuş; 75 mekanın "menü"sü kitap
+adı, kalem pil, küpe, sinema seansı, çadır konaklama ücreti ya da sayfanın
+kendi arayüz yazısıydı ("Normal fiyat", "55k kişi favoriledi!"). Hiçbiri
+fiyat iddiası üretmiyordu ama **Menü** başlığı altında duruyordu; başlık
+yalan söylüyordu. Listenin hiçbir kalemi 33 yiyecek/içecek türünden birine
+uymuyorsa liste bütünüyle düşüyor.
 
 Denenen sitelerin yalnızca **%7'sinden** fiyat çıkarılabildi, geri kalanı
 menüsünü JavaScript ile basıyor. Bu yüzden fiyat verisi bugün zayıf ve ancak

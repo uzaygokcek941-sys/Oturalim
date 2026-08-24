@@ -18,7 +18,7 @@ import os
 import re
 from collections import defaultdict
 
-from fiyat_analiz import kategorile
+from fiyat_analiz import kategorile, yiyecek_mi
 
 IL_KODU = {
     "Adana": "01", "Adiyaman": "02", "Afyonkarahisar": "03", "Agri": "04",
@@ -124,6 +124,40 @@ def demo_menu_mu(kalemler, tur):
     return None
 
 
+def menu_degil_mi(kalemler):
+    """Bu liste bir menu DEGIL mi? Sebebini dondurur, menuyse None.
+
+    demo_menu_mu yapisal ize bakiyor (ayni fiyat, tekrar eden ad); bu ise
+    ICERIGE bakiyor: listede tek bir yiyecek ya da icecek adi geciyor mu?
+
+    NEDEN GEREKTI: kaziyici bazi sitelerde menu sayfasini degil baska bir
+    sayfayi bulmus, ya da menu diye baska bir sey satan bir listeyi. Olculdu,
+    367 menulu mekanin 41 tekilinde listenin TAMAMI menu disiydi:
+      Roxy Bar          -> kalem pil (marka adi ayni, site baska)
+      Turk Alman Kitabevi, Minoa -> kitap adlari
+      Ada Tesisleri     -> kupe, kolye
+      Feriye            -> sinema seansi adlari
+      Beltur (7 sube)   -> "Hafta Ici 600 TL" — mekan kirasi
+      Agora, Sakli Bahce -> cadirla konaklama fiyati
+      Oz Izmir Lokma    -> "300 Kisilik lokma" — toplu siparis
+    Bunlarin hicbiri "masada ne oderim"in cevabi degil ve hicbiri fiyat
+    iddiasi uretmiyordu; ama detay sayfasinda MENU basligi altinda
+    duruyorlardi. Baslik yalan soyluyordu.
+
+    yiyecek_mi() kullaniliyor, kategorile() degil: perakende ve paket
+    kapilari burada kapali. "1 KG Kol Boregi" bir porsiyon degildir ama
+    borekcinin gercek fiyatidir; "Kucuk Boy Pizza + Patates" tek urun
+    fiyati degildir ama pizzacinin gercek fiyatidir. Ikisi de kalir --
+    fiyat iddiasi zaten ayri kapidan (kat + ana urun kurali) geciyor.
+    """
+    if not kalemler:
+        return None
+    if any(yiyecek_mi(k["a"]) for k in kalemler):
+        return None
+    return "%d kalemin hicbiri yiyecek/icecek degil (\u00f6r. %s)" % (
+        len(kalemler), kalemler[0]["a"][:40])
+
+
 # Menu kalemi olmayan satir adlari
 COP_AD = re.compile(r"(kargo|teslimat|hediye|paket|abonelik|kupon|bagis|bağış|"
                     r"sepet|toplam|indirim)", re.I)
@@ -134,6 +168,27 @@ COP_AD = re.compile(r"(kargo|teslimat|hediye|paket|abonelik|kupon|bagis|bağış
 # kalibre, "4 Adet Pizzetta" gibi gercek menu kalemlerini de eler.
 ESYA = re.compile(r"(alışveriş çantası|termos|makinesi|fincan takım|bardak takım|"
                   r"hediye kart|öğütücü|demlik|tişört|kupa takım|filtre kağıd)", re.I)
+
+# Kalem adi degil, SAYFANIN KENDI YAZISI. Kaziyici fiyatin yanindaki etiketi
+# urun adi sanip almis: "Normal fiyat 540 TL", "Regular price 1.800 TL",
+# "55k kisi favoriledi! 70 TL". Kullaniciya menu diye gosterilen sey, o
+# sayfadaki arayuz metniydi.
+#
+# Tam ad eslesmesi (^...$) BILEREK: "Fiyat" atilir ama "Fiyatlı Kahvaltı"
+# kalir. Bu satirlar zaten oldugu gibi tekrar ediyor, parca eslesmesine
+# gerek yok ve parca eslesmesi gercek kalem adlarini yerdi.
+ARAYUZ_AD = re.compile(
+    r"^(fiyat[ıi]?|fiyat\s*:\s*\d*|ürün|ürün detayı|normal fiyat|satış fiyatı|"
+    r"güncel fiyat|indirimli fiyat|liste fiyatı|regular price|sale price|price|"
+    r"tüm fırsatlar|tüm ürünler|en çok satan(lar)?|tüm ürünlerde\s*\d*|"
+    r"(tüm özellikler\s*)?yıllık sadece|"
+    r"[\d.,]+\s*[km]?\s*kişi favoriledi!?)$", re.I)
+
+
+def kalem_atilir(ad):
+    """Bu ad bir menu kalemi adi degil mi? Iki kaynak da ayni kapidan gecsin."""
+    return (len(ad) < 3 or COP_AD.search(ad) or ESYA.search(ad)
+            or ARAYUZ_AD.match(ad))
 
 
 def menuleri_oku(yol="tr_menu.csv"):
@@ -150,7 +205,7 @@ def menuleri_oku(yol="tr_menu.csv"):
             fiyat = float(r["fiyat"])
             if not (ALT_SINIR <= fiyat <= UST_SINIR):
                 continue
-            if COP_AD.search(ad) or ESYA.search(ad) or len(ad) < 3:
+            if kalem_atilir(ad):
                 continue
             menu[(r["il"], r["mekan"])].append({"a": ad, "f": fiyat})
     return menu
@@ -209,7 +264,7 @@ def ek_menuler_oku(mekanlar, yollar=("menu_pdf_kalem.csv", "menu_ocr_kalem.csv")
                     continue
                 if not (ALT_SINIR <= fiyat <= UST_SINIR):
                     continue
-                if COP_AD.search(ad) or ESYA.search(ad) or len(ad) < 3:
+                if kalem_atilir(ad):
                     continue
                 ek[hedef].append({"a": ad, "f": fiyat})
     if eslesmeyen:
@@ -249,7 +304,7 @@ def kategori_dokumu(kalemler):
     return dokum
 
 
-ELENEN_DEMO = []          # rapor icin: (mekan, tur, sebep)
+ELENEN = []               # rapor icin: (mekan, tur, sebep)
 
 
 def mekan_kaydi(m, menu):
@@ -265,9 +320,10 @@ def mekan_kaydi(m, menu):
     # Tema demosu ise menunun TAMAMI dusuyor. Guvenilmeyen fiyati yanlis
     # gostermektense hic gostermemek dogru: uygulama "hesapli yer" vaat
     # ediyor, sahte ucuzluk en kotu hata.
-    sebep = demo_menu_mu(tum_kalemler, tur_tr) if tum_kalemler else None
+    sebep = (demo_menu_mu(tum_kalemler, tur_tr)
+             or menu_degil_mi(tum_kalemler)) if tum_kalemler else None
     if sebep:
-        ELENEN_DEMO.append((m["ad"], tur_tr, sebep))
+        ELENEN.append((m["ad"], tur_tr, sebep))
         tum_kalemler = []
 
     # Kategori dokumu TAM listeden: kayda giren 40 kalem en ucuzlar oldugu icin
@@ -377,13 +433,13 @@ def main():
     with open("app/veri/index.json", "w", encoding="utf-8") as f:
         json.dump({"varsayilan": "06", "iller": dizin}, f, ensure_ascii=False)
 
-    if ELENEN_DEMO:
+    if ELENEN:
         print()
-        print("tema demosu olarak elenen menu: %d mekan" % len(ELENEN_DEMO))
-        for ad, tur, sebep in ELENEN_DEMO[:12]:
+        print("menusu tumden elenen mekan: %d" % len(ELENEN))
+        for ad, tur, sebep in ELENEN[:12]:
             print("  %-30s %-12s %s" % (ad[:30], tur, sebep))
-        if len(ELENEN_DEMO) > 12:
-            print("  ... %d tane daha" % (len(ELENEN_DEMO) - 12))
+        if len(ELENEN) > 12:
+            print("  ... %d tane daha" % (len(ELENEN) - 12))
 
     toplam = sum(d["n"] for d in dizin)
     assert len(dizin) == 81, f"81 il bekleniyordu, {len(dizin)} yazildi"

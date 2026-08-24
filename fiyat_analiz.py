@@ -18,6 +18,10 @@ KAYNAK = "tr_menu.csv"
 CIKTI = "app/veri/fiyat_olcut.json"
 
 # Sira onemli — ilk eslesen kazanir, ozelden genele.
+# Sondaki [kg] / [td] Turkce SESSIZ YUMUSAMASI icin: borek -> boregi,
+# tavuk -> tavugu, levrek -> levregi, balik -> baligi, simit -> simidi.
+# Kok haliyle yazilan desen ekli hali kaciriyordu; veride olculdu, 22 gercek
+# kalem ("Anne Boregi", "Akya baligi", "Deniz Levregi") siniflanamiyordu.
 KURAL = [
     ("Türk kahvesi",   [r"turk kahve", r"menengic", r"dibek"], []),
     ("Matcha",         [r"matcha"], []),
@@ -44,11 +48,11 @@ KURAL = [
     # Malzeme degil YEMEK belirleyici: "Sehriyeli Tavuk Corbasi" bir corba.
     # Corba kurali asagida oldugu icin tavuk once esleşip ana yemek
     # sayiliyordu.
-    ("Tavuk",          [r"tavuk", r"chicken", r"kanat", r"nugget"], [r"corba"]),
+    ("Tavuk",          [r"tavu[kg]", r"chicken", r"kanat", r"nugget"], [r"corba"]),
     # \bhamsi\b sinirli: sinirsizken "Hamsikoy Sutlac" -- bir TATLI --
     # balik sayiliyordu. Yer adi malzeme sanildi ve balik pahali oldugu
     # icin mekanin fiyatini yukari cekiyordu.
-    ("Balık",          [r"balik", r"levrek", r"cipura", r"somon", r"\bhamsi\b",
+    ("Balık",          [r"bali[kg]", r"levre[kg]", r"cipura", r"somon", r"\bhamsi\b",
                         r"kalamar"], [r"corba"]),
     # Marka adi jenerik kelimeyi YENER: "Algida Magnum Sandwich" bir
     # dondurma, tost degil. Dondurma kurali (asagida) bu satirdan sonra
@@ -60,10 +64,16 @@ KURAL = [
     ("Salata",         [r"salata", r"salad"], []),
     ("Kahvaltı",       [r"kahvalti", r"serpme", r"menemen", r"omlet", r"sahanda"], []),
     ("Patates",        [r"patates kizart", r"\bfries\b", r"parmak patates", r"\bpatates\b"], []),
+    # \btatli: kategorinin adi "Tatli" olmasina ragmen kelimenin kendisi
+    # kurallarda YOKTU. Ayva, kabak, incir, katmer, Hayrabolu, Mustafakemalpasa
+    # tatlisi -- 11 gercek tatli siniflanamiyordu. Govdeye demirli (\b sonda
+    # yok) cunku Turkce ek aliyor: "tatlisi", "tatlilar".
     ("Tatlı",          [r"sufle", r"kunefe", r"baklava", r"tiramisu", r"cheesecake", r"brownie",
-                        r"waffle", r"\bpasta\b", r"magnolia", r"kazandibi", r"sutlac", r"profiterol"], []),
+                        r"waffle", r"\bpasta\b", r"magnolia", r"kazandibi", r"sutlac",
+                        r"profiterol", r"\btatli"], []),
     ("Dondurma",       [r"dondurma", r"algida", r"magnum", r"cornetto"], []),
-    ("Poğaça / börek", [r"pogaca", r"borek", r"\bacma\b", r"simit", r"kruvasan", r"croissant"], []),
+    ("Poğaça / börek", [r"pogaca", r"bore[kg]", r"\bacma\b", r"simi[td]", r"kruvasan",
+                        r"croissant"], []),
 ]
 
 # Porsiyon degil, urun: makine, fincan takimi, 500gr paket, kiloluk borek.
@@ -100,6 +110,14 @@ def eslesir(desenler, metin):
     return any(re.search(d, metin) for d in desenler)
 
 
+def _kural_ara(d):
+    """Sadelestirilmis ada uyan ilk KURAL kategorisi, yoksa None."""
+    for kat, var, yok in KURAL:
+        if eslesir(var, d) and not (yok and eslesir(yok, d)):
+            return kat
+    return None
+
+
 def kategorile(ad):
     if ad.count(",") >= 3:
         return None, "malzeme listesi"
@@ -108,10 +126,26 @@ def kategorile(ad):
         return None, "perakende urun"
     if eslesir(PAKET, d):
         return None, "paket/kampanya"
-    for kat, var, yok in KURAL:
-        if eslesir(var, d) and not (yok and eslesir(yok, d)):
-            return kat, None
-    return None, "siniflanamadi"
+    kat = _kural_ara(d)
+    return (kat, None) if kat else (None, "siniflanamadi")
+
+
+def yiyecek_mi(ad):
+    """Ad bir yiyecek/icecek turune benziyor mu? Uyan kategoriyi dondurur.
+
+    kategorile()'den TEK farki: perakende ve paket kapilarini atlar. Cunku
+    o iki kapi "bu fiyat porsiyon fiyati mi" sorusunun cevabi, "bu bir yemek
+    mi" sorusunun degil. "1 KG Kol Boregi" porsiyon degildir ama boregin ta
+    kendisidir; "Kucuk Boy Pizza + Patates + Pepsi" tek urun fiyati degildir
+    ama pizzadir.
+
+    Kullanildigi yer app_veri.menu_mu(): 33 kategori Turkiye'deki bir kafe ya
+    da restoran menusunun kelime dagarcigini kapsiyor. Bir listenin HICBIR
+    kalemi bu 33'ten birine uymuyorsa, o liste bir menu degildir -- oyle
+    listeler olculdu ve icleri kitap, pil, muzayede, sinema seansi ve
+    kamp konaklama fiyati cikti.
+    """
+    return _kural_ara(sadelestir(ad))
 
 
 # Sube/tur eki: "Domino's Pizza Beytepe" ile "Domino's" ayni marka sayilmali.
@@ -252,6 +286,19 @@ def kendini_kontrol_et():
         # Yer adi malzeme sanilmasin: Hamsikoy sutlaci bir TATLI.
         ("Findikli Hamsikoy Sutlac", "Tatlı"),
         ("Hamsi Tava", "Balık"),                         # gercek balik bozulmadi
+        # Kategorinin adi kuralda yoktu: 11 gercek tatli siniflanamiyordu.
+        ("Ayva Tatlisi", "Tatlı"),
+        ("Mustafakemalpasa Peynir Tatlisi", "Tatlı"),
+        ("Kabak Tatlisi", "Tatlı"),
+        ("Tatli Patates Kizartmasi", "Patates"),          # sifat, tatli degil
+        # Sessiz yumusamasi: ekli hal de eslesmeli.
+        ("Anne Boregi", "Poğaça / börek"),
+        ("Akya baligi", "Balık"),
+        ("Deniz Levregi", "Balık"),
+        ("Cerkez Tavugu", "Tavuk"),
+        ("Susamli Simidi", "Poğaça / börek"),
+        ("Sucuklu Pogaca", "Poğaça / börek"),             # kok hali bozulmadi
+        ("Hamsi Tava", "Balık"),
     ]
     hata = 0
     for ad, beklenen in ornekler:
@@ -259,6 +306,31 @@ def kendini_kontrol_et():
         if cikan != beklenen:
             print("  HATA: %-45s bekleniyordu=%s cikan=%s" % (ad, beklenen, cikan))
             hata += 1
+
+    # yiyecek_mi: perakende ve paket kapilarini ATLAR, KURAL'i uygular.
+    # menu_degil_mi() bu ayrima dayaniyor -- bozulursa gercek menuler duser.
+    for ad, bekle in [
+        ("1 KG KIYMALI KOL BOREGI", True),      # porsiyon degil ama borek
+        ("Kucuk Boy Pizza + Patates + Pepsi", True),   # tek urun degil ama pizza
+        ("Filtre Kahve 250 gr", True),          # perakende ama kahve
+        ("Adana Kebap", True),
+        ("Roxy AA Alkaline Pil", False),        # pil
+        ("Raisa Drop Earrings", False),         # kupe
+        ("Cadirla Konaklama", False),           # kamp
+        ("Hafta Ici", False),                   # mekan kirasi
+        ("PRAML, SABINE", False),               # kitap
+    ]:
+        if bool(yiyecek_mi(ad)) != bekle:
+            print("  HATA: yiyecek_mi(%r)=%r, %r bekleniyordu"
+                  % (ad, yiyecek_mi(ad), bekle))
+            hata += 1
+        # yiyecek_mi eslesiyorsa kategorile de ya ayni kategoriyi ya da bir
+        # KAPI sebebi dondurmeli; "siniflanamadi" ikisinde de olmamali.
+        if yiyecek_mi(ad):
+            kat, sebep = kategorile(ad)
+            if sebep == "siniflanamadi":
+                print("  HATA: %r yiyecek ama siniflanamadi" % ad)
+                hata += 1
     # marka(): sube adi kirpilmali
     assert marka("Domino's Pizza Beytepe") == marka("Domino's"), marka("Domino's Pizza Beytepe")
     assert marka("Veganarsist Kizilay") == marka("Veganarsist")
