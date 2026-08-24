@@ -4,7 +4,7 @@
 -- Supabase panelinde SQL Editor'e yapıştırıp bir kez çalıştır.
 -- Tekrar çalıştırılabilir: her şey "if not exists" / "or replace".
 --
--- NEDEN VAR: 35.867 mekanın 30.405'inde (%84,8) ne web, ne sosyal medya, ne telefon var.
+-- NEDEN VAR: 35.852 mekanın 30.393'ünde (%84,8) ne web, ne sosyal medya, ne telefon var.
 -- Bu işletmelere uzaktan ulaşmanın yolu yok, ama bilgiyi bilen biri var:
 -- o an orada oturan kullanıcı. paylasimlar tablosu FİYATI topluyordu;
 -- bu tablo kalan dört alanı topluyor (saat, telefon, adres, site).

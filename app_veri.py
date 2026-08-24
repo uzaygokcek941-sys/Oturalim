@@ -18,7 +18,7 @@ import os
 import re
 from collections import defaultdict
 
-from fiyat_analiz import TABAN, TAVAN, kategorile, yiyecek_mi
+from fiyat_analiz import TABAN, TAVAN, kategorile, sadelestir, yiyecek_mi
 
 IL_KODU = {
     "Adana": "01", "Adiyaman": "02", "Afyonkarahisar": "03", "Agri": "04",
@@ -394,8 +394,14 @@ def kategori_dokumu(kalemler):
 # bunlar gercekten ayri isletmeler olabilir. 25 m secildi: bu mesafede
 # ayni adi tasiyan iki kayit pratikte ayni yerdir.
 #
-# Ad karsilastirmasi TAM: "Kahve Dünyası" ile "Kahve Dunyasi" ayni sayilmaz.
-# Zincir subelerini birlestirmek istemiyoruz, ayni kaydin kopyasini.
+# Ad karsilastirmasi TURKCE HARFE DUYARSIZ. Ilk yazimda tam eslesme
+# vardi ("Kahve Dünyası" ile "Kahve Dunyasi" ayri sayiliyordu) ve gerekce
+# "zincir subelerini birlestirmeyelim"di -- ama subeleri ayiran sey ad
+# degil 25 m sinirlari: iki sube hicbir zaman 25 m'de olmuyor.
+#
+# Olculdu: ayni mekan bir kez Turkce harflerle bir kez ASCII ile
+# girilmis 14 cift kaciyordu -- "Balikci Sabahattin" / "Balıkçı
+# Sabahattin" (21 m), "Balkan lokantasi" / "Balkan Lokantası" (3 m).
 KOPYA_METRE = 25
 
 
@@ -428,7 +434,10 @@ def kopyalari_birlestir(kayitlar):
     """
     gruplar = defaultdict(list)
     for k in kayitlar:
-        gruplar[k["ad"].strip().casefold()].append(k)
+        # casefold DEGIL sadelestir: "İ".casefold() birlesen nokta
+        # birakiyor ve "KISMETİM" ile "Kısmetim" ayri gorunuyordu.
+        # Kural fiyat_analiz'de, tek yerde.
+        gruplar[sadelestir(k["ad"]).strip()].append(k)
 
     kalan, birlesen = [], 0
     for grup in gruplar.values():
@@ -741,6 +750,15 @@ def kendini_kontrol_et():
     ayri = [{"id": "node/1", "ad": "X", "lat": 39.9, "lon": 32.85},
             {"id": "node/2", "ad": "Y", "lat": 39.9, "lon": 32.85}]
     assert kopyalari_birlestir(ayri)[1] == 0
+
+    # Turkce harf farki ayni mekani ayirmamali: gercek veride 14 cift
+    # boyle kaciyordu.
+    for a1, a2 in (("Balıkçı Sabahattin", "Balikci Sabahattin"),
+                   ("KISMETİM", "Kısmetim"),
+                   ("Kardeş büfe", "Kardes bufe")):
+        c = [{"id": "node/1", "ad": a1, "lat": 39.9, "lon": 32.85},
+             {"id": "node/2", "ad": a2, "lat": 39.9, "lon": 32.85001}]
+        assert kopyalari_birlestir(c)[1] == 1, (a1, a2)
 
     # Sonuc calistirma sirasindan bagimsiz olmali.
     karisik = list(reversed(uzak))

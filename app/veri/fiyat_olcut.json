@@ -2,15 +2,15 @@
  "turkiye": {
   "Tatlı": {
    "kaynak": 31,
-   "medyan": 275,
-   "alt": 170,
+   "medyan": 250,
+   "alt": 150,
    "ust": 400
   },
   "Pizza": {
-   "kaynak": 5,
-   "medyan": 500,
+   "kaynak": 6,
+   "medyan": 537,
    "alt": 480,
-   "ust": 575
+   "ust": 690
   },
   "Su": {
    "kaynak": 18,
@@ -20,9 +20,9 @@
   },
   "Rakı / içkiler": {
    "kaynak": 9,
-   "medyan": 600,
+   "medyan": 500,
    "alt": 440,
-   "ust": 800
+   "ust": 620
   },
   "Patates": {
    "kaynak": 13,
@@ -62,7 +62,7 @@
   },
   "Meyve suyu": {
    "kaynak": 14,
-   "medyan": 140,
+   "medyan": 135,
    "alt": 100,
    "ust": 195
   },
@@ -118,7 +118,7 @@
    "kaynak": 6,
    "medyan": 315,
    "alt": 215,
-   "ust": 475
+   "ust": 580
   },
   "Köfte": {
    "kaynak": 16,
@@ -166,7 +166,7 @@
    "kaynak": 9,
    "medyan": 45,
    "alt": 35,
-   "ust": 250
+   "ust": 60
   },
   "Türk kahvesi": {
    "kaynak": 9,
@@ -175,9 +175,9 @@
    "ust": 170
   },
   "Bira": {
-   "kaynak": 6,
-   "medyan": 270,
-   "alt": 250,
+   "kaynak": 7,
+   "medyan": 250,
+   "alt": 240,
    "ust": 450
   },
   "Americano": {
@@ -203,7 +203,7 @@
    },
    "Tatlı": {
     "kaynak": 3,
-    "medyan": 330,
+    "medyan": 322,
     "alt": 150,
     "ust": 962
    }
@@ -233,12 +233,12 @@
     "kaynak": 4,
     "medyan": 400,
     "alt": 350,
-    "ust": 800
+    "ust": 500
    },
    "Bira": {
     "kaynak": 3,
     "medyan": 290,
-    "alt": 215,
+    "alt": 230,
     "ust": 450
    },
    "Americano": {
@@ -249,7 +249,7 @@
    },
    "Meyve suyu": {
     "kaynak": 8,
-    "medyan": 146,
+    "medyan": 141,
     "alt": 115,
     "ust": 300
    },
@@ -267,8 +267,8 @@
    },
    "Tatlı": {
     "kaynak": 20,
-    "medyan": 300,
-    "alt": 195,
+    "medyan": 275,
+    "alt": 170,
     "ust": 400
    },
    "Tost / sandviç": {
@@ -296,8 +296,8 @@
     "ust": 500
    },
    "Pizza": {
-    "kaynak": 4,
-    "medyan": 490,
+    "kaynak": 5,
+    "medyan": 500,
     "alt": 480,
     "ust": 575
    },
@@ -335,7 +335,7 @@
     "kaynak": 4,
     "medyan": 470,
     "alt": 445,
-    "ust": 600
+    "ust": 595
    },
    "Çorba": {
     "kaynak": 10,
@@ -401,7 +401,7 @@
     "kaynak": 3,
     "medyan": 370,
     "alt": 215,
-    "ust": 475
+    "ust": 580
    },
    "Patates": {
     "kaynak": 8,

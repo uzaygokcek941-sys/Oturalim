@@ -101,7 +101,13 @@ EN_AZ_MEKAN = 3         # olcut icin gereken en az mekan sayisi
 
 # Turkce harfleri sadelestir: kaynak veride hem "cay" hem "çay" gecebiliyor,
 # kurallari tek bicimde yazabilmek icin normalize ediyoruz.
-CEVIR = str.maketrans("çğıöşüâîû", "cgiosuaiu")
+# "İ".lower() Python'da tek harf DEGIL: "i" + U+0307 (birlesen ust nokta)
+# uretiyor. Yani "PİZZA".lower() -> "pi̇zza" ve "pizza" deseni eslesmiyor.
+# Olculdu: adinda İ gecen 377 tekil kalemin 45'i bu yuzden yanlis
+# siniflaniyordu -- "PEPPERONİ PİZZA" pizza degil, "BİRA ÇEŞİTLERİ" bira
+# degil, "KAŞARLI YUMURTALI PİDE" pide degil sayiliyordu.
+# Birlesen nokta siliniyor (\u0307 -> None).
+CEVIR = str.maketrans("çğıöşüâîû", "cgiosuaiu", "\u0307")
 
 
 def temizle(s):
