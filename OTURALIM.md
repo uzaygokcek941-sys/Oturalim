@@ -652,6 +652,74 @@ profil sayfaları `noindex, noarchive`.
 
 ---
 
+## 2026-08-24 — Menü ve ürün paylaşımı (fotoğraflı)
+
+Fiyat paylaşımının kardeşi. Neden gerekli: menü fiyatları işletmelerin
+**kendi sitelerinden** derleniyor ve 35.852 mekanın **30.393'ünde (%84,8)**
+ne site ne sosyal medya var. O menüye uzaktan ulaşmanın yolu yok — ama
+menüyü gören biri var: o an orada oturan kullanıcı.
+
+**Üç tablo, üç ayrı soru, ayrı kalıyorlar:**
+
+| tablo | ne taşıyor |
+|---|---|
+| `paylasimlar` | "3 kişi gittik, 850 verdik" — **hesap** |
+| `menu_katkilari` | "Latte 95 ₺" — **liste fiyatı** |
+| `yorumlar` | "sessiz, bahçesi güzel" — **kanı** |
+
+**Gösterilen ortalamaya girmiyor** — şimdilik ve bilerek. O hesap
+`fiyat_analiz.py`'de, Python'da yapılıyor (kategori ayrımı, ana ürün oranı,
+alt sınırlar). Aynı kuralı tarayıcıda ikinci kez yazmak, iki dilde iki doğru
+tutmak ve ikisinin ayrışmasını beklemek olurdu — bu depodaki en pahalı
+hatalar tam olarak öyle çıktı. Kullanıcı kalemleri ayrı bir bölümde,
+"işletmenin kendi menüsünden ayrı" etiketiyle duruyor.
+
+**Ürün + fiyat ya da yalnız fotoğraf.** Menünün tamamını fotoğraflayan biri
+20 kalemi elle yazmak zorunda kalmasın. Adı olup fiyatı olmayan kalem
+reddediliyor — bir şey söylemiyor.
+
+### EXIF: fotoğrafın taşıdığı ve taşımaması gereken şey
+
+Telefon fotoğrafı **GPS koordinatı, çekim saati ve cihaz modeli** taşır.
+Bu projede ham IP bile saklanmıyor — günlük yenilenen bir özete çevriliyor.
+Kullanıcının bulunduğu yerin koordinatını bir menü fotoğrafının içinde
+yayımlamak o özenle çelişirdi.
+
+Dosya olduğu gibi yüklenmiyor: tarayıcıda tuvale çizilip yeniden
+kodlanıyor. Üç şey birden oluyor — EXIF tamamen düşüyor, resim küçülüyor
+(uzun kenar 1600 px), biçim tekleşiyor (JPEG).
+
+**Sunucu bunu doğrulayamıyor.** Supabase Storage dosyayı ayrıştırmıyor, ne
+verirsen onu saklar. Yani kural yalnızca istemcide ve tek bekçisi test:
+`test_sayfa.py` **gerçek bir EXIF bloğu** (GPS + cihaz dizgisi) takılmış bir
+JPEG üretip önce girdinin gerçekten EXIF taşıdığını doğruluyor, sonra
+işlenmiş dosyada kalmadığını. "EXIF yok" diye bakmak, hiç EXIF'i olmayan bir
+dosyayla da geçerdi.
+
+`createImageBitmap`'e `imageOrientation: "from-image"` veriliyor — verilmezse
+dik çekilmiş fotoğraflar **yan** yüklenirdi; EXIF silmenin bilinen yan
+etkisi tam olarak budur.
+
+### Ölçülen ve düzeltilen
+
+- **Yayımlanan kalemde yazar bilgisi yok** ve bu bilerek: yorumda "kim
+  söylüyor" bilgi taşır (19 yaşındaki öğrenci ile 45 yaşındaki mühendis aynı
+  yeri farklı bulur), fiyatta taşımaz — 95 ₺, kim yazdıysa 95 ₺.
+- Fotoğraf kovasında **güncelleme politikası yok**: onaylanmış bir fotoğrafın
+  üzerine yazılabilseydi, onaydan geçen resim ile yayındaki resim ayrı şeyler
+  olabilirdi.
+- `hesabim.html`'de katkı listesi `#bolum-katkilar`'a `innerHTML` yazıyordu ve
+  menü listesini siliyordu; `test.py` sekme/bölüm değişmezi de araya soktuğum
+  iç kabı yakaladı.
+- Kırık fotoğraf (silinmiş dosya, ağ kesik) alt metniyle taşıyordu. Tek yerde
+  çözüldü — `error` olayı balonlamaz, yakalama evresinde dinleniyor.
+- **İki testim boşa çalışıyormuş.** `information_schema.columns`'a fonksiyon
+  girmiyor, yani "çıkış sütununda yazar/fiş alanı var mı" sorgusu her zaman
+  sıfır dönüyordu. Sabotaj yakaladı; `pg_proc.proargnames`'e geçirildi ve
+  ikisine de "kontrol gerçekten bir şey görüyor mu" adımı eklendi.
+
+---
+
 ## Yapılmayacaklar
 
 | Yapma | Neden |

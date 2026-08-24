@@ -114,6 +114,14 @@ function hataMetni(e){
     return "Puan 1 ile 5 arasında olmalı.";
   if (m.includes("yorumlar_metin_check"))
     return "Yorum en az 3, en fazla 400 karakter olmalı.";
+  if (m.includes("menu_katkilari_dolu_check"))
+    return "Ürün adı ve fiyatını birlikte yaz ya da bir fotoğraf ekle.";
+  if (m.includes("menu_katkilari_fiyat_check"))
+    return "Fiyat 0 ile 100.000 ₺ arasında olmalı.";
+  if (m.includes("menu_katkilari_urun_check"))
+    return "Ürün adı 2-80 karakter olmalı.";
+  if (m.includes("menu_katkilari_tek_bekleyen_idx"))
+    return "Bu ürünü zaten göndermişsin, sırada bekliyor.";
   if (m.includes("violates check constraint") || m.includes("check constraint"))
     return "Girdiğin değerlerden biri kabul edilmedi. Alanları gözden geçir.";
   if (m.includes("value too long"))
@@ -552,6 +560,104 @@ const Kimlik = {
   avatarAdresi(yol){
     if (!sb || !yol) return "";
     const { data } = sb.storage.from("avatar").getPublicUrl(yol);
+    return (data && data.publicUrl) || "";
+  },
+
+  /* ---------- menü ve ürün paylaşımı ----------
+     paylasimlar bir HESAP taşıyor ("3 kişi, 850 ₺"), burası bir LİSTE
+     FİYATI ("Latte 95 ₺"). Ayrı tablolar, ayrı sorular.
+
+     Gösterilen ortalamaya GİRMİYOR: o hesap fiyat_analiz.py'de, Python'da
+     yapılıyor. Aynı kuralı tarayıcıda ikinci kez yazmak, iki dilde iki
+     doğru demekti. Onaylanan kalemler ayrı bir bölümde "kullanıcıdan"
+     etiketiyle duruyor. */
+  async menuKatkiGonder(k){
+    if (!sb || !oturum) throw new Error("Menü eklemek için giriş yap.");
+    const { error } = await sb.from("menu_katkilari").insert({
+      kullanici: oturum.user.id,
+      mekan_id: k.mekanId,
+      il: k.il || null,
+      mekan_ad: String(k.mekanAd).trim(),
+      urun: (k.urun || "").trim() || null,
+      fiyat: k.fiyat == null || k.fiyat === "" ? null : Number(k.fiyat),
+      foto: k.foto || null,
+      durum: "bekliyor"
+    });
+    if (error) throw new Error(hataMetni(error));
+  },
+
+  async mekanMenuKatkilari(mekanId){
+    if (!sb) return [];
+    const { data, error } = await sb.rpc("mekan_menu_katkilari", { p_mekan_id: mekanId });
+    if (error){ console.error("menu katkilari:", error.message); return []; }
+    return data || [];
+  },
+
+  async menuKatkilarim(){
+    if (!sb || !oturum) return [];
+    const { data, error } = await sb.from("menu_katkilari")
+      .select("id, mekan_id, mekan_ad, il, urun, fiyat, foto, durum, olusturuldu")
+      .order("olusturuldu", { ascending: false });
+    if (error){ console.error("menu katkilarim:", error.message); return []; }
+    return data || [];
+  },
+
+  async menuKatkiSil(id, foto){
+    if (!sb || !oturum) throw new Error("Giriş yapılmamış.");
+    const { error } = await sb.from("menu_katkilari").delete().eq("id", id);
+    if (error) throw new Error(hataMetni(error));
+    /* Kayıt gidince dosya da gitmeli, yoksa kovada sahipsiz resim birikir.
+       Silinemezse sessiz geçiyoruz: kayıt zaten gitti, kullanıcıya
+       yapabileceği bir şey olmayan bir hata göstermenin anlamı yok. */
+    if (foto){ try { await sb.storage.from("menu").remove([foto]); } catch (e) {} }
+  },
+
+  async menuKatkiYonetimListesi(durum){
+    if (!sb || !oturum) return [];
+    let q = sb.from("menu_katkilari")
+      .select("id, mekan_id, mekan_ad, il, urun, fiyat, foto, durum, olusturuldu")
+      .order("olusturuldu", { ascending: false }).limit(200);
+    if (durum) q = q.eq("durum", durum);
+    const { data, error } = await q;
+    if (error){ console.error("menu katki yonetim:", error.message); return []; }
+    return data || [];
+  },
+
+  async menuKatkiKarar(id, durum){
+    if (!sb || !oturum) throw new Error("Giriş yapılmamış.");
+    if (!["onaylandi","reddedildi","bekliyor"].includes(durum))
+      throw new Error("Geçersiz durum.");
+    const { error } = await sb.from("menu_katkilari").update({ durum }).eq("id", id);
+    if (error) throw new Error(hataMetni(error));
+  },
+
+  /* Menü fotoğrafı. Dosya OLDUĞU GİBİ yüklenmiyor: ortak.js'teki
+     resimHazirla() tuvale çizip yeniden kodluyor ve bu sırada EXIF
+     tamamen düşüyor (GPS koordinatı, çekim saati, cihaz modeli).
+     Sunucu bunu doğrulayamıyor -- Storage dosyayı ayrıştırmıyor -- o
+     yüzden kural burada ve test_tarayici.mjs onu ölçüyor. */
+  async menuFotoYukle(dosya){
+    if (!sb || !oturum) throw new Error("Giriş yapılmamış.");
+    if (!/^image\//.test((dosya && dosya.type) || ""))
+      throw new Error("Yalnız resim dosyası yükleyebilirsin.");
+    /* Ham dosya için geniş bir üst sınır: küçültme SONRA yapılıyor, ama
+       200 MB'lık bir dosyayı tuvale çizmeye çalışmak sekmeyi kilitler. */
+    if (dosya.size > 25 * 1024 * 1024)
+      throw new Error("Dosya çok büyük (en fazla 25 MB).");
+    if (typeof resimHazirla !== "function")
+      throw new Error("Resim işleyici yüklenmedi.");
+    const hazir = await resimHazirla(dosya);
+    const yol = oturum.user.id + "/" + Date.now() + "-" +
+                Math.random().toString(36).slice(2, 8) + ".jpg";
+    const { error } = await sb.storage.from("menu")
+      .upload(yol, hazir, { contentType: "image/jpeg", upsert: false });
+    if (error) throw new Error(hataMetni(error));
+    return yol;
+  },
+
+  menuFotoAdresi(yol){
+    if (!sb || !yol) return "";
+    const { data } = sb.storage.from("menu").getPublicUrl(yol);
     return (data && data.publicUrl) || "";
   },
 

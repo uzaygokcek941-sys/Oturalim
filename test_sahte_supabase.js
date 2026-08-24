@@ -60,9 +60,30 @@ function sorgu(tablo){
   return z;
 }
 
+/* Depolama taklidi. Gercek istemcide sb.storage var ve kimlik.js onu
+   avatar ile menu fotografi icin kullaniyor; taklitte olmayinca sayfa
+   "Cannot read properties of undefined (reading 'from')" ile catliyordu.
+   Dosya GERCEKTEN saklanmiyor -- burada sinanan sey arayuz. */
+function depo(kova){
+  return {
+    upload(yol){
+      (V.dosyalar || (V.dosyalar = [])).push({ kova, yol });
+      return Promise.resolve({ data: { path: yol }, error: null });
+    },
+    remove(yollar){
+      V.dosyalar = (V.dosyalar || []).filter(d => !yollar.includes(d.yol));
+      return Promise.resolve({ data: null, error: null });
+    },
+    getPublicUrl(yol){
+      return { data: { publicUrl: "https://ornek.test/" + kova + "/" + yol } };
+    }
+  };
+}
+
 export function createClient(){
   return {
     from: sorgu,
+    storage: { from: depo },
     rpc(ad, p){
       const f = V.rpc[ad];
       return Promise.resolve(f ? f(p) : { data: null, error: { message: "rpc yok: " + ad } });

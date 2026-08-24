@@ -28,6 +28,7 @@ ve ulke capinda engel gercek; uygulama o kosulda da calismali.
 
 Tarayici yoksa kontrol ATLANIR, gectigi soylenmez.
 """
+import base64
 import io
 import os
 import subprocess
@@ -63,6 +64,11 @@ window.L = {
 SAHTE_MODUL = io.open(os.path.join(KOK, "test_sahte_supabase.js"),
                       encoding="utf-8").read()
 
+# GPS ve cihaz bilgisi tasiyan GERCEK bir EXIF blogu (APP1). Elle
+# kuruldu; hazir bir fotograf koymak depoya ikili dosya sokardi.
+EXIF_BLOK = base64.b64decode(
+    "/+EAfUV4aWYAAElJKgAIAAAAAAMPAQIADQAAADIAAAAQAQIADQAAADIAAAAliAQAAQAAAD8AAAAAAAAAT3R1cmFsaW1UZXN0AAIAAQACAAIAAABOAAAAAgAFAAMAAABdAAAAAAAAACkAAAABAAAAAQAAAAEAAAAAAAAAAQAAAA==")
+
 # Girisli halin verisi. Degerler BILEREK ayirt edilebilir: ekranda
 # "Ornek Kafe" gormek, listenin gercekten bu satirdan cizildigini
 # gosteriyor -- sabit bir baslik gormek gostermezdi.
@@ -74,6 +80,9 @@ window.__SAHTE_VERI = {
                    kullanici_adi: "deneme_kisi", dogum_yili: 1998,
                    meslek: "Öğretmen", kisilik: "Sessiz köşe severim",
                    avatar: null, herkese_acik: true }],
+    menu_katkilari: [{ id: 1, kullanici: "kul-1", mekan_id: "node/1", il: "34",
+                   mekan_ad: "Menu Kafe", urun: "Latte", fiyat: 95, foto: null,
+                   durum: "bekliyor", olusturuldu: "2026-08-22T12:00:00Z" }],
     yorumlar:   [{ id: 1, kullanici: "kul-1", mekan_id: "node/1", il: "34",
                    mekan_ad: "Yorum Kafe", puan: 4, metin: "Sessiz ve ucuz",
                    durum: "bekliyor", olusturuldu: "2026-08-23T12:00:00Z" }],
@@ -115,6 +124,12 @@ window.__SAHTE_VERI = {
         yazar_adi: null, yazar_ad: null, yazar_avatar: null,
         yazar_dogum: null, yazar_meslek: null }], error: null }),
     mekan_puani: () => ({ data: [{ adet: 3, ortalama: 4 }], error: null }),
+    /* Biri kalem, biri YALNIZ fotograf: ikisi de cizilmeli. */
+    mekan_menu_katkilari: () => ({ data: [
+      { id: 1, urun: "Latte", fiyat: 95, foto: null,
+        olusturuldu: "2026-08-22T12:00:00Z" },
+      { id: 2, urun: null, fiyat: null, foto: "kul-1/1.jpg",
+        olusturuldu: "2026-08-21T12:00:00Z" }], error: null }),
     il_puanlari: () => ({ data: [], error: null }),
     /* Birakma SILMIYOR, durumu degistiriyor -- taklit de oyle davranmali,
        yoksa arayuz kontrolu gercekte olmayan bir davranisi dogrular. */
@@ -142,8 +157,12 @@ GIRISLI = [
    ["Favori Kafe", "Deneme Kisi"], ["Yükleniyor", "kul-1"]),
   ("hesabim.html/paylasimlar","/hesabim.html", '[data-bolum="paylasimlar"]',
    ["Ornek Kafe", "onay bekliyor"], ["Yükleniyor", "kul-1"]),
+  # Katkilar sekmesinde IKI liste var (eksik bilgi + menu); ikisi de
+  # cizilmeli. Ilk yazimda katkilariCiz #bolum-katkilar'a innerHTML
+  # yaziyordu ve ikinciyi siliyordu.
   ("hesabim.html/katkilar",   "/hesabim.html", '[data-bolum="katkilar"]',
-   ["Katki Kafe", "0312 000 00 00"], ["Yükleniyor", "kul-1"]),
+   ["Katki Kafe", "0312 000 00 00", "Menü katkılarım", "Menu Kafe", "Latte"],
+   ["Yükleniyor", "kul-1"]),
   ("hesabim.html/isletmeler", "/hesabim.html", '[data-bolum="isletmeler"]',
    ["Sahip Kafe", "doğrulanmış"], ["Yükleniyor", "kul-1"]),
   ("hesabim.html/yorumlar",   "/hesabim.html", '[data-bolum="yorumlar"]',
@@ -169,6 +188,12 @@ GIRISLI = [
   # Yonetim: yorum kuyrugu da cizilmeli.
   ("yonetim.html/yorumlar", "/yonetim.html", None,
    ["Yorumlar", "Yorum Kafe", "Sessiz ve ucuz"], ["kul-1"]),
+  ("yonetim.html/menu", "/yonetim.html", None,
+   ["Menü katkıları", "Menu Kafe", "Latte"], ["kul-1"]),
+  # Isletme sayfasi: kalem ve fotograf ayri ayri cizilmeli.
+  ("isletme.html/menu", "/isletme.html?il=34&id=node/8223784325", None,
+   ["Kullanıcıların eklediği fiyatlar", "Latte", "Menüyü görüyor musun"],
+   ["kul-1"]),
 ]
 
 SAYFALAR = ["/index.html", "/kesfet.html", "/kesfet.html?il=34&tur=Kafe&butce=300",
@@ -312,6 +337,65 @@ def kendini_kontrol_et():
                     sorunlar.append("%s: %s dokunma hedefi %dx%d (en az 24x24)"
                                     % (yolu, x["ad"], x["g"], x["y"]))
             tel.close()
+
+            # 1a4) Yuklenen resim EXIF TASIMAMALI.
+            #
+            # Telefon fotografi GPS koordinati, cekim saati ve cihaz
+            # modeli tasir. Bu projede ham IP bile saklanmiyor -- gunluk
+            # yenilenen bir ozete cevriliyor. Kullanicinin bulundugu yerin
+            # koordinatini bir menu fotografinin icinde yayimlamak o
+            # ozenle celisirdi.
+            #
+            # SUNUCU BUNU DOGRULAYAMIYOR: Supabase Storage dosyayi
+            # ayristirmiyor, ne verirsen onu saklar. Yani kural yalnizca
+            # istemcide (ortak.js resimHazirla) ve tek bekcisi burasi.
+            #
+            # Sinama GERCEK bir EXIF blogu takiyor: "EXIF yok" diye
+            # dogrulamak, hic EXIF'i olmayan bir dosyayla da gecerdi.
+            sf, _ = sayfa_ac("/index.html")
+            exif = sf.evaluate("""async (exifDizi) => {
+              const t = document.createElement("canvas");
+              t.width = 900; t.height = 400;
+              const c = t.getContext("2d");
+              c.fillStyle = "#c33"; c.fillRect(0, 0, 900, 400);
+              const ham = await new Promise(r => t.toBlob(r, "image/jpeg", 0.9));
+              const bayt = new Uint8Array(await ham.arrayBuffer());
+              const ex = new Uint8Array(exifDizi);
+              // SOI (FFD8) + EXIF blogu + geri kalani = "telefondan gelmis" dosya
+              const b = new Uint8Array(2 + ex.length + bayt.length - 2);
+              b.set(bayt.slice(0, 2), 0);
+              b.set(ex, 2);
+              b.set(bayt.slice(2), 2 + ex.length);
+              const dosya = new File([b], "telefon.jpg", { type: "image/jpeg" });
+              const oku = async d => {
+                const u8 = new Uint8Array(await d.arrayBuffer());
+                let s = ""; for (const x of u8) s += String.fromCharCode(x);
+                return s;
+              };
+              const oncesi = await oku(dosya);
+              const hazir = await resimHazirla(dosya, 300);
+              const sonrasi = await oku(hazir);
+              return {
+                oncesiExif:   oncesi.includes("Exif"),
+                oncesiCihaz:  oncesi.includes("OturalimTest"),
+                sonrasiExif:  sonrasi.includes("Exif"),
+                sonrasiCihaz: sonrasi.includes("OturalimTest"),
+                tur: hazir.type, boyut: hazir.size
+              };
+            }""", list(EXIF_BLOK))
+            # Once girdinin GERCEKTEN EXIF tasidigini dogrula, yoksa
+            # kontrol bos bir dosyayla da yesil kalirdi.
+            if not (exif["oncesiExif"] and exif["oncesiCihaz"]):
+                sorunlar.append("EXIF sinamasi bozuk: girdi dosyasinda EXIF yok")
+            if exif["sonrasiExif"]:
+                sorunlar.append("yuklenecek resimde EXIF blogu kaliyor")
+            if exif["sonrasiCihaz"]:
+                sorunlar.append("yuklenecek resimde cihaz bilgisi kaliyor")
+            if exif["tur"] != "image/jpeg":
+                sorunlar.append("resim JPEG'e cevrilmiyor (%s)" % exif["tur"])
+            if not exif["boyut"]:
+                sorunlar.append("resim islenince bos ciktI")
+            sf.close()
 
             # 1b) Hicbir [data-giris] bolumu KIRPILI kalmamali.
             #

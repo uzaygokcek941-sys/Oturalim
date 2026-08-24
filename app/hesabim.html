@@ -70,6 +70,10 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
     font:inherit;font-size:16px;width:100%;resize:vertical}
   .ipucu-kucuk{font-size:13px;color:var(--metin-3);line-height:1.5}
   .yorum-metin{margin-top:8px;font-size:16px;line-height:1.55;color:var(--metin-2)}
+  .alt-baslik{font-size:20px;margin:var(--a6) 0 var(--a3)}
+  .mk-kucuk{display:block;width:44px;height:44px;border-radius:var(--r-s);
+    overflow:hidden;border:1px solid var(--cizgi);flex:0 0 auto}
+  .mk-kucuk img{width:100%;height:100%;object-fit:cover;display:block}
   .yildiz{color:var(--vurgu);letter-spacing:1px;white-space:nowrap}
   .ipucu-kucuk code{background:var(--zemin-3);padding:2px 6px;border-radius:4px;
     word-break:break-all}
@@ -157,7 +161,10 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
 
         <section id="bolum-favoriler" data-giris="sicrama"></section>
         <section id="bolum-paylasimlar" hidden></section>
-        <section id="bolum-katkilar" hidden></section>
+        <section id="bolum-katkilar" hidden>
+          <div id="katki-liste"></div>
+          <div id="menu-katki-liste"></div>
+        </section>
         <section id="bolum-yorumlar" hidden></section>
         <section id="bolum-isletmeler" hidden></section>
 
@@ -416,8 +423,52 @@ async function yorumlariCiz(){
     }));
 }
 
+async function menuKatkilariCiz(){
+  const yuva = el("#menu-katki-liste");
+  const liste = await Kimlik.menuKatkilarim();
+  if (!liste.length){ yuva.innerHTML = ""; return; }
+
+  yuva.innerHTML = '<h2 class="alt-baslik">Menü katkılarım</h2>' +
+    liste.map(k => {
+      const d = DURUM_ETIKET[k.durum] || DURUM_ETIKET.bekliyor;
+      const sayfa = k.il && k.mekan_id
+        ? "isletme.html?il=" + encodeURIComponent(k.il) + "&id=" + encodeURIComponent(k.mekan_id)
+        : null;
+      const u = k.foto ? Kimlik.menuFotoAdresi(k.foto) : "";
+      return '<div class="liste-satir">' +
+        '<div class="bilgi"><h3>' +
+          (sayfa ? '<a href="' + kacir(sayfa) + '">' + kacir(k.mekan_ad) + "</a>" : kacir(k.mekan_ad)) +
+        "</h3>" +
+        '<div class="alt">' +
+          (k.urun ? "<span>" + kacir(k.urun) + "</span>" : "<span>menü fotoğrafı</span>") +
+          "<span>" + tarihTR(k.olusturuldu) + "</span>" +
+          '<span class="rozet ' + d.sinif + '">' + d.ad + "</span></div></div>" +
+        '<div class="islem">' +
+          (k.fiyat != null ? '<span class="katki-deger">' + tl(k.fiyat) + "</span>" : "") +
+          (u ? '<a data-resim href="' + kacir(u) + '" target="_blank" rel="noopener" class="mk-kucuk">' +
+               '<img src="' + kacir(u) + '" alt="" loading="lazy"></a>' : "") +
+          '<button class="sil" type="button" data-msil="' + k.id +
+          '" data-foto="' + kacir(k.foto || "") + '" aria-label="Menü katkısını sil">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button>' +
+        "</div></div>";
+    }).join("");
+
+  yuva.querySelectorAll("[data-msil]").forEach(b =>
+    b.addEventListener("click", async () => {
+      b.disabled = true;
+      try {
+        await Kimlik.menuKatkiSil(Number(b.dataset.msil), b.dataset.foto || null);
+        await menuKatkilariCiz();
+        uyar("iyi", "Menü katkısı silindi.");
+      } catch (e){ uyar("hata", e.message); b.disabled = false; }
+    }));
+}
+
 async function katkilariCiz(){
-  const yuva = el("#bolum-katkilar");
+  /* #bolum-katkilar'in KENDISINE yazmiyoruz: icinde iki ayri liste var
+     (eksik bilgi katkilari ve menu katkilari) ve innerHTML ikincisini
+     silerdi. */
+  const yuva = el("#katki-liste");
   yuva.innerHTML = '<p class="bos"><strong>Yükleniyor…</strong></p>';
   const liste = await Kimlik.katkilarim();
 
@@ -429,6 +480,10 @@ async function katkilariCiz(){
       "Mekanların çoğunda saat ve telefon eksik. Bir yerdeysen, kapıda yazanı " +
       "eklemek yarım dakika sürüyor." +
       '<a class="dugme" style="margin-top:var(--a4)" href="kesfet.html">Keşfet\'e git</a></p>';
+    /* Katki listesi bos olsa da menu katkilari cizilmeli: ikisi ayri
+       tablo, biri bosken oteki dolu olabilir. Erken donus bu satiri
+       atliyordu. */
+    await menuKatkilariCiz();
     return;
   }
 
@@ -464,6 +519,8 @@ async function katkilariCiz(){
       try { await Kimlik.katkiSil(Number(b.dataset.ksil)); await katkilariCiz(); uyar("iyi", "Katkı silindi."); }
       catch (e){ uyar("hata", e.message); b.disabled = false; }
     }));
+
+  await menuKatkilariCiz();
 }
 
 /* ---------- işletmelerim (Faz 4) ----------

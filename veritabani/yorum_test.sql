@@ -337,11 +337,20 @@ end $$;
 do $$
 declare n int;
 begin
-  select count(*) into n
-    from information_schema.columns
-   where table_schema = 'public' and table_name = 'profil_yorumlari'
-     and column_name in ('tutar','kisi');
-  if n > 0 then raise exception 'BASARISIZ: profil yorumlarinda fis alani var'; end if;
+  -- information_schema.columns'a FONKSIYON girmiyor; bu sorgu her zaman
+  -- sifir donuyordu, yani kontrol bos calisiyordu. Cikis sutunlari
+  -- pg_proc.proargnames'te. (Ayni hata menu testinde sabotajla bulundu.)
+  declare adlar text[];
+  begin
+    select proargnames into adlar from pg_proc
+     where pronamespace = 'public'::regnamespace and proname = 'profil_yorumlari';
+    if adlar is null or not ('puan' = any(adlar)) then
+      raise exception 'BASARISIZ: kontrol bos calisiyor, cikis sutunlari okunamadi';
+    end if;
+    if exists (select 1 from unnest(adlar) a where a in ('tutar','kisi')) then
+      raise exception 'BASARISIZ: profil yorumlarinda fis alani var (%)', adlar;
+    end if;
+  end;
   -- Kisiye gore fis listeleyen bir fonksiyon HIC olmamali.
   if exists (select 1 from pg_proc pr
                join pg_namespace ns on ns.oid = pr.pronamespace

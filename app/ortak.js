@@ -269,6 +269,80 @@ function bugunYerel(d){
          String(d.getDate()).padStart(2, "0");
 }
 
+/* ---------- yüklenemeyen resmi gizle ----------
+
+   Bir kullanıcı fotoğrafı yüklenemezse (dosya silinmiş, ağ kesik, adres
+   bozuk) tarayıcı kırık simgeyi ve alt metnini gösteriyor: kutunun içine
+   sığmayan, taşan, bozuk görünen bir blok. Kırık bir küçük resim, hiç
+   küçük resim olmamasından kötü.
+
+   error olayı BALONLAMAZ, o yüzden yakalama evresinde dinleniyor
+   (üçüncü argüman true). Tek dinleyici bütün sayfaları kapsıyor:
+   isletme, hesabim ve yonetim aynı resimleri gösteriyor ve üç ayrı
+   yerde üç ayrı çözüm, ikisinin unutulması demekti. */
+function resimHatalariniGizle(hedef){
+  (hedef || document).addEventListener("error", olay => {
+    const g = olay.target;
+    if (!g || g.tagName !== "IMG") return;
+    /* Yalnız işaretlenmiş resimler: site kendi svg/logolarını gizlemesin. */
+    const kap = g.closest("[data-resim]");
+    if (kap) kap.hidden = true;
+  }, true);
+}
+
+/* ---------- yüklenecek resmi hazırla ----------
+
+   Dosyayı OLDUĞU GİBİ yüklemiyoruz; tuvale çizip yeniden kodluyoruz.
+   Üç şey birden oluyor ve üçü de gerekli:
+
+   1) EXIF TAMAMEN DÜŞÜYOR. Telefon fotoğrafı GPS koordinatı, çekim saati
+      ve cihaz modeli taşır. Bu projede ham IP bile saklanmıyor -- günlük
+      yenilenen bir özete çevriliyor (veritabani/sayac.sql). Kullanıcının
+      bulunduğu yerin koordinatını bir menü fotoğrafının içinde yayımlamak
+      o özenle çelişirdi. Tuval yalnız piksel taşır; üstveri taşımaz.
+
+   2) Küçülüyor. 12 MP telefon fotoğrafı ~5 MB; menü okumak için 1600 px
+      fazlasıyla yeter. Az veri, az yükleme süresi ve az depolama.
+
+   3) Biçim tekleşiyor (JPEG). Kovanın kabul ettiği tür sayısı azaldıkça
+      ayrıştırıcı yüzeyi de daralıyor.
+
+   ÖNEMLİ: createImageBitmap'e imageOrientation veriliyor. Verilmezse EXIF
+   yönü okunmaz ve dik çekilmiş fotoğraflar YAN yüklenirdi -- EXIF'i
+   silmenin bilinen yan etkisi tam olarak budur. */
+const RESIM_EN_BUYUK = 1600;      // uzun kenar, piksel
+const RESIM_KALITE    = 0.82;
+
+async function resimHazirla(dosya, enBuyuk, kalite){
+  enBuyuk = enBuyuk || RESIM_EN_BUYUK;
+  const tuvalVar = typeof OffscreenCanvas !== "undefined" || typeof document !== "undefined";
+  if (typeof createImageBitmap !== "function" || !tuvalVar)
+    throw new Error("Tarayıcın resim işlemeyi desteklemiyor.");
+
+  const resim = await createImageBitmap(dosya, { imageOrientation: "from-image" });
+  const oran = Math.min(1, enBuyuk / Math.max(resim.width, resim.height));
+  const g = Math.max(1, Math.round(resim.width  * oran));
+  const y = Math.max(1, Math.round(resim.height * oran));
+
+  const tuval = typeof OffscreenCanvas !== "undefined"
+    ? new OffscreenCanvas(g, y)
+    : Object.assign(document.createElement("canvas"), { width: g, height: y });
+  const ctx = tuval.getContext("2d");
+  /* Beyaz zemin: saydam PNG'yi JPEG'e çevirince saydam alan SIYAH olur ve
+     beyaz zeminli bir menü fotoğrafı okunamaz hale gelirdi. */
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, g, y);
+  ctx.drawImage(resim, 0, 0, g, y);
+  if (resim.close) resim.close();
+
+  const tur = "image/jpeg";
+  const veri = tuval.convertToBlob
+    ? await tuval.convertToBlob({ type: tur, quality: kalite || RESIM_KALITE })
+    : await new Promise(c => tuval.toBlob(c, tur, kalite || RESIM_KALITE));
+  if (!veri) throw new Error("Resim işlenemedi.");
+  return veri;
+}
+
 /* ---------- profil ve yorum yardımcıları ---------- */
 
 /* Doğum yılından yaş. Veride yaş DEĞİL doğum yılı duruyor (profil.sql):
@@ -985,6 +1059,7 @@ function kendiniKontrolEt(){
 /* ---------- açılış ---------- */
 document.addEventListener("DOMContentLoaded", () => {
   temaKur();
+  resimHatalariniGizle();
   kohortGuncelle();
   kendiniKontrolEt();
 });

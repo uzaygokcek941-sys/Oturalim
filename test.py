@@ -577,7 +577,8 @@ def sql_kontrolleri():
     # satiri kontrolu yine yesil yapardi.
     eksik = [ad for ad, imza in (("sahiplenme", "20 kontrolun hepsi gecti"),
                                  ("sayac", "sayac: 11 kontrolun hepsi gecti"),
-                                 ("yorum", "yorum: 20 kontrolun hepsi gecti"))
+                                 ("yorum", "yorum: 20 kontrolun hepsi gecti"),
+                                 ("menu katkisi", "menu katkisi: 12 kontrolun hepsi gecti"))
              if imza not in cikti]
     if eksik:
         return kayit("SQL davranisi (gercek Postgres)",

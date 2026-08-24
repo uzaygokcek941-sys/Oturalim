@@ -32,6 +32,9 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   .kayit h3{font-size:16px;line-height:1.3}
   .kayit .satir{display:flex;gap:var(--a3);flex-wrap:wrap;align-items:center;
     margin-top:var(--a2);font-size:13px;color:var(--metin-3)}
+  .mk-yonetim{margin-top:var(--a3)}
+  .mk-yonetim img{max-width:220px;max-height:220px;border-radius:var(--r-s);
+    border:1px solid var(--cizgi);display:block}
   .kayit .aciklama{margin-top:var(--a3);padding:var(--a3);border-radius:var(--r-s);
     background:var(--zemin-3);font-size:13px;color:var(--metin-2);line-height:1.55}
   .kayit .kisi-basi{color:var(--metin-2);font-weight:600}
@@ -176,6 +179,32 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
 
         <div id="yorumListe"></div>
 
+        <!-- Dorduncu kuyruk: menu katkilari. Iki ayri olcut bir arada:
+             fiyatin makullugu VE fotografin icerigi. Fotograf ayri bir
+             sorumluluk -- yuz, plaka, kisisel bilgi. -->
+        <div class="bolum-bas" style="margin:var(--a6) 0 var(--a5)">
+          <span class="etiket">Yönetim</span>
+          <h2 style="font-size:32px">Menü katkıları</h2>
+          <p>
+            Kullanıcıların eklediği menü kalemleri ve fotoğrafları.
+            İki şeye birden bak: <b>fiyat makul mü</b> ve <b>fotoğrafta
+            olmaması gereken bir şey var mı</b> (yüz, plaka, kişisel bilgi).
+            Fotoğrafların konum ve cihaz bilgisi yüklenirken siliniyor;
+            <b>içeriği</b> yalnız bakan bilir.
+          </p>
+        </div>
+
+        <div class="ozet" id="mkOzet"></div>
+
+        <div class="suzgec" id="mkSuzgec">
+          <button class="cip" data-durum="bekliyor"   aria-pressed="true">Bekleyen</button>
+          <button class="cip" data-durum="onaylandi"  aria-pressed="false">Onaylanan</button>
+          <button class="cip" data-durum="reddedildi" aria-pressed="false">Reddedilen</button>
+          <button class="cip" data-durum=""           aria-pressed="false">Hepsi</button>
+        </div>
+
+        <div id="mkListe"></div>
+
         <!-- Ucuncu bolum: sahiplik. Kuyruk DEGIL -- burada onaylanacak bir
              sey yok, sahiplik kodla kazaniliyor. Burasi bir DENETIM listesi:
              kim neyi sahiplenmis ve gerekirse geri alma. -->
@@ -297,6 +326,7 @@ async function listeyiCiz(){
    degeri onaylamadan once yerinde gorebilsin. */
 let katkiSuzgec = "bekliyor";
 let yorumSuzgec = "bekliyor";
+let mkSuzgec = "bekliyor";
 
 async function katkiOzetiCiz(){
   const hepsi = await Kimlik.katkiYonetimListesi("");
@@ -368,6 +398,71 @@ async function sahiplikCiz(){
       try { await Kimlik.sahiplikIptal(Number(b.dataset.siptal), notu);
             await sahiplikCiz(); uyar("iyi", "Sahiplik iptal edildi."); }
       catch (e){ uyar("hata", e.message); b.disabled = false; }
+    }));
+}
+
+async function mkListesiniCiz(){
+  const yuva = el("#mkListe");
+  yuva.innerHTML = '<p class="bos"><strong>Yükleniyor…</strong></p>';
+  const liste = await Kimlik.menuKatkiYonetimListesi(mkSuzgec);
+
+  el("#mkOzet").innerHTML = liste.length
+    ? "<div><b>" + sayi(liste.length) + "</b><span>kayıt</span></div>" +
+      "<div><b>" + sayi(liste.filter(k => k.foto).length) + "</b><span>fotoğraflı</span></div>"
+    : "";
+
+  if (!liste.length){
+    yuva.innerHTML = '<p class="bos">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 13 4 4L19 7"/></svg>' +
+      "<strong>Bu listede kayıt yok</strong>" +
+      (mkSuzgec === "bekliyor" ? "Bekleyen menü katkısı kalmadı." : "Başka bir süzgeç dene.") +
+      "</p>";
+    return;
+  }
+
+  yuva.innerHTML = liste.map(k => {
+    const d = DURUM[k.durum] || DURUM.bekliyor;
+    const sayfa = k.il && k.mekan_id
+      ? ' · <a href="isletme.html?il=' + encodeURIComponent(k.il) +
+        "&id=" + encodeURIComponent(k.mekan_id) + '" target="_blank" rel="noopener">sayfayı aç</a>'
+      : "";
+    const u = k.foto ? Kimlik.menuFotoAdresi(k.foto) : "";
+    return '<article class="kayit ' + k.durum + '">' +
+      "<div><h3>" + kacir(k.mekan_ad) + "</h3>" +
+        '<div class="satir">' +
+          (k.urun ? "<span>" + kacir(k.urun) + "</span>" : "") +
+          (k.fiyat != null ? "<span><b>" + tl(k.fiyat) + "</b></span>" : "") +
+          (k.il ? "<span>il " + kacir(k.il) + "</span>" : "") +
+          "<span>" + tarihTR(k.olusturuldu) + "</span>" +
+          '<span class="rozet ' + d.sinif + '">' + d.ad + "</span></div>" +
+        /* Fotograf BUYUK acilabilmeli: kucuk bir kutuda plakayi ya da
+           bir yuzu kacirmak kolay. */
+        (u ? '<div class="mk-yonetim" data-resim><a href="' + kacir(u) + '" target="_blank" rel="noopener">' +
+             '<img src="' + kacir(u) + '" alt="" loading="lazy"></a></div>' : "") +
+        '<div class="aciklama"><b>' + kacir(k.mekan_id) + "</b>" + sayfa + "</div>" +
+      "</div>" +
+      '<div><div class="kararlar">' +
+        (k.durum !== "onaylandi"
+          ? '<button class="dugme kucuk onay" type="button" data-mkarar="onaylandi" data-id="' + k.id + '">Onayla</button>' : "") +
+        (k.durum !== "reddedildi"
+          ? '<button class="dugme ikincil kucuk ret" type="button" data-mkarar="reddedildi" data-id="' + k.id + '">Reddet</button>' : "") +
+        (k.durum !== "bekliyor"
+          ? '<button class="dugme duz kucuk" type="button" data-mkarar="bekliyor" data-id="' + k.id + '">Beklemeye al</button>' : "") +
+      "</div></div></article>";
+  }).join("");
+
+  yuva.querySelectorAll("[data-mkarar]").forEach(b =>
+    b.addEventListener("click", async () => {
+      const kardesler = [...b.parentElement.querySelectorAll("button")];
+      kardesler.forEach(x => { x.disabled = true; });
+      try {
+        await Kimlik.menuKatkiKarar(Number(b.dataset.id), b.dataset.mkarar);
+        await mkListesiniCiz();
+        uyar("iyi", "Menü katkısı güncellendi.");
+      } catch (e){
+        uyar("hata", e.message);
+        kardesler.forEach(x => { x.disabled = false; });
+      }
     }));
 }
 
@@ -491,6 +586,15 @@ async function katkiListesiniCiz(){
     }));
 }
 
+el("#mkSuzgec").addEventListener("click", e => {
+  const b = e.target.closest("button[data-durum]");
+  if (!b) return;
+  mkSuzgec = b.dataset.durum;
+  document.querySelectorAll("#mkSuzgec button").forEach(x =>
+    x.setAttribute("aria-pressed", String(x === b)));
+  mkListesiniCiz();
+});
+
 el("#yorumSuzgec").addEventListener("click", e => {
   const b = e.target.closest("button[data-durum]");
   if (!b) return;
@@ -530,7 +634,8 @@ Kimlik.hazir.then(async acik => {
   if (!Kimlik.yonetici){ el("#yetkisiz").hidden = false; return; }
   el("#icerik").hidden = false;
   await Promise.all([ozetiCiz(), listeyiCiz(), katkiOzetiCiz(),
-                     katkiListesiniCiz(), yorumListesiniCiz(), sahiplikCiz()]);
+                     katkiListesiniCiz(), yorumListesiniCiz(),
+                     mkListesiniCiz(), sahiplikCiz()]);
 });
 </script>
 </body>

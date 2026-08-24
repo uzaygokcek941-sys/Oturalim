@@ -66,6 +66,21 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   .katki-not{font-size:.88rem;color:var(--soluk);margin-top:var(--a2)}
   .katki-not.kotu{color:var(--vurgu)}
 
+  /* ---- kullanici menu katkilari ---- */
+  .mkatki{border-top:1px solid var(--cizgi);padding-top:var(--a4);margin-top:var(--a4)}
+  .mkatki h2{margin:0 0 var(--a2)}
+  .mk-kalem{display:flex;justify-content:space-between;gap:var(--a3);
+    padding:6px 0;border-bottom:1px solid var(--cizgi)}
+  .mk-kalem b{white-space:nowrap}
+  .mk-fotolar{display:flex;flex-wrap:wrap;gap:var(--a2);margin-top:var(--a3)}
+  .mk-fotolar a{display:block;width:96px;height:96px;border-radius:var(--r-s,6px);
+    overflow:hidden;border:1px solid var(--cizgi)}
+  .mk-fotolar img{width:100%;height:100%;object-fit:cover;display:block}
+  .mk-foto{display:flex;gap:var(--a2);align-items:center;flex-wrap:wrap;
+    margin-top:var(--a3)}
+  #mkOnizleme{width:72px;height:72px;object-fit:cover;border-radius:var(--r-s,6px);
+    border:1px solid var(--cizgi)}
+
   /* ---- yorumlar ---- */
   .yorumlar{border-top:1px solid var(--cizgi);padding-top:var(--a4);margin-top:var(--a4)}
   .yorum-baslik{display:flex;gap:var(--a3);align-items:baseline;flex-wrap:wrap}
@@ -136,6 +151,44 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
     <h2>Buraya gidenler ne ödemiş</h2>
     <p id="fisOzet"></p>
     <a class="dugme ikincil" id="fisEkle" href="paylas.html">Ödediğini ekle</a>
+  </section>
+
+  <!-- Menü katkıları. paylasimlar bir HESAP taşıyor ("3 kişi, 850 ₺"),
+       burası bir LİSTE FİYATI ("Latte 95 ₺"). Ayrı sorular, ayrı bölümler.
+       Gösterilen ortalamaya GİRMİYOR: o hesap fiyat_analiz.py'de, Python'da
+       yapılıyor; aynı kuralı tarayıcıda ikinci kez yazmak iki dilde iki
+       doğru demekti. -->
+  <section class="mkatki" id="menuKatki" data-giris="perde" hidden>
+    <h2>Kullanıcıların eklediği fiyatlar</h2>
+    <p class="katki-not" id="mkNot0"></p>
+    <div id="mkListe"></div>
+
+    <form class="katki" id="mkForm" hidden>
+      <p><strong>Menüyü görüyor musun?</strong> Bir kalemi yaz ya da menünün
+        fotoğrafını çek. Kontrol edildikten sonra bu sayfada görünür.</p>
+      <div class="katki-satir">
+        <input id="mkUrun" type="text" maxlength="80" placeholder="Ürün (örn. Latte)"
+               aria-label="Ürün adı">
+        <input id="mkFiyat" type="number" min="1" max="100000" step="0.5"
+               inputmode="decimal" placeholder="Fiyat ₺" aria-label="Fiyat">
+      </div>
+      <div class="mk-foto">
+        <label class="dugme ikincil kucuk" for="mkFoto" style="cursor:pointer">
+          Fotoğraf ekle
+        </label>
+        <!-- capture yok: kullanici galeriden de secebilmeli. accept
+             yalniz ipucu; asil denetim kimlik.js ve kovanin kendisinde. -->
+        <input id="mkFoto" type="file" accept="image/*" class="gizli"
+               aria-label="Menü fotoğrafı">
+        <button class="dugme duz kucuk" id="mkFotoSil" type="button" hidden>Kaldır</button>
+        <img id="mkOnizleme" alt="" hidden>
+      </div>
+      <p class="katki-not" id="mkNot">
+        Fotoğraftaki konum ve cihaz bilgisi (EXIF) yüklenmeden önce siliniyor.
+        İnsan yüzü ve kişisel bilgi olmamasına dikkat et.
+      </p>
+      <button class="dugme" id="mkGonder" type="submit">Gönder</button>
+    </form>
   </section>
 
   <!-- Yorumlar FİYATTAN AYRI duruyor. Fiş bir ÖLÇÜM taşıyor (850 ₺,
@@ -361,6 +414,7 @@ function goster(m, ilAd){
   sayacCalistir(ID);
   fisKatmani(ID, m.ad, IL);
   yorumKatmani(ID, m.ad, IL);
+  menuKatkiKatmani(ID, m.ad, IL);
 }
 
 /* ============================================================
@@ -622,6 +676,157 @@ function fisOzeti(o){
            (FIS_ESIK - n) + " tane daha gelince ortalama burada görünecek.";
   return "Kişi başı ~" + tl(o.medyan) + " · " +
          (o.kisi ? sayi(o.kisi) + " kişinin " : "") + sayi(n) + " fişinden.";
+}
+
+/* ============================================================
+   Menü katkıları
+
+   paylasimlar bir HESAP tasiyor ("3 kisi, 850 TL"); burasi bir LISTE
+   FIYATI ("Latte 95 TL"). Ayri sorular.
+
+   GOSTERILEN ORTALAMAYA GIRMIYOR. O hesap fiyat_analiz.py'de, Python'da
+   yapiliyor: kategori ayrimi, ana urun orani, alt sinirlar. Ayni kurali
+   tarayicida ikinci kez yazmak, iki dilde iki dogru demekti -- bu depoda
+   en pahali hatalar tam olarak oyle cikti. Onaylanan kalemler AYRI
+   duruyor; sonraki veri uretiminde boru hattina disaridan besleniyor.
+   ============================================================ */
+async function menuKatkiKatmani(mekanId, mekanAd, ilKod){
+  const bol  = document.getElementById("menuKatki");
+  const yuva = document.getElementById("mkListe");
+  const form = document.getElementById("mkForm");
+  const not0 = document.getElementById("mkNot0");
+
+  if (!Kimlik.acik) return;
+  /* Kimlik.acik yalniz YAPILANDIRMANIN dolu oldugunu soyluyor; istemcinin
+     kurulup kurulmadigini degil. Calismayan bir kutu gostermek, hic
+     gostermemekten kotu (katki formunda olculmus hata). */
+  try { if (!(await Kimlik.hazir)) return; } catch (e) { return; }
+
+  async function ciz(){
+    const l = await Kimlik.mekanMenuKatkilari(mekanId);
+    const kalemler = l.filter(k => k.urun && k.fiyat != null);
+    const fotolar  = l.filter(k => k.foto);
+    not0.textContent = l.length
+      ? "Buraya gidenlerin eklediği fiyatlar. İşletmenin kendi yayımladığı " +
+        "menüden ayrı duruyor ve ortalama hesabına girmiyor."
+      : "Buranın menüsünü kimse eklememiş.";
+    yuva.innerHTML =
+      kalemler.map(k =>
+        '<div class="mk-kalem"><span>' + kacir(k.urun) + "</span><b>" +
+        tl(k.fiyat) + "</b></div>").join("") +
+      (fotolar.length
+        ? '<div class="mk-fotolar">' + fotolar.map(k => {
+            const u = Kimlik.menuFotoAdresi(k.foto);
+            return u ? '<a data-resim href="' + kacir(u) + '" target="_blank" rel="noopener">' +
+                       '<img src="' + kacir(u) + '" alt="Menü fotoğrafı" loading="lazy">' +
+                       "</a>" : "";
+          }).join("") + "</div>"
+        : "");
+    bol.hidden = false;
+  }
+  await ciz();
+
+  const urun  = document.getElementById("mkUrun");
+  const fiyat = document.getElementById("mkFiyat");
+  const not   = document.getElementById("mkNot");
+  const dug   = document.getElementById("mkGonder");
+  const alan  = document.getElementById("mkFoto");
+  const onizle= document.getElementById("mkOnizleme");
+  const fsil  = document.getElementById("mkFotoSil");
+  let fotoYolu = null;
+  let onizlemeAdresi = "";
+
+  const donus = "isletme.html?il=" + encodeURIComponent(ilKod) +
+                "&id=" + encodeURIComponent(mekanId);
+  Kimlik.izle(d => { dug.textContent = d.girisli ? "Gönder" : "Giriş yap ve ekle"; });
+  form.hidden = false;
+
+  function fotoTemizle(){
+    fotoYolu = null;
+    if (onizlemeAdresi){ URL.revokeObjectURL(onizlemeAdresi); onizlemeAdresi = ""; }
+    onizle.hidden = true; onizle.removeAttribute("src");
+    fsil.hidden = true;
+    alan.value = "";
+  }
+
+  alan.addEventListener("change", async e => {
+    const d = e.target.files && e.target.files[0];
+    if (!d) return;
+    if (!Kimlik.girisli){
+      not.textContent = "Fotoğraf eklemek için önce giriş yap.";
+      not.classList.add("kotu");
+      alan.value = "";
+      return;
+    }
+    not.classList.remove("kotu");
+    not.textContent = "Fotoğraf hazırlanıyor…";
+    try {
+      /* Yukleme SIMDI yapiliyor, gonderirken degil: kullanici formu
+         doldururken beklemesin ve resmin gercekten yuklendigini gonder
+         tusuna basmadan gorsun. Vazgecerse dosya kovada kaliyor ama
+         hicbir kayda bagli degil -- yoneticinin gordugu liste yalniz
+         tabloya bakiyor. */
+      fotoYolu = await Kimlik.menuFotoYukle(d);
+      onizlemeAdresi = URL.createObjectURL(d);
+      onizle.src = onizlemeAdresi;
+      onizle.hidden = false;
+      fsil.hidden = false;
+      not.textContent = "Fotoğraf eklendi. Konum ve cihaz bilgisi silindi.";
+    } catch (hata){
+      fotoTemizle();
+      not.textContent = hata.message;
+      not.classList.add("kotu");
+    }
+  });
+
+  fsil.addEventListener("click", fotoTemizle);
+
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+    if (!Kimlik.girisli){
+      location.href = "giris.html?donus=" + encodeURIComponent(donus);
+      return;
+    }
+    const u = urun.value.trim();
+    const f = fiyat.value.trim();
+    /* Ya kalem (ad + fiyat BIRLIKTE), ya fotograf. Ayni kural
+       veritabaninda da var (menu_katkilari_dolu_check); buradaki
+       eleme yalnizca hatayi alanin yaninda gostermek icin. */
+    if (!fotoYolu && !(u && f)){
+      not.textContent = "Ürün adı ve fiyatını birlikte yaz ya da bir fotoğraf ekle.";
+      not.classList.add("kotu");
+      return;
+    }
+    if ((u && !f) || (!u && f)){
+      not.textContent = "Ürün adı ve fiyatı birlikte olmalı.";
+      not.classList.add("kotu");
+      return;
+    }
+    if (f){
+      const n = Number(f);
+      if (!Number.isFinite(n) || n <= 0 || n > 100000){
+        not.textContent = "Fiyat 0 ile 100.000 ₺ arasında olmalı.";
+        not.classList.add("kotu");
+        return;
+      }
+    }
+    dug.disabled = true;
+    const eski = dug.textContent;
+    dug.textContent = "Gönderiliyor…";
+    try {
+      await Kimlik.menuKatkiGonder({
+        mekanId, il: ilKod, mekanAd,
+        urun: u || null, fiyat: f || null, foto: fotoYolu
+      });
+      form.innerHTML = '<p><strong>Teşekkürler, aldım.</strong> ' +
+        "Kontrol ettikten sonra bu sayfada görünecek.</p>";
+    } catch (hata){
+      not.textContent = hata.message;
+      not.classList.add("kotu");
+      dug.disabled = false;
+      dug.textContent = eski;
+    }
+  });
 }
 
 /* ============================================================

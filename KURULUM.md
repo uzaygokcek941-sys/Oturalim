@@ -38,6 +38,7 @@ Toplam süre: ~15 dakika. Ücret yok, kart istenmiyor.
    | `veritabani/sahiplenme.sql` | İşletme sahiplenme kodu (saha kartları) | Kod alanı hiç görünmez |
    | `veritabani/profil.sql` | Genişletilmiş profil (fotoğraf, yaş, meslek) | Ayarlarda yalnız ad ve parola görünür |
    | `veritabani/yorum.sql` | Mekan yorumları ve puanlar | Yorum bölümü hiç görünmez |
+   | `veritabani/menu_katki.sql` | Menü/ürün paylaşımı (fotoğraflı) | Menü ekleme bölümü hiç görünmez |
 
    Hiçbiri kurulmadığında sayfa normal çalışır; yalnız o bölümler
    sessizce gizli kalır. Beklenen çıktılar:
@@ -48,11 +49,18 @@ Toplam süre: ~15 dakika. Ücret yok, kart istenmiyor.
    Sahiplenme kuruldu: kod tablosu kapali, sahiplik 3 politika
    Profil kuruldu: 6 alan, kullanici adi uretiliyor, tablo kapali
    Yorum kuruldu: RLS acik, 5 politika, kimlik sutunu kapali
+   Menu katkisi kuruldu: RLS acik, 5 politika, kimlik sutunu kapali
    ```
 
    > `profil.sql` **`yorum.sql`'den önce** çalıştırılmalı: yorumlar yazarın
    > profil alanlarını okuyor. Sıra yanlışsa `yorum.sql` anlaşılır bir
    > cümleyle duruyor, bozuk bir kurulum bırakmıyor.
+
+   > **Fotoğraflar için ek adım yok.** `profil.sql` ve `menu_katki.sql`
+   > depolama kovalarını (`avatar`, `menu`) ve yetkilerini kendileri
+   > kuruyor. Yüklenen fotoğrafın **konum ve cihaz bilgisi (EXIF)
+   > tarayıcıda siliniyor** — sunucu bunu doğrulayamaz, o yüzden kural
+   > istemcide ve `test_sayfa.py` gerçek bir EXIF bloğuyla ölçüyor.
 
    > **Profil fotoğrafı için ek adım yok.** `profil.sql` depolama kovasını
    > ve yetkilerini kendisi kuruyor. Supabase panelinde
