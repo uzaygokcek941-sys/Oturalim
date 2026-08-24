@@ -628,7 +628,13 @@ function ac(id){
     m.saat   ? satir(IK.saat,   kacir(m.saat)) : "",
     m.tel    ? satir(IK.tel, '<a href="tel:' + kacir(m.tel.replace(/\s/g,"")) + '">' +
                              kacir(m.tel) + "</a>") : "",
-    m.web    ? satir(IK.web, webBagi(m.web)) : ""
+    m.web    ? satir(IK.web, webBagi(m.web)) : "",
+    /* Instagram sitesi olmayan 192 mekanin TEK baglantisi. Onceden
+       yalniz isletme sayfasinda vardi, yani bu panelde o mekanlarda
+       hicbir baglanti gorunmuyordu. */
+    m.insta  ? satir(IK.web,
+                 '<a href="https://instagram.com/' + encodeURIComponent(m.insta) +
+                 '" target="_blank" rel="noopener">@' + kacir(m.insta) + "</a>") : ""
   ].filter(Boolean).join("");
 
   let govde = bilgi ? '<div class="d-bilgi">' + bilgi + "</div>" : "";
