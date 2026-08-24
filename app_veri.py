@@ -18,7 +18,7 @@ import os
 import re
 from collections import defaultdict
 
-from fiyat_analiz import kategorile, yiyecek_mi
+from fiyat_analiz import TABAN, TAVAN, kategorile, yiyecek_mi
 
 IL_KODU = {
     "Adana": "01", "Adiyaman": "02", "Afyonkarahisar": "03", "Agri": "04",
@@ -74,8 +74,10 @@ TUR_TR = {"cafe": "Kafe", "restaurant": "Restoran", "bar": "Bar",
           "aquarium": "Akvaryum", "gallery": "Sanat galerisi"}
 
 # Menu kalemi sayilabilecek makul araliklar (TL). Disari cikan degerler
-# perakende urun / hediye paketi / veri hatasidir.
-ALT_SINIR, UST_SINIR = 25, 2000
+# perakende urun / hediye paketi / veri hatasidir. Deger fiyat_analiz'den
+# geliyor: olcut da bu boru hatti da AYNI kalemleri gormeli, yoksa olcut
+# uygulamanin gostermedigi fiyatlardan hesaplanmis olur.
+ALT_SINIR, UST_SINIR = TABAN, TAVAN
 
 # --- Fiyatin yasi -------------------------------------------------------
 # Enflasyonda tarihsiz fiyat bir iddia degil, bir tahmindir. Toplayici

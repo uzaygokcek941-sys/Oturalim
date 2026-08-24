@@ -96,10 +96,18 @@ function mesafeYaz(km){
   return km < 1 ? Math.round(km * 1000) + " m" : km.toFixed(1) + " km";
 }
 
+let cizimIl = "";
+
+/* Secili ilin ekrandaki adi. Olcutun il kirilimi buna gore araniyor. */
+function ilAdi(){
+  const s = el("#il");
+  return s && s.selectedOptions[0] ? s.selectedOptions[0].textContent.trim() : "";
+}
+
 /* ---------- çizim ---------- */
 function kartHTML(m){
   const a = acikMi(m.saat), b = bant(m, butce), o = paylasimOzet(m.id),
-        sv = seviye(m);
+        sv = seviye(m), mb = mekanBandi(m, cizimIl);
   /* Mesafe cetveli icin 0-1 arasi deger, GORUNEN listeye gore olceklenir.
      Sabit tavan (5 km) ise yaramiyor: sehir merkezinde ilk 120 mekan
      700 m icinde kaliyor, butun centikler ayni uzunlukta cikiyordu.
@@ -115,7 +123,13 @@ function kartHTML(m){
     (a === true  ? '<span class="rozet acik">açık</span>' : "") +
     (a === false ? '<span class="rozet kapali">kapalı</span>' : "") +
     (b ? '<span class="bant ' + b.sinif + '">' + b.ad + "</span>" : "") +
-    (!b && sv && !sv.olculdu ? '<span class="seviye ' + sv.sinif + '">' + sv.ad + "</span>" : "") +
+    /* Sira: butce bandi > mekan bandi > tur/mutfak tahmini.
+       Butce girilmisse kullanicinin sordugu soru "butceme giriyor mu";
+       girilmemisse "burasi ucuz mu". Ucu birden basmak kartta uc rozet
+       demek olurdu ve ucu de ayni seyi soylemeye calisiyor. */
+    (!b && mb ? '<span class="bant ' + mb.sinif + '">' + mb.ad + "</span>" : "") +
+    (!b && !mb && sv && !sv.olculdu
+      ? '<span class="seviye ' + sv.sinif + '">' + sv.ad + "</span>" : "") +
     (m.bahce ? '<span class="rozet">bahçe</span>' : "") +
     (m.wifi  ? '<span class="rozet">wi-fi</span>' : "") +
     (konum ? '<span class="rozet mesafe">' + mesafeYaz(uzaklik(m)) + "</span>" : "") +
@@ -138,6 +152,9 @@ function ciz(haritayiOrtala){
   cetvelTavan = konum
     ? l.slice(0, limit).reduce((e, m) => Math.max(e, uzaklik(m)), 0)
     : 0;
+  /* Cizim basina bir kez: kartHTML her kart icin DOM'a sormasin.
+     cetvelTavan ile ayni gerekce, ayni desen. */
+  cizimIl = ilAdi();
 
   const kutu = el("#kartlar");
   kutu.classList.toggle("ilk-cizim", !ilkCizimOldu);
@@ -261,16 +278,69 @@ const OLCUT_EN_GENIS_BANT = 0.8;
 /* Mekanın kategori fiyatını ölçütle kıyaslar. İl ölçütü varsa o, yoksa ülke.
    Yalnız bandın DIŞINA taşan işaretlenir: bandın içi "normal" değil,
    "bir şey söyleyemiyoruz". */
+/* Olcut kullanilabilir mi: yeterli marka, yeterince dar bant. */
+function olcutSaglam(o){
+  return !!(o && o.alt && o.ust && o.medyan &&
+            o.kaynak >= OLCUT_EN_AZ_MARKA &&
+            (o.ust - o.alt) / o.medyan <= OLCUT_EN_GENIS_BANT);
+}
+
 function olcutKiyas(ilAd, kategori, fiyat){
   if (!olcut) return null;
   const anahtar = Object.keys(olcut.il).find(k => sadeIl(k) === sadeIl(ilAd));
-  const o = (anahtar && olcut.il[anahtar][kategori]) || olcut.turkiye[kategori];
-  if (!o || !o.alt || !o.ust || !o.medyan) return null;
-  if (o.kaynak < OLCUT_EN_AZ_MARKA) return null;
-  if ((o.ust - o.alt) / o.medyan > OLCUT_EN_GENIS_BANT) return null;
-  if (fiyat < o.alt) return { sinif:"ucuz", ad:"ucuz",   medyan:o.medyan };
-  if (fiyat > o.ust) return { sinif:"tuz",  ad:"pahalı", medyan:o.medyan };
-  return null;
+  /* En OZEL olcut kazanir ama yalniz olcu barini gecerse. Onceden il
+     kaydi VARSA o kullaniliyordu; 4 markalik bir il olcutu, 16 markalik
+     ulke olcutunu bastiriyor ve cevabi susturuyordu. Daha zayif kanit
+     daha guclusunu engellememeli. */
+  const ilO = anahtar ? olcut.il[anahtar][kategori] : null;
+  const o = olcutSaglam(ilO) ? ilO : olcut.turkiye[kategori];
+  if (!olcutSaglam(o)) return null;
+  if (fiyat < o.alt) return { sinif:"ucuz", ad:"ucuz",   medyan:o.medyan, orta:false };
+  if (fiyat > o.ust) return { sinif:"tuz",  ad:"pahalı", medyan:o.medyan, orta:false };
+  /* Bandin ICI de bir cevap: "bu kategorideki markalarin ortadaki
+     yarisinda". Kategori satirindaki rozet bunu BASMIYOR (orada amac
+     goze carpani isaretlemek); mekan bandi basiyor. Karsilastirma tek
+     fonksiyonda kaliyor, gosterip gostermemeye cagiran karar veriyor. */
+  return { sinif:"orta", ad:"orta", medyan:o.medyan, orta:true };
+}
+
+/* ---------- mekanın ucuz / orta / pahalı bandı ----------
+   Neye gore? Mekanin ANA URUN turune gore: pizzaci pizzacilarla,
+   kebapci kebapcilarla kiyaslanir. Ulke ortalamasina gore soylemek
+   anlamsizdi -- 900 TL'lik balikci "pahali", 480 TL'lik pizzaci "ucuz"
+   cikardi ve ikisi de yanlis olurdu.
+
+   Olcut TEK BIR kategoride guvenilir degilse band hic gosterilmiyor.
+   Ornegin bugun Pizza olcutu 5 markadan cikiyor; 5 markaya dayanip
+   "bu pizzaci pahali" demek, uydurma seviyeden farksiz olurdu.
+   Bkz. OLCUT_EN_AZ_MARKA ve OLCUT_EN_GENIS_BANT.
+
+   Cok ana urunlu mekanda (balikci + kahvaltici) hepsinin ayni yonu
+   gostermesi araniyor: biri ucuz digeri pahali diyorsa cevap yok. */
+/* Kategori satirinda hangi kiyas rozet olur. "orta" olmaz: 30 satirin
+   25'ine basilir ve hicbirini ayirt ettirmez. Mekan bandi ayni kiyasi
+   kullaniyor ama "orta"yi gosteriyor -- orada tek bir cevap var ve
+   sessiz kalmak "bilinmiyor" demekti. Karar burada, kiyasin kendisinde
+   degil: karsilastirma tek yerde kalsin. */
+function kategoriRozeti(kiyas){
+  return kiyas && !kiyas.orta ? kiyas : null;
+}
+
+function mekanBandi(m, ilAd, bugun){
+  const fiyat = yemekFiyati(m, bugun);
+  if (fiyat == null) return null;
+  const ana = anaKategoriler(m);
+  if (!ana || !ana.length) return null;
+  let ortak = null;
+  for (const k of ana){
+    const kiyas = olcutKiyas(ilAd, k, fiyat);
+    if (!kiyas) return null;                    /* olcut yetersiz: sus */
+    if (ortak && ortak.sinif !== kiyas.sinif) return null;   /* celiski */
+    ortak = kiyas;
+  }
+  return ortak && { sinif: ortak.sinif, ad: ortak.ad,
+                    tur: ana.join(", ").toLocaleLowerCase("tr"),
+                    medyan: ortak.medyan };
 }
 
 function paylasimOzet(mekanId){
@@ -290,10 +360,17 @@ function olcutKontrol(){
   if (!new URLSearchParams(location.search).has("test")) return [];
   const yedek = olcut;
   olcut = {
-    turkiye: { Kebap:{ kaynak:16, medyan:748, alt:474, ust:900 } },
+    turkiye: { Kebap: { kaynak:16, medyan:748, alt:474, ust:900 },
+               // Sarap: ilde zayif, ulkede saglam -> ulkeye dusmeli
+               Sarap: { kaynak:12, medyan:550, alt:400, ust:700 } },
     il: { Istanbul: {
       Kebap: { kaynak:11, medyan:755, alt:470, ust:900 },
-      Cay:   { kaynak:3,  medyan:45,  alt:35,  ust:250 },   // marka az
+      Cay:   { kaynak:3,  medyan:45,  alt:35,  ust:250 },   // marka az VE bant geniş
+      // Dar bant ama marka az: YALNIZ marka esigi reddedebilir.
+      Kofte: { kaynak:3,  medyan:400, alt:350, ust:450 },
+      // Kebap'ta "ucuz" olan 300, burada "pahalı" -> celiski yolu.
+      Salata:{ kaynak:12, medyan:150, alt:100, ust:200 },
+      Sarap: { kaynak:2,  medyan:550, alt:400, ust:700 },   // marka az, ulkede var
       Pizza: { kaynak:18, medyan:480, alt:19,  ust:547 }    // bant çok geniş
     } }
   };
@@ -301,11 +378,76 @@ function olcutKontrol(){
     ["il olcutu ascii/turkce eslesmeli",
      olcutKiyas("İstanbul", "Kebap", 1250) && olcutKiyas("İstanbul","Kebap",1250).sinif, "tuz"],
     ["band altinda ucuz", olcutKiyas("İstanbul", "Kebap", 300).sinif, "ucuz"],
-    ["band icinde rozet yok", olcutKiyas("İstanbul", "Kebap", 600), null],
+    ["band icinde orta doner", olcutKiyas("İstanbul", "Kebap", 600).sinif, "orta"],
+    ["band icinde kategori rozeti basilmaz",
+     olcutKiyas("İstanbul", "Kebap", 600).orta,                       true],
     ["az markali olcut rozet basmaz", olcutKiyas("İstanbul", "Cay", 9999), null],
+    /* Dar bantli ama az markali olcut: reddi YALNIZ marka esigi verebilir.
+       Cay hem az markali hem genis bantli oldugu icin marka esigi bozulsa
+       bile testi gecirriyordu -- kontrol yanlis sebepten yesildi. */
+    ["dar bantli ama az markali olcut da rozet basmaz",
+     olcutKiyas("İstanbul", "Kofte", 9999),                           null],
+    ["kategori rozeti ortayi basmaz",
+     kategoriRozeti(olcutKiyas("İstanbul", "Kebap", 600)),             null],
+    ["kategori rozeti pahaliyi basar",
+     (kategoriRozeti(olcutKiyas("İstanbul", "Kebap", 1250)) || {}).sinif, "tuz"],
     ["genis bantli olcut rozet basmaz", olcutKiyas("İstanbul", "Pizza", 9999), null],
     ["il yoksa ulke olcutune duser", olcutKiyas("Bilinmeyen", "Kebap", 1250).sinif, "tuz"],
-    ["bilinmeyen kategori", olcutKiyas("İstanbul", "Yok", 100), null]
+    /* Zayif il olcutu, guclu ulke olcutunu bastirmamali. Stub'da Istanbul
+       Cay'i 3 markadan (zayif); ulke Cay olcutu 12 markadan ve dar. */
+    ["zayif il olcutu ulke olcutunu susturmaz",
+     olcutKiyas("İstanbul", "Sarap", 900).sinif,                      "tuz"],
+    ["il olcutu saglamsa o kullanilir",
+     olcutKiyas("İstanbul", "Kebap", 465).sinif,                      "ucuz"],
+    ["bilinmeyen kategori", olcutKiyas("İstanbul", "Yok", 100), null],
+
+    /* --- mekan bandi --- */
+    ["mekan bandi ana urune gore ucuz",
+     (mekanBandi({kat:{"Kebap":{n:4,med:300,top:1200}}}, "İstanbul") || {}).sinif,
+                                                                      "ucuz"],
+    ["mekan bandi ana urune gore pahali",
+     (mekanBandi({kat:{"Kebap":{n:4,med:1200,top:4800}}}, "İstanbul") || {}).sinif,
+                                                                      "tuz"],
+    ["mekan bandi ana urune gore orta",
+     (mekanBandi({kat:{"Kebap":{n:4,med:600,top:2400}}}, "İstanbul") || {}).sinif,
+                                                                      "orta"],
+    /* Icecek ana urun degil: kebapcinin bandi kebaptan cikmali, caydan
+       degil -- Cay olcutu zaten guvenilmez ve bandi susturmamali. */
+    ["mekan bandi icecege bakmaz",
+     (mekanBandi({kat:{"Kebap":{n:4,med:300,top:1200},
+                       "Çay":{n:9,med:45,top:405}}}, "İstanbul") || {}).sinif,
+                                                                      "ucuz"],
+    ["mekan bandi hangi turden hesaplandigini soyler",
+     (mekanBandi({kat:{"Kebap":{n:4,med:300,top:1200}}}, "İstanbul") || {}).tur,
+                                                                      "kebap"],
+    /* Olcut zayifsa SUS: 5 markaya dayanip "pahali" demek uydurma seviye. */
+    ["olcutu zayif ana urunde band yok",
+     mekanBandi({kat:{"Pizza":{n:4,med:900,top:3600}}}, "İstanbul"),   null],
+    /* Ana urunlerden BIRI olculemiyorsa mekan da olculemez: kalanlardan
+       cevap uretmek, mekanin yarisina bakip hukum vermek olurdu. Tek
+       kategorili fixture bu farki gostermiyordu -- zayif olcutu atlamak
+       da, reddetmek de null uretiyordu. */
+    ["ana urunlerden biri olculemiyorsa band yok",
+     mekanBandi({kat:{"Kebap":{n:4,med:1250,top:5000},
+                      "Pizza":{n:4,med:1250,top:5000}}}, "İstanbul"),  null],
+    ["fiyati olmayan mekanda band yok",
+     mekanBandi({min:25, max:290}, "İstanbul"),                        null],
+    ["tek kalemli mekanda band yok",
+     mekanBandi({kat:{"Kebap":{n:1,med:300,top:300}}}, "İstanbul"),    null],
+    /* Iki ana urun ters yone isaret ediyorsa cevap yok. */
+    /* Kebap olcutunde 300 "ucuz", Salata olcutunde ayni 300 "pahalı".
+       Iki ana urun ters yone isaret ediyorsa cevap yok. */
+    ["celiskili ana urunlerde band yok",
+     mekanBandi({kat:{"Kebap":{n:4,med:300,top:1200},
+                      "Salata":{n:4,med:300,top:1200}}}, "İstanbul"),  null],
+    ["uyumlu ana urunlerde band var",
+     (mekanBandi({kat:{"Kebap":{n:4,med:1250,top:5000},
+                       "Salata":{n:4,med:1250,top:5000}}}, "İstanbul") || {}).sinif,
+                                                                       "tuz"],
+    /* Bir yildan eski fiyat sayi olarak gosterilmiyor; band da gosterilmez. */
+    ["eskimis fiyatta band yok",
+     mekanBandi({tarih:"2025-08", kat:{"Kebap":{n:4,med:300,top:1200}}},
+                "İstanbul", new Date(2026, 7, 15)),                    null]
   ];
   olcut = yedek;
   return T.filter(t => JSON.stringify(t[1]) !== JSON.stringify(t[2]));
@@ -449,14 +591,13 @@ function ac(id){
   /* Ürün kırılımı: 40 kalemlik listeyi taramak yerine "çay kaç, kebap kaç"
      tek bakışta görünsün. Fiyatlar mekanın kendi menüsünden, alt medyan. */
   if (m.kat){
-    const ilAd = el("#il").selectedOptions[0]
-      ? el("#il").selectedOptions[0].textContent.trim() : "";
+    const ilAd = ilAdi();
     const sirali = Object.entries(m.kat).sort((a,b) => a[1].med - b[1].med);
     govde +=
       '<div class="d-menu-bas"><h3>Ne kaça</h3><span>' +
       sayi(sirali.length) + " kategori</span></div><div class=\"kat-liste\">" +
       sirali.map(([ad, o]) => {
-        const k = olcutKiyas(ilAd, ad, o.med);
+        const k = kategoriRozeti(olcutKiyas(ilAd, ad, o.med));
         return '<div class="kat">' +
           "<span>" + kacir(ad) +
           (o.n > 1 ? ' <i>' + sayi(o.n) + " kalem</i>" : "") + "</span>" +
@@ -490,8 +631,18 @@ function ac(id){
     const anaTur = ort != null ? (anaKategoriler(m) || []) : [];
     const turAd = anaTur.length && anaTur.length <= 2
       ? " <i>(" + kacir(anaTur.join(", ").toLocaleLowerCase("tr")) + ")</i>" : "";
+    /* Rakamin yaninda ne anlama geldigi: "ortalama 300 TL (kebap) · ucuz".
+       Sayi tek basina kiyaslanamaz -- kullanici Turkiye'deki kebap
+       fiyatlarini ezbere bilmiyor. */
+    const mb = mekanBandi(m, ilAdi());
+    /* Neye gore ucuz? Rakam title'da: "ucuz" tek basina kimin olcusune
+       gore oldugunu soylemiyor, kullanici dogrulayamiyor. */
+    const bandAd = mb
+      ? ' <span class="bant ' + mb.sinif + '" title="' +
+        kacir(mb.tur + " medyanı " + tl(mb.medyan) + " (Türkiye ölçütü)") +
+        '">' + mb.ad + "</span>" : "";
     const baslik = ort != null
-      ? "ortalama <b>" + tl(ort) + "</b>" + turAd + " · " + aralik
+      ? "ortalama <b>" + tl(ort) + "</b>" + turAd + bandAd + " · " + aralik
       : aralik;
     /* Fiyatin YASI rakamin yaninda duruyor. Enflasyonda tarihsiz fiyat
        kullanicinin dogrulayamadigi bir iddia: kac aylik bir sayiya baktigini

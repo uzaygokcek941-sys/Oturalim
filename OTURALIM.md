@@ -332,6 +332,27 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
       bir mekana **aynı pazaryeri katalogunu** yazmıştı, `trendyol.com` ise
       Trendyol'un arayüzünü ("55k kişi favoriledi!"). Alan adına bakılıyor,
       yola değil — `qrmenu.actdurum.com` işletmenin kendi QR menüsü, kalıyor.
+- [x] **Ucuz / orta / pahalı bandı.** Mekanın ana ürün türüne göre: pizzacı
+      pizzacılarla, kebapçı kebapçılarla kıyaslanıyor. Ülke ortalamasına göre
+      söylemek anlamsızdı — 900 ₺'lik balıkçı "pahalı", 480 ₺'lik pizzacı
+      "ucuz" çıkardı ve ikisi de yanlış olurdu.
+
+      Kanıt eşiği var ve **çoğu zaman susuyor**: fiyat iddiası olan 163
+      mekanın **18'i** band alıyor (10 pahalı, 5 orta, 3 ucuz). Band
+      çıkmayan 145'in **107'si pizzacı** — Türkiye pizza ölçütü yalnız 5
+      markadan çıkıyor ve 5 markaya dayanıp "bu pizzacı pahalı" demek
+      uydurma seviyeden farksız olurdu. Sayı, veri büyüdükçe büyür.
+
+      Bir mekanın birden çok ana ürünü varsa hepsinin **aynı yönü**
+      göstermesi aranıyor; biri ölçülemiyorsa band hiç gösterilmiyor.
+- [x] İki boru hattının fiyat sınırı ayrışmıştı: ölçüt 5–3000 ₺, uygulama
+      25–2000 ₺ kullanıyordu. Yani ölçüt, uygulamanın **göstermediği**
+      kalemlerden hesaplanıyordu — 12,55 ₺'lik bir "Pizza margherita"
+      markanın medyanı olup Türkiye pizza bandını bozuyordu. Hizalandı:
+      eşiği geçen kategori 8 → 10, bant genişliği Pizza'da 1,03 → 0,19.
+- [x] Zayıf il ölçütü, güçlü ülke ölçütünü bastırıyordu: il kaydı **varsa**
+      kullanılıyor, eşiği geçmezse cevap susuyordu. Artık en özel ölçüt
+      ancak kanıt barını geçerse kazanıyor; geçmezse ülkeye düşülüyor.
 
 **Üründe — ağ mekanikleri (fiş katmanı commit'inde sayılmıştı, hiçbiri başlamadı):**
 - [ ] Bütçe akranları

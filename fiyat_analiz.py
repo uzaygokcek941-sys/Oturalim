@@ -90,7 +90,13 @@ PAKET = [r"alana \d", r"bedava", r"\bmenu\b", r"combo", r"firsat", r"kampanya",
          r"\d+.?l[iu]\b", r"paket", r"secili", r"\bseri\b", r"\bbox\b", r"\+"]
 
 PERAKENDE_ESIK = 0.35   # bu orani asan mekan bir menu degil, bir katalog
-TABAN, TAVAN = 5.0, 3000.0
+# Menu kalemi sayilabilecek makul aralik (TL). TEK YERDE: app_veri.py bunu
+# ice aktariyor. Onceden iki dosyada iki farkli deger vardi (5-3000 burada,
+# 25-2000 orada) ve olcut, uygulamanin GOSTERMEDIGI kalemlerden hesaplaniyordu:
+# 12,55 TL'lik bir "Pizza margherita" markanin medyani olup Turkiye pizza
+# bandini bozuyordu. Olculdu, hizalayinca bant 1,03 -> 0,19'a indi ve hicbir
+# kategori kaybedilmedi.
+TABAN, TAVAN = 25.0, 2000.0
 EN_AZ_MEKAN = 3         # olcut icin gereken en az mekan sayisi
 
 # Turkce harfleri sadelestir: kaynak veride hem "cay" hem "çay" gecebiliyor,

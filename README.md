@@ -17,6 +17,7 @@ iki kafe, aynı kahve, iki kat fark olabiliyor. Uygulamanın tek işi:
 
 - Harita + liste, 81 ilin tamamı
 - Bütçe kaydırıcısı — mekanın ana ürün ortalamasına göre süzme
+- Ucuz / orta / pahalı bandı — kendi türündeki mekanlara göre, kanıt varsa
 - Filtreler: tür, bahçe, wi-fi, şu an açık, fiyatı bilinen
 - Yeme-içmenin yanında eğlence: sinema, tiyatro, müze, konser ve festivaller
 - Her mekanın kendi sayfası — eksik bilgisi, ödenen hesaplar, görüntülenme sayısı
