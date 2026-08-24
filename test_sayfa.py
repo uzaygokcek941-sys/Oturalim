@@ -143,6 +143,28 @@ def kendini_kontrol_et():
                     sorunlar.append("%s: perde acilmayan bolum %s" % (yolu, kirpik))
                 sf.close()
 
+            # 1c) Konum izni CEVAPLANMAZSA kullanici kilitlenmemeli.
+            #
+            # getCurrentPosition'in "timeout" secenegi izin istemi
+            # cevaplanana kadar saymaya BASLAMIYOR (sartname boyle).
+            # Kullanici istemi yanitlamayip oylece birakirsa -- en yaygin
+            # davranis -- hicbir geri cagri gelmiyor. Olculdu: dugme
+            # devre disi, yazi sonsuza kadar "Konum aliniyor…".
+            # Sayfanin kendi bekcisi 12 sn'de kilidi acmali.
+            sf, _ = sayfa_ac("/index.html")     # izin verilmedi, istem yanitsiz
+            d = sf.query_selector("#yakinimdakiler")
+            if not d:
+                sorunlar.append("index.html: #yakinimdakiler dugmesi yok")
+            else:
+                d.click()
+                sf.wait_for_timeout(13500)
+                if d.is_disabled():
+                    sorunlar.append("Konum izni yanitlanmayinca dugme kilitli kaliyor")
+                acik = sf.eval_on_selector("#secim", "n => !n.hidden")
+                if not acik:
+                    sorunlar.append("Konum alinamayinca sehir secici acilmiyor")
+            sf.close()
+
             # 2) Harita YOKKEN kesfet calismali. Asil bulunan hata buydu.
             sf, hata = sayfa_ac("/kesfet.html?il=06")
             kart = sf.eval_on_selector_all(".kart", "n => n.length")

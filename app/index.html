@@ -681,8 +681,28 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     konumDugme.disabled = true;
     konumDurum.textContent = "Konum alınıyor…";
+
+    /* KENDI BEKCIMIZ. getCurrentPosition'in "timeout" secenegi, izin
+       istemi CEVAPLANANA KADAR saymaya baslamiyor (sartname boyle
+       tanimliyor). Kullanici istemi yanitlamaz da oylece birakirsa --
+       en yaygin davranis -- ne basari ne hata geri cagrisi geliyor:
+       dugme devre disi, yazi sonsuza kadar "Konum aliniyor…".
+       Olculdu: 12 sn sonra hala kilitli.
+
+       Bekci yalniz KILIDI aciyor. Gec gelen bir izin hala calisiyor;
+       o yuzden geri cagrilar bekciyi iptal ediyor ve bekci sonrasi
+       gelen basari da normal yoluna devam ediyor. */
+    let bitti = false;
+    const bekci = setTimeout(() => {
+      if (bitti) return;
+      konumDugme.disabled = false;
+      yedegiAc("Konum izni bekleniyor. İstersen şehri elle seçebilirsin.");
+    }, 12000);
+    const kapat = () => { bitti = true; clearTimeout(bekci); };
+
     navigator.geolocation.getCurrentPosition(
       p => {
+        kapat();
         const il = enYakinIl(p.coords.latitude, p.coords.longitude);
         if (!il){
           konumDugme.disabled = false;
@@ -693,6 +713,7 @@ document.addEventListener("DOMContentLoaded", () => {
         onerVer(il, p.coords.latitude, p.coords.longitude);
       },
       err => {
+        kapat();
         konumDugme.disabled = false;
         yedegiAc(err.code === 1
           ? "Konum izni verilmedi. Şehir seçebilirsin."
