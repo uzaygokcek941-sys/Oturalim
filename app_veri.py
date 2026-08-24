@@ -13,6 +13,7 @@ oderim" sorusunun cevabi degil. Bu yuzden asiri uc fiyatlar atilir ve
 uygulamada ORTALAMA HESAP degil, MENU KALEMI ARALIGI gosterilir.
 """
 import csv
+import html
 import json
 import os
 import re
@@ -257,6 +258,21 @@ def platform_mu(url):
     return bool(u) and bool(PLATFORM.match(u + "."))
 
 
+def kalem_adi(ham):
+    """CSV'den gelen kalem adini gosterime hazir hale getirir.
+
+    HTML varligi cozuluyor: kaynak sitelerin bir kismi (WooCommerce)
+    adlari "6&#8217;li Macaron" diye veriyor ve o dizge kullaniciya
+    OLDUGU GIBI gorunuyordu. Olculdu: 59 kalem adinda cozulmemis varlik.
+    Siniflandirma zaten cozulmus metinle calisiyordu (fiyat_analiz.temizle),
+    yani ad ile kategori ayni kalemde ayri metinlere bakiyordu.
+
+    Kaynak betikte de duzeltildi; burasi bugunku veriyi yeniden
+    kazimadan duzeltiyor ve yeni bir kaynak ayni hatayi yaparsa tutuyor.
+    """
+    return re.sub(r"\s+", " ", html.unescape(ham or "")).strip(" =:-–—·\t")
+
+
 def kalem_atilir(ad):
     """Bu ad bir menu kalemi adi degil mi? Iki kaynak da ayni kapidan gecsin."""
     return (len(ad) < 3 or COP_AD.search(ad) or ESYA.search(ad)
@@ -276,7 +292,7 @@ def menuleri_oku(yol="tr_menu.csv"):
             if platform_mu(r.get("website")):
                 PLATFORM_ELENEN.add((r["il"], r["mekan"]))
                 continue
-            ad = r["kalem"].strip(" =:-–—·\t")
+            ad = kalem_adi(r["kalem"])
             fiyat = float(r["fiyat"])
             if not (ALT_SINIR <= fiyat <= UST_SINIR):
                 continue
@@ -335,7 +351,7 @@ def ek_menuler_oku(mekanlar, yollar=("menu_pdf_kalem.csv", "menu_ocr_kalem.csv")
                 if not hedef:
                     eslesmeyen.add(r.get("mekan", "?"))
                     continue
-                ad = r["kalem"].strip(" =:-–—·\t")
+                ad = kalem_adi(r["kalem"])
                 try:
                     fiyat = float(r["fiyat"])
                 except (ValueError, TypeError):
@@ -491,7 +507,10 @@ def mekan_kaydi(m, menu):
     kalemler = sorted(tum_kalemler, key=lambda x: x["f"])[:40]
     kayit = {
         "id": m["osm_id"],
-        "ad": m["ad"],
+        # OSM'de 12 mekan adi bas/son bosluklu girilmis ("Canikli ").
+        # Gorunumde fark etmiyor ama kopya birlestirmesi ve siralama ada
+        # gore calisiyor; bosluk oralarda sessizce ayirt edici oluyor.
+        "ad": " ".join(m["ad"].split()),
         "tur": tur_tr,
         # 5 basamak ~1,1 m. 6 basamak (~11 cm) haritada bir isaretci icin
         # anlamsiz hassasiyet ve 81 dosyada bedava yer kapliyor: yalniz
@@ -500,7 +519,14 @@ def mekan_kaydi(m, menu):
         "lat": round(float(m["lat"]), 5),
         "lon": round(float(m["lon"]), 5),
     }
-    for anahtar, deger in (("mutfak", m["mutfak"]), ("tel", m["telefon"]),
+    # Telefon alanina telefon OLMAYAN sey yazilmis kayitlar var: "0",
+    # "Köfteci Yusuf". Sayfada "Telefon: Köfteci Yusuf" diye gorunuyordu
+    # ve sahiplen.py o mekani "telefonu var" sayip ARAMA listesine
+    # koyuyordu. En az 7 rakam araniyor -- Turkiye'de en kisa gecerli
+    # numara (alan kodsuz sabit hat) 7 haneli.
+    tel = m["telefon"] if len(re.sub(r"\D", "", m["telefon"] or "")) >= 7 else ""
+
+    for anahtar, deger in (("mutfak", m["mutfak"]), ("tel", tel),
                            ("web", m["website"]), ("saat", m["saatler"]),
                            ("adres", m["adres"]),
                            # Instagram TOPLANIYORDU ama uygulamaya hic
@@ -763,6 +789,13 @@ def kendini_kontrol_et():
     # Sonuc calistirma sirasindan bagimsiz olmali.
     karisik = list(reversed(uzak))
     assert sorted(k["id"] for k in kopyalari_birlestir(karisik)[0]) == ["node/1", "node/2"]
+
+    # Kalem adi: HTML varligi cozulmeli, bosluk sadelesmeli.
+    assert kalem_adi("Sevgililer Günü 6&#8217;lı Macaron") == "Sevgililer Günü 6’lı Macaron"
+    assert kalem_adi("A&#038;B") == "A&B"
+    assert kalem_adi("  iki   bosluk  ") == "iki bosluk"
+    assert kalem_adi("= Kola =") == "Kola"
+    assert kalem_adi(None) == ""
 
     # Instagram: OSM'de dort ayri bicimde yaziliyor, hepsi tek bicime
     # inmeli. Baska bir alan adi reddedilmeli -- "facebook.com/x"

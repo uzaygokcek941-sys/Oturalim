@@ -230,11 +230,9 @@ function goster(m, ilAd){
   /* Sema yoksa https varsayiliyor. "javascript:..." gibi bir deger http ile
      baslamadigi icin "https://javascript:..." olur ve zararsiz kalir --
      kacir() ayrica tirnak kaciriyor. */
-  const bag = u => {
-    const t = /^https?:\/\//i.test(u) ? u : "https://" + u;
-    return '<a href="' + kacir(t) + '" target="_blank" rel="noopener nofollow">' +
-           kacir(u.replace(/^https?:\/\//i, "")) + "</a>";
-  };
+  /* Kural ortak.js'te (webBagi): kesfet detay paneli de ayni baglantiyi
+     kuruyor ve ikisi ayrisirsa biri kirik adres uretir -- oyle oldu. */
+  const bag = webBagi;
   /* Ucuncu sutun: alan anahtari. Kullanicidan gelen deger isaretlensin diye
      var; kaynak dipnotu "hepsi OSM'den" diyor, isaretsiz birakmak onu
      yanlisa cevirirdi. */

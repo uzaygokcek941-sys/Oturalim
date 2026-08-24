@@ -409,6 +409,14 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
 - [x] Konum izni **yanıtlanmazsa** kullanıcı kilitleniyordu: `getCurrentPosition`
       timeout'u izin istemi cevaplanana kadar saymaya başlamıyor, yani hiçbir
       geri çağrı gelmiyor. Sayfanın kendi bekçisi kondu.
+- [x] Görünür veri çöpü, dördü de kullanıcıya **aynen** gösteriliyordu:
+      59 menü adında çözülmemiş HTML varlığı (`6&#8217;lı Macaron` —
+      WooCommerce böyle döndürüyor ve `menu_topla.py` çözmüyordu),
+      120 şemasız web adresi (`www.narli.cafe` göreli bağlantı sanılıp
+      kırılıyordu — `isletme.html` düzeltiyor, `kesfet.js` düzeltmiyordu),
+      12 baş/son boşluklu ad, 3 telefon alanına yazılmış telefon olmayan
+      şey (`"Köfteci Yusuf"` — üstelik `sahiplen.py` onu "telefonu var"
+      sayıp arama listesine koyuyordu).
 - [x] **Arama Türkçe harfe duyarlıydı.** Kullanıcıların çoğu Türkçe harfsiz
       yazıyor; ölçüldü (İstanbul): "köfte" 574 mekan buluyordu ama "kofte"
       33, "çiğ" 343 ama "cig" 12, "şişli" 4 ama "sisli" 1. Yani harfsiz

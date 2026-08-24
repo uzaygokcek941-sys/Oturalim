@@ -133,6 +133,22 @@ def veri_tutarli_mi():
             kalem += len(m.get("menu") or [])
             if m.get("min") is not None:
                 fiyatli += 1
+            # Ciktida gorunur cop kalmasin. Ucu de kullaniciya AYNEN
+            # gosteriliyordu: cozulmemis HTML varligi ("6&#8217;li
+            # Macaron"), bas/son bosluklu ad, ve telefon alanina yazilmis
+            # telefon olmayan sey ("Köfteci Yusuf").
+            if m.get("ad") and m["ad"] != " ".join(m["ad"].split()):
+                s.append("%s.json: ad bas/son bosluklu ya da cift bosluklu (%r)"
+                         % (kod, m["ad"]))
+            if m.get("tel") and len(re.sub(r"\D", "", m["tel"])) < 7:
+                s.append("%s.json: %s telefonu telefon degil (%r)"
+                         % (kod, m.get("ad", "")[:20], m["tel"]))
+            for k in (m.get("menu") or []):
+                if re.search(r"&[a-zA-Z]+;|&#\d+;", k["a"]):
+                    s.append("%s.json: kalem adinda cozulmemis HTML varligi (%r)"
+                             % (kod, k["a"][:40]))
+                    break
+
             # "Menu" basligi altinda menu olmayan sey durmasin. app_veri.py
             # bunu uretimde eliyor; burasi ciktinin kendisini denetliyor,
             # cunku veri elle de duzenlenebiliyor ve JSON kalici.

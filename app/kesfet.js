@@ -628,8 +628,7 @@ function ac(id){
     m.saat   ? satir(IK.saat,   kacir(m.saat)) : "",
     m.tel    ? satir(IK.tel, '<a href="tel:' + kacir(m.tel.replace(/\s/g,"")) + '">' +
                              kacir(m.tel) + "</a>") : "",
-    m.web    ? satir(IK.web, '<a href="' + kacir(m.web) + '" target="_blank" rel="noopener">' +
-                             kacir(m.web.replace(/^https?:\/\//,"").replace(/\/$/,"")) + "</a>") : ""
+    m.web    ? satir(IK.web, webBagi(m.web)) : ""
   ].filter(Boolean).join("");
 
   let govde = bilgi ? '<div class="d-bilgi">' + bilgi + "</div>" : "";

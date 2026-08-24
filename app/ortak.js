@@ -136,6 +136,19 @@ function acikMi(ifade, simdi){
   return sonuc;
 }
 
+/* OSM'deki web adreslerinin bir kismi SEMASIZ yazilmis ("www.narli.cafe",
+   "instagram.com/x"). Oldugu gibi href'e konursa tarayici GORELI adres
+   sanip site icinde arar ve baglanti kirilir. Olculdu: 120 mekan.
+   isletme.html bunu duzeltiyordu, kesfet.js detay paneli duzeltmiyordu --
+   ayni kural iki yerde farkliydi, bir yerde eksikti. */
+function webBagi(u){
+  const ham = String(u == null ? "" : u).trim();
+  if (!ham) return "";
+  const tam = /^https?:\/\//i.test(ham) ? ham : "https://" + ham;
+  return '<a href="' + kacir(tam) + '" target="_blank" rel="noopener nofollow">' +
+         kacir(ham.replace(/^https?:\/\//i, "").replace(/\/$/, "")) + "</a>";
+}
+
 /* ---------- katkı doğrulama ----------
    Kullanıcıdan gelen eksik alan bilgisi. Onaya gitmeden ÖNCE burada eleniyor;
    yöneticiye ancak kullanılabilir biçimde olanlar ulaşsın.
@@ -592,6 +605,23 @@ function kendiniKontrolEt(){
                             "&lt;img src=x onerror=1&gt;"],
     /* Tek tirnakli oznitelik yazan biri icin: kacmazsa oznitelikten
        cikilip yeni oznitelik acilabiliyordu. */
+    /* --- web baglantisi ---
+       OSM adreslerinin 120'si semasiz. Semasiz href GORELI adres sanilip
+       site icinde aranir ve baglanti kirilir. */
+    ["web semasiz adrese sema koyar",
+      /href="https:\/\/www\.narli\.cafe"/.test(webBagi("www.narli.cafe")), true],
+    ["web mevcut semayi korur",
+      /href="http:\/\/b\.com"/.test(webBagi("http://b.com")),              true],
+    ["web gosterimde sema ve son egik cizgi yok",
+      />([^<]*)<\/a>/.exec(webBagi("https://a.com/"))[1],                    "a.com"],
+    ["web bos girdi bos doner",       webBagi(""),                          ""],
+    ["web null bos doner",            webBagi(null),                        ""],
+    /* Sema eklemek javascript: adresini de etkisizlestiriyor. */
+    ["web javascript adresi etkisiz",
+      webBagi("javascript:alert(1)").includes('href="https://javascript'),   true],
+    ["web tirnak kacirilir",
+      webBagi('a.com" onmouseover="x').includes('onmouseover="'),            false],
+
     ["kacir tek tirnak",    kacir("' onmouseover='kotu()"),
                             "&#39; onmouseover=&#39;kotu()"],
     ["kacir cift tirnak",   kacir('" onclick="x'), "&quot; onclick=&quot;x"],

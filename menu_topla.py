@@ -14,6 +14,7 @@ isaretlenir ve gercek tarayici gerektirir.
 """
 import csv
 import datetime
+import html
 import json
 import subprocess
 import sys
@@ -74,8 +75,11 @@ def woo_dene(taban):
                 continue
             if fiyat <= 0:
                 continue
-            kat = ", ".join(c.get("name", "") for c in (u.get("categories") or [])[:2])
-            cikti.append((kat, (u.get("name") or "").strip(), fiyat))
+            # WooCommerce adlari HTML VARLIGIYLA donuyor: "6&#8217;li
+            # Macaron". Cozulmezse kullaniciya oldugu gibi gorunuyor.
+            kat = ", ".join(html.unescape(c.get("name", ""))
+                            for c in (u.get("categories") or [])[:2])
+            cikti.append((kat, html.unescape(u.get("name") or "").strip(), fiyat))
         if cikti:
             return cikti
     return []
