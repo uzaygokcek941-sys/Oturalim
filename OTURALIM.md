@@ -336,10 +336,10 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
       nokta (POI) hem alan (bina) olarak etiketlenebiliyor. Aynı il + aynı ad
       + **≤25 m** kuralıyla 250 kayıt birleştirildi (36.102 → 35.852).
       Ad karşılaştırması Türkçe harfe duyarsız: "Balıkçı Sabahattin" ile
-      "Balikci Sabahattin" aynı yer. Eşik
-      ölçümle seçildi; 40 m'de "Starbucks 54 m", "Çay ocağı 53 m" gibi gerçek
-      ayrı işletmeler karışıyor. Düşen kaydın alanları kalana taşınıyor —
-      235 birleşmede bilgi kaybı 0. Çıktı `test.py`'de de denetleniyor.
+      "Balikci Sabahattin" aynı yer. Eşik ölçümle seçildi; 40 m'de
+      "Starbucks 54 m", "Çay ocağı 53 m" gibi gerçek ayrı işletmeler
+      karışıyor. Düşen kaydın alanları kalana taşınıyor — 250 birleşmede
+      bilgi kaybı 0. Çıktı `test.py`'de de denetleniyor.
 - [x] **Ucuz / orta / pahalı bandı.** Mekanın ana ürün türüne göre: pizzacı
       pizzacılarla, kebapçı kebapçılarla kıyaslanıyor. Ülke ortalamasına göre
       söylemek anlamsızdı — 900 ₺'lik balıkçı "pahalı", 480 ₺'lik pizzacı
