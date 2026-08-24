@@ -12,6 +12,15 @@ o yuzden goremedi:
   TAMAMI oluyordu -- sifir kart, sayac "…"da donmus, bos sayfa. Oysa
   liste, filtreler ve butce kaydiricisi haritaya hic ihtiyac duymuyor.
 
+GIRIS YAPILMIS HAL DE SINANIYOR. Dis baglantilar kesildigi icin
+supabase-js hicbir zaman gelmiyordu; yan etkisi, girisli sayfalarin
+hicbirinin gercek tarayicida HIC calistirilmamis olmasiydi. Artik
+supabase-js istegi yerel bir taklit modulle karsilaniyor
+(test_sahte_supabase.js) ve hesabim.html'in dort sekmesi, yonetim.html'in
+onay dugmesi, isletme.html'in fis ve sayac katmanlari cizilerek olculuyor.
+Yetki taklit EDILMIYOR: RLS gercek Postgres'te sinaniyor
+(veritabani/kos.sh).
+
 DIS BAGLANTILAR BILEREK ENGELLENIYOR. Iki sebep: (1) kontrol ag'a
 bagimli olmasin, aksi halde CDN yavaslayinca kirmizi yanar; (2) asil
 sinanmak istenen sey ZOR hal -- CDN'siz kullanici. Kurumsal ag, okul agi
@@ -19,6 +28,7 @@ ve ulke capinda engel gercek; uygulama o kosulda da calismali.
 
 Tarayici yoksa kontrol ATLANIR, gectigi soylenmez.
 """
+import io
 import os
 import subprocess
 import sys
@@ -48,6 +58,65 @@ window.L = {
   circleMarker(){ window.__cagri.push("circleMarker"); return isaretci; }
 };
 """
+
+# supabase-js yerine donen yerel taklit modul (test_sahte_supabase.js).
+SAHTE_MODUL = io.open(os.path.join(KOK, "test_sahte_supabase.js"),
+                      encoding="utf-8").read()
+
+# Girisli halin verisi. Degerler BILEREK ayirt edilebilir: ekranda
+# "Ornek Kafe" gormek, listenin gercekten bu satirdan cizildigini
+# gosteriyor -- sabit bir baslik gormek gostermezdi.
+GIRIS_TAKLIT = """
+window.__SAHTE_VERI = {
+  oturum: { user: { id: "kul-1", email: "ben@ornek.test" } },
+  tablolar: {
+    profiller:  [{ id: "kul-1", ad: "Deneme Kisi", yonetici: true }],
+    favoriler:  [{ mekan_id: "node/1", il: "34", mekan_ad: "Favori Kafe",
+                   eklendi: "2026-08-01T10:00:00Z" }],
+    paylasimlar:[{ id: 1, kullanici: "kul-1", mekan_id: "node/1",
+                   mekan_ad: "Ornek Kafe", il: "34", tutar: 850, kisi: 3,
+                   tarih: "2026-08-20", aciklama: "ucuzdu",
+                   durum: "bekliyor", olusturuldu: "2026-08-20T12:00:00Z" }],
+    katkilar:   [{ id: 1, kullanici: "kul-1", mekan_id: "node/1", il: "34",
+                   mekan_ad: "Katki Kafe", alan: "tel", deger: "0312 000 00 00",
+                   durum: "bekliyor", olusturuldu: "2026-08-21T12:00:00Z" }],
+    sahiplik:   [{ id: 1, kullanici: "kul-1", mekan_id: "node/1", il: "34",
+                   mekan_ad: "Sahip Kafe", dogrulandi: "2026-08-22T12:00:00Z",
+                   durum: "aktif", iptal_notu: null }]
+  },
+  rpc: {
+    mekan_sayaci:    () => ({ data: [{ bugun: 2, son30: 47, toplam: 90,
+                                       ilk_gun: "2026-06-01" }], error: null }),
+    mekan_goruldu:   () => ({ data: null, error: null }),
+    mekan_fis_ozeti: () => ({ data: [{ fis: 5, kisi: 3, medyan: 300 }], error: null })
+  }
+};
+"""
+
+# (ad, adres, tiklanacak sekme, ekranda OLMALI, ekranda OLMAMALI)
+#
+# Beklenen metinler BILEREK ayirt edilebilir: ekranda "Ornek Kafe" gormek
+# listenin gercekten o satirdan cizildigini gosteriyor, sabit bir baslik
+# gormek gostermezdi.
+#
+# OLMAMALI listesinde iki sey var, ikisi de sessiz hata bicimi:
+#   "Yükleniyor" -> liste hic gelmedi, kutu ilk halinde takili kaldi
+#   "kul-1"      -> kullanici kimligi ekrana sizdi (sema.sql "Sutun yetkisi")
+GIRISLI = [
+  ("hesabim.html/favoriler",  "/hesabim.html", None,
+   ["Favori Kafe", "Deneme Kisi"], ["Yükleniyor", "kul-1"]),
+  ("hesabim.html/paylasimlar","/hesabim.html", '[data-bolum="paylasimlar"]',
+   ["Ornek Kafe", "onay bekliyor"], ["Yükleniyor", "kul-1"]),
+  ("hesabim.html/katkilar",   "/hesabim.html", '[data-bolum="katkilar"]',
+   ["Katki Kafe", "0312 000 00 00"], ["Yükleniyor", "kul-1"]),
+  ("hesabim.html/isletmeler", "/hesabim.html", '[data-bolum="isletmeler"]',
+   ["Sahip Kafe"], ["Yükleniyor", "kul-1"]),
+  ("yonetim.html", "/yonetim.html", None,
+   ["Ornek Kafe", "Katki Kafe", "Sahip Kafe"], ["Yükleniyor", "kul-1"]),
+  ("isletme.html", "/isletme.html?il=34&id=node/8223784325", None,
+   # Sayac cumlesi ve fis ozeti sunucudan gelen sayilarla kurulmali.
+   ["47", "3 kişinin 5 fişinden"], ["kul-1"]),
+]
 
 SAYFALAR = ["/index.html", "/kesfet.html", "/kesfet.html?il=34&tur=Kafe&butce=300",
             "/isletme.html?il=34&id=node/8223784325", "/isletme.html?il=34&id=yok",
@@ -96,16 +165,26 @@ def kendini_kontrol_et():
                 print("ATLANDI: tarayici yok (%s)" % str(e).split("\n")[0][:60])
                 return None
 
-            def sayfa_ac(yolu, taklit=None):
+            def sayfa_ac(yolu, taklit=None, sahte_modul=False):
                 sf = t.new_page()
                 hata = []
                 sf.on("pageerror", lambda e: hata.append(str(e)[:120]))
                 if taklit:
                     sf.add_init_script(taklit)
                 # Dis baglantilarin hepsi kapali: kontrol ag'a bagli olmasin
-                # ve ZOR hal sinansin.
-                sf.route("**://*/**", lambda r: (r.continue_()
-                         if r.request.url.startswith(TABAN) else r.abort()))
+                # ve ZOR hal sinansin. Tek istisna, istenirse supabase-js:
+                # onun yerine yerel bir taklit MODUL donuyor, boylece
+                # girisli hal de sinanabiliyor.
+                def yonlendir(r):
+                    u = r.request.url
+                    if u.startswith(TABAN):
+                        return r.continue_()
+                    if sahte_modul and "supabase-js" in u:
+                        return r.fulfill(status=200, body=SAHTE_MODUL,
+                                         headers={"content-type": "text/javascript",
+                                                  "access-control-allow-origin": "*"})
+                    return r.abort()
+                sf.route("**://*/**", yonlendir)
                 sf.goto(TABAN + yolu, wait_until="domcontentloaded", timeout=20000)
                 sf.wait_for_timeout(2500)
                 return sf, hata
@@ -255,6 +334,56 @@ def kendini_kontrol_et():
                 sorunlar.append("sahne geri kaydirilinca yeniden baslamiyor")
             sf.close()
 
+            # 1g) GIRIS YAPILMIS hal. Bu kosum takimi butun dis
+            # baglantilari kesiyor, yani supabase-js hicbir zaman
+            # gelmiyordu -- yan etkisi, girisli sayfalarin hicbirinin
+            # gercek tarayicida HIC calistirilmamis olmasiydi.
+            # hesabim.html'in dort listesi, yonetim.html'in onay dugmeleri,
+            # isletme.html'in fis ve sahiplik katmanlari: hepsi yalnizca
+            # elle acilarak gorulmustu.
+            #
+            # Yetki TAKLIT EDILMIYOR: RLS'in dogru oldugu gercek
+            # Postgres'te sinaniyor (veritabani/kos.sh). Burada sinanan
+            # sey arayuz -- veri gelince ekranda dogru sey cikiyor mu.
+            for ad, yol, sekme, bekle, olmasin in GIRISLI:
+                sf, hata = sayfa_ac(yol, GIRIS_TAKLIT, sahte_modul=True)
+                sf.wait_for_timeout(1200)
+                if sekme:
+                    d = sf.query_selector(sekme)
+                    if not d:
+                        sorunlar.append("%s: sekme dugmesi yok (%s)" % (ad, sekme))
+                        sf.close(); continue
+                    d.click()
+                    sf.wait_for_timeout(900)
+                if hata:
+                    sorunlar.append("%s: %s" % (ad, hata[0]))
+                govde = sf.inner_text("body") or ""
+                for parca in bekle:
+                    if parca not in govde:
+                        sorunlar.append("%s: '%s' ekranda yok" % (ad, parca))
+                for parca in olmasin:
+                    if parca in govde:
+                        sorunlar.append("%s: '%s' ekranda GORUNUYOR" % (ad, parca))
+                sf.close()
+
+            # 1h) Yonetici onayi gercekten tabloyu degistirmeli. Listenin
+            # cizilmesi ile dugmenin CALISMASI ayri sey; dugme metnini
+            # aramak ikincisini gostermez.
+            sf, _ = sayfa_ac("/yonetim.html", GIRIS_TAKLIT, sahte_modul=True)
+            sf.wait_for_timeout(1200)
+            d = sf.query_selector('[data-karar="onaylandi"]')
+            if not d:
+                sorunlar.append("yonetim.html: onay dugmesi hic cizilmedi")
+            else:
+                d.click()
+                sf.wait_for_timeout(900)
+                durum = sf.evaluate(
+                    "() => (window.__SAHTE_VERI.tablolar.paylasimlar[0]||{}).durum")
+                if durum != "onaylandi":
+                    sorunlar.append("yonetim.html: onay dugmesi durumu degistirmedi (%s)"
+                                    % durum)
+            sf.close()
+
             # 2) Harita YOKKEN kesfet calismali. Asil bulunan hata buydu.
             sf, hata = sayfa_ac("/kesfet.html?il=06")
             kart = sf.eval_on_selector_all(".kart", "n => n.length")
@@ -290,8 +419,9 @@ def kendini_kontrol_et():
             for x in sorunlar:
                 print("  HATA: " + x)
             return False
-        print("kontrol gecti: %d sayfa JS hatasiz, kesfet haritali ve haritasiz calisiyor"
-              % len(SAYFALAR))
+        print("kontrol gecti: %d sayfa JS hatasiz, %d girisli ekran cizildi, "
+              "kesfet haritali ve haritasiz calisiyor"
+              % (len(SAYFALAR), len(GIRISLI)))
         return True
     finally:
         sunucu.terminate()
