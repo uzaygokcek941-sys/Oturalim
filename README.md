@@ -30,7 +30,7 @@ iki kafe, aynı kahve, iki kat fark olabiliyor. Uygulamanın tek işi:
 | Katman | Kaynak | Lisans |
 |---|---|---|
 | Mekan adı, konum, tür, saat, bahçe, wi-fi | OpenStreetMap (Overpass API) | ODbL |
-| Menü fiyatları | İşletmelerin kendi sitelerinde yayımladığı menüler | — |
+| Menü fiyatları | İşletmelerin **kendi** sitelerinde yayımladığı menüler | — |
 | Ödenen tutarlar | Kullanıcı paylaşımı (onaydan geçer) | — |
 | Eksik saat, telefon, adres, site | Kullanıcı katkısı (onaydan geçer) | — |
 | Konser, festival, fuar | etkinlik.io RSS akışları | — |

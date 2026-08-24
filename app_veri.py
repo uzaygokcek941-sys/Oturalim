@@ -199,6 +199,31 @@ ARAYUZ_AD = re.compile(
     r"[\d.,]+\s*[km]?\s*kişi favoriledi!?)$", re.I)
 
 
+# Isletmenin KENDI sitesi degil, uzerinde durdugu PLATFORM. OSM'de 202 mekan
+# website etiketine bir sosyal medya ya da pazaryeri profili yazmis. O adresi
+# menu diye kazimak, baskasinin icerigini bu isletmeye yazmak demek:
+#
+#   shopier.com   -> Giresun'daki "Decorative Art World" ile Istanbul'daki
+#                    "Baba Sogus", ikisi de pazaryerinin katalogunu aldi
+#   trendyol.com  -> "NUT HUNTER"in menusu Trendyol'un arayuzuydu
+#                    ("55k kisi favoriledi!" bir urun adi degil)
+#
+# Alan adina bakiliyor, yola degil: "instagram.com/xkafe" bir profil,
+# "qrmenu.actdurum.com" ise A.C.T Durum'un KENDI QR menusu -- ikincisi
+# listede yok ve kalmasi dogru.
+PLATFORM = re.compile(
+    r"^(m\.|mobile\.)?(facebook|instagram|twitter|tiktok|youtube|linktr\.ee|"
+    r"linktree|shopier|google|goo\.gl|wixsite|blogspot|wordpress|yemeksepeti|"
+    r"getir|trendyol|foursquare|zomato|tripadvisor|yelp)\.", re.I)
+
+
+def platform_mu(url):
+    """Bu adres isletmenin kendi sitesi degil, bir platform profili mi?"""
+    u = re.sub(r"^https?://", "", (url or "").strip().lower())
+    u = re.sub(r"^www\.", "", u).split("/")[0]
+    return bool(u) and bool(PLATFORM.match(u + "."))
+
+
 def kalem_atilir(ad):
     """Bu ad bir menu kalemi adi degil mi? Iki kaynak da ayni kapidan gecsin."""
     return (len(ad) < 3 or COP_AD.search(ad) or ESYA.search(ad)
@@ -215,6 +240,9 @@ def menuleri_oku(yol="tr_menu.csv"):
         return menu
     with f:
         for r in csv.DictReader(f):
+            if platform_mu(r.get("website")):
+                PLATFORM_ELENEN.add((r["il"], r["mekan"]))
+                continue
             ad = r["kalem"].strip(" =:-–—·\t")
             fiyat = float(r["fiyat"])
             if not (ALT_SINIR <= fiyat <= UST_SINIR):
@@ -254,7 +282,7 @@ def ek_menuler_oku(mekanlar, yollar=("menu_pdf_kalem.csv", "menu_ocr_kalem.csv")
     site_mekan, alan_mekan = {}, defaultdict(set)
     for m in mekanlar:
         u = (m.get("website") or "").strip()
-        if u:
+        if u and not platform_mu(u):
             site_mekan.setdefault(_site_anahtari(u), (m["il"], m["ad"]))
             alan_mekan[_alan_adi(u)].add((m["il"], m["ad"]))
     tekil_alan = {a: next(iter(v)) for a, v in alan_mekan.items() if len(v) == 1}
@@ -267,6 +295,8 @@ def ek_menuler_oku(mekanlar, yollar=("menu_pdf_kalem.csv", "menu_ocr_kalem.csv")
         with open(yol, encoding="utf-8") as f:
             for r in csv.DictReader(f):
                 u = r.get("website", "")
+                if platform_mu(u):
+                    continue
                 hedef = (site_mekan.get(_site_anahtari(u))
                          or tekil_alan.get(_alan_adi(u)))
                 if not hedef:
@@ -320,6 +350,7 @@ def kategori_dokumu(kalemler):
 
 
 ELENEN = []               # rapor icin: (mekan, tur, sebep)
+PLATFORM_ELENEN = set()   # rapor icin: (il, mekan) -- platform profili
 
 
 def mekan_kaydi(m, menu):
@@ -433,6 +464,35 @@ def main():
     print("menu kalemi: %d -> %d (ek kaynaklar dahil, tekillenmis)"
           % (once, sum(len(v) for v in menu.values())))
 
+    # --- Zincir menusunun subeye uygulanmasi ---------------------------
+    # Menu anahtari (il, mekan adi). Yani bir sube, KENDI sitesini
+    # bildirmemis olsa bile ayni ildeki ayni adli mekanin menusunu aliyor.
+    # Kural bugune kadar hic yazilmamisti; olculdu:
+    #
+    #   menu alan mekan            401
+    #     kendi sitesini bildiren  184
+    #     ADINDAN dolayi alan      217   (%54)
+    #
+    # Daha siki bir kural denendi ve BIRAKILDI: "gruptaki butun bildirimler
+    # tek alan adinda uzlassin". Istanbul'daki 52 Kahve Dunyasi subesini
+    # dusuruyordu, cunku Ataturk Kitapligi'ndaki sube kutuphanenin sitesiyle
+    # etiketlenmis. Gercek bir zinciri, tek bir OSM etiketi yuzunden
+    # elemek olurdu; yayilmanin bugun urettigi yanlis eslesme olculemedi
+    # (yayilan adlarin hepsi gercek zincir: Domino's, Kahve Dunyasi,
+    # Papa John's, Cajun Corner, Pizzabulls...).
+    #
+    # O yuzden davranis degismedi ama GORUNUR oldu: sayi her calistirmada
+    # basiliyor. Adindan menu alan mekan orani firlarsa, kaziyici jenerik
+    # bir ada takilmis demektir.
+    ad_menusu = kendi_sitesi = 0
+    for m in mekanlar:
+        if (m["il"], m["ad"]) not in menu:
+            continue
+        if m.get("website") and not platform_mu(m["website"]):
+            kendi_sitesi += 1
+        else:
+            ad_menusu += 1
+
     iller = defaultdict(list)
     for m in mekanlar:
         iller[m["il"]].append(mekan_kaydi(m, menu))
@@ -470,6 +530,15 @@ def main():
             print("  %-30s %-12s %s" % (ad[:30], tur, sebep))
         if len(ELENEN) > 12:
             print("  ... %d tane daha" % (len(ELENEN) - 12))
+
+    if PLATFORM_ELENEN:
+        print("platform profili (kendi sitesi degil), menusu alinmadi: %d mekan"
+              % len(PLATFORM_ELENEN))
+        for il, ad in sorted(PLATFORM_ELENEN)[:6]:
+            print("  %-12s %s" % (il, ad))
+
+    print("zincir menusu: %d mekan kendi sitesinden, %d mekan AD eslesmesinden"
+          % (kendi_sitesi, ad_menusu))
 
     toplam = sum(d["n"] for d in dizin)
     assert len(dizin) == 81, f"81 il bekleniyordu, {len(dizin)} yazildi"
@@ -524,6 +593,17 @@ def kendini_kontrol_et():
                               {"a": "Adana Kebap", "f": 700.0}])
     assert not menu_degil_mi([{"a": "1 KG KIYMALI KOL BÖREĞİ", "f": 900.0}])
     assert menu_degil_mi([]) is None
+
+    # Platform profili isletmenin kendi sitesi degildir.
+    for u in ("https://www.shopier.com/x", "https://trendyol.com",
+              "instagram.com/xkafe", "https://m.facebook.com/y",
+              "https://www.instagram.com/", "https://tripadvisor.com.tr/a"):
+        assert platform_mu(u), u
+    # ...ama isletmenin KENDI alan adindaki QR menusu platform degildir.
+    for u in ("https://qrmenu.actdurum.com", "https://dominos.com.tr",
+              "https://kahvedunyasi.com", "", None,
+              "https://instagramcafe.com.tr"):
+        assert not platform_mu(u), u
 
     # Site eslestirme: OSM etiketi yollu, tarama kaydi kok adres olabiliyor
     assert _site_anahtari("https://www.A.com/menu/") == "a.com/menu"

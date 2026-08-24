@@ -313,8 +313,25 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
       "eski" işaretiyle, 12 aydan sonra **sayı gösterilmez**. Sınır
       `yemekFiyati()` içinde, yani kart, bütçe süzgeci ve "fiyatı bilinen"
       filtresi aynı cevabı alıyor.
-- [ ] Zincir menüsünün şubeye uygulanması sorgulanmadı: Domino's için makul,
-      "Beltur / Hafta İçi 600 ₺" gibi kira fiyatları için değil.
+- [x] Zincir menüsünün şubeye uygulanması **ölçüldü**. Menü anahtarı
+      `(il, mekan adı)`, yani bir şube kendi sitesini bildirmemiş olsa bile
+      aynı ildeki aynı adlı mekanın menüsünü alıyor: menü alan 401 mekanın
+      **217'si (%54)** menüyü sadece adından alıyormuş. Kural bugüne kadar
+      hiç yazılmamıştı; artık her çalıştırmada sayı basılıyor.
+
+      Daha sıkı bir kural denendi ve **bırakıldı**: "gruptaki bütün web
+      bildirimleri tek alan adında uzlaşsın". İstanbul'daki 52 Kahve Dünyası
+      şubesini düşürüyordu — Atatürk Kitaplığı'ndaki şube kütüphanenin
+      sitesiyle etiketlenmiş. Gerçek bir zinciri tek bir OSM etiketi yüzünden
+      elemek olurdu ve yayılmanın bugün ürettiği yanlış eşleşme ölçülemedi:
+      yayılan adların hepsi gerçek zincir (Domino's, Kahve Dünyası,
+      Papa John's, Cajun Corner, Pizzabulls).
+- [x] Platform profili menü kaynağı sayılmıyor. OSM'de **202 mekan** website
+      etiketine bir sosyal medya / pazaryeri profili yazmış; üçü menü
+      üretmişti. `shopier.com` Giresun'daki bir mekanla İstanbul'daki başka
+      bir mekana **aynı pazaryeri katalogunu** yazmıştı, `trendyol.com` ise
+      Trendyol'un arayüzünü ("55k kişi favoriledi!"). Alan adına bakılıyor,
+      yola değil — `qrmenu.actdurum.com` işletmenin kendi QR menüsü, kalıyor.
 
 **Üründe — ağ mekanikleri (fiş katmanı commit'inde sayılmıştı, hiçbiri başlamadı):**
 - [ ] Bütçe akranları
