@@ -120,6 +120,29 @@ def kendini_kontrol_et():
                     sorunlar.append("%s: sayfa bos (%d karakter)" % (yolu, len(govde)))
                 sf.close()
 
+            # 1b) Hicbir [data-giris] bolumu KIRPILI kalmamali.
+            #
+            # sahne.css bu bolumleri perdeyle kapatiyor ve sahne.js
+            # aciyor. Acilmazsa oge DOM'da, metni yerinde, olculebilir
+            # bir kutusu var -- ama kullanici hicbir sey gormuyor.
+            # checkVisibility() bile "gorunur" diyor, cunku clip-path'e
+            # bakmiyor. Statik kontrol (test.py) bildigim SEKLI yakaliyor;
+            # bu kontrol SONUCU olcuyor.
+            for yolu in ("/index.html", "/isletme.html?il=34&id=node/8223784325",
+                         "/hakkinda.html"):
+                sf, _ = sayfa_ac(yolu)
+                sf.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                sf.wait_for_timeout(2600)
+                kirpik = sf.evaluate("""() => [...document.querySelectorAll('[data-giris]')]
+                    .filter(e => { const s = getComputedStyle(e);
+                        return parseFloat(s.opacity) < 0.05 ||
+                               (s.clipPath || '').includes('100%'); })
+                    .map(e => e.tagName.toLowerCase() + '.' +
+                              String(e.className || '').split(' ')[0])""")
+                if kirpik:
+                    sorunlar.append("%s: perde acilmayan bolum %s" % (yolu, kirpik))
+                sf.close()
+
             # 2) Harita YOKKEN kesfet calismali. Asil bulunan hata buydu.
             sf, hata = sayfa_ac("/kesfet.html?il=06")
             kart = sf.eval_on_selector_all(".kart", "n => n.length")

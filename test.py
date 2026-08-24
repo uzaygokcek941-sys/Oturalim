@@ -328,6 +328,35 @@ def sema_tutarli_mi():
     return s
 
 
+def sahne_tutarli_mi():
+    """js-sahne sinifini ekleyen her sayfa sahne.js'i de yuklemeli.
+
+    sahne.css [data-giris] bolumlerini YALNIZ .js-sahne altinda gizliyor
+    ve perdeyi sahne.js aciyor. Sinifi ekleyip betigi yuklemeyen sayfada
+    icerik KALICI gizli kaliyor. Olculdu: isletme.html tam bunu
+    yapiyordu ve "Bu sayfada eksik olanlar" bolumu -- sayfanin cekirdegi
+    -- her ziyaretcide gorunmuyordu.
+
+    Satir ici emniyet (2 sn sonra sinifi kaldiran setTimeout) da
+    araniyor: asil koruma o, ve sessizce silinebilir."""
+    s = []
+    for yol in sorted(glob.glob(os.path.join(KOK, "app", "*.html"))):
+        ad = os.path.basename(yol)
+        metin = oku("app", ad)
+        if 'classList.add("js-sahne")' not in metin:
+            continue
+        if "__sahneHazir" not in metin:
+            s.append("%s: js-sahne ekliyor ama satir ici emniyet yok — "
+                     "betik gelmezse icerik kalici gizli kalir" % ad)
+        if "[data-giris" in metin and 'src="sahne.js"' not in metin:
+            s.append("%s: [data-giris] var ama sahne.js yuklenmiyor — "
+                     "perde hic acilmaz" % ad)
+    if "window.__sahneHazir = true" not in oku("app", "sahne.js"):
+        s.append("sahne.js: __sahneHazir bayragi yok — satir ici emniyet "
+                 "her sayfada bosuna tetiklenir")
+    return s
+
+
 def yayin_basliklari_mi():
     """vercel.json gecerli mi ve guvenlik basliklari yerinde mi.
 
@@ -425,6 +454,7 @@ def main():
     kayit("degismez: veri, index ve vitrin tutarli", veri_tutarli_mi())
     kayit("degismez: sayfa meta ve sekme tutarli", sayfalar_tutarli_mi())
     kayit("degismez: sema korumalari yerinde", sema_tutarli_mi())
+    kayit("degismez: sahne perdesi acilabiliyor", sahne_tutarli_mi())
     kayit("degismez: yayin yapilandirmasi", yayin_basliklari_mi())
     kayit("degismez: sir sizmamis", sirlar_sizmis_mi())
 

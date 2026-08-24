@@ -22,7 +22,12 @@
 <link rel="stylesheet" href="sahne.css">
 <script>/* Sahne girisleri yalniz JS varken gizlenir. Bu satir olmazsa
   JS yuklenmeyen veya arka planda acilan sekmede sayfa bos gorunur. */
-document.documentElement.classList.add("js-sahne");</script>
+document.documentElement.classList.add("js-sahne");/* Emniyet: sahne.js gelmezse (CDN degil ama betik hatasi, engel,
+   eksik <script>) perde acilmaz ve icerik KALICI gizli kalirdi.
+   2 sn sonra sinif kendiliginden kalkiyor; sahne.css o sinif
+   olmadan hicbir seyi gizlemiyor. Bir kez oldu: isletme.html
+   sahne.js'i hic yuklemiyordu. */
+setTimeout(function(){if(!window.__sahneHazir)document.documentElement.classList.remove("js-sahne");},2000);</script>
 <script>/* FOUC olmasın: tema tercihini boyamadan önce uygula */
 try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.dataset.tema=t;}catch(e){}</script>
 <style>

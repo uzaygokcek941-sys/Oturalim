@@ -93,9 +93,22 @@
    Bu sayfada fadeUp hiç kullanılmıyor. */
 
 /* KRITIK: gizleme yalniz .js-sahne altinda gecerli. Bu sinif <head>'te
-   senkron ekleniyor. JS yuklenmezse, hata verirse veya sekme arka planda
-   acilip IntersectionObserver hic tetiklenmezse icerik GORUNUR kalir.
-   Bu bir sus payi degil: arka plan sekmede rAF ve IO donar, sayfa bos gorunurdu. */
+   senkron ekleniyor -- ama tek basina YETMIYOR, cunku sinifi ekleyen
+   satir sahne.js'in gelip gelmediginden habersiz.
+                                                       
+   Olculdu: isletme.html sahne.css'i yukluyor ve sinifi ekliyordu ama
+   sahne.js'i HIC yuklemiyordu. Perde acilmadi ve "Bu sayfada eksik
+   olanlar" bolumu -- sayfanin cekirdegi -- her ziyaretcide gorunmez
+   kaldi. Oge DOM'da, metni yerinde, kutusu 1116x594 px; checkVisibility()
+   bile "gorunur" diyor cunku clip-path'e bakmiyor.
+
+   Koruma artik uc katmanli:
+     1) satir ici setTimeout 2 sn sonra sinifi kaldiriyor (sahne.js
+        window.__sahneHazir kurmadiysa),
+     2) test.py sinifi ekleyip betigi yuklemeyen sayfayi reddediyor,
+     3) test_sayfa.py gercek tarayicida kirpik kalan bolum ariyor.
+   Ayrica arka plan sekmede rAF ve IO donuyor; sahne.js'in kendi 1,5 sn
+   emniyeti onun icin. */
 .js-sahne [data-giris]{ will-change:transform,opacity,filter }
 
 /* #6 Rack focus — bulanıktan nete. Step-printing'in durağan akrabası. */

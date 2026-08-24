@@ -19,6 +19,8 @@ const azHareket = matchMedia("(prefers-reduced-motion: reduce)");
 
 /* ---------- 1. Giris gozlemcisi ---------- */
 function girisleriBagla(){
+  /* sahne.js calisti: satir ici emniyet devreye girmesin. */
+  window.__sahneHazir = true;
   const hedefler = document.querySelectorAll("[data-giris]");
   if (!hedefler.length) return;
 
@@ -37,10 +39,15 @@ function girisleriBagla(){
   const g = new IntersectionObserver((girdiler) => {
     for (const gi of girdiler){
       if (!gi.isIntersecting) continue;
-      clearTimeout(emniyet);
       gi.target.classList.add("gorunur");
       g.unobserve(gi.target);          // bir kez oynar, scroll'da tekrarlamaz
     }
+    /* Emniyet ancak HEPSI acildiginda iptal ediliyor. Onceden ilk
+       goruneni gorur gormez iptal ediliyordu; sonradan gelen ya da o
+       an gizli bir kapsayicinin icinde olan bolumler emniyetsiz
+       kaliyor ve hic acilmiyordu. */
+    if (![...hedefler].some(h => !h.classList.contains("gorunur")))
+      clearTimeout(emniyet);
   }, { threshold:.15, rootMargin:"0px 0px -8% 0px" });
   hedefler.forEach(h => g.observe(h));
 }
