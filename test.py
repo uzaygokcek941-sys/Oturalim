@@ -607,6 +607,20 @@ def main():
                 for satir in str(a).splitlines():
                     print("      " + satir)
     toplam = len(sonuc) - atlanan
+
+    # "--tam": ATLANDI da hata sayilir. CI bunu kullaniyor.
+    #
+    # Neden gerekli: bu depoda tam olarak bu sekilde bir kontrol curudu --
+    # SQL davranis kontrolleri aylarca kosmadi ve kimse gormedi. Bir
+    # kontrolu atlamak, olmamasiyla ayni sey; yerel makinede atlanabilir
+    # olmasi makul (herkeste Postgres/Chromium olmayabilir), CI'da degil.
+    if "--tam" in sys.argv and atlanan:
+        print()
+        for ad, gecti, ayrinti in sonuc:
+            if gecti is None:
+                print("  --tam: '%s' ATLANDI, CI'da atlama kabul edilmiyor" % ad)
+        return 1
+
     print()
     if hata:
         print("%d/%d BASARISIZ%s" % (hata, toplam, (" · %d atlandi" % atlanan) if atlanan else ""))
