@@ -392,7 +392,7 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
       yer `kimlik.js`. Gerçek çözüm: sürüm sabit, esm.sh'e güveniliyor.
 - [x] `isletme.html`'in mükerrer Supabase istemcileri kaldırıldı (`Kimlik.istemci()`)
 - [x] Koordinatlar 5 basamağa indi — İstanbul 414 → 400 KB gzip
-- [ ] **İstanbul dosyası hâlâ 1,7 MB ham / 400 KB gzip.** Ölçüldü: geri kalan
+- [ ] **İstanbul dosyası hâlâ 1,7 MB ham / 406 KB gzip.** Ölçüldü: geri kalan
       ağırlığın tamamı keşfet ekranının gerçekten kullandığı alanlar. Menü/kategori
       ayrı dosyaya alınamıyor (bütçe süzgeci çizimden önce onlara bakıyor);
       hafif dosya + tam dosya ayrımı ana huniyi (anasayfa → keşfet) kötüleştiriyor,
@@ -400,7 +400,10 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
       veri düzenini ve iki tüketiciyi birden değiştirir.
 - [x] Kontroller CI'da koşuyor (`python test.py` · GitHub Actions, her itmede)
 - [x] `kacir()` tek tırnağı da kaçırıyor; paylaşım/katkı günlük gönderim sınırı kondu
-- [ ] Fiyat verisi büyüdükçe "ucuz/orta/pahalı" bandını hesapla
+- [x] "Ucuz / orta / pahalı" bandı kuruldu (yukarıda). Bugün 163 mekanın
+      **18'inde** çıkıyor; kalanın çoğu pizzacı ve Türkiye pizza ölçütü
+      yalnız 5 markadan geliyor. Kanıt eşiği **düşürülmeyecek** — sayı veri
+      büyüdükçe kendiliğinden büyür.
 
 ---
 
