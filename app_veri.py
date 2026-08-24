@@ -251,6 +251,52 @@ def instagram_adi(ham):
     return v if INSTAGRAM_AD.match(v) else None
 
 
+# Sosyal platformun alan adlari. Kullanici adi cozulurken KENDI alan
+# adi kirpiliyor; baska bir platformun adresi geldiyse deger tamamen
+# REDDEDILIYOR. Bunu yapmazsak "facebook.com/x" bir instagram kullanicisi
+# sanilip kirpiliyor ve "facebook.com" diye gecerli gorunuyordu (instagram
+# icin olculmus gercek bir hata).
+SOSYAL_ALAN = {
+    "insta":    (r"(?:m\.)?instagram\.com/",),
+    "facebook": (r"(?:m\.|web\.)?facebook\.com/", r"fb\.com/"),
+    "x":        (r"(?:mobile\.)?twitter\.com/", r"x\.com/"),
+    "tiktok":   (r"(?:m\.|www\.)?tiktok\.com/",),
+    "youtube":  (r"(?:m\.|music\.)?youtube\.com/", r"youtu\.be/"),
+}
+
+# Kullanici adi bicimleri platforma gore ayri: TikTok ve YouTube nokta ve
+# tire kabul ediyor, X yalniz alt cizgi ve en fazla 15 hane.
+SOSYAL_BICIM = {
+    "insta":    re.compile(r"^[A-Za-z0-9._]{1,30}$"),
+    "facebook": re.compile(r"^[A-Za-z0-9.\-]{3,60}$"),
+    "x":        re.compile(r"^[A-Za-z0-9_]{1,15}$"),
+    "tiktok":   re.compile(r"^[A-Za-z0-9._]{1,24}$"),
+    "youtube":  re.compile(r"^@?[A-Za-z0-9._\-]{1,40}$"),
+}
+
+
+def sosyal_adi(alan, ham):
+    """OSM sosyal etiketinden kullanici adi. Cozulemezse None.
+
+    YouTube'da kanal adresi "/channel/UC..." ya da "/c/ad" olabiliyor;
+    o bicimlerde kullanici adi cikarilamaz ve deger REDDEDILIYOR --
+    yanlis bir adres uretmektense hic gostermemek dogru.
+    """
+    v = (ham or "").strip()
+    if not v:
+        return None
+    v = re.sub(r"^https?://", "", v, flags=re.I)
+    v = re.sub(r"^www\.", "", v, flags=re.I)
+    for kalip in SOSYAL_ALAN.get(alan, ()):
+        v = re.sub("^" + kalip, "", v, flags=re.I)
+    v = v.split("?")[0].split("#")[0].strip("@ ")
+    if "/" in v.strip("/"):
+        return None            # yol parcasi kaldi: baska bir sey bu
+    v = v.strip("/")
+    bicim = SOSYAL_BICIM.get(alan)
+    return v if bicim and bicim.match(v) else None
+
+
 def platform_mu(url):
     """Bu adres isletmenin kendi sitesi degil, bir platform profili mi?"""
     u = re.sub(r"^https?://", "", (url or "").strip().lower())
@@ -534,7 +580,14 @@ def mekan_kaydi(m, menu):
                            # var ve sitesi YOK -- yani o isletmelere hem
                            # sayfalarinda hem saha kartinda "sosyal medya
                            # baginiz yok" diyorduk, elimizde dururken.
-                           ("insta", instagram_adi(m.get("instagram")))):
+                           ("insta", instagram_adi(m.get("instagram"))),
+                           # Diger platformlar. CSV'de sutun YOKSA (eski
+                           # cekim) m.get() bos doner ve alan hic yazilmaz;
+                           # boru hatti eski veriyle de calisiyor.
+                           ("facebook", sosyal_adi("facebook", m.get("facebook"))),
+                           ("x",        sosyal_adi("x",        m.get("x"))),
+                           ("tiktok",   sosyal_adi("tiktok",   m.get("tiktok"))),
+                           ("youtube",  sosyal_adi("youtube",  m.get("youtube")))):
         if deger:
             kayit[anahtar] = deger
     if m["bahce"] == "yes":
@@ -811,6 +864,30 @@ def kendini_kontrol_et():
             ("instagram.com/", None),
             ("a b c", None), ("", None), (None, None)):
         assert instagram_adi(ham) == bekle, (ham, instagram_adi(ham), bekle)
+
+    # Diger platformlar. Her biri KENDI alan adini kirpiyor; baska bir
+    # platformun adresi geldiyse deger tamamen reddediliyor -- instagram
+    # icin olculmus gercek hata buydu ("facebook.com/x" -> "facebook.com").
+    for alan, ham, bekle in (
+            ("facebook", "https://facebook.com/kafemiz",      "kafemiz"),
+            ("facebook", "fb.com/kafemiz",                    "kafemiz"),
+            ("facebook", "kafemiz",                           "kafemiz"),
+            ("facebook", "https://instagram.com/kafemiz",         None),
+            ("x",        "https://twitter.com/kafe",           "kafe"),
+            ("x",        "https://x.com/kafe",                 "kafe"),
+            ("x",        "@kafe",                              "kafe"),
+            ("x",        "cok_uzun_bir_kullanici_adi",            None),  # X 15 hane
+            ("tiktok",   "https://tiktok.com/@kafe.tr",     "kafe.tr"),
+            ("tiktok",   "@kafe.tr",                        "kafe.tr"),
+            ("youtube",  "https://youtube.com/@kanal",        "kanal"),
+            # Kanal adresinden kullanici adi CIKARILAMAZ; yanlis bir adres
+            # uretmektense hic gostermemek dogru.
+            ("youtube",  "https://youtube.com/channel/UCabc",     None),
+            ("youtube",  "https://youtube.com/c/kanal",           None),
+            ("insta",    "https://instagram.com/abc",           "abc"),
+            ("facebook", "", None), ("x", None, None),
+            ("bilinmeyen", "abc", None)):
+        assert sosyal_adi(alan, ham) == bekle, (alan, ham, sosyal_adi(alan, ham), bekle)
 
     # Platform profili isletmenin kendi sitesi degildir.
     for u in ("https://www.shopier.com/x", "https://trendyol.com",

@@ -46,7 +46,19 @@ ILLER = {
     "TR-81": "Duzce",
 }
 
+# Sosyal medya: OSM'de her platformun kendi etiketi var ve iki bicimde
+# yaziliyor -- "contact:instagram" ile duz "instagram". Ikisi de okunuyor;
+# yalniz birine bakmak, veriyi dogru girmis mekanlari atlamak olurdu.
+SOSYAL_ETIKET = {
+    "instagram": ("contact:instagram", "instagram"),
+    "facebook":  ("contact:facebook", "facebook"),
+    "x":         ("contact:x", "contact:twitter", "twitter"),
+    "tiktok":    ("contact:tiktok", "tiktok"),
+    "youtube":   ("contact:youtube", "youtube"),
+}
+
 ALANLAR = ["il", "ad", "tur", "mutfak", "telefon", "website", "instagram",
+           "facebook", "x", "tiktok", "youtube",
            "saatler", "bahce", "wifi", "adres", "ilce", "mahalle",
            "lat", "lon", "harita", "osm_id"]
 
@@ -108,7 +120,11 @@ def cikar(el, il):
         "mutfak": t.get("cuisine", ""),
         "telefon": t.get("phone") or t.get("contact:phone") or "",
         "website": t.get("website") or t.get("contact:website") or "",
-        "instagram": t.get("contact:instagram") or "",
+        # "ad" DEGIL "alan": ustteki mekan adini golgelemesin. (Sozluk
+        # uretecinin kendi kapsami var, yani calisirdi; ama okuyan kisi
+        # iki satir yukarida "ad" gorup duraklar.)
+        **{alan: next((t[e] for e in etiketler if t.get(e)), "")
+           for alan, etiketler in SOSYAL_ETIKET.items()},
         "saatler": t.get("opening_hours", ""),
         "bahce": t.get("outdoor_seating", ""),
         "wifi": t.get("internet_access", ""),
@@ -167,5 +183,57 @@ def main(kodlar):
     print(f"Instagram olan : {sum(1 for r in hepsi if r['instagram'])}")
 
 
+def kendini_kontrol_et():
+    """python turkiye_cek.py test — aga cikmadan cikarma mantigini dogrular.
+
+    NEDEN GEREKLI: bu betikte HIC kontrol yoktu ve buradaki hatalarin
+    hepsi SESSIZ. Bir alan yanlis etiketten okunursa CSV'de bos kalir,
+    boru hatti bos alani "bilgi yok" diye tasir ve uygulamada eksik
+    gorunur -- hicbir yerde hata yok. Instagram tam olarak boyle
+    kaybolmustu: toplaniyordu ama uygulamaya hic ulasmiyordu.
+    """
+    dugum = {"type": "node", "id": 1, "lat": 39.9, "lon": 32.85,
+             "tags": {"name": "Deneme", "amenity": "cafe",
+                      "contact:instagram": "a", "facebook": "b",
+                      "contact:twitter": "c", "opening_hours": "24/7"}}
+    r = cikar(dugum, "Ankara")
+    assert r["ad"] == "Deneme" and r["tur"] == "cafe", r
+    # Sosyal etiketlerin IKI bicimi de okunmali.
+    assert r["instagram"] == "a", r          # contact:instagram
+    assert r["facebook"] == "b", r           # duz facebook
+    assert r["x"] == "c", r                  # contact:twitter -> x
+    assert r["tiktok"] == "" and r["youtube"] == "", r
+    assert r["osm_id"] == "node/1", r
+    # CSV basligi ile uretilen anahtarlar birebir ayni olmali; ayrisirsa
+    # DictWriter ya sutunu atar ya patlar.
+    assert set(r) == set(ALANLAR), set(r) ^ set(ALANLAR)
+
+    # Oncelik: contact:* once geliyor.
+    d2 = dict(dugum)
+    d2["tags"] = dict(dugum["tags"], instagram="duz")
+    assert cikar(d2, "Ankara")["instagram"] == "a", "contact:instagram once gelmeli"
+
+    # Adsiz ve konumsuz dugum ATILIR: ikisi de mekan sayfasi kurulamaz.
+    assert cikar({"type": "node", "id": 2, "lat": 1, "lon": 1, "tags": {}}, "X") is None
+    assert cikar({"type": "node", "id": 3, "tags": {"name": "A"}}, "X") is None
+
+    # way: koordinat "center"dan gelir.
+    y = cikar({"type": "way", "id": 9, "center": {"lat": 40.1, "lon": 29.0},
+               "tags": {"name": "Yol", "amenity": "bar"}}, "Bursa")
+    assert y["osm_id"] == "way/9" and y["lat"] == "40.1000000", y
+
+    # Koordinatta VIRGUL olmamali: CSV'yi bolerdi.
+    assert "," not in y["lat"] and "," not in y["lon"], y
+
+    # Sorgu il kodunu gercekten kullaniyor mu.
+    assert '"ISO3166-2"="TR-06"' in sorgu("TR-06")
+
+    assert len(ILLER) == 81, len(ILLER)
+    print("kontrol gecti: alan cikarma, sosyal etiketler, 81 il")
+
+
 if __name__ == "__main__":
-    main(sys.argv[1:] or list(ILLER))
+    if len(sys.argv) > 1 and sys.argv[1] == "test":
+        kendini_kontrol_et()
+    else:
+        main(sys.argv[1:] or list(ILLER))

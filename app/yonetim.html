@@ -151,6 +151,31 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
 
         <div id="katkiListe"></div>
 
+        <!-- Ucuncu kuyruk: yorumlar. Katkidan AYRI olcut: orada bilginin
+             DOGRULUGU aranir, burada hakaret ve karalama. Yanlis bir saat
+             duzeltilebilir; yayimlanmis bir karalama duzeltilemez. -->
+        <div class="bolum-bas" style="margin:var(--a6) 0 var(--a5)">
+          <span class="etiket">Yönetim</span>
+          <h2 style="font-size:32px">Yorumlar</h2>
+          <p>
+            Kullanıcıların yazdığı puan ve yorumlar. Buradaki ölçüt bilginin
+            doğruluğu değil: <b>hakaret, karalama ve kişisel bilgi</b>.
+            Yanlış bir saat sonradan düzeltilir; yayımlanmış bir karalama
+            düzeltilemez — emin değilsen reddet.
+          </p>
+        </div>
+
+        <div class="ozet" id="yorumOzet"></div>
+
+        <div class="suzgec" id="yorumSuzgec">
+          <button class="cip" data-durum="bekliyor"   aria-pressed="true">Bekleyen</button>
+          <button class="cip" data-durum="onaylandi"  aria-pressed="false">Onaylanan</button>
+          <button class="cip" data-durum="reddedildi" aria-pressed="false">Reddedilen</button>
+          <button class="cip" data-durum=""           aria-pressed="false">Hepsi</button>
+        </div>
+
+        <div id="yorumListe"></div>
+
         <!-- Ucuncu bolum: sahiplik. Kuyruk DEGIL -- burada onaylanacak bir
              sey yok, sahiplik kodla kazaniliyor. Burasi bir DENETIM listesi:
              kim neyi sahiplenmis ve gerekirse geri alma. -->
@@ -271,6 +296,7 @@ async function listeyiCiz(){
    BILGI. Bu yuzden karttan isletme sayfasina dogrudan bag var -- yonetici
    degeri onaylamadan once yerinde gorebilsin. */
 let katkiSuzgec = "bekliyor";
+let yorumSuzgec = "bekliyor";
 
 async function katkiOzetiCiz(){
   const hepsi = await Kimlik.katkiYonetimListesi("");
@@ -345,6 +371,64 @@ async function sahiplikCiz(){
     }));
 }
 
+async function yorumListesiniCiz(){
+  const yuva = el("#yorumListe");
+  yuva.innerHTML = '<p class="bos"><strong>Yükleniyor…</strong></p>';
+  const liste = await Kimlik.yorumYonetimListesi(yorumSuzgec);
+
+  el("#yorumOzet").innerHTML = liste.length
+    ? "<div><b>" + sayi(liste.length) + "</b><span>kayıt</span></div>"
+    : "";
+
+  if (!liste.length){
+    yuva.innerHTML = '<p class="bos">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 13 4 4L19 7"/></svg>' +
+      "<strong>Bu listede kayıt yok</strong>" +
+      (yorumSuzgec === "bekliyor" ? "Bekleyen yorum kalmadı." : "Başka bir süzgeç dene.") +
+      "</p>";
+    return;
+  }
+
+  yuva.innerHTML = liste.map(y => {
+    const d = DURUM[y.durum] || DURUM.bekliyor;
+    const sayfa = y.il && y.mekan_id
+      ? ' · <a href="isletme.html?il=' + encodeURIComponent(y.il) +
+        "&id=" + encodeURIComponent(y.mekan_id) + '" target="_blank" rel="noopener">sayfayı aç</a>'
+      : "";
+    return '<article class="kayit ' + y.durum + '">' +
+      "<div><h3>" + kacir(y.mekan_ad) + "</h3>" +
+        '<div class="satir">' + yildiz(y.puan) +
+          (y.il ? "<span>il " + kacir(y.il) + "</span>" : "") +
+          "<span>" + tarihTR(y.olusturuldu) + "</span>" +
+          '<span class="rozet ' + d.sinif + '">' + d.ad + "</span></div>" +
+        (y.metin ? '<div class="aciklama">' + kacir(y.metin) + "</div>" : "") +
+        '<div class="aciklama"><b>' + kacir(y.mekan_id) + "</b>" + sayfa + "</div>" +
+      "</div>" +
+      '<div><div class="kararlar">' +
+        (y.durum !== "onaylandi"
+          ? '<button class="dugme kucuk onay" type="button" data-ykarar="onaylandi" data-id="' + y.id + '">Onayla</button>' : "") +
+        (y.durum !== "reddedildi"
+          ? '<button class="dugme ikincil kucuk ret" type="button" data-ykarar="reddedildi" data-id="' + y.id + '">Reddet</button>' : "") +
+        (y.durum !== "bekliyor"
+          ? '<button class="dugme duz kucuk" type="button" data-ykarar="bekliyor" data-id="' + y.id + '">Beklemeye al</button>' : "") +
+      "</div></div></article>";
+  }).join("");
+
+  yuva.querySelectorAll("[data-ykarar]").forEach(b =>
+    b.addEventListener("click", async () => {
+      const kardesler = [...b.parentElement.querySelectorAll("button")];
+      kardesler.forEach(x => { x.disabled = true; });
+      try {
+        await Kimlik.yorumKarar(Number(b.dataset.id), b.dataset.ykarar);
+        await yorumListesiniCiz();
+        uyar("iyi", "Yorum güncellendi.");
+      } catch (e){
+        uyar("hata", e.message);
+        kardesler.forEach(x => { x.disabled = false; });
+      }
+    }));
+}
+
 async function katkiListesiniCiz(){
   const yuva = el("#katkiListe");
   yuva.innerHTML = '<p class="bos"><strong>Yükleniyor…</strong></p>';
@@ -407,6 +491,15 @@ async function katkiListesiniCiz(){
     }));
 }
 
+el("#yorumSuzgec").addEventListener("click", e => {
+  const b = e.target.closest("button[data-durum]");
+  if (!b) return;
+  yorumSuzgec = b.dataset.durum;
+  document.querySelectorAll("#yorumSuzgec button").forEach(x =>
+    x.setAttribute("aria-pressed", String(x === b)));
+  yorumListesiniCiz();
+});
+
 el("#katkiSuzgec").addEventListener("click", e => {
   const b = e.target.closest("button[data-durum]");
   if (!b) return;
@@ -437,7 +530,7 @@ Kimlik.hazir.then(async acik => {
   if (!Kimlik.yonetici){ el("#yetkisiz").hidden = false; return; }
   el("#icerik").hidden = false;
   await Promise.all([ozetiCiz(), listeyiCiz(), katkiOzetiCiz(),
-                     katkiListesiniCiz(), sahiplikCiz()]);
+                     katkiListesiniCiz(), yorumListesiniCiz(), sahiplikCiz()]);
 });
 </script>
 </body>

@@ -161,9 +161,8 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
       <h3 id="hesap">Hesap bilgileri</h3>
       <p>
         Hesap açarsan <strong>e-posta adresin</strong> ve <strong>parolanın şifrelenmiş
-        özeti</strong> saklanır; parolanın kendisi hiçbir yerde tutulmaz. İstersen bir
-        görünen ad da verebilirsin — zorunlu değil ve hiçbir yerde yayımlanmıyor.
-        Telefon, yaş, cinsiyet, adres gibi bilgiler istenmiyor.
+        özeti</strong> saklanır; parolanın kendisi hiçbir yerde tutulmaz.
+        Telefon, cinsiyet, kimlik numarası ve açık adres <strong>istenmiyor</strong>.
       </p>
       <p>
         Kimlik doğrulama <strong>Supabase</strong> altyapısıyla yürütülüyor; oturum bilgin
@@ -173,6 +172,60 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
       <p>
         <strong>Favorilerin</strong> hesabına bağlı olarak saklanır; başka kimse göremez.
         Hesabın silinince favorilerin de silinir.
+      </p>
+
+      <h3 id="profil">Profil bilgileri</h3>
+      <p>
+        Profilinde <strong>görünen ad, kullanıcı adı, profil fotoğrafı, doğum yılı,
+        meslek ve kendini anlattığın kısa metin</strong> tutulabilir.
+        <strong>Hepsi isteğe bağlıdır</strong> — hiçbirini doldurmadan hesap açabilir,
+        yorum yazabilir, favori ekleyebilirsin. Doldurduklarını istediğin zaman
+        <a href="hesabim.html">hesap sayfandan</a> değiştirebilir veya silebilirsin.
+      </p>
+      <p>
+        <strong>Yaşın değil doğum yılın saklanıyor.</strong> Yaş her yıl eskir ve
+        güncel tutulması için sürekli yeniden sorulması gerekir; doğum yılı eskimez
+        ve gün-ay içermediği için daha azını söyler. Ekranda yaşa çevrilerek görünür.
+        13 yaşından küçüklerin profil bilgisi kabul edilmiyor.
+      </p>
+      <p>
+        Profil bilgilerin <strong>herkese açıktır</strong>: yazdığın yorumların yanında
+        ve profil sayfanda görünür. Bu ayarı hesap sayfandan kapatabilirsin — kapattığında
+        yorumların mekan sayfalarında görünmeye devam eder ama <strong>adın, yaşın,
+        mesleğin ve fotoğrafın olmadan</strong>; profil sayfan da açılmaz.
+      </p>
+      <p>
+        Profil sayfaları arama motorlarına <strong>kapalıdır</strong>
+        (<code>noindex, noarchive</code>): bu bilgileri sitede görünsün diye yazdın,
+        Google sonuçlarında çıksın diye değil.
+      </p>
+
+      <h3 id="yorum">Yorumlar</h3>
+      <p>
+        Bir mekana yorum yazarsan <strong>puanın, yazdığın metin ve tarihi</strong>
+        saklanır. Yorum <strong>önce kontrol edilir</strong>, sonra yayımlanır; ölçüt
+        bilginin doğruluğu değil, hakaret ve karalama içermemesidir. Yayımlanan yorum
+        profilin açıksa <strong>adınla</strong>, kapalıysa adsız görünür.
+      </p>
+      <p>
+        Yorumunu istediğin zaman silebilirsin — silinen yorum yayından da kalkar.
+        Fiyat paylaşımlarından farklı olarak yorumlar <strong>kişiye bağlı olarak
+        yayımlanır</strong>; bunu bilerek yazıyorsun.
+      </p>
+      <p>
+        <strong>Fiyat paylaşımların (fişlerin) profilinde listelenmez</strong> ve
+        listelenmeyecek. Onlar bir kanı değil ödeme kaydıdır: hangi gün, hangi mekanda,
+        ne kadar, kaç kişiyle. Kişiye göre dizilmiş bir liste, dışarı çıkma ve harcama
+        geçmişi olurdu. Fiyat kamuya yalnızca <strong>toplu ortalama</strong> olarak
+        veriliyor.
+      </p>
+
+      <h3>Profil fotoğrafı</h3>
+      <p>
+        Fotoğraf yüklersen dosya Supabase depolama alanında tutulur ve
+        <strong>herkese açık bir adresle</strong> servis edilir — profilinde ve
+        yorumlarının yanında görünmesi için gerekli. Kaldırdığında dosya da silinir.
+        Yalnız JPEG, PNG ve WebP kabul ediliyor; en fazla 2 MB.
       </p>
 
       <h3>Fiyat paylaşımı</h3>

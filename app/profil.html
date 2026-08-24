@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Profil — Oturalım</title>
+<meta name="description" content="Oturalım kullanıcı profili.">
+<!-- noindex: profil sayfasi arama motoruna girmemeli. Kisisel bilgi
+     (yas, meslek, fotograf) tasiyor ve kullanici bunu SITEDE gorunsun
+     diye yazdi, Google sonuclarinda cikmasi icin degil. Ayni sebeple
+     og:image de yok: paylasim karti da bir yayma bicimi. -->
+<meta name="robots" content="noindex, noarchive">
+<meta name="theme-color" content="#15110e">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2315110e'/%3E%3Cpath d='M20 16v12a12 12 0 0 0 24 0V16' stroke='%23f08a3c' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3Cpath d='M32 40v10' stroke='%23f08a3c' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Karla:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="stil.css">
+<link rel="stylesheet" href="sahne.css">
+<script>document.documentElement.classList.add("js-sahne");/* Emniyet: sahne.js gelmezse (CDN degil ama betik hatasi, engel,
+   eksik <script>) perde acilmaz ve icerik KALICI gizli kalirdi.
+   2 sn sonra sinif kendiliginden kalkiyor; sahne.css o sinif
+   olmadan hicbir seyi gizlemiyor. Bir kez oldu: isletme.html
+   sahne.js'i hic yuklemiyordu. */
+setTimeout(function(){if(!window.__sahneHazir)document.documentElement.classList.remove("js-sahne");},2000);</script>
+<script>
+try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.dataset.tema=t;}catch(e){}
+</script>
+<style>
+  .profil-kap{max-width:640px;margin-inline:auto}
+  .profil-bas{display:flex;gap:var(--a5);align-items:center;margin-bottom:var(--a5)}
+  .avatar-buyuk{
+    width:96px;height:96px;flex:0 0 auto;border-radius:50%;overflow:hidden;
+    background:var(--zemin-3);border:1px solid var(--cizgi);
+    display:grid;place-items:center;font-family:var(--font-baslik);
+    font-size:38px;font-weight:600;color:var(--metin-3);
+  }
+  .avatar-buyuk img{width:100%;height:100%;object-fit:cover;display:block}
+  #baslik{line-height:1.15}
+  .profil-ozet{font-size:16px;color:var(--metin-2)}
+  .profil-adi{font-size:13px;color:var(--metin-3)}
+  .profil-kisilik{margin-top:var(--a4);font-size:16px;line-height:1.6;color:var(--metin-2)}
+  .profil-sayilar{display:flex;gap:var(--a6);margin-top:var(--a5);flex-wrap:wrap}
+  .profil-sayilar div{display:grid}
+  .profil-sayilar b{font-family:var(--font-baslik);font-size:24px;font-weight:600}
+  .profil-sayilar span{font-size:13px;color:var(--metin-3)}
+  .yorum{padding:var(--a5) 0;border-top:1px solid var(--cizgi)}
+  .yorum-bas{display:flex;gap:var(--a3);align-items:baseline;flex-wrap:wrap}
+  .yorum-bas h3{font-family:var(--font-govde);font-size:16px;font-weight:700}
+  .yorum-bas time{font-size:13px;color:var(--metin-3)}
+  .yorum p{margin-top:8px;font-size:16px;line-height:1.6;color:var(--metin-2)}
+  .yildiz{color:var(--vurgu);letter-spacing:1px;white-space:nowrap}
+</style>
+</head>
+<body class="sahne-yazi">
+<a class="atla" href="#ana">İçeriğe atla</a>
+
+<header class="ust">
+  <div class="kap">
+    <a class="marka" href="index.html" aria-label="Oturalım ana sayfa">
+      <svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
+        <rect width="64" height="64" rx="14" fill="currentColor" opacity=".08"/>
+        <path d="M20 16v12a12 12 0 0 0 24 0V16" stroke="#f08a3c" stroke-width="5" stroke-linecap="round"/>
+        <path d="M32 40v10" stroke="#f08a3c" stroke-width="5" stroke-linecap="round"/>
+      </svg>
+      <span>Otur<em>alım</em></span>
+    </a>
+    <nav class="menu" aria-label="Ana menü">
+      <a href="index.html">Ana sayfa</a>
+      <a href="kesfet.html">Keşfet</a>
+      <a href="paylas.html" class="gizle-kucuk">Fiyat paylaş</a>
+      <a href="hakkinda.html">Hakkında</a>
+      <span data-kimlik-menu></span>
+      <button class="tema-dugme" data-tema-dugme type="button" aria-label="Temayı değiştir">
+        <svg data-ay viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+        <svg data-gunes viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" hidden><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+    </nav>
+  </div>
+</header>
+
+
+<main id="ana" class="bolum">
+  <div class="kap">
+    <div class="profil-kap">
+
+      <!-- TEK ve KALICI h1. Onceden her durumun kendi basligi vardi ve
+           "yukleniyor" halinde hicbiri cizilmiyordu: kimlik katmani
+           gelmezse sayfada bir baslik hic olmuyordu. Basligin metni
+           duruma gore degisiyor, VARLIGI degismiyor. -->
+      <h1 id="baslik" style="font-size:32px;margin-bottom:var(--a4)">Profil</h1>
+
+      <p id="yukleniyor" class="bos"><strong>Yükleniyor…</strong></p>
+
+      <div id="yok" hidden>
+        <p style="font-size:16px;color:var(--metin-2);line-height:1.6">
+          Böyle bir kullanıcı yok ya da profilini herkese kapatmış.
+          İkisi de aynı cevabı verir — hangi kullanıcı adlarının kayıtlı
+          olduğu yoklanabilir olmasın diye.
+        </p>
+        <p style="margin-top:var(--a5)"><a class="dugme" href="kesfet.html">Mekanlara dön</a></p>
+      </div>
+
+      <div id="icerik" hidden data-giris="sicrama">
+        <div class="profil-bas">
+          <div class="avatar-buyuk" id="avatar" aria-hidden="true">?</div>
+          <div>
+            <div class="profil-ozet" id="ozet"></div>
+            <div class="profil-adi" id="kadi"></div>
+          </div>
+        </div>
+
+        <p class="profil-kisilik" id="kisilik" hidden></p>
+
+        <div class="profil-sayilar">
+          <div><b id="s-yorum">—</b><span>yorum</span></div>
+          <div><b id="s-puan">—</b><span>ortalama verdiği puan</span></div>
+          <div><b id="s-katildi">—</b><span>katıldı</span></div>
+        </div>
+
+        <h2 style="margin-top:var(--a7);font-size:22px">Yorumları</h2>
+        <div id="yorumlar"></div>
+
+        <!-- Fiyat paylaşımları BİLEREK yok. Onlar bir kanı değil ödeme
+             kaydı: "şu gün, şu mekanda, şu kadar, şu kadar kişiyle".
+             Kişiye göre dizilince dışarı çıkma ve harcama geçmişi olur.
+             Gerekçe veritabani/yorum.sql içinde profil_yorumlari'nın
+             başında yazılı; kişiye göre fiş listeleyen bir sorgu yok. -->
+      </div>
+
+    </div>
+  </div>
+</main>
+<footer class="alt">
+  <div class="kap">
+    <div class="alt-izgara">
+      <div>
+        <a class="marka" href="index.html" style="margin-bottom:var(--a3)">
+          <svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
+            <rect width="64" height="64" rx="14" fill="currentColor" opacity=".08"/>
+            <path d="M20 16v12a12 12 0 0 0 24 0V16" stroke="#f08a3c" stroke-width="5" stroke-linecap="round"/>
+            <path d="M32 40v10" stroke="#f08a3c" stroke-width="5" stroke-linecap="round"/>
+          </svg>
+          <span>Otur<em>alım</em></span>
+        </a>
+        <p style="font-size:16px;max-width:38ch">
+          Bütçene göre otur. Türkiye'deki mekanları gerçek fiyat bilgisiyle gösteren
+          bağımsız bir proje.
+        </p>
+      </div>
+      <div>
+        <h4>Ürün</h4>
+        <ul>
+          <li><a href="kesfet.html">Mekanları keşfet</a></li>
+          <li><a href="paylas.html">Fiyat paylaş</a></li>
+          <li><a href="hakkinda.html">Hakkında</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Yasal</h4>
+        <ul>
+          <li><a href="gizlilik.html">Aydınlatma metni ve gizlilik</a></li>
+          <li><a href="gizlilik.html#bildir">Hata bildir / kaldırma talebi</a></li>
+          <li><a href="hakkinda.html#veri">Veri kaynağı ve lisans</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="kunye">
+      Mekan verisi <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap katkıcıları</a> (ODbL).
+      Fiyatlar işletmelerin kendi yayımladığı menülerden derlenir; güncelliği garanti edilmez, bağlayıcı değildir.
+    </p>
+  </div>
+</footer>
+
+
+<script src="ortak.js" defer></script>
+<script src="sahne.js" defer></script>
+<script src="yapilandirma.js"></script>
+<script type="module">
+import Kimlik from "./kimlik.js";
+
+const el = s => document.querySelector(s);
+const KADI = (new URLSearchParams(location.search).get("k") || "").trim();
+
+/* "Yok" ile "kapalı" AYNI ekranı veriyor. Ayırmak, hangi kullanıcı
+   adlarının kayıtlı olduğunu yoklamak için bir sinyal olurdu -- kod
+   doğrulamada da aynı kural (bkz. sahiplenme.sql). */
+function bulunamadi(){
+  el("#baslik").textContent = "Profil bulunamadı";
+  el("#yukleniyor").hidden = true;
+  el("#yok").hidden = false;
+}
+
+function ayYil(t){
+  const d = new Date(t);
+  return isNaN(d) ? "" : d.toLocaleDateString("tr-TR", { year:"numeric", month:"long" });
+}
+
+function yorumHTML(y){
+  const sayfa = y.il && y.mekan_id
+    ? "isletme.html?il=" + encodeURIComponent(y.il) + "&id=" + encodeURIComponent(y.mekan_id)
+    : null;
+  const ad = kacir(y.mekan_ad || "");
+  return '<article class="yorum"><div class="yorum-bas">' +
+    "<h3>" + (sayfa ? '<a href="' + kacir(sayfa) + '">' + ad + "</a>" : ad) + "</h3>" +
+    yildiz(y.puan) +
+    '<time datetime="' + kacir(String(y.olusturuldu || "").slice(0,10)) + '">' +
+      kacir(ayYil(y.olusturuldu)) + "</time></div>" +
+    (y.metin ? "<p>" + kacir(y.metin) + "</p>" : "") +
+    "</article>";
+}
+
+if (!KADI){
+  bulunamadi();
+} else {
+  Kimlik.hazir.then(async acik => {
+    /* Kimlik kurulamadıysa profil de okunamaz. Burada "bulunamadı"
+       demek YANLIŞ olurdu: geçici bir bağlantı sorununu kalıcı bir
+       gerçek gibi sunardı. Aynı ayrım giris.html'de de var. */
+    if (!acik){
+      el("#baslik").textContent = "Profil şu an açılamıyor";
+      el("#yukleniyor").innerHTML =
+        "Bağlantı sorunu olabilir, birazdan tekrar dene. " +
+        "Sitenin geri kalanı normal çalışıyor.";
+      return;
+    }
+    const p = await Kimlik.profilGetir(KADI);
+    if (!p){ bulunamadi(); return; }
+
+    const ad = p.ad || "@" + p.kullanici_adi;
+    document.title = ad + " — Oturalım";
+    el("#baslik").textContent = ad;
+    el("#kadi").textContent = "@" + p.kullanici_adi;
+    el("#ozet").textContent = profilOzeti(p);
+    if (p.kisilik){
+      el("#kisilik").textContent = p.kisilik;
+      el("#kisilik").hidden = false;
+    }
+    const res = Kimlik.avatarAdresi(p.avatar);
+    if (res){
+      const g = document.createElement("img");
+      g.src = res; g.alt = "";
+      el("#avatar").textContent = "";
+      el("#avatar").appendChild(g);
+    } else {
+      el("#avatar").textContent = basHarf(ad);
+    }
+    el("#s-katildi").textContent = ayYil(p.katildi) || "—";
+
+    el("#yukleniyor").hidden = true;
+    el("#icerik").hidden = false;
+
+    const l = await Kimlik.profilYorumlari(KADI);
+    el("#s-yorum").textContent = sayi(l.length);
+    /* Ortalama ancak yeterli yorumdan sonra: tek yorum bir eğilim
+       değil, o günkü bir kanıdır. Eşik ortak.js'te (YORUM_ESIK),
+       mekan puanıyla aynı kural. */
+    el("#s-puan").textContent = l.length >= YORUM_ESIK
+      ? (l.reduce((t, y) => t + Number(y.puan), 0) / l.length)
+          .toFixed(1).replace(".", ",")
+      : "—";
+    el("#yorumlar").innerHTML = l.length
+      ? l.map(yorumHTML).join("")
+      : '<p class="bos" style="text-align:left;padding:var(--a5) 0">' +
+        "<strong>Henüz onaylanmış yorumu yok.</strong></p>";
+  });
+}
+</script>
+</body>
+</html>

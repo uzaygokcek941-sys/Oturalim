@@ -581,6 +581,77 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
 
 ---
 
+## 2026-08-24 — Profil, yorumlar ve sosyal medya
+
+**Giriş sistemi zaten vardı** (Supabase auth, `giris.html` + `hesabim.html`);
+eklenen şey profilin kendisi.
+
+**Profil.** `profiller` tablosuna altı alan: kullanıcı adı, doğum yılı, meslek,
+kendini anlatan kısa metin, fotoğraf, herkese açıklık. Yeni sayfa
+`profil.html?k=kullanici_adi`.
+
+Üç karar, üçü de kasıtlı:
+
+- **Hepsi isteğe bağlı.** Yaşını yazmayan biri yorum yazamasın demek, veriyi
+  zorla toplamak olurdu.
+- **Doğum yılı saklanıyor, yaş değil.** Yaş her yıl eskir ve güncel kalması
+  için tekrar tekrar sorulması gerekir; doğum yılı eskimez ve gün-ay
+  içermediği için daha azını söyler. Ekranda yaşa çevriliyor.
+- **Profil uuid ile değil KULLANICI ADIYLA açılıyor.** Bu üslup tercihi değil:
+  `sema.sql`'in "Sütun yetkisi" bölümü `kullanici` sütununu üç tabloda birden
+  kapattı, çünkü o uuid ile bir kişinin dışarı çıkma geçmişi
+  birleştirilebiliyordu. Profili uuid ile açılabilir yapmak, kapatılan kapıyı
+  yandan geri açardı. `profiller` tablosu dışarıya **kapalı kalıyor**; herkese
+  açık okuma tek bir `security definer` fonksiyondan geçiyor.
+
+**Yorumlar.** Puan (zorunlu) + metin (isteğe bağlı), ön onaylı.
+**Fiyattan ayrı tutuluyor:** fiş bir *ölçüm* taşıyor (850 ₺, 3 kişi), yorum bir
+*kanı*. Yorumun puanı fiyat hesabına **girmiyor**. Onay şartının sebebi de
+katkılardakiyle aynı değil — orada mesele yanlış bilgi, burada hakaret ve
+karalama; tek kişilik bir yapıda bunun tek savunması ön onaydır.
+
+Ortalama ancak **3 yorumdan sonra** gösteriliyor, fiş eşiğiyle aynı kural:
+tek yorum bir eğilim değil, o günkü bir kanıdır.
+
+Profilini kapatan kullanıcının **yorumu görünür, adı görünmez** — yorum mekana
+ait bir bilgi, kişiye ait olan şey ad ve fotoğraf.
+
+**Fişler profilde listelenmiyor** ve listelenmeyecek. Onlar kanı değil ödeme
+kaydı: hangi gün, hangi mekanda, ne kadar, kaç kişiyle. Kişiye göre dizilince
+dışarı çıkma ve harcama geçmişi olur. Kişiye göre fiş listeleyen bir
+fonksiyonun *eklenmediği* SQL testinde denetleniyor.
+
+**Sosyal medya.** Instagram'a Facebook, X, TikTok ve YouTube eklendi. OSM'de
+her platform iki biçimde yazılıyor (`contact:instagram` ve düz `instagram`);
+ikisi de okunuyor. Adres kurma kuralı tek yerde (`ortak.js → sosyalBag`) ve
+şeması denetleniyor — `kacir()` şemaya bakmaz ve değer kullanıcı katkısından
+da gelebiliyor.
+
+Mevcut CSV'de yeni sütunlar yok, yani **veri çıktısı değişmedi**; boru hattı
+eski veriyle de çalışıyor ve yeni çekimde alanlar kendiliğinden doluyor.
+`turkiye_cek.py`'nin hiç kontrolü yoktu — eklendi (Instagram tam olarak bu
+boşlukta kaybolmuştu).
+
+**Ölçülen hatalar (kendi yazdığım kodda, kontroller yakaladı):**
+
+- `guvenliBag("//baska.site/x")` şemasız sanılıp başına `https://` ekleniyordu;
+  çıkan `https:////baska.site/x` tarayıcıda `https://baska.site/x` olarak
+  çözülür. Yani ekranda **"Instagram" yazan** bir bağlantı tamamen başka bir
+  siteye giderdi.
+- `yildiz(null)` beş boş yıldız basıyordu: `Number(null)` sıfırdır ve
+  sonludur, yalnız `isFinite`'a bakan hâl puansız mekanı puanlı gösterirdi.
+- `hesabim.html` hiç açılmıyordu: profil kaydetme düğmesi adı da kapsayınca
+  eski "Adı kaydet" düğmesi kalktı ama dinleyicisi kaldı.
+- Yorumlardaki yıldızlar soluk çiziliyordu — `.y-ust span` özgüllükte
+  `.yildiz`'i yeniyordu.
+- `profil.html` kimlik katmanı gelmezken **hiç başlık göstermiyordu**.
+
+**KVKK.** `gizlilik.html` güncellendi — eski metin *"yaş… istenmiyor"* diyordu
+ve artık yanlıştı. Profil, yorum ve fotoğraf için ayrı başlıklar eklendi;
+profil sayfaları `noindex, noarchive`.
+
+---
+
 ## Yapılmayacaklar
 
 | Yapma | Neden |

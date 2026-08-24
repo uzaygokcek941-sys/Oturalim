@@ -36,6 +36,8 @@ Toplam süre: ~15 dakika. Ücret yok, kart istenmiyor.
    | `veritabani/sayac.sql` | İşletme sayfası görüntülenme sayacı | Sayaç satırı hiç görünmez |
    | `veritabani/katki.sql` | Eksik bilgi katkı formu | Form hiç görünmez |
    | `veritabani/sahiplenme.sql` | İşletme sahiplenme kodu (saha kartları) | Kod alanı hiç görünmez |
+   | `veritabani/profil.sql` | Genişletilmiş profil (fotoğraf, yaş, meslek) | Ayarlarda yalnız ad ve parola görünür |
+   | `veritabani/yorum.sql` | Mekan yorumları ve puanlar | Yorum bölümü hiç görünmez |
 
    Hiçbiri kurulmadığında sayfa normal çalışır; yalnız o bölümler
    sessizce gizli kalır. Beklenen çıktılar:
@@ -44,7 +46,17 @@ Toplam süre: ~15 dakika. Ücret yok, kart istenmiyor.
    Sayac kuruldu: dogrudan yazma kapali, kimlik sunucuda uretiliyor
    Katki tablosu kuruldu: RLS acik, 6 politika
    Sahiplenme kuruldu: kod tablosu kapali, sahiplik 3 politika
+   Profil kuruldu: 6 alan, kullanici adi uretiliyor, tablo kapali
+   Yorum kuruldu: RLS acik, 5 politika, kimlik sutunu kapali
    ```
+
+   > `profil.sql` **`yorum.sql`'den önce** çalıştırılmalı: yorumlar yazarın
+   > profil alanlarını okuyor. Sıra yanlışsa `yorum.sql` anlaşılır bir
+   > cümleyle duruyor, bozuk bir kurulum bırakmıyor.
+
+   > **Profil fotoğrafı için ek adım yok.** `profil.sql` depolama kovasını
+   > ve yetkilerini kendisi kuruyor. Supabase panelinde
+   > **Storage → avatar** kovasını görüyorsan hazır demektir.
 
    > Üçünü de istediğin sırada, istediğin kadar tekrar çalıştırabilirsin.
    > `katki.sql` ile `sahiplenme.sql` aynı politikaya dokunuyor; ilk

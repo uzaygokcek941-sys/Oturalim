@@ -198,6 +198,13 @@ function mutfakYaz(ham){
 function guvenliBag(u){
   const ham = String(u == null ? "" : u).trim();
   if (!ham) return "";
+  /* "//baska.site/x" (protokolsuz adres) SEMASIZ SAYILMAZ. Sayilsaydi
+     basina "https://" eklenip "https:////baska.site/x" olurdu; tarayici
+     bunu https://baska.site/x diye cozer. Yani "instagram.com/x" gibi
+     gorunen bir deger, tamamen baska bir siteye giden bir baglantiya
+     donusurdu -- ustelik ekranda "Instagram" yaziyorken. Deger kullanici
+     katkisindan da gelebiliyor. */
+  if (ham.slice(0, 2) === "//") return "";
   const tam = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(ham) ? ham : "https://" + ham;
   return /^https?:\/\//i.test(tam) ? tam : "";
 }
@@ -260,6 +267,99 @@ function bugunYerel(d){
   return d.getFullYear() + "-" +
          String(d.getMonth() + 1).padStart(2, "0") + "-" +
          String(d.getDate()).padStart(2, "0");
+}
+
+/* ---------- profil ve yorum yardımcıları ---------- */
+
+/* Doğum yılından yaş. Veride yaş DEĞİL doğum yılı duruyor (profil.sql):
+   yaş her yıl eskir, doğum yılı eskimez. Gün/ay olmadığı için sonuç bir
+   yıl şaşabilir; "28" yerine "28" yazmak yine de doğruya en yakını ve
+   daha azını söylüyor. */
+function yasHesapla(dogumYili, bugun){
+  const y = parseInt(dogumYili, 10);
+  if (!Number.isFinite(y)) return null;
+  const su = (bugun || new Date()).getFullYear();
+  const yas = su - y;
+  return (yas >= 13 && yas <= 120) ? yas : null;
+}
+
+/* "28 · Öğretmen" — ikisi de isteğe bağlı, ikisi de yoksa boş dizgi.
+   Ayırıcıyı burada kurmak, üç sayfada üç ayrı birleştirme yazmaktan iyi. */
+function profilOzeti(p, bugun){
+  if (!p) return "";
+  const yas = yasHesapla(p.dogum_yili != null ? p.dogum_yili : p.yazar_dogum, bugun);
+  const meslek = (p.meslek || p.yazar_meslek || "").trim();
+  return [yas, meslek].filter(Boolean).join(" · ");
+}
+
+/* Adın baş harfi. Fotoğrafı olmayan için; boş bir daire, kim olduğu
+   belirsiz bir daireden iyi. */
+function basHarf(ad){
+  const t = (ad || "").trim();
+  if (!t) return "?";
+  return t[0].toLocaleUpperCase("tr");
+}
+
+/* Puan yıldızı. Metin olarak da okunabilsin diye aria-label veriliyor:
+   ekran okuyucuya "4,5 yıldız" demek, beş ayrı yıldız karakteri
+   okutmaktan iyi. */
+const YORUM_ESIK = 3;      /* altında ortalama gösterilmiyor -- bkz. fiş eşiği */
+
+function yildiz(puan){
+  /* puan == null KONTROLU SART: Number(null) sifirdir ve sonludur, yani
+     yalniz isFinite'a bakan hal puansiz mekana bes bos yildiz basiyordu.
+     Aralik da denetleniyor -- 0 ya da 7, yildiz sayisini bozardi. */
+  if (puan == null || puan === "") return "";
+  const n = Number(puan);
+  if (!Number.isFinite(n) || n < 1 || n > 5) return "";
+  const tam = Math.round(n);
+  return '<span class="yildiz" aria-label="' + kacir(n.toLocaleString("tr-TR")) +
+         ' üzerinden 5">' + "★".repeat(tam) + "☆".repeat(5 - tam) + "</span>";
+}
+
+/* ---------- sosyal medya ----------
+   OSM'de her platform ayrı bir etiket. Kullanıcı adı da tam adres de
+   geliyor; ikisini de kabul edip TEK bir adrese çeviriyoruz.
+
+   Adres ŞEMASI guvenliBag()'dan geçiyor: kullanıcı katkısı da bu yoldan
+   girebiliyor ve kacir() şemaya bakmaz. */
+const SOSYAL = {
+  insta:    { ad: "Instagram", taban: "https://instagram.com/",   onek: "@" },
+  x:        { ad: "X",         taban: "https://x.com/",           onek: "@" },
+  facebook: { ad: "Facebook",  taban: "https://facebook.com/",    onek: "" },
+  tiktok:   { ad: "TikTok",    taban: "https://tiktok.com/@",     onek: "@" },
+  youtube:  { ad: "YouTube",   taban: "https://youtube.com/",     onek: "" }
+};
+
+const sosyalAlanVar = a => Object.prototype.hasOwnProperty.call(SOSYAL, a);
+
+/* Değer ya kullanıcı adı ("oturalim") ya tam adres. Tam adres geldiyse
+   olduğu gibi kullanılıyor -- kullanıcı adını ayıklamaya çalışmak,
+   /p/, /pages/ gibi biçimlerde yanlış adres üretirdi. */
+function sosyalBag(alan, deger){
+  if (!sosyalAlanVar(alan)) return "";
+  const ham = String(deger == null ? "" : deger).trim();
+  if (!ham) return "";
+  const s = SOSYAL[alan];
+  const tam = /^[a-zA-Z][a-zA-Z0-9+.-]*:|^\/\//.test(ham)
+    ? guvenliBag(ham)
+    : s.taban + encodeURIComponent(ham.replace(/^@/, ""));
+  if (!tam) return "";
+  const gorunen = /^https?:\/\//i.test(ham)
+    ? ham.replace(/^https?:\/\//i, "").replace(/\/$/, "")
+    : s.onek + ham.replace(/^@/, "");
+  return '<a href="' + kacir(tam) + '" target="_blank" rel="noopener">' +
+         kacir(gorunen) + "</a>";
+}
+
+/* Mekanda dolu olan sosyal alanlar, sabit sırayla. Sıra SOSYAL'in kendi
+   sırası: iki sayfada iki ayrı sıra, aynı mekanı iki türlü gösterirdi. */
+function sosyalListe(m){
+  if (!m) return [];
+  return Object.keys(SOSYAL)
+    .filter(k => (m[k] || "").toString().trim())
+    .map(k => ({ alan: k, ad: SOSYAL[k].ad, bag: sosyalBag(k, m[k]) }))
+    .filter(x => x.bag);
 }
 
 /* ---------- katkı doğrulama ----------
@@ -814,6 +914,54 @@ function kendiniKontrolEt(){
       webBagi("htttps://a.test"),                          "htttps://a.test"],
     ["web bagi kotu semada baglanti kurmuyor",
       webBagi("javascript:alert(1)").indexOf("<a"),                        -1],
+
+    /* profil: yas dogum yilindan hesaplaniyor, veride yas YOK */
+    ["yas 1998 -> 28",   yasHesapla(1998, new Date(2026,7,25)),            28],
+    ["yas metin girdi",  yasHesapla("1998", new Date(2026,7,25)),          28],
+    ["yas bos",          yasHesapla(null),                               null],
+    ["yas sacma",        yasHesapla(1200, new Date(2026,7,25)),          null],
+    ["yas 13 alti elenir", yasHesapla(2020, new Date(2026,7,25)),        null],
+    ["profil ozeti ikisi de var",
+      profilOzeti({dogum_yili:1998, meslek:"Öğretmen"}, new Date(2026,7,25)),
+                                                            "28 · Öğretmen"],
+    ["profil ozeti yalniz meslek",
+      profilOzeti({meslek:"Öğretmen"}, new Date(2026,7,25)),      "Öğretmen"],
+    ["profil ozeti yalniz yas",
+      profilOzeti({dogum_yili:1998}, new Date(2026,7,25)),              "28"],
+    ["profil ozeti bos",  profilOzeti({}),                                ""],
+    ["profil ozeti yorum alanlariyla",
+      profilOzeti({yazar_dogum:1990, yazar_meslek:"Mühendis"}, new Date(2026,7,25)),
+                                                            "36 · Mühendis"],
+    ["bas harf turkce",   basHarf("ışık"),                              "I"],
+    ["bas harf bos",      basHarf(""),                                   "?"],
+
+    /* sosyal: kullanici adi da tam adres de kabul, sema denetleniyor */
+    ["sosyal kullanici adi",
+      /href="https:\/\/instagram\.com\/oturalim"/.test(sosyalBag("insta","oturalim")), true],
+    ["sosyal @ isareti temizlenir",
+      /instagram\.com\/oturalim"/.test(sosyalBag("insta","@oturalim")),       true],
+    ["sosyal tam adres korunur",
+      /href="https:\/\/facebook\.com\/p\/x-123"/.test(
+        sosyalBag("facebook","https://facebook.com/p/x-123")),               true],
+    ["sosyal javascript adresi baglanti kurmuyor",
+      sosyalBag("insta","javascript:alert(1)").includes("href="),          false],
+    ["sosyal kokensiz adres elenir",
+      sosyalBag("x","//kotu.test/a"),                                         ""],
+    ["sosyal bilinmeyen alan",  sosyalBag("myspace","x"),                     ""],
+    ["sosyal bos deger",        sosyalBag("insta","  "),                      ""],
+    ["sosyal tirnak kacirilir",
+      sosyalBag("insta",'a" onmouseover="x').includes('onmouseover="'),    false],
+    ["sosyal liste sirali",
+      sosyalListe({insta:"a", tiktok:"b", x:"c"}).map(o => o.alan).join(","),
+                                                                  "insta,x,tiktok"],
+    ["sosyal liste bos mekan",  sosyalListe({}).length,                        0],
+    ["yildiz 4 -> dort dolu",   (yildiz(4).match(/★/g) || []).length,          4],
+    ["yildiz aria etiketi",     yildiz(4.5).includes('aria-label='),        true],
+    ["yildiz null",             yildiz(null),                                 ""],
+    ["yildiz bos dizgi",        yildiz(""),                                   ""],
+    ["yildiz sifir",            yildiz(0),                                    ""],
+    ["yildiz alti",             yildiz(6),                                    ""],
+    ["yildiz metin",            yildiz("abc"),                                ""],
     ["donus yok",            guvenliDonus(null, T),                           null],
 
     /* bugun: YEREL gun. Gece 01:30'da (UTC hala dun) bugunu vermeli. */

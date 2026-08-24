@@ -54,10 +54,10 @@ async function kur(){
   });
   const { data } = await sb.auth.getSession();
   oturum = data.session;
-  if (oturum) profil = await profilGetir();
+  if (oturum) profil = await kendiProfilim();
   sb.auth.onAuthStateChange(async (_olay, yeni) => {
     oturum = yeni;
-    profil = yeni ? await profilGetir() : null;
+    profil = yeni ? await kendiProfilim() : null;
     duyur();
   });
   return true;
@@ -102,6 +102,18 @@ function hataMetni(e){
     return "Sahiplenmek için önce giriş yap.";
   if (m.includes("sahiplik bulunamadi"))
     return "Bu sahiplik bulunamadı ya da zaten bırakılmış.";
+  if (m.includes("profiller_kullanici_adi_check"))
+    return "Kullanıcı adı 3-20 karakter olmalı; yalnız küçük harf, rakam ve alt çizgi.";
+  if (m.includes("profiller_kullanici_adi_idx"))
+    return "Bu kullanıcı adı alınmış. Başka bir tane dene.";
+  if (m.includes("profiller_dogum_yili_check"))
+    return "Doğum yılını kontrol et. En az 13 yaşında olmalısın.";
+  if (m.includes("yorumlar_tek_kayit_idx"))
+    return "Bu mekan için zaten bir yorumun var. Önce onu sil.";
+  if (m.includes("yorumlar_puan_check"))
+    return "Puan 1 ile 5 arasında olmalı.";
+  if (m.includes("yorumlar_metin_check"))
+    return "Yorum en az 3, en fazla 400 karakter olmalı.";
   if (m.includes("violates check constraint") || m.includes("check constraint"))
     return "Girdiğin değerlerden biri kabul edilmedi. Alanları gözden geçir.";
   if (m.includes("value too long"))
@@ -122,10 +134,11 @@ function bugunYerel(d){
 }
 
 /* ---------- profil ---------- */
-async function profilGetir(){
+async function kendiProfilim(){
   if (!sb || !oturum) return null;
   const { data, error } = await sb.from("profiller")
-    .select("id, ad, yonetici").eq("id", oturum.user.id).maybeSingle();
+    .select("id, ad, yonetici, kullanici_adi, dogum_yili, meslek, kisilik, avatar, herkese_acik")
+    .eq("id", oturum.user.id).maybeSingle();
   if (error){ console.error("profil:", error.message); return null; }
   return data;
 }
@@ -197,7 +210,7 @@ const Kimlik = {
     const { error } = await sb.from("profiller")
       .update({ ad: String(ad).trim() }).eq("id", oturum.user.id);
     if (error) throw new Error(hataMetni(error));
-    profil = await profilGetir();
+    profil = await kendiProfilim();
     duyur();
   },
 
@@ -460,6 +473,177 @@ const Kimlik = {
     const o = Array.isArray(data) ? data[0] : data;
     return o ? { fis: +o.fis || 0, kisi: +o.kisi || 0,
                  medyan: o.medyan == null ? null : +o.medyan } : null;
+  },
+
+  /* ---------- profil (genişletilmiş) ----------
+     Alanların hepsi isteğe bağlı; profil.sql'in başındaki kural bu.
+     Tablo dışarıya KAPALI kalıyor: herkese açık okuma tek bir
+     fonksiyondan geçiyor (profil_getir), çünkü tabloyu açmak uuid ile
+     profil eşlemesini de açardı. */
+  async profilGuncelle(y){
+    if (!sb || !oturum) throw new Error("Giriş yapılmamış.");
+    const yama = {};
+    /* Boş dizgi NULL'a çevriliyor: "" bir değer değil, alanın
+       boşaltılması. Öyle olmasa kullanıcı yazdığını geri alamazdı. */
+    const bos = v => { const t = String(v == null ? "" : v).trim(); return t || null; };
+    if ("ad"           in y) yama.ad            = bos(y.ad);
+    if ("kullaniciAdi" in y) yama.kullanici_adi = (bos(y.kullaniciAdi) || "").toLowerCase() || null;
+    if ("meslek"       in y) yama.meslek        = bos(y.meslek);
+    if ("kisilik"      in y) yama.kisilik       = bos(y.kisilik);
+    if ("avatar"       in y) yama.avatar        = bos(y.avatar);
+    if ("herkeseAcik"  in y) yama.herkese_acik  = !!y.herkeseAcik;
+    if ("dogumYili"    in y){
+      const n = parseInt(y.dogumYili, 10);
+      yama.dogum_yili = Number.isFinite(n) ? n : null;
+    }
+    if (!Object.keys(yama).length) return;
+    const { error } = await sb.from("profiller").update(yama).eq("id", oturum.user.id);
+    if (error) throw new Error(hataMetni(error));
+    profil = await kendiProfilim();
+    duyur();
+  },
+
+  /* Herkese açık profil. Giriş GEREKMİYOR. Bulunamazsa null: kapalı
+     profil ile olmayan profil AYNI cevabı veriyor -- ayırmak, "bu ad
+     kayıtlı mı" diye yoklamak için bir sinyal olurdu. */
+  async profilGetir(kullaniciAdi){
+    if (!sb) return null;
+    const { data, error } = await sb.rpc("profil_getir",
+      { p_kullanici_adi: String(kullaniciAdi || "").trim().toLowerCase() });
+    if (error){ console.error("profil:", error.message); return null; }
+    const p = Array.isArray(data) ? data[0] : data;
+    return p || null;
+  },
+
+  /* Avatar. Depolama kovasına YALNIZ kendi klasörüne yazılabiliyor
+     (profil.sql); klasör adı kullanıcının kimliği. Eski dosya siliniyor,
+     yoksa her yükleme kovada bir kopya bırakırdı. */
+  async avatarYukle(dosya){
+    if (!sb || !oturum) throw new Error("Giriş yapılmamış.");
+    const t = (dosya && dosya.type) || "";
+    if (!/^image\/(jpeg|png|webp)$/.test(t))
+      throw new Error("Yalnız JPEG, PNG veya WebP yükleyebilirsin.");
+    if (dosya.size > 2 * 1024 * 1024)
+      throw new Error("Dosya 2 MB'tan büyük olmamalı.");
+    const uzanti = t === "image/png" ? "png" : t === "image/webp" ? "webp" : "jpg";
+    /* Ad her seferinde değişiyor: aynı adla üzerine yazsak tarayıcı
+       önbelleği eski resmi göstermeye devam ederdi. */
+    const yol = oturum.user.id + "/" + Date.now() + "." + uzanti;
+    const { error } = await sb.storage.from("avatar")
+      .upload(yol, dosya, { contentType: t, upsert: false });
+    if (error) throw new Error(hataMetni(error));
+    const eski = profil && profil.avatar;
+    await this.profilGuncelle({ avatar: yol });
+    if (eski && eski !== yol){
+      try { await sb.storage.from("avatar").remove([eski]); } catch (e) {}
+    }
+    return yol;
+  },
+
+  async avatarSil(){
+    if (!sb || !oturum) throw new Error("Giriş yapılmamış.");
+    const eski = profil && profil.avatar;
+    await this.profilGuncelle({ avatar: null });
+    if (eski){ try { await sb.storage.from("avatar").remove([eski]); } catch (e) {} }
+  },
+
+  /* Depolamadaki yoldan görüntülenebilir adres. Kova herkese açık, yani
+     imzalı adres gerekmiyor. */
+  avatarAdresi(yol){
+    if (!sb || !yol) return "";
+    const { data } = sb.storage.from("avatar").getPublicUrl(yol);
+    return (data && data.publicUrl) || "";
+  },
+
+  /* ---------- yorumlar ----------
+     Fiyattan AYRI: paylasimlar bir ÖLÇÜM taşıyor, yorum bir KANI.
+     Yorumun puanı fiyat hesabına girmiyor (yorum.sql başlığı). */
+  async yorumGonder(y){
+    if (!sb || !oturum) throw new Error("Yorum için giriş yap.");
+    const { error } = await sb.from("yorumlar").insert({
+      kullanici: oturum.user.id,
+      mekan_id: y.mekanId,
+      il: y.il || null,
+      mekan_ad: String(y.mekanAd).trim(),
+      puan: y.puan,
+      metin: (y.metin || "").trim() || null,
+      durum: "bekliyor"
+    });
+    if (error) throw new Error(hataMetni(error));
+  },
+
+  /* Bir mekanın onaylı yorumları, yazar bilgisiyle. Kimlik numarası
+     DÖNMÜYOR: birleştirme sunucuda (mekan_yorumlari). */
+  async mekanYorumlari(mekanId){
+    if (!sb) return [];
+    const { data, error } = await sb.rpc("mekan_yorumlari", { p_mekan_id: mekanId });
+    if (error){ console.error("yorumlar:", error.message); return []; }
+    return data || [];
+  },
+
+  /* Bir kullanıcının onaylı yorumları (profil sayfası).
+     FİŞLERİ listeleyen karşılığı YOK ve olmayacak: onlar kanı değil
+     ödeme kaydı. Gerekçe veritabani/yorum.sql'de profil_yorumlari'nın
+     başında yazılı. */
+  async profilYorumlari(kullaniciAdi){
+    if (!sb) return [];
+    const { data, error } = await sb.rpc("profil_yorumlari",
+      { p_kullanici_adi: String(kullaniciAdi || "").trim().toLowerCase() });
+    if (error){ console.error("profil yorumlari:", error.message); return []; }
+    return data || [];
+  },
+
+  async mekanPuani(mekanId){
+    if (!sb) return null;
+    const { data, error } = await sb.rpc("mekan_puani", { p_mekan_id: mekanId });
+    if (error){ console.error("puan:", error.message); return null; }
+    const o = Array.isArray(data) ? data[0] : data;
+    return o ? { adet: +o.adet || 0,
+                 ortalama: o.ortalama == null ? null : +o.ortalama } : null;
+  },
+
+  /* Keşfet ekranı bir ilin TAMAMINI tek istekte istiyor: 12 bin mekan
+     için 12 bin çağrı atılamaz. */
+  async ilPuanlari(il){
+    if (!sb || !il) return new Map();
+    const { data, error } = await sb.rpc("il_puanlari", { p_il: il });
+    if (error){ console.error("il puanlari:", error.message); return new Map(); }
+    return new Map((data || []).map(r =>
+      [r.mekan_id, { adet: +r.adet || 0, ortalama: +r.ortalama }]));
+  },
+
+  async yorumlarim(){
+    if (!sb || !oturum) return [];
+    const { data, error } = await sb.from("yorumlar")
+      .select("id, mekan_id, mekan_ad, il, puan, metin, durum, olusturuldu")
+      .order("olusturuldu", { ascending: false });
+    if (error){ console.error("yorumlarim:", error.message); return []; }
+    return data || [];
+  },
+
+  async yorumSil(id){
+    if (!sb || !oturum) throw new Error("Giriş yapılmamış.");
+    const { error } = await sb.from("yorumlar").delete().eq("id", id);
+    if (error) throw new Error(hataMetni(error));
+  },
+
+  async yorumYonetimListesi(durum){
+    if (!sb || !oturum) return [];
+    let q = sb.from("yorumlar")
+      .select("id, mekan_id, mekan_ad, il, puan, metin, durum, olusturuldu")
+      .order("olusturuldu", { ascending: false }).limit(200);
+    if (durum) q = q.eq("durum", durum);
+    const { data, error } = await q;
+    if (error){ console.error("yorum yonetim:", error.message); return []; }
+    return data || [];
+  },
+
+  async yorumKarar(id, durum){
+    if (!sb || !oturum) throw new Error("Giriş yapılmamış.");
+    if (!["onaylandi","reddedildi","bekliyor"].includes(durum))
+      throw new Error("Geçersiz durum.");
+    const { error } = await sb.from("yorumlar").update({ durum }).eq("id", id);
+    if (error) throw new Error(hataMetni(error));
   },
 
   /* ---------- yönetim ---------- */

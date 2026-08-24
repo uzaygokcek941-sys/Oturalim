@@ -70,7 +70,13 @@ GIRIS_TAKLIT = """
 window.__SAHTE_VERI = {
   oturum: { user: { id: "kul-1", email: "ben@ornek.test" } },
   tablolar: {
-    profiller:  [{ id: "kul-1", ad: "Deneme Kisi", yonetici: true }],
+    profiller:  [{ id: "kul-1", ad: "Deneme Kisi", yonetici: true,
+                   kullanici_adi: "deneme_kisi", dogum_yili: 1998,
+                   meslek: "Öğretmen", kisilik: "Sessiz köşe severim",
+                   avatar: null, herkese_acik: true }],
+    yorumlar:   [{ id: 1, kullanici: "kul-1", mekan_id: "node/1", il: "34",
+                   mekan_ad: "Yorum Kafe", puan: 4, metin: "Sessiz ve ucuz",
+                   durum: "bekliyor", olusturuldu: "2026-08-23T12:00:00Z" }],
     favoriler:  [{ mekan_id: "node/1", il: "34", mekan_ad: "Favori Kafe",
                    eklendi: "2026-08-01T10:00:00Z" }],
     paylasimlar:[{ id: 1, kullanici: "kul-1", mekan_id: "node/1",
@@ -89,6 +95,27 @@ window.__SAHTE_VERI = {
                                        ilk_gun: "2026-06-01" }], error: null }),
     mekan_goruldu:   () => ({ data: null, error: null }),
     mekan_fis_ozeti: () => ({ data: [{ fis: 5, kisi: 3, medyan: 300 }], error: null }),
+    profil_getir: () => ({ data: [{ kullanici_adi: "deneme_kisi", ad: "Deneme Kisi",
+      dogum_yili: 1998, meslek: "Öğretmen", kisilik: "Sessiz köşe severim",
+      avatar: null, katildi: "2026-03-01T10:00:00Z" }], error: null }),
+    profil_yorumlari: () => ({ data: [
+      { id: 1, mekan_id: "node/1", mekan_ad: "Yorum Kafe", il: "34", puan: 4,
+        metin: "Sessiz ve ucuz", olusturuldu: "2026-08-01T10:00:00Z" }], error: null }),
+    /* Uc yorum: ortalama ancak YORUM_ESIK'ten (3) sonra gosteriliyor,
+       yani esigin gectigi hal de sinaniyor. Ikisi ADSIZ: profilini
+       kapatanin yorumu gorunur, adi gorunmez. */
+    mekan_yorumlari: () => ({ data: [
+      { id: 1, puan: 5, metin: "Sessiz ve ucuz", olusturuldu: "2026-08-01T10:00:00Z",
+        yazar_adi: "deneme_kisi", yazar_ad: "Deneme Kisi", yazar_avatar: null,
+        yazar_dogum: 1998, yazar_meslek: "Öğretmen" },
+      { id: 2, puan: 4, metin: "Fena degil", olusturuldu: "2026-07-01T10:00:00Z",
+        yazar_adi: null, yazar_ad: null, yazar_avatar: null,
+        yazar_dogum: null, yazar_meslek: null },
+      { id: 3, puan: 3, metin: null, olusturuldu: "2026-06-01T10:00:00Z",
+        yazar_adi: null, yazar_ad: null, yazar_avatar: null,
+        yazar_dogum: null, yazar_meslek: null }], error: null }),
+    mekan_puani: () => ({ data: [{ adet: 3, ortalama: 4 }], error: null }),
+    il_puanlari: () => ({ data: [], error: null }),
     /* Birakma SILMIYOR, durumu degistiriyor -- taklit de oyle davranmali,
        yoksa arayuz kontrolu gercekte olmayan bir davranisi dogrular. */
     sahipligi_birak: (p) => {
@@ -119,17 +146,39 @@ GIRISLI = [
    ["Katki Kafe", "0312 000 00 00"], ["Yükleniyor", "kul-1"]),
   ("hesabim.html/isletmeler", "/hesabim.html", '[data-bolum="isletmeler"]',
    ["Sahip Kafe", "doğrulanmış"], ["Yükleniyor", "kul-1"]),
+  ("hesabim.html/yorumlar",   "/hesabim.html", '[data-bolum="yorumlar"]',
+   ["Yorum Kafe", "onay bekliyor"], ["Yükleniyor", "kul-1"]),
+  # Profil alanlari MEVCUT degerlerle dolmali: bos bir form kaydetmek
+  # kullanicinin yazdiklarini silerdi.
+  ("hesabim.html/ayarlar",    "/hesabim.html", '[data-bolum="ayarlar"]',
+   ["Kullanıcı adın", "Doğum yılın", "profil.html?k=deneme_kisi"],
+   ["Yükleniyor", "kul-1"]),
   ("yonetim.html", "/yonetim.html", None,
    ["Ornek Kafe", "Katki Kafe", "Sahip Kafe"], ["Yükleniyor", "kul-1"]),
   ("isletme.html", "/isletme.html?il=34&id=node/8223784325", None,
    # Sayac cumlesi ve fis ozeti sunucudan gelen sayilarla kurulmali.
    ["47", "3 kişinin 5 fişinden"], ["kul-1"]),
+  # Yorumlar: yazarli ve YAZARSIZ olan birlikte cizilmeli. Profilini
+  # kapatanin yorumu GORUNUR, adi gorunmez -- yorum mekana ait bir bilgi.
+  ("isletme.html/yorumlar", "/isletme.html?il=34&id=node/8223784325", None,
+   ["Yorumlar", "Deneme Kisi", "28 · Öğretmen", "Sessiz ve ucuz",
+    "Bir kullanıcı", "4,0"], ["kul-1"]),
+  ("profil.html", "/profil.html?k=deneme_kisi", None,
+   ["Deneme Kisi", "@deneme_kisi", "28 · Öğretmen", "Yorum Kafe"],
+   ["Yükleniyor", "kul-1", "Profil bulunamadı"]),
+  # Yonetim: yorum kuyrugu da cizilmeli.
+  ("yonetim.html/yorumlar", "/yonetim.html", None,
+   ["Yorumlar", "Yorum Kafe", "Sessiz ve ucuz"], ["kul-1"]),
 ]
 
 SAYFALAR = ["/index.html", "/kesfet.html", "/kesfet.html?il=34&tur=Kafe&butce=300",
             "/isletme.html?il=34&id=node/8223784325", "/isletme.html?il=34&id=yok",
             "/paylas.html", "/giris.html", "/hesabim.html", "/yonetim.html",
-            "/hakkinda.html", "/gizlilik.html"]
+            "/hakkinda.html", "/gizlilik.html",
+            # Profil: hem gecerli hem OLMAYAN kullanici adi. Ikincisi
+            # "bulunamadi" ekranini cizmeli, catmamali.
+            "/profil.html?k=deneme_kisi", "/profil.html?k=yok_boyle_biri",
+            "/profil.html"]
 
 
 def _tarayici_yolu():

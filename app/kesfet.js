@@ -634,12 +634,13 @@ function ac(id){
     m.tel    ? satir(IK.tel, '<a href="tel:' + kacir(m.tel.replace(/\s/g,"")) + '">' +
                              kacir(m.tel) + "</a>") : "",
     m.web    ? satir(IK.web, webBagi(m.web)) : "",
-    /* Instagram sitesi olmayan 192 mekanin TEK baglantisi. Onceden
-       yalniz isletme sayfasinda vardi, yani bu panelde o mekanlarda
-       hicbir baglanti gorunmuyordu. */
-    m.insta  ? satir(IK.web,
-                 '<a href="https://instagram.com/' + encodeURIComponent(m.insta) +
-                 '" target="_blank" rel="noopener">@' + kacir(m.insta) + "</a>") : ""
+    /* Sosyal medya. Instagram, sitesi olmayan 192 mekanin TEK baglantisi;
+       diger platformlar da ayni yoldan geciyor. Adres kurma kurali
+       ortak.js'te (sosyalBag) -- isletme sayfasi da ayni listeyi
+       kuruyor, iki yerde iki turlu olmasin. */
+    ...sosyalListe(m).map(x =>
+        satir(IK.web, x.bag + ' <small style="color:var(--metin-3)">' +
+                      kacir(x.ad) + "</small>"))
   ].filter(Boolean).join("");
 
   let govde = bilgi ? '<div class="d-bilgi">' + bilgi + "</div>" : "";

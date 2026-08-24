@@ -65,6 +65,37 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   .katki-satir input{flex:1 1 13rem;min-width:0}
   .katki-not{font-size:.88rem;color:var(--soluk);margin-top:var(--a2)}
   .katki-not.kotu{color:var(--vurgu)}
+
+  /* ---- yorumlar ---- */
+  .yorumlar{border-top:1px solid var(--cizgi);padding-top:var(--a4);margin-top:var(--a4)}
+  .yorum-baslik{display:flex;gap:var(--a3);align-items:baseline;flex-wrap:wrap}
+  .yorum-baslik h2{margin:0}
+  .yildiz{color:var(--vurgu);letter-spacing:1px;white-space:nowrap}
+  .y-kayit{display:flex;gap:var(--a3);padding:var(--a3) 0;
+    border-top:1px solid var(--cizgi)}
+  .y-kayit:first-of-type{border-top:0}
+  .y-avatar{width:40px;height:40px;flex:0 0 auto;border-radius:50%;overflow:hidden;
+    background:var(--zemin-3,#eee);border:1px solid var(--cizgi);
+    display:grid;place-items:center;font-weight:700;font-size:1rem;color:var(--soluk)}
+  .y-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+  .y-govde{min-width:0;flex:1}
+  .y-ust{display:flex;gap:var(--a2);align-items:baseline;flex-wrap:wrap}
+  .y-ust b{font-size:.95rem}
+  .y-ust span:not(.yildiz){font-size:.82rem;color:var(--soluk)}
+  .y-metin{margin:4px 0 0;font-size:.95rem;line-height:1.55}
+  /* Puan secici: yildizlar DUGME, cunku tiklanabilir olduklari
+     gorunmeli ve klavyeyle gezilebilmeli. */
+  .puan-sec{display:flex;gap:4px;margin-bottom:var(--a3)}
+  .puan-sec button{
+    min-width:44px;min-height:44px;font-size:1.5rem;line-height:1;
+    color:var(--cizgi);background:none;border:0;cursor:pointer;
+    border-radius:var(--r-s,6px);
+  }
+  .puan-sec button[aria-pressed="true"]{color:var(--vurgu)}
+  .puan-sec button:focus-visible{outline:2px solid var(--vurgu);outline-offset:2px}
+  #yorumMetin{width:100%;min-height:76px;padding:10px 12px;font:inherit;
+    border:1px solid var(--cizgi);border-radius:var(--r-s,6px);
+    background:var(--zemin-3,#fff);color:inherit;resize:vertical}
   /* Dogrulanmis isletme: rozet, katki formuyla ayni hizada dursun ama
      onun gibi bir EYLEM gibi gorunmesin -- bu bir DURUM bildirimi. */
   .sahiplik-rozet{border-top:1px solid var(--cizgi);margin-top:var(--a4);
@@ -105,6 +136,34 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
     <h2>Buraya gidenler ne ödemiş</h2>
     <p id="fisOzet"></p>
     <a class="dugme ikincil" id="fisEkle" href="paylas.html">Ödediğini ekle</a>
+  </section>
+
+  <!-- Yorumlar FİYATTAN AYRI duruyor. Fiş bir ÖLÇÜM taşıyor (850 ₺,
+       3 kişi), yorum bir KANI. İkisini karıştırmak ortalamanın içine
+       kanı katmak olurdu; yorumun puanı fiyat hesabına girmiyor. -->
+  <section class="yorumlar" id="yorumlar" data-giris="perde" hidden>
+    <div class="yorum-baslik">
+      <h2>Yorumlar</h2>
+      <span id="yorumPuan"></span>
+    </div>
+    <div id="yorumListe"></div>
+
+    <form class="katki" id="yorumForm" hidden>
+      <p><strong>Buraya gittin mi?</strong> Nasıl bir yer olduğunu yaz.
+        Yorumun kontrol edildikten sonra bu sayfada görünür.</p>
+      <div class="puan-sec" role="radiogroup" aria-label="Puanın">
+        <button type="button" data-puan="1" aria-pressed="false" aria-label="1 yıldız">★</button>
+        <button type="button" data-puan="2" aria-pressed="false" aria-label="2 yıldız">★</button>
+        <button type="button" data-puan="3" aria-pressed="false" aria-label="3 yıldız">★</button>
+        <button type="button" data-puan="4" aria-pressed="false" aria-label="4 yıldız">★</button>
+        <button type="button" data-puan="5" aria-pressed="false" aria-label="5 yıldız">★</button>
+      </div>
+      <label class="gizli" for="yorumMetin">Yorumun</label>
+      <textarea id="yorumMetin" maxlength="400" rows="3"
+                placeholder="Örn. Sabah sessiz, akşam kalabalık. Bahçesi güzel."></textarea>
+      <p class="katki-not" id="yorumNot"></p>
+      <button class="dugme" id="yorumGonder" type="submit">Gönder</button>
+    </form>
   </section>
 
   <section class="eksik" id="eksik" data-giris="perde">
@@ -210,11 +269,14 @@ const YEME_ICME = new Set(["Restoran","Kafe","Fast food","Bar","Pub","Dondurma",
 function eksikleriBul(m){
   return Object.keys(EKSIK).filter(k => {
     if (k === "menu") return YEME_ICME.has(m.tur) && m.min == null;
-    /* "Site / sosyal medya" INSTAGRAM'i da sayiyor. Olculdu: 194 mekanin
-       instagrami var ve sitesi yok; onlara "sosyal medya baginiz yok"
-       demek, elimizde duran bilgiyi yok saymakti. Turkiye'de kafelerin
-       cogu menuyu ve saati zaten instagramda yayimliyor. */
-    if (k === "web") return !m.web && !m.insta;
+    /* "Site / sosyal medya" SOSYAL HESAPLARI da sayiyor. Olculdu: 194
+       mekanin instagrami var ve sitesi yok; onlara "sosyal medya baginiz
+       yok" demek, elimizde duran bilgiyi yok saymakti. Turkiye'de
+       kafelerin cogu menuyu ve saati zaten instagramda yayimliyor.
+       Liste ortak.js'te (sosyalListe): yeni bir platform eklendiginde
+       burasi kendiliginden sayar, elle guncellenmesi gereken ikinci bir
+       yer olmaz. */
+    if (k === "web") return !m.web && !sosyalListe(m).length;
     return !String(m[k] == null ? "" : m[k]).trim();
   });
 }
@@ -247,10 +309,12 @@ function goster(m, ilAd){
     ["Telefon", kacir(m.tel || ""),          "tel"],
     ["Adres",   kacir(m.adres || ""),        "adres"],
     ["Site",    m.web ? bag(String(m.web)) : "", "web"],
-    /* Adres gosterim aninda kuruluyor: veride yalniz kullanici adi var. */
-    ["Instagram", m.insta
-      ? '<a href="https://instagram.com/' + encodeURIComponent(m.insta) +
-        '" target="_blank" rel="noopener">@' + kacir(m.insta) + "</a>" : "", null],
+    /* Sosyal medya: adres GOSTERIM ANINDA kuruluyor, veride yalniz
+       kullanici adi var. Kural ortak.js'te (sosyalBag) -- kesfet detay
+       paneli de ayni listeyi kuruyor; iki yerde iki turlu olmasin.
+       Sema denetimi de orada: kacir() semaya bakmaz ve deger kullanici
+       katkisindan da gelebiliyor. */
+    ...sosyalListe(m).map(x => [x.ad, x.bag, "sosyal"]),
     /* yalniz OLCULEN fiyat gosterilir. Mutfaktan tahmin edilen "hesapli",
        asagidaki "fiyat bilgisi yok" satiriyla ayni sayfada celisiyordu. */
     ["Fiyat",   sv && sv.olculdu ? kacir(sv.ad) : "", null],
@@ -296,6 +360,7 @@ function goster(m, ilAd){
   document.getElementById("govde").hidden = false;
   sayacCalistir(ID);
   fisKatmani(ID, m.ad, IL);
+  yorumKatmani(ID, m.ad, IL);
 }
 
 /* ============================================================
@@ -557,6 +622,132 @@ function fisOzeti(o){
            (FIS_ESIK - n) + " tane daha gelince ortalama burada görünecek.";
   return "Kişi başı ~" + tl(o.medyan) + " · " +
          (o.kisi ? sayi(o.kisi) + " kişinin " : "") + sayi(n) + " fişinden.";
+}
+
+/* ============================================================
+   Yorumlar
+
+   FIYATTAN AYRI. Fis bir OLCUM tasiyor (850 TL, 3 kisi), yorum bir KANI.
+   Yorumun puani fiyat hesabina GIRMIYOR -- ortalamanin icine kani
+   katmak, iki ayri sorunun cevabini birbirine karistirmakti.
+
+   ONAY SART. Sebep katkilar'dakiyle ayni degil: orada mesele yanlis
+   bilgi, burada hakaret ve karalama. Tek kisilik bir yapida bunun tek
+   savunmasi on onaydir (veritabani/yorum.sql basligi).
+   ============================================================ */
+function yorumKarti(y){
+  const ad = y.yazar_ad || (y.yazar_adi ? "@" + y.yazar_adi : "Bir kullanıcı");
+  const ozet = profilOzeti(y);
+  const res = Kimlik.avatarAdresi(y.yazar_avatar);
+  /* Profilini kapatanin YORUMU gorunur, ADI gorunmez (mekan_yorumlari):
+     yorum mekana ait bir bilgi, kisiye ait olan sey ad ve fotograf.
+     Adi yoksa profil baglantisi da yok. */
+  const adHTML = y.yazar_adi
+    ? '<a href="profil.html?k=' + encodeURIComponent(y.yazar_adi) + '">' + kacir(ad) + "</a>"
+    : kacir(ad);
+  return '<article class="y-kayit">' +
+    '<div class="y-avatar" aria-hidden="true">' +
+      (res ? '<img src="' + kacir(res) + '" alt="">' : kacir(basHarf(ad))) +
+    "</div>" +
+    '<div class="y-govde"><div class="y-ust"><b>' + adHTML + "</b>" +
+      (ozet ? "<span>" + kacir(ozet) + "</span>" : "") +
+      yildiz(y.puan) +
+      "<span>" + kacir(tarihYaz(y.olusturuldu)) + "</span></div>" +
+      (y.metin ? '<p class="y-metin">' + kacir(y.metin) + "</p>" : "") +
+    "</div></article>";
+}
+
+function tarihYaz(t){
+  const d = new Date(t);
+  return isNaN(d) ? "" : d.toLocaleDateString("tr-TR", { year:"numeric", month:"long" });
+}
+
+async function yorumKatmani(mekanId, mekanAd, ilKod){
+  const bol  = document.getElementById("yorumlar");
+  const yuva = document.getElementById("yorumListe");
+  const bas  = document.getElementById("yorumPuan");
+  const form = document.getElementById("yorumForm");
+
+  if (!Kimlik.acik) return;
+  /* Kimlik.acik yalniz YAPILANDIRMANIN dolu oldugunu soyluyor. Istemci
+     gercekten kuruldu mu, ancak hazir beklenince belli oluyor -- katki
+     formunda ayni hata olmustu: calismayan bir kutu gostermek, hic
+     gostermemekten kotu. */
+  try { if (!(await Kimlik.hazir)) return; } catch (e) { return; }
+
+  async function ciz(){
+    const l = await Kimlik.mekanYorumlari(mekanId);
+    /* Ortalama ancak YORUM_ESIK'ten sonra: tek yorum bir egilim degil,
+       o gunku bir kanidir. Esik ortak.js'te, fis esigiyle ayni kural.
+       Esigin altinda SAYI gosterilip ortalama gizleniyor. */
+    if (l.length >= YORUM_ESIK){
+      const ort = l.reduce((t, y) => t + Number(y.puan), 0) / l.length;
+      bas.innerHTML = yildiz(ort) + " <span>" +
+        kacir(ort.toFixed(1).replace(".", ",")) + " · " + sayi(l.length) + " yorum</span>";
+    } else if (l.length){
+      bas.innerHTML = "<span>" + sayi(l.length) + " yorum · ortalama " +
+        (YORUM_ESIK - l.length) + " yorum sonra</span>";
+    } else {
+      bas.textContent = "";
+    }
+    yuva.innerHTML = l.length
+      ? l.map(yorumKarti).join("")
+      : '<p class="katki-not">Buraya kimse yorum yazmamış. İlk sen yaz.</p>';
+    bol.hidden = false;
+  }
+  await ciz();
+
+  /* Puan secici. Zorunlu alan: puansiz yorum siralanamaz. */
+  let puan = 0;
+  const dugmeler = [...form.querySelectorAll("[data-puan]")];
+  function puanYaz(){
+    dugmeler.forEach(d =>
+      d.setAttribute("aria-pressed", String(+d.dataset.puan <= puan)));
+  }
+  dugmeler.forEach(d => d.addEventListener("click", () => {
+    puan = +d.dataset.puan;
+    puanYaz();
+    document.getElementById("yorumNot").textContent = "";
+  }));
+
+  const not = document.getElementById("yorumNot");
+  const dug = document.getElementById("yorumGonder");
+  const donus = "isletme.html?il=" + encodeURIComponent(ilKod) +
+                "&id=" + encodeURIComponent(mekanId);
+  Kimlik.izle(d => { dug.textContent = d.girisli ? "Gönder" : "Giriş yap ve yaz"; });
+  form.hidden = false;
+
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+    if (!Kimlik.girisli){
+      location.href = "giris.html?donus=" + encodeURIComponent(donus);
+      return;
+    }
+    if (!puan){
+      not.textContent = "Önce bir puan seç.";
+      not.classList.add("kotu");
+      return;
+    }
+    const metin = document.getElementById("yorumMetin").value.trim();
+    if (metin && metin.length < 3){
+      not.textContent = "Yorum en az 3 karakter olmalı ya da boş bırak.";
+      not.classList.add("kotu");
+      return;
+    }
+    dug.disabled = true;
+    const eski = dug.textContent;
+    dug.textContent = "Gönderiliyor…";
+    try {
+      await Kimlik.yorumGonder({ mekanId, il: ilKod, mekanAd, puan, metin });
+      form.innerHTML = '<p><strong>Teşekkürler, aldım.</strong> ' +
+        "Kontrol ettikten sonra bu sayfada görünecek.</p>";
+    } catch (hata){
+      not.textContent = hata.message;
+      not.classList.add("kotu");
+      dug.disabled = false;
+      dug.textContent = eski;
+    }
+  });
 }
 
 async function fisKatmani(mekanId, mekanAd, ilKod){
