@@ -334,7 +334,9 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
       yola değil — `qrmenu.actdurum.com` işletmenin kendi QR menüsü, kalıyor.
 - [x] Aynı işletmenin iki kaydı ayrı mekan sayılıyordu: OSM'de bir yer hem
       nokta (POI) hem alan (bina) olarak etiketlenebiliyor. Aynı il + aynı ad
-      + **≤25 m** kuralıyla 235 kayıt birleştirildi (36.102 → 35.867). Eşik
+      + **≤25 m** kuralıyla 250 kayıt birleştirildi (36.102 → 35.852).
+      Ad karşılaştırması Türkçe harfe duyarsız: "Balıkçı Sabahattin" ile
+      "Balikci Sabahattin" aynı yer. Eşik
       ölçümle seçildi; 40 m'de "Starbucks 54 m", "Çay ocağı 53 m" gibi gerçek
       ayrı işletmeler karışıyor. Düşen kaydın alanları kalana taşınıyor —
       235 birleşmede bilgi kaybı 0. Çıktı `test.py`'de de denetleniyor.
@@ -344,8 +346,8 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
       "ucuz" çıkardı ve ikisi de yanlış olurdu.
 
       Kanıt eşiği var ve **çoğu zaman susuyor**: fiyat iddiası olan 163
-      mekanın **18'i** band alıyor (10 pahalı, 5 orta, 3 ucuz). Band
-      çıkmayan 145'in **107'si pizzacı** — Türkiye pizza ölçütü yalnız 5
+      mekanın **14'ü** band alıyor (7 pahalı, 4 orta, 3 ucuz). Band
+      çıkmayan 149'un **107'si pizzacı** — Türkiye pizza ölçütü yalnız 5
       markadan çıkıyor ve 5 markaya dayanıp "bu pizzacı pahalı" demek
       uydurma seviyeden farksız olurdu. Sayı, veri büyüdükçe büyür.
 
@@ -427,9 +429,15 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
 - [x] Kontroller CI'da koşuyor (`python test.py` · GitHub Actions, her itmede)
 - [x] `kacir()` tek tırnağı da kaçırıyor; paylaşım/katkı günlük gönderim sınırı kondu
 - [x] "Ucuz / orta / pahalı" bandı kuruldu (yukarıda). Bugün 163 mekanın
-      **18'inde** çıkıyor; kalanın çoğu pizzacı ve Türkiye pizza ölçütü
+      **14'ünde** çıkıyor; kalanın çoğu pizzacı ve Türkiye pizza ölçütü
       yalnız 5 markadan geliyor. Kanıt eşiği **düşürülmeyecek** — sayı veri
       büyüdükçe kendiliğinden büyür.
+
+      Sayı 18'den 14'e indi ve bu bir gerileme değil: `İ` sınıflandırma
+      hatası düzelince İstanbul tatlı ölçütünün bandı 0,68'den 0,84'e
+      **genişledi** — gerçek yayılım görünür oldu ve kanıt eşiğini
+      geçmiyor. Önceki 18'in dördü, göründüğünden gevşek bir ölçüte
+      dayanıyormuş. **Hata düzeltmek iddiayı azaltabilir.**
 
 ---
 
