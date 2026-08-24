@@ -28,6 +28,7 @@ depoya girmiyor.
 import argparse
 import collections
 import csv
+import glob
 import hashlib
 import html
 import io
@@ -63,21 +64,60 @@ def ozet(kod):
     return hashlib.sha256(temiz.encode("ascii")).hexdigest()
 
 
+def _guncel_kimlikler():
+    """app/veri'deki butun mekan kimlikleri."""
+    import json
+    import re as _re
+    kimlik = set()
+    for yol in glob.glob(os.path.join("app", "veri", "*.json")):
+        if not _re.search(r"[\\/]\d\d\.json$", yol):
+            continue
+        with io.open(yol, encoding="utf-8") as f:
+            for m in json.load(f)["mekanlar"]:
+                kimlik.add(m["id"])
+    return kimlik
+
+
 def kumeleri_oku(yol=KUME_CSV):
     if not os.path.exists(yol):
         sys.exit("%s yok. Once 'python sahiplen.py' calistir." % yol)
     kume = collections.defaultdict(list)
+    yok = 0
+    guncel = _guncel_kimlikler()
     with io.open(yol, encoding="utf-8-sig") as f:
         for r in csv.DictReader(f):
+            _, mekan_id = mekan_kimligi(r["sayfa"])
+            # BAYAT CSV KORUMASI. Kume dosyasi veriden ONCE uretilmis
+            # olabilir; o zaman icinde artik var olmayan mekanlar bulunur
+            # (ornegin kopya kayit birlestirmesinde dusenler). Onlar icin
+            # basilan kart QR'i olu bir sayfaya gider ve bunu ancak sahada
+            # fark ederiz. Bir kez oldu: elimdeki dosya veri
+            # yenilenmeden onceydi.
+            if guncel and mekan_id not in guncel:
+                yok += 1
+                continue
             kume[r["kume"]].append(r)
+    if yok:
+        oran = 100.0 * yok / (yok + sum(len(v) for v in kume.values()))
+        print("UYARI: %s icindeki %d kayit (%.1f%%) artik veride yok, atlandi."
+              % (yol, yok, oran))
+        if oran > 5:
+            sys.exit("Kume dosyasi bayat gorunuyor. 'python sahiplen.py' calistir.")
     return kume
 
 
 def sec(kumeler, adet):
-    """En YOGUN kumeler once: bir yuruyuste en cok isletmeye deginen.
-    Sirasi sabit -- esit buyuklukte kume numarasi karar veriyor ki
-    iki calistirma ayni listeyi versin."""
-    sirali = sorted(kumeler.items(), key=lambda kv: (-len(kv[1]), int(kv[0])))
+    """Ilk N kume, NUMARA SIRASIYLA.
+
+    Burada yeniden siralama YAPILMIYOR: sahiplen.py kumeleri zaten
+    degerine gore diziyor (uyelerin eksik bilgi toplamina gore) ve 1'den
+    baslayarak numaraliyor. Kume 1 = en degerli yuruyus.
+
+    Ilk yazimda burada "en cok uyesi olan" diye ikinci bir tanim vardi ve
+    farkli bir sonuc veriyordu: boyuta gore 1, 3, 2; degere gore 1, 2, 3.
+    Ayni kavramin iki tanimi, ikisinin ayrismasi demek. Tanim sahiplen.py'de
+    kalsin."""
+    sirali = sorted(kumeler.items(), key=lambda kv: int(kv[0]))
     return sirali[:adet]
 
 
@@ -354,9 +394,12 @@ def kendini_kontrol_et():
     assert mekan_kimligi("/isletme.html?il=06&id=node/123") == ("06", "node/123")
     assert mekan_kimligi("bozuk") == ("", "")
 
-    # En yogun kume once, esitlikte kume numarasi (sonuc kararli olmali)
-    sahte = {"3": [1, 2], "1": [1, 2, 3], "2": [1, 2]}
+    # Kume sirasi NUMARADAN geliyor, buyukluk yeniden siralamiyor:
+    # sahiplen.py zaten degere gore numaraliyor. (Ilk yazimda burada
+    # boyuta gore ikinci bir siralama vardi ve farkli sonuc veriyordu.)
+    sahte = {"3": [1] * 9, "1": [1] * 2, "2": [1] * 5}
     assert [k for k, _ in sec(sahte, 2)] == ["1", "2"], sec(sahte, 2)
+    assert [k for k, _ in sec(sahte, 3)] == ["1", "2", "3"]
 
     # SQL kacisi: tek tirnakli mekan adi enjeksiyon olmamali
     s = sql_uret([{"kod": "ABCD3456", "mekan_id": "node/1", "il_kodu": "06",
