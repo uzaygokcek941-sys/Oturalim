@@ -306,7 +306,11 @@ async function sahiplikCiz(){
   }
 
   yuva.innerHTML = liste.map(o => {
-    const iptal = o.durum === "iptal";
+    /* Uc hal. "iptal" ile "birakildi" ayri sey: birincisi yoneticinin
+       karari, ikincisi sahibin kendi karari. Ayni etiketi vermek, kimin
+       ne yaptigini kaydin uzerinde silmek olurdu. */
+    const aktif = o.durum === "aktif";
+    const iptal = !aktif;
     const sayfa = o.il && o.mekan_id
       ? ' · <a href="isletme.html?il=' + encodeURIComponent(o.il) +
         "&id=" + encodeURIComponent(o.mekan_id) + '" target="_blank" rel="noopener">sayfayı aç</a>'
@@ -316,8 +320,10 @@ async function sahiplikCiz(){
         '<div class="satir">' +
           (o.il ? "<span>il " + kacir(o.il) + "</span>" : "") +
           "<span>" + tarihTR(o.dogrulandi) + "</span>" +
-          '<span class="rozet ' + (iptal ? "kapali" : "acik") + '">' +
-          (iptal ? "iptal" : "aktif") + "</span>" +
+          '<span class="rozet ' + (aktif ? "acik" : "kapali") + '">' +
+          (aktif ? "aktif"
+                 : o.durum === "birakildi" ? "sahibi bıraktı" : "iptal") +
+          "</span>" +
         "</div>" +
         '<div class="aciklama"><b>' + kacir(o.mekan_id) + "</b>" + sayfa +
         (o.iptal_notu ? " · " + kacir(o.iptal_notu) : "") + "</div>" +

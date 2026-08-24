@@ -88,7 +88,15 @@ window.__SAHTE_VERI = {
     mekan_sayaci:    () => ({ data: [{ bugun: 2, son30: 47, toplam: 90,
                                        ilk_gun: "2026-06-01" }], error: null }),
     mekan_goruldu:   () => ({ data: null, error: null }),
-    mekan_fis_ozeti: () => ({ data: [{ fis: 5, kisi: 3, medyan: 300 }], error: null })
+    mekan_fis_ozeti: () => ({ data: [{ fis: 5, kisi: 3, medyan: 300 }], error: null }),
+    /* Birakma SILMIYOR, durumu degistiriyor -- taklit de oyle davranmali,
+       yoksa arayuz kontrolu gercekte olmayan bir davranisi dogrular. */
+    sahipligi_birak: (p) => {
+      const r = (window.__SAHTE_VERI.tablolar.sahiplik || [])
+        .find(x => String(x.id) === String(p.p_id));
+      if (r) r.durum = "birakildi";
+      return { data: null, error: null };
+    }
   }
 };
 """
@@ -110,7 +118,7 @@ GIRISLI = [
   ("hesabim.html/katkilar",   "/hesabim.html", '[data-bolum="katkilar"]',
    ["Katki Kafe", "0312 000 00 00"], ["Yükleniyor", "kul-1"]),
   ("hesabim.html/isletmeler", "/hesabim.html", '[data-bolum="isletmeler"]',
-   ["Sahip Kafe"], ["Yükleniyor", "kul-1"]),
+   ["Sahip Kafe", "doğrulanmış"], ["Yükleniyor", "kul-1"]),
   ("yonetim.html", "/yonetim.html", None,
    ["Ornek Kafe", "Katki Kafe", "Sahip Kafe"], ["Yükleniyor", "kul-1"]),
   ("isletme.html", "/isletme.html?il=34&id=node/8223784325", None,
@@ -382,6 +390,40 @@ def kendini_kontrol_et():
                 if durum != "onaylandi":
                     sorunlar.append("yonetim.html: onay dugmesi durumu degistirmedi (%s)"
                                     % durum)
+            sf.close()
+
+            # 1i) Sahipligi birakmak kaydi SILMEMELI, durumunu
+            # degistirmeli -- ve ekranda "biraktin" yazmali.
+            #
+            # Yonetici iptali kaydi zaten koruyordu, kullanicinin birakmasi
+            # SILIYORDU. Ayni gerekce ikisinde de gecerli ve onemi somut:
+            # sahibin katkisi INCELENMEDEN onaylaniyor, yani silme kalsaydi
+            # biri mekani sahiplenip incelenmemis bilgi yazar, sonra birakir
+            # ve sahip OLDUGUNA dair hicbir kayit kalmazdi.
+            sf, _ = sayfa_ac("/hesabim.html", GIRIS_TAKLIT, sahte_modul=True)
+            sf.wait_for_timeout(1000)
+            d = sf.query_selector('[data-bolum="isletmeler"]')
+            if d:
+                d.click(); sf.wait_for_timeout(800)
+            b2 = sf.query_selector("#bolum-isletmeler [data-birak]")
+            if not b2:
+                sorunlar.append("hesabim.html: sahipligi birak dugmesi yok")
+            else:
+                sf.once("dialog", lambda dg: dg.accept())
+                b2.click()
+                sf.wait_for_timeout(900)
+                l = sf.evaluate("() => window.__SAHTE_VERI.tablolar.sahiplik")
+                if len(l) != 1:
+                    sorunlar.append("sahiplik birakinca kayit SILINDI (%d satir)" % len(l))
+                elif l[0].get("durum") != "birakildi":
+                    sorunlar.append("sahiplik birakinca durum '%s' oldu"
+                                    % l[0].get("durum"))
+                govde = sf.inner_text("body") or ""
+                if "bıraktın" not in govde:
+                    sorunlar.append("birakilan sahiplik ekranda 'bıraktın' demiyor")
+                if "iptal edildi" in govde:
+                    sorunlar.append("birakma 'iptal edildi' diye gosteriliyor "
+                                    "(yoneticinin karariymis gibi)")
             sf.close()
 
             # 2) Harita YOKKEN kesfet calismali. Asil bulunan hata buydu.

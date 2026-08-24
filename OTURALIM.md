@@ -473,6 +473,34 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
       (`mekan_fis_ozeti`, `security definer`) — sızıntının sebebi zaten
       o sayımdı. Gösterilen sayı **değişmiyor**: 12 veri kümesinde SQL
       medyanı ile eski JS formülü birebir aynı sonucu verdi.
+- [x] **Sahipliği bırakmak kaydı siliyordu.** Yönetici iptali kaydı
+      *koruyor* — dosyanın kendi gerekçesi: "kimin neyi ne zaman
+      sahiplendiği ve neden geri alındığı kaybolmasın". Ama kullanıcının
+      kendi bırakması satırı **siliyordu**. Aynı gerekçe ikisinde de
+      geçerli ve önemi somut: sahibin katkısı **incelenmeden** onaylanıyor
+      (`sahip_katkisi_onayli` tetikleyicisi). Silme kalsaydı biri mekanı
+      sahiplenip incelenmemiş bilgi yazar, sonra bırakır ve o mekanın
+      sahibi *olduğuna* dair hiçbir kayıt kalmazdı. Artık üçüncü bir durum
+      var (`birakildi`) ve ekranda "bıraktın" / "iptal edildi" ayrı
+      yazıyor — biri kullanıcının kararı, öteki yöneticinin.
+      İşlem sunucuya alındı (`sahipligi_birak`): bir `UPDATE` politikası
+      `with check` ile yalnız **son hali** denetler, hangi sütunun
+      değiştiğini denetlemez; kullanıcı aynı istekte `mekan_id`'yi de
+      değiştirip tutmak istediğimiz kaydı bozabilirdi.
+- [x] **Giriş yapılmış halin hiçbir sayfası tarayıcıda hiç çalışmamış.**
+      `test_sayfa.py` bütün dış bağlantıları kesiyor (bilerek); yan etkisi,
+      supabase-js'in hiç gelmemesi ve kimlik katmanının hiç kurulmamasıydı.
+      `hesabim.html`'in dört sekmesi, `yonetim.html`'in onay düğmeleri,
+      `isletme.html`'in fiş ve sayaç katmanları yalnızca elle açılarak
+      görülmüştü. Artık yerel bir taklit modülle (`test_sahte_supabase.js`)
+      altı ekran çizilerek ölçülüyor. Yetki **taklit edilmiyor**: RLS'in
+      doğruluğu gerçek Postgres'te sınanıyor.
+- [x] **Sayacın doğru saydığını hiçbir şey doğrulamıyordu.** `sayac.sql`'in
+      kendi kontrolü yetkilere bakıyor, sayıya değil — oysa işletmeye
+      satılan cümle "sayfanı bu ay 47 kişi gördü" ve dosyanın kendi başlığı
+      "şişirilebilir bir sayaç yanlış fiyattan kötüdür" diyor. 11 davranış
+      kontrolü eklendi; ikisi doğrudan `gizlilik.html`'deki **sözleri**
+      ölçüyor (günler arası izin bağlanamaması, tuzun özete karışması).
 - [x] **SQL davranış kontrolleri fiilen hiç koşmuyormuş.**
       `sahiplenme_test.sql` yazıldığı gün elle çalıştırılmış, sonra bir daha
       çalışmamış. Bu arada `supabase_taklit.sql`'de eksik bir `grant` yüzünden

@@ -72,6 +72,8 @@ function hataMetni(e){
     return "Bu işletme başka bir hesap tarafından sahiplenilmiş. Sana ait olduğunu düşünüyorsan bildir.";
   if (m.includes("sahiplenme icin giris"))
     return "Sahiplenmek için önce giriş yap.";
+  if (m.includes("sahiplik bulunamadi"))
+    return "Bu sahiplik bulunamadı ya da zaten bırakılmış.";
   if (m.includes("violates check constraint") || m.includes("check constraint"))
     return "Girdiğin değerlerden biri kabul edilmedi. Alanları gözden geçir.";
   if (m.includes("value too long"))
@@ -377,10 +379,18 @@ const Kimlik = {
   },
 
   /* Kullanici kendi sahipligini birakabilir: yanlis mekani sahiplenen ya da
-     isletmeyi devreden kisi yoneticiyi beklemesin. */
+     isletmeyi devreden kisi yoneticiyi beklemesin.
+
+     SILMIYOR, durumu 'birakildi' yapiyor. Yonetici iptali de oyle ve
+     gerekce ayni: kimin neyi ne zaman sahiplendigi kaybolmasin. Sahibin
+     katkisi INCELENMEDEN onaylandigi icin bu bir hesap verebilirlik
+     meselesi -- silme kalsaydi biri mekani sahiplenip incelenmemis bilgi
+     yazar, sonra birakir ve sahip OLDUGUNA dair kayit kalmazdi.
+     Islem sunucuda (sahipligi_birak): bir UPDATE politikasi yalniz son
+     hali denetler, hangi sutunun degistigini denetlemez. */
   async sahiplikBirak(id){
     if (!sb || !oturum) throw new Error("Giriş yapılmamış.");
-    const { error } = await sb.from("sahiplik").delete().eq("id", id);
+    const { error } = await sb.rpc("sahipligi_birak", { p_id: id });
     if (error) throw new Error(hataMetni(error));
   },
 

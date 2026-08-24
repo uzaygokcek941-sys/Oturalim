@@ -574,7 +574,7 @@ def sql_kontrolleri():
     # HER test dosyasinin SONUNA kadar gittigini dogrula. Tek bir imza
     # aramak yetmez: iki dosya var ve biri yarida kesilse otekinin bitis
     # satiri kontrolu yine yesil yapardi.
-    eksik = [ad for ad, imza in (("sahiplenme", "15 kontrolun hepsi gecti"),
+    eksik = [ad for ad, imza in (("sahiplenme", "20 kontrolun hepsi gecti"),
                                  ("sayac", "sayac: 11 kontrolun hepsi gecti"))
              if imza not in cikti]
     if eksik:

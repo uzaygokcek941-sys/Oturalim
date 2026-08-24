@@ -67,7 +67,16 @@ create table if not exists public.sahiplik (
   il           text check (char_length(il) = 2),
   mekan_ad     text not null check (char_length(mekan_ad) between 1 and 200),
   dogrulandi   timestamptz not null default now(),
-  durum        text not null default 'aktif' check (durum in ('aktif','iptal')),
+  -- 'birakildi' = sahibi KENDI birakti, 'iptal' = yonetici geri aldi.
+  -- Ikisi ayri sey ve ikisi de KALIYOR. Onceden birakma satiri SILIYORDU;
+  -- oysa bu dosyanin kendi kurali "kimin neyi ne zaman sahiplendigi ve
+  -- neden geri alindigi kaybolmasin" diyor ve ayni gerekce birakmada da
+  -- gecerli. Onemi somut: sahibin katkisi INCELENMEDEN onaylaniyor
+  -- (sahip_katkisi_onayli tetikleyicisi). Silme kalsaydi biri mekani
+  -- sahiplenip incelenmemis bilgi yazar, sonra birakir ve o mekanin
+  -- sahibi OLDUGUNA dair hicbir kayit kalmazdi.
+  durum        text not null default 'aktif'
+               check (durum in ('aktif','iptal','birakildi')),
   -- Iptal edilmisse neden: yonetici gorsun, kayit kaybolmasin.
   iptal_notu   text check (char_length(iptal_notu) <= 300),
   olusturuldu  timestamptz not null default now()
@@ -75,6 +84,14 @@ create table if not exists public.sahiplik (
 
 comment on table public.sahiplik is
   'Dogrulanmis isletme sahipligi. Kod ile kazanilir, yonetici iptal edebilir.';
+
+-- Tabloyu daha once kurmus olanlar icin kisiti tazele ('birakildi' eklendi).
+do $$ begin
+  alter table public.sahiplik drop constraint if exists sahiplik_durum_check;
+  alter table public.sahiplik add constraint sahiplik_durum_check
+    check (durum in ('aktif','iptal','birakildi'));
+exception when others then null;
+end $$;
 
 -- Bir mekanin AYNI ANDA tek aktif sahibi olur. Iptal edilmis kayitlar
 -- kisitin disinda: gecmis duruyor, yeni sahiplenme onunu tikamiyor.
@@ -86,18 +103,25 @@ create index if not exists sahiplik_kullanici_idx
 alter table public.sahiplik enable row level security;
 
 -- Aktif sahiplik HERKESE ACIK: isletme sayfasi "isletme dogruladi" diyor.
--- Kimin dogruladigi degil, dogrulanmis oldugu bilgisi gorunur -- kullanici
--- kimligi bu tabloda yok sayilan tek alan degil ama satirda duruyor;
--- bu yuzden asagidaki gorunum yalniz gereken kolonlari veriyor.
+-- Gorunur olan sey DOGRULANMIS OLDUGU, kimin dogruladigi degil. Politika
+-- satiri aciyor, satirda `kullanici` de var; o sutunu asagidaki
+-- "Sutun yetkisi" bolumu kapatiyor. (Bir zamanlar burada olmayan bir
+-- "gorunum"e atif yapan bir yorum duruyordu; kapatan sey o degil.)
 drop policy if exists "sahiplik aktif herkese acik" on public.sahiplik;
 create policy "sahiplik aktif herkese acik" on public.sahiplik
   for select using (durum = 'aktif' or kullanici = auth.uid() or public.yonetici_mi());
 
 -- INSERT politikasi YOK: sahiplik yalnizca kod fonksiyonuyla kazanilir.
--- Kullanici kendi sahipligini birakabilir; yonetici iptal edebilir.
+-- SILME politikasi da YOK. Birakma artik satiri silmiyor, durumu
+-- 'birakildi' yapiyor (bkz. durum sutunundaki gerekce) ve bunu asagidaki
+-- fonksiyon yapiyor.
+--
+-- Neden politika degil fonksiyon: bir UPDATE politikasi with check ile
+-- yalniz SON HALI denetler, hangi sutunlarin degistigini degil. Kullanici
+-- ayni istekte durum'u 'birakildi' yaparken mekan_id'yi de degistirebilir
+-- ve tutmak istedigimiz kaydin kendisini bozabilirdi. Fonksiyon tek bir
+-- sutuna dokunuyor.
 drop policy if exists "sahiplik kendi birakir" on public.sahiplik;
-create policy "sahiplik kendi birakir" on public.sahiplik
-  for delete using (kullanici = auth.uid());
 
 drop policy if exists "sahiplik yonetici karar verir" on public.sahiplik;
 create policy "sahiplik yonetici karar verir" on public.sahiplik
@@ -106,6 +130,35 @@ create policy "sahiplik yonetici karar verir" on public.sahiplik
 drop policy if exists "sahiplik yonetici siler" on public.sahiplik;
 create policy "sahiplik yonetici siler" on public.sahiplik
   for delete using (public.yonetici_mi());
+
+-- ---------- Sahipligi birakma ----------
+-- Yalnizca KENDI aktif sahipligini birakabilir. Kayit duruyor; mekan
+-- yeniden sahiplenilebilir hale geliyor (tekil kisit 'aktif' ile sinirli).
+create or replace function public.sahipligi_birak(p_id bigint)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  n int;
+begin
+  if auth.uid() is null then
+    raise exception 'sahiplenme icin giris gerekli' using errcode = 'insufficient_privilege';
+  end if;
+  update public.sahiplik
+     set durum = 'birakildi'
+   where id = p_id and kullanici = auth.uid() and durum = 'aktif';
+  get diagnostics n = row_count;
+  -- Bulunamadi / baskasinin / zaten aktif degil: hepsi TEK mesaj. Ayirmak,
+  -- baskasinin sahipligini yoklamak icin bir sinyal olurdu.
+  if n = 0 then
+    raise exception 'sahiplik bulunamadi' using errcode = 'check_violation';
+  end if;
+end;
+$$;
+revoke all on function public.sahipligi_birak(bigint) from public;
+grant execute on function public.sahipligi_birak(bigint) to authenticated;
 
 -- Gunluk sinir: ayni kural katkilar ve paylasimlar'da da isliyor.
 -- Buradaki isi kod deneme spam'ini degil (o fonksiyonun icinde), tek
@@ -284,10 +337,29 @@ begin
     raise exception 'RLS acik degil: sahiplik';
   end if;
 
+  -- Uc politika: aktif okuma, yonetici guncelleme, yonetici silme.
+  -- Kullanicinin kendi silme politikasi BILEREK kaldirildi -- birakma
+  -- artik satiri silmiyor, sahipligi_birak() durumu degistiriyor.
   select count(*) into n from pg_policies
    where schemaname = 'public' and tablename = 'sahiplik';
-  if n < 4 then
-    raise exception 'sahiplik politikalari eksik: % (en az 4 olmali)', n;
+  if n < 3 then
+    raise exception 'sahiplik politikalari eksik: % (en az 3 olmali)', n;
+  end if;
+
+  -- Kullanicinin DOGRUDAN silme/guncelleme yolu acik kalmamali: birakmayi
+  -- fonksiyona almanin butun sebebi buydu. Politika adiyla degil, YETKIYLE
+  -- bakiliyor -- politika baska bir adla geri gelebilir.
+  if exists (select 1 from pg_policies
+              where schemaname = 'public' and tablename = 'sahiplik'
+                and cmd in ('DELETE','UPDATE')
+                and coalesce(qual, '') like '%auth.uid()%'
+                and coalesce(qual, '') not like '%yonetici_mi%') then
+    raise exception 'sahiplik: kullaniciya dogrudan silme/guncelleme yolu acik';
+  end if;
+
+  if not exists (select 1 from pg_proc p join pg_namespace ns on ns.oid = p.pronamespace
+                  where ns.nspname = 'public' and p.proname = 'sahipligi_birak') then
+    raise exception 'sahipligi_birak() yok, kullanici sahipligini birakamaz';
   end if;
 
   raise notice 'Sahiplenme kuruldu: kod tablosu kapali, sahiplik % politika', n;

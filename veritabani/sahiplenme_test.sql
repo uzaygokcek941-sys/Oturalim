@@ -282,4 +282,108 @@ begin
 end $$;
 reset role;
 
-\echo '=== 15 kontrolun hepsi gecti ==='
+\echo '--- 16. sahipligi birakmak SILMIYOR, kayit kaliyor'
+-- Yonetici iptali kaydi koruyordu, kullanicinin birakmasi SILIYORDU.
+-- Ayni gerekce ikisinde de gecerli ve onemi somut: sahibin katkisi
+-- INCELENMEDEN onaylaniyor. Silme kalsaydi biri mekani sahiplenip
+-- incelenmemis bilgi yazar, sonra birakir ve sahip OLDUGUNA dair hicbir
+-- kayit kalmazdi.
+reset role;
+truncate public.sahiplik restart identity cascade;
+insert into public.sahiplik (kullanici, mekan_id, il, mekan_ad) values
+  ('11111111-1111-4111-8111-111111111111', 'node/50', '06', 'Birakilacak Kafe');
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+do $$
+declare d text; n int;
+begin
+  perform public.sahipligi_birak(
+    (select id from public.sahiplik where mekan_id = 'node/50'));
+  select count(*) into n from public.sahiplik where mekan_id = 'node/50';
+  if n <> 1 then raise exception 'BASARISIZ: kayit silinmis (% satir)', n; end if;
+  select durum into d from public.sahiplik where mekan_id = 'node/50';
+  if d <> 'birakildi' then raise exception 'BASARISIZ: durum %', d; end if;
+  raise notice 'gecti: kayit duruyor, durum birakildi';
+end $$;
+
+\echo '--- 17. birakilan mekan yeniden sahiplenilebiliyor'
+-- Tekil kisit yalniz "aktif" satirlari kapsiyor. Kapsamasaydi bir mekani
+-- yanlislikla sahiplenip birakan kisi orayi KALICI olarak kilitlerdi.
+reset role;
+insert into public.sahiplenme_kodu (kod_ozeti, mekan_id, il, mekan_ad) values
+  (encode(digest('THIRD001','sha256'),'hex'), 'node/50', '06', 'Birakilacak Kafe')
+  on conflict do nothing;
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-4222-8222-222222222222';
+do $$
+declare a text;
+begin
+  select mekan_ad into a from public.sahiplenme_kodu_kullan('THIRD001');
+  if a is distinct from 'Birakilacak Kafe' then
+    raise exception 'BASARISIZ: yeniden sahiplenilemedi (%)', a;
+  end if;
+  raise notice 'gecti: birakilan mekan yeniden sahiplenildi';
+end $$;
+
+\echo '--- 18. BASKASININ sahipligi birakilamiyor'
+do $$
+declare hedef bigint; d text;
+begin
+  select id into hedef from public.sahiplik
+   where mekan_id = 'node/50' and durum = 'aktif';   -- 2. kullanicinin
+  set local request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+  begin
+    perform public.sahipligi_birak(hedef);
+    raise exception 'BASARISIZ: baskasinin sahipligi birakildi';
+  exception when check_violation then null;          -- beklenen
+  end;
+  select durum into d from public.sahiplik where id = hedef;
+  if d <> 'aktif' then raise exception 'BASARISIZ: durum degismis (%)', d; end if;
+  raise notice 'gecti: yalniz kendi sahipligini birakabiliyor';
+end $$;
+
+\echo '--- 19. kullanici sahiplik satirini SILEMIYOR ve GUNCELLEYEMIYOR'
+-- Silme politikasi kaldirildi; birakma tek sutuna dokunan fonksiyondan
+-- geciyor. Bir UPDATE politikasi olsaydi kullanici ayni istekte mekan_id'yi
+-- de degistirip tutmak istedigimiz kaydi bozabilirdi.
+set request.jwt.claim.sub = '22222222-2222-4222-8222-222222222222';
+do $$
+declare n int; hedef bigint;
+begin
+  -- `kullanici` sutunu okunamiyor (bkz. 12-13), o yuzden WHERE'de
+  -- kullanilamaz. Kendi satirini id ile hedefliyoruz; RLS zaten yalniz
+  -- gorebildigi satirlara dokunmasina izin verir.
+  select id into hedef from public.sahiplik where durum = 'aktif' and mekan_id = 'node/50';
+
+  delete from public.sahiplik where id = hedef;
+  get diagnostics n = row_count;
+  if n > 0 then raise exception 'BASARISIZ: kullanici % satir sildi', n; end if;
+
+  update public.sahiplik set mekan_id = 'node/999' where id = hedef;
+  get diagnostics n = row_count;
+  if n > 0 then raise exception 'BASARISIZ: kullanici % satir guncelledi', n; end if;
+
+  if not exists (select 1 from public.sahiplik where durum = 'aktif'
+                 and mekan_id = 'node/50') then
+    raise exception 'BASARISIZ: kayit bozulmus';
+  end if;
+  raise notice 'gecti: dogrudan silme ve guncelleme kapali';
+exception when insufficient_privilege then
+  -- Yetki katmani daha once kesiyorsa da sonuc ayni: yol kapali.
+  raise notice 'gecti: dogrudan silme/guncelleme yetkide kesiliyor';
+end $$;
+
+\echo '--- 20. birakilan sahiplik anon icin GORUNMUYOR'
+-- Isletme sayfasindaki rozet yalniz aktif sahipligi gostermeli; birakilan
+-- bir kayit "bu isletme dogrulandi" demeye devam ederse rozet yalan olur.
+reset role; set role anon;
+do $$
+declare n int;
+begin
+  select count(*) into n from public.sahiplik where durum <> 'aktif';
+  if n > 0 then raise exception 'BASARISIZ: anon % aktif olmayan satir goruyor', n; end if;
+  raise notice 'gecti: yalniz aktif sahiplik gorunuyor';
+end $$;
+reset role;
+
+\echo '=== 20 kontrolun hepsi gecti ==='
