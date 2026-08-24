@@ -42,7 +42,7 @@ kullanım şartları buna izin vermiyor.
 Dürüst not, dört katmanlı: **36.102 mekanın 292'si (%0,81)** menüsünü
 yayımlamış. O 7.147 kalem bağımsız değil — **%70,9'u zincir tekrarı**, yani
 geriye **85 farklı menü** kalıyor (bir Domino's menüsü 96 şubeye uygulanıyor).
-Ve uygulama bunların yalnız **164'ünde** bir rakam söylüyor: mekanın
+Ve uygulama bunların yalnız **163'ünde** bir rakam söylüyor: mekanın
 **ana ürün türünün ortalaması**. En ucuz kalem değil, içecek değil, garnitür
 değil — pizzacıda pizzaların, fırında böreklerin ortalaması. Hangi türden
 hesaplandığı ekranda yazıyor. Tek kaleme dayanan iddia gösterilmiyor.

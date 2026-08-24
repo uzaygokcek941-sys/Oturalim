@@ -277,7 +277,10 @@ async function katkiListesiniCiz(){
     const d = DURUM[k.durum] || DURUM.bekliyor;
     /* KATKI_ALAN ortak.js'te ve isletme sayfasiyla ayni: yoneticinin gordugu
        etiketle kullanicinin sectigi etiket ayrisirsa karar yanlis alana gider. */
-    const alanAd = (typeof KATKI_ALAN === "object" && KATKI_ALAN[k.alan]) || k.alan;
+    /* katkiAlaniVar: duz KATKI_ALAN[k.alan] mirasi da doner (alan="constructor"
+       -> Object). Kural ortak.js'te; burada da ayni kapidan gecilsin. */
+    const alanAd = (typeof katkiAlaniVar === "function" && katkiAlaniVar(k.alan))
+      ? KATKI_ALAN[k.alan] : k.alan;
     const sayfa = k.il && k.mekan_id
       ? ' · <a href="isletme.html?il=' + encodeURIComponent(k.il) +
         "&id=" + encodeURIComponent(k.mekan_id) + '" target="_blank" rel="noopener">sayfayı aç</a>'

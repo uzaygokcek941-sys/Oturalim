@@ -295,7 +295,10 @@ async function katkilariCiz(){
     const d = DURUM_ETIKET[k.durum] || DURUM_ETIKET.bekliyor;
     /* KATKI_ALAN ortak.js'te; isletme sayfasi ve yonetim ayni etiketi
        kullaniyor, uc yerde ayri isim olmasin. */
-    const alanAd = (typeof KATKI_ALAN === "object" && KATKI_ALAN[k.alan]) || k.alan;
+    /* katkiAlaniVar: duz KATKI_ALAN[k.alan] mirasi da doner (alan="constructor"
+       -> Object). Kural ortak.js'te; burada da ayni kapidan gecilsin. */
+    const alanAd = (typeof katkiAlaniVar === "function" && katkiAlaniVar(k.alan))
+      ? KATKI_ALAN[k.alan] : k.alan;
     const sayfa = k.il && k.mekan_id
       ? "isletme.html?il=" + encodeURIComponent(k.il) + "&id=" + encodeURIComponent(k.mekan_id)
       : null;

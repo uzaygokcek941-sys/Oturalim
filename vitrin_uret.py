@@ -39,6 +39,11 @@ for kod in sorted(d["kod"] for d in ix["iller"]):
             # demek. Ham alanlar tasiniyor, hesabi tarayici yapiyor.
             "kat": m.get("kat"),
             "menu": [{"a": k["a"]} for k in m["menu"]],
+            # yemekFiyati() bir yildan eski fiyati gostermiyor; tarih
+            # tasinmazsa anasayfa o kurali HIC uygulayamaz ve kesfet
+            # ekraninin geri cektigi fiyati gostermeye devam eder.
+            # Kural tek yerde diye ham alanlarin TAMAMI tasinmali.
+            "tarih": m.get("tarih"),
         })
 
 # Aday havuzu. Once yeterli kalemi olanlar (tek kalemlik bir dondurmaci

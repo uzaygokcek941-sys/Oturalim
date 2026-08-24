@@ -151,6 +151,47 @@ kosu("isletme.html (eksik bulucu, fis esigi, katki birlestirme)", () => {
   return basilan.filter(h => h.includes("BASARISIZ"));
 });
 
+/* ---------- vitrin, kesfet ile ayni fiyati soylemeli ----------
+   Anasayfa vitrin.json'dan, kesfet app/veri/<il>.json'dan besleniyor ama
+   FIYATI ikisi de ayni fonksiyonla (ortak.js yemekFiyati) hesapliyor.
+   vitrin_uret.py o fonksiyonun okudugu HAM ALANLARI tasimak zorunda.
+
+   Bir kez kacti: "tarih" alani veriye eklendi, vitrine eklenmedi. Sonuc
+   sessizdi -- bugun hicbir fiyat bir yillik degil, yani iki taraf da ayni
+   sayiyi veriyordu. Veri yaslandigi gun kesfet fiyati geri cekecek,
+   anasayfa gostermeye devam edecekti.
+
+   Bu kontrol alan LISTESI tutmuyor: iki tarafi da hesaplatip sonuclari
+   kiyasliyor. Yarin yemekFiyati yeni bir alan okursa bu da yakalar. */
+kosu("vitrin ile veri ayni fiyati veriyor", () => {
+  const { ctx } = ortamKur();
+  vm.runInContext(fs.readFileSync("app/ortak.js", "utf8"), ctx);
+  const vitrin = JSON.parse(fs.readFileSync("app/vitrin.json", "utf8")).vitrin || [];
+  if (!vitrin.length) return ["vitrin.json bos - vitrin_uret.py calistir"];
+
+  /* Kaynak kaydi il dosyasindan id ile bul. */
+  const kaynak = new Map();
+  for (const y of fs.readdirSync("app/veri")){
+    if (!/^\d\d\.json$/.test(y)) continue;
+    for (const m of JSON.parse(fs.readFileSync("app/veri/" + y, "utf8")).mekanlar)
+      kaynak.set(m.id, m);
+  }
+  const hesapla = m => {
+    ctx.__m = m;
+    return vm.runInContext("yemekFiyati(__m)", ctx);
+  };
+  const kotu = [];
+  for (const v of vitrin){
+    const k = kaynak.get(v.id);
+    if (!k){ kotu.push(v.ad + ": vitrindeki mekan veride yok (" + v.id + ")"); continue; }
+    const a = hesapla(v), b = hesapla(k);
+    if (a !== b)
+      kotu.push(v.ad + ": vitrin " + a + " diyor, veri " + b +
+                " -- vitrin_uret.py bir alani tasimiyor");
+  }
+  return kotu;
+});
+
 /* ---------- sayfa ici modullerin sozdizimi ---------- */
 kosu("modul betikleri ayristirilabiliyor", () => {
   const kotu = [];
