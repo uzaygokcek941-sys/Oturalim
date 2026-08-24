@@ -22,6 +22,8 @@ iki kafe, aynı kahve, iki kat fark olabiliyor. Uygulamanın tek işi:
 - Yeme-içmenin yanında eğlence: sinema, tiyatro, müze, konser ve festivaller
 - Her mekanın kendi sayfası — eksik bilgisi, ödenen hesaplar, görüntülenme sayısı
 - Eksik bilgiyi ziyaretçi tamamlayabiliyor (saat, telefon, adres, site) — onaydan geçer
+- İşletme sahibi kapıya bırakılan karttaki kodla sayfasını sahipleniyor;
+  eklediği saat/telefon/adres/site sıraya girmeden yayına çıkıyor
 - Açık/koyu tema (harita döşemesi de birlikte döner)
 - Filtre durumu URL'de — görünüm olduğu gibi paylaşılabilir
 - İsteğe bağlı hesap: favori mekanlar, fiyat paylaşımı, yönetici onayı
@@ -135,10 +137,12 @@ app/                 Uygulama — statik HTML/CSS/JS, derleme yok
 veritabani/sema.sql  Tablolar + RLS politikaları
 veritabani/sayac.sql Görüntülenme sayacı
 veritabani/katki.sql Eksik bilgi katkıları
+veritabani/sahiplenme.sql  İşletme sahiplenme kodu + doğrulama
 *.py                 Veri toplama ve işleme betikleri
 menu_cikar.py        HTML'den fiyat çıkarma (TR/EN sayı biçimleri)
 etkinlik_cek.py      etkinlik.io RSS → app/veri/etkinlik.json
 sahiplen.py          İşletme hedefleri + saha yürüyüş kümeleri
+saha.py              Saha kartları (QR + kod), dağıtım sonrası ölçüm
 site_haritasi.py     sitemap.xml + robots.txt üretimi
 test.py              Bütün kontroller (tek giriş noktası)
 test_tarayici.mjs    Tarayıcı kontrollerini tarayıcısız koşturur

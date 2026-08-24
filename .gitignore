@@ -35,3 +35,12 @@ app/sitemap.xml
 # sutunlar (dogrulandi_mi / ziyaret_edildi_mi) depoya girmez.
 sahiplenme_hedef.csv
 sahiplenme_kume.csv
+
+# Saha kartlari — saha.py uretir. UCU DE DEPOYA GIRMEZ:
+# saha_kartlar.html ve saha_liste.csv DUZ KODLARI tasiyor (her biri bir
+# isletme sayfasinin anahtari), saha_kodlar.sql ise yalniz ozetleri ama
+# hangi mekana hangi kartin gittigini gosteriyor. Kartlar basilip
+# dagitiliyor; kaynak depoda durmasi gereken sey degil.
+saha_kartlar.html
+saha_kodlar.sql
+saha_liste.csv

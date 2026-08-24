@@ -368,8 +368,20 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
 **Üründe — dijitalleşmemiş işletme planı:**
 - [x] Faz 1 — eksik bilgi katkı hattı (`katki.sql`, form, onay, takip)
 - [x] Faz 2 — yürüyüş kümeleri (`sahiplen.py` → `sahiplenme_kume.csv`)
-- [ ] Faz 3 — saha: en yoğun 3 küme, QR kart, sayaçtan ölçüm  ← **artık açık, engel kalmadı**
-- [ ] Faz 4 — sahiplenme kodu ve doğrulama akışı
+- [x] Faz 3 — saha (`saha.py`). En yoğun kümeler seçiliyor, her mekana özel
+      **QR + tek kullanımlık kod** taşıyan A4 kart basılıyor, Supabase'e
+      yapıştırılacak SQL ve sahada işaretlenecek ziyaret listesi üretiliyor.
+      Üçüncü ayak ölçüm: `python saha.py olc` kart bırakılan mekanların
+      görüntülenmesini, sahiplenmesini ve onaylı katkısını sayıyor.
+      Alan adı dışarıdan veriliyor (`site_haritasi.py` ile aynı gerekçe:
+      uydurma alan adıyla basılmış kart, basılmamış karttan kötü).
+- [x] Faz 4 — sahiplenme kodu ve doğrulama akışı (`veritabani/sahiplenme.sql`).
+      Kod **orada bulunmayı** kanıtlar, tapuyu değil; bu yüzden yetki sınırlı
+      (yalnız saat/telefon/adres/site) ve sahiplik geri alınabilir. Gerçek
+      Postgres 16'da 11 davranış kontrolü, uçtan uca üretilmiş kartlarla
+      doğrulandı.
+- [ ] Kart metni ve bırakma biçimi sahada denenmedi. `saha.py olc` sıfır
+      sahiplenme gösteriyorsa metin değişmeden ikinci kümeye çıkılmamalı.
 
 **Yayın yapılandırması:**
 - [x] `vercel.json` yalnızca çıktı klasörünü söylüyordu, hiç güvenlik başlığı

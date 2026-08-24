@@ -31,7 +31,8 @@ VERI = os.path.join(KOK, "app", "veri")
 
 # Kendi kontrolu olan betikler. Hepsi "test" argumanini ayni sekilde anliyor.
 BETIKLER = ["app_veri.py", "etkinlik_cek.py", "fiyat_analiz.py", "menu_cikar.py",
-            "menu_ocr.py", "menu_pdf_tara.py", "sahiplen.py", "site_haritasi.py"]
+            "menu_ocr.py", "menu_pdf_tara.py", "saha.py", "sahiplen.py",
+            "site_haritasi.py"]
 
 # Turkiye siniri, genis pay. Disina dusen koordinat cekimde bir sey
 # kaymis demektir; haritada Atlantik'te bir nokta olarak gorunur.
@@ -275,6 +276,26 @@ def sema_tutarli_mi():
     sayac = oku("veritabani", "sayac.sql")
     if "revoke all on table public.goruntulenme from anon" not in sayac:
         s.append("sayac.sql: goruntulenme uzerindeki GRANT geri alinmiyor")
+
+    # katki.sql ile sahiplenme.sql ayni politikayi ("katki kendi ekler")
+    # tanimliyor. Ayrisirlarsa hangi dosyanin en son calistigi davranisi
+    # degistirir -- ilk yazimda tam bunu yapiyordu ve sessizdi.
+    sahip = oku("veritabani", "sahiplenme.sql")
+    def _politika(metin):
+        i = metin.find('create policy "katki kendi ekler"')
+        if i < 0:
+            return None
+        govde = metin[i:metin.index(";", i)]
+        return re.sub(r"\s+|--[^\n]*", "", govde)
+    a, b = _politika(katki), _politika(sahip)
+    if a is None or b is None:
+        s.append("'katki kendi ekler' politikasi iki dosyanin birinde yok")
+    elif a != b:
+        s.append("'katki kendi ekler' politikasi katki.sql ve sahiplenme.sql'de "
+                 "farkli — hangi dosya son calisirsa davranis o olur")
+    if "proname = 'sahibi_mi'" not in katki:
+        s.append("katki.sql: sahibi_mi() bos govdesi 'not exists' ile korunmuyor — "
+                 "tekrar calistirmak sahiplik yetkisini siler")
 
     # security definer + search_path: fonksiyon cagiranin degil SAHIBININ
     # yetkisiyle calisiyor. search_path sabitlenmezse, arama yolunda nesne

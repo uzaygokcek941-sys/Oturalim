@@ -75,9 +75,41 @@ create policy "katki onaylanmis herkese acik" on public.katkilar
 -- (Sayaç girişsiz sayıyor ama oraya serbest metin girmiyor: istemci yalnız
 -- mekan kimliği veriyor, kalanını sunucu üretiyor ve en kötü hâli yanlış bir
 -- SAYI. Buradaki en kötü hâl yanlış BİLGİ, ve o kullanıcıya gösteriliyor.)
+-- sahibi_mi(): asil govdesi sahiplenme.sql'de. Burada YOKSA bos bir tanim
+-- kuruluyor, cunku asagidaki politika ona bakiyor ve katki.sql tek basina
+-- da calisabilmeli.
+--
+-- "not exists" SART: duz "create or replace" yazsaydik, sahiplenme.sql'den
+-- SONRA katki.sql'i tekrar calistiran kisi gercek govdeyi bu bos govdeyle
+-- ezerdi ve isletme sahiplerinin yetkisi sessizce kaybolurdu. Olculdu,
+-- gercekten oluyordu.
+do $$
+begin
+  if not exists (select 1 from pg_proc
+                  where proname = 'sahibi_mi'
+                    and pronamespace = 'public'::regnamespace) then
+    execute $f$
+      create function public.sahibi_mi(p_mekan_id text)
+      returns boolean language sql stable
+      set search_path = public
+      as 'select false'
+    $f$;
+    execute 'revoke all on function public.sahibi_mi(text) from public';
+    execute 'grant execute on function public.sahibi_mi(text) to anon, authenticated';
+  end if;
+end;
+$$;
+
+-- Politika NIHAI halinde yaziliyor: sahiplenme.sql kurulu degilse
+-- sahibi_mi() hep false doner ve kural "durum = 'bekliyor'"e indirgenir.
+-- Boylece iki dosyanin calistirma sirasi davranisi degistirmiyor.
 drop policy if exists "katki kendi ekler" on public.katkilar;
 create policy "katki kendi ekler" on public.katkilar
-  for insert with check (kullanici = auth.uid() and durum = 'bekliyor');
+  for insert with check (
+    kullanici = auth.uid()
+    and (durum = 'bekliyor'
+         or (durum = 'onaylandi' and public.sahibi_mi(mekan_id)))
+  );
 
 drop policy if exists "katki kendi duzeltir" on public.katkilar;
 create policy "katki kendi duzeltir" on public.katkilar

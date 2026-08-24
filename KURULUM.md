@@ -28,21 +28,29 @@ Toplam süre: ~15 dakika. Ücret yok, kart istenmiyor.
    `Sema kuruldu: 3 tablo, RLS acik, 11 politika`
    Hata verirse dosyayı baştan yapıştırıp tekrar çalıştır — dosya
    tekrar çalıştırılabilir yazıldı, bozulmaz.
-5. Aynı yöntemle şu iki dosyayı da çalıştır (ikisi de `sema.sql`'e bağlı,
-   ondan **sonra** gelmeli):
+5. Aynı yöntemle şu üç dosyayı da **bu sırayla** çalıştır (hepsi
+   `sema.sql`'e bağlı, `sahiplenme.sql` ayrıca `katki.sql`'e bağlı):
 
    | Dosya | Ne açar | Çalıştırmazsan |
    |---|---|---|
    | `veritabani/sayac.sql` | İşletme sayfası görüntülenme sayacı | Sayaç satırı hiç görünmez |
    | `veritabani/katki.sql` | Eksik bilgi katkı formu | Form hiç görünmez |
+   | `veritabani/sahiplenme.sql` | İşletme sahiplenme kodu (saha kartları) | Kod alanı hiç görünmez |
 
-   İkisi de kurulmadığında sayfa normal çalışır; yalnız o bölümler
+   Hiçbiri kurulmadığında sayfa normal çalışır; yalnız o bölümler
    sessizce gizli kalır. Beklenen çıktılar:
 
    ```
    Sayac kuruldu: dogrudan yazma kapali, kimlik sunucuda uretiliyor
    Katki tablosu kuruldu: RLS acik, 6 politika
+   Sahiplenme kuruldu: kod tablosu kapali, sahiplik 4 politika
    ```
+
+   > Üçünü de istediğin sırada, istediğin kadar tekrar çalıştırabilirsin.
+   > `katki.sql` ile `sahiplenme.sql` aynı politikaya dokunuyor; ilk
+   > yazımda `katki.sql`'i sonradan tekrar çalıştırmak işletme sahiplerinin
+   > yetkisini sessizce geri alıyordu. Ölçüldü ve kapatıldı — artık iki
+   > dosyanın sırası sonucu değiştirmiyor.
 
    > `sayac.sql`'i daha önceki bir sürümüyle çalıştırdıysan tekrar çalıştır:
    > eski sürüm tarayıcının gönderdiği kimliğe güveniyordu ve sayı

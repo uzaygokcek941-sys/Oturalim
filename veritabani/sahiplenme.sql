@@ -218,8 +218,12 @@ create trigger katki_sahip_onayi
   for each row execute function public.sahip_katkisi_onayli();
 
 -- Politika tetikleyiciden SONRA degerlendiriliyor: tetikleyici durumu
--- 'onaylandi' yaptigi icin eski politika ("durum = 'bekliyor'") insert'i
+-- 'onaylandi' yaptigi icin duz "durum = 'bekliyor'" politikasi insert'i
 -- reddederdi. Politika, onayli girisi YALNIZ sahibine aciyor.
+--
+-- Ayni tanim katki.sql'de de var (orada sahibi_mi() bos govdeyle kurulup
+-- false donuyor). Burada tekrar yaziliyor ki iki dosyanin hangi sirayla
+-- calistirildigi sonucu degistirmesin.
 drop policy if exists "katki kendi ekler" on public.katkilar;
 create policy "katki kendi ekler" on public.katkilar
   for insert with check (
