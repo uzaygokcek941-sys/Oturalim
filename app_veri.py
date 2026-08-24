@@ -239,6 +239,12 @@ def kategori_dokumu(kalemler):
             "med": fiyatlar[(len(fiyatlar) - 1) // 2],   # alt medyan = gercek kalem
             "min": fiyatlar[0],
             "max": fiyatlar[-1],
+            # Kategorinin fiyat TOPLAMI. Mekanin ortalamasi bundan cikiyor:
+            # sum(top) / sum(n). Ortalamayi burada hesaplamiyoruz cunku hangi
+            # kategorilerin sayilacagina (icecek ve tatli haric) ortak.js
+            # karar veriyor; kurali iki dile birden kopyalamak, ikisinin
+            # ayrismasi demekti. Toplam ham veri, karar tek yerde kaliyor.
+            "top": round(sum(fiyatlar), 2),
         }
     return dokum
 

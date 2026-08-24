@@ -280,6 +280,11 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
 - [ ] Günde 1 içerik, gelen DM'e ilk 10 dakikada cevap
 
 **Fiyat verisi — 2026-08-23'te ölçülüp düzeltilenler:**
+- [x] Gösterilen rakam **ortalama** oldu. Önce kategori medyanlarının medyanı
+      alınıyordu; o "tipik bir kalem kaç lira" sorusunun cevabıydı, kullanıcının
+      sorusu ise "burada kaça oturulur". Ölçüldü: 164 mekanın 131'inde rakam
+      düştü, 31'inde yükseldi, ortalama kayma −34 ₺. Detay başlığı da artık
+      en ucuz kalemle değil ortalamayla açıyor.
 - [x] Tek kaleme dayanan yemek fiyatı iddiası kaldırıldı (`YEMEK_ASGARI_KALEM=2`).
       Kahve Dünyası'nın 74 şubesinde perakende ürün katalogundan tek kalem
       ("Tatlı 1@350") "yemek ~350 ₺" diye yazıyordu. İddia 246 → 164 mekan.

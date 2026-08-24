@@ -16,7 +16,7 @@ iki kafe, aynı kahve, iki kat fark olabiliyor. Uygulamanın tek işi:
 **bütçene göre nereye gidilebileceğini göstermek.**
 
 - Harita + liste, 81 ilin tamamı
-- Bütçe kaydırıcısı — kişi başı tutara göre süzme
+- Bütçe kaydırıcısı — mekanın yemek ortalamasına göre süzme
 - Filtreler: tür, bahçe, wi-fi, şu an açık, fiyatı bilinen
 - Yeme-içmenin yanında eğlence: sinema, tiyatro, müze, konser ve festivaller
 - Her mekanın kendi sayfası — eksik bilgisi, ödenen hesaplar, görüntülenme sayısı
@@ -41,8 +41,9 @@ kullanım şartları buna izin vermiyor.
 Dürüst not, üç katmanlı: **36.102 mekanın 367'si (%1,02)** menüsünü
 yayımlamış. O 7.397 kalem bağımsız değil — **%76,5'i zincir tekrarı**, yani
 geriye **121 farklı menü** kalıyor (bir Domino's menüsü 96 şubeye uygulanıyor).
-Ve uygulama bunların yalnız **164'ünde** "yemek şu kadar" diyor: tek kaleme
-dayanan iddia gösterilmiyor.
+Ve uygulama bunların yalnız **164'ünde** bir rakam söylüyor: menüdeki
+yemeklerin **ortalaması** (en ucuz kalem değil, içecek ve tatlı hariç).
+Tek kaleme dayanan iddia gösterilmiyor.
 
 Denenen sitelerin yalnızca **%7'sinden** fiyat çıkarılabildi, geri kalanı
 menüsünü JavaScript ile basıyor. Bu yüzden fiyat verisi bugün zayıf ve ancak

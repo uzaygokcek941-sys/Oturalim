@@ -203,7 +203,7 @@ function katmanCiz(l, ortala){
       fillOpacity: fiyatli ? .8 : .45
     }).addTo(katman);
     i.bindPopup("<b>" + kacir(m.ad) + "</b><br>" + kacir(m.tur) +
-                (fiyatli ? " · yemek ~" + tl(yf) : ""));
+                (fiyatli ? " · ortalama " + tl(yf) : ""));
     i.on("click", () => ac(m.id));
     isaretler.set(m.id, i);
     noktalar.push([m.lat, m.lon]);
@@ -475,10 +475,17 @@ function ac(id){
        araligi oldugu artik yaziyor; sayi uydurmuyoruz, kirpildigini
        soyluyoruz. */
     const kirpik = m.kalem_n && m.kalem_n > m.menu.length;
-    const baslik = kirpik
-      ? "en ucuz " + sayi(m.menu.length) + " kalem · " + tl(m.min) + " – " + tl(m.max) +
-        " <i>(toplam " + sayi(m.kalem_n) + ")</i>"
-      : sayi(m.menu.length) + " kalem · " + tl(m.min) + " – " + tl(m.max);
+    const ort = yemekFiyati(m);
+    /* Basligi ORTALAMA aciyor, en ucuz kalem degil. "35 TL'den baslar"
+       demek teknik olarak dogru ama sorunun cevabi degil: kullanici
+       burada kaca oturacagini soruyor. Aralik ikinci sirada ve kirpilmissa
+       neyin araligi oldugunu soyluyor. */
+    const aralik = (kirpik ? "en ucuz " : "") + sayi(m.menu.length) + " kalem · " +
+                   tl(m.min) + " – " + tl(m.max) +
+                   (kirpik ? " <i>(toplam " + sayi(m.kalem_n) + ")</i>" : "");
+    const baslik = ort != null
+      ? "ortalama <b>" + tl(ort) + "</b> · " + aralik
+      : aralik;
     govde +=
       '<div class="d-menu-bas"><h3>Menü</h3><span>' + baslik + "</span></div>" +
       sirali.map(k =>

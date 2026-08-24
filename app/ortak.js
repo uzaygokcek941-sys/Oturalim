@@ -129,8 +129,10 @@ function katkiSorunu(alan, deger){
 }
 
 /* ---------- bütçe bandı ----------
-   Kişi başı bütçeyi mekanın menü fiyatlarıyla karşılaştırır.
-   "Bu bütçeyle bu mekanda ne alınabilir" sorusunun cevabı; ortalama hesap değil. */
+   Kişi başı bütçeyi mekanın MENÜ KALEMİ ORTALAMASIYLA karşılaştırır.
+   Bu, "ortalama hesap" DEĞİL: hesap birden fazla kalem + içecek demek,
+   bizim bildiğimiz şey menüdeki bir yemeğin ortalama fiyatı. İkisini aynı
+   saymak, gerçek hesabın altında bir rakam vaat etmek olurdu. */
 /* Butce karsilastirmasi YEMEK fiyatiyla yapilir. m.min ile yapilinca 100 TL
    butce giren kisiye ana yemegi 400 TL olan balikci "butcende" diye
    gosteriliyordu -- cunku m.min menudeki en ucuz icecekti. */
@@ -217,11 +219,19 @@ function yemekFiyati(m){
   if (!ana.length) ana = Object.keys(kat).filter(k => TATLI_KAT.has(k));
   if (!ana.length) return null;
 
-  const med = [];
-  for (const k of ana) for (let i = 0; i < kat[k].n; i++) med.push(kat[k].med);
-  if (med.length < YEMEK_ASGARI_KALEM) return null;
-  med.sort((a, b) => a - b);
-  const orta = Math.round(med[med.length >> 1]);
+  /* ORTALAMA. Onceden kategori medyanlarinin medyani aliniyordu; o, "tipik
+     bir kalem kac lira" sorusunun cevabiydi. Kullanicinin sordugu soru
+     "burada kaca oturulur" -- menunun tamamini temsil eden sey ortalama.
+     kat[k].top kategorinin fiyat TOPLAMI, n kalem sayisi; ikisinin orani
+     mekanin gercek aritmetik ortalamasi (kirpilmamis tam listeden). */
+  let toplam = 0, adet = 0;
+  for (const k of ana){
+    /* top yoksa eski veri: kategori medyanini n kere sayarak yaklas. */
+    toplam += kat[k].top != null ? kat[k].top : kat[k].med * kat[k].n;
+    adet   += kat[k].n;
+  }
+  if (adet < YEMEK_ASGARI_KALEM) return null;
+  const orta = Math.round(toplam / adet);
 
   /* Tema demosu: WordPress sablonundan gelen menuler Ingilizce ve ucuzdur
      ("Fish Tacos" 32 TL). Ikisi birden ise guvenme -- yanlis ucuzluk bu
@@ -236,7 +246,7 @@ function yemekFiyati(m){
 function seviye(m){
   const yf = yemekFiyati(m);
   if (yf != null)
-    return { sinif:"olcum", ad:"yemek ~" + tl(yf), olculdu:true };
+    return { sinif:"olcum", ad:"ortalama " + tl(yf), olculdu:true };
   if (m.tur === "Fast food" || m.tur === "Dondurma")
     return { sinif:"hesapli", ad:"hesaplı" };
   const mut = (m.mutfak || "").toLowerCase().split(/[;,]/).map(x => x.trim());
@@ -303,6 +313,18 @@ function kendiniKontrolEt(){
       yemekFiyati({kat:{"Balık":{n:1,med:900},"Çay":{n:5,med:40}}}),  null],
     ["yemek iki kalem yeter",
       yemekFiyati({kat:{"Pizza":{n:2,med:440}}}),                     440],
+    /* ORTALAMA: kategori toplamlari / kalem sayisi. Medyan degil -- pahali
+       kalemler sonuca giriyor, cunku soru "burada kaca oturulur". */
+    ["ortalama kategoriler arasi",
+      yemekFiyati({kat:{"Kebap":{n:2,med:300,top:700},
+                        "Pizza":{n:2,med:200,top:300}}}),             250],
+    ["ortalama icecegi saymaz",
+      yemekFiyati({kat:{"Kebap":{n:2,med:300,top:700},
+                        "Çay":{n:10,med:40,top:400}}}),               350],
+    ["ortalama top yoksa medyandan yaklasir",
+      yemekFiyati({kat:{"Kebap":{n:2,med:300}}}),                     300],
+    ["ortalama pahali kalemi yutmaz",
+      yemekFiyati({kat:{"Balık":{n:4,med:200,top:2000}}}),            500],
     ["yemek kat yoksa null", yemekFiyati({min:25, max:290}),          null],
     ["yemek tatlicida tatli",
       yemekFiyati({kat:{"Tatlı":{n:2,med:150},"Çay":{n:1,med:30}}}),  150],
