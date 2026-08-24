@@ -238,7 +238,11 @@ function goster(m, ilAd){
      yanlisa cevirirdi. */
   const satirlar = [
     ["Tür",     kacir(m.tur || ""),          null],
-    ["Mutfak",  kacir(m.mutfak || ""),       null],
+    /* mutfakYaz ortak.js'te: kesfet detay paneli de ayni metni
+       gosteriyor, ikisi ayrisirsa ayni mekan iki sayfada iki turlu
+       okunur. Onceden burada HAM deger vardi ("burger;coffee_shop"),
+       kesfette ise virgullu hali. */
+    ["Mutfak",  kacir(mutfakYaz(m.mutfak)),   null],
     ["Saatler", kacir(m.saat || ""),         "saat"],
     ["Telefon", kacir(m.tel || ""),          "tel"],
     ["Adres",   kacir(m.adres || ""),        "adres"],

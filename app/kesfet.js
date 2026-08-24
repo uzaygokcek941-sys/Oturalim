@@ -624,7 +624,7 @@ function ac(id){
 
   const bilgi = [
     m.adres  ? satir(IK.adres,  kacir(m.adres)) : "",
-    m.mutfak ? satir(IK.mutfak, kacir(m.mutfak.replace(/;/g, ", "))) : "",
+    m.mutfak ? satir(IK.mutfak, kacir(mutfakYaz(m.mutfak))) : "",
     m.saat   ? satir(IK.saat,   kacir(m.saat)) : "",
     m.tel    ? satir(IK.tel, '<a href="tel:' + kacir(m.tel.replace(/\s/g,"")) + '">' +
                              kacir(m.tel) + "</a>") : "",

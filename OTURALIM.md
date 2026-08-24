@@ -417,6 +417,12 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
       12 baş/son boşluklu ad, 3 telefon alanına yazılmış telefon olmayan
       şey (`"Köfteci Yusuf"` — üstelik `sahiplen.py` onu "telefonu var"
       sayıp arama listesine koyuyordu).
+- [x] Mutfak etiketi Türkçe bir sitede ham OSM İngilizcesiyle duruyordu
+      (`burger;coffee_shop;savory_pancakes`) ve **iki sayfada iki türlü**:
+      keşfet virgülle ayırıyordu, işletme sayfası hiç dokunmuyordu.
+      Kural `ortak.js`'e alındı; 80 etiketlik sözlük **etiketlerin %93,9'unu,
+      mekanların %94,0'ını** karşılıyor. Sözlükte olmayan uydurulmuyor —
+      alt çizgisi boşluğa çevrilip olduğu gibi yazılıyor.
 - [x] **Arama Türkçe harfe duyarlıydı.** Kullanıcıların çoğu Türkçe harfsiz
       yazıyor; ölçüldü (İstanbul): "köfte" 574 mekan buluyordu ama "kofte"
       33, "çiğ" 343 ama "cig" 12, "şişli" 4 ama "sisli" 1. Yani harfsiz

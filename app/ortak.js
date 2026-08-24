@@ -136,6 +136,52 @@ function acikMi(ifade, simdi){
   return sonuc;
 }
 
+/* OSM "cuisine" etiketi Ingilizce ve alt cizgili geliyor
+   ("coffee_shop;savory_pancakes"). Turkce bir sitede oldugu gibi
+   gostermek hem cirkin hem anlasilmaz. Olculdu: 485 farkli deger var ama
+   ilk 40'i kullanimlarin %90,9'unu kapsiyor -- yani kisa bir sozluk
+   isin neredeyse tamamini goruyor.
+
+   Sozlukte olmayan deger UYDURULMUYOR: alt cizgisi bosluga cevrilip
+   oldugu gibi yaziliyor. Eksik cevirinin yerine yanlis ceviri koymak,
+   bu projede baska hicbir yerde yapilmayan sey. */
+const MUTFAK_TR = {
+  turkish:"Türk", coffee_shop:"Kahveci", kebab:"Kebap", burger:"Burger",
+  pizza:"Pizza", regional:"Yöresel", chicken:"Tavuk", sandwich:"Sandviç",
+  fish:"Balık", seafood:"Deniz ürünleri", breakfast:"Kahvaltı", tea:"Çay",
+  steak_house:"Et restoranı", ice_cream:"Dondurma", italian:"İtalyan",
+  dessert:"Tatlı", cake:"Pasta", local:"Yerel", international:"Dünya mutfağı",
+  pasta:"Makarna", barbecue:"Mangal", mediterranean:"Akdeniz", grill:"Izgara",
+  fish_and_chips:"Balık ekmek", salad:"Salata", asian:"Asya", chinese:"Çin",
+  bagel:"Simit/bagel", sushi:"Suşi", japanese:"Japon", juice:"Meyve suyu",
+  soup:"Çorba", pide:"Pide", pancake:"Krep", friture:"Kızartma",
+  coffee:"Kahve", mexican:"Meksika", american:"Amerikan",
+  italian_pizza:"İtalyan pizza", fast_food:"Fast food", indian:"Hint",
+  meat:"Et", waffle:"Waffle", greek:"Yunan", fine_dining:"Üst segment",
+  french:"Fransız", hot_dog:"Sosisli", diner:"Lokanta", kahve:"Kahve",
+  pastry:"Pastane", lahmacun:"Lahmacun", doner:"Döner", kofte:"Köfte",
+  vegetarian:"Vejetaryen", vegan:"Vegan", bakery:"Fırın", donut:"Donut",
+  crepe:"Krep", noodle:"Erişte", ramen:"Ramen", thai:"Tayland",
+  arab:"Arap", lebanese:"Lübnan", georgian:"Gürcü", russian:"Rus",
+  german:"Alman", spanish:"İspanyol", korean:"Kore", vietnamese:"Vietnam",
+  savory_pancakes:"Gözleme", gozleme:"Gözleme", manti:"Mantı",
+  borek:"Börek", corba:"Çorba", tantuni:"Tantuni", cig_kofte:"Çiğ köfte",
+  baklava:"Baklava", waffles:"Waffle", sea_food:"Deniz ürünleri",
+  hookah:"Nargile", beer:"Bira", wine:"Şarap", cocktails:"Kokteyl"
+};
+
+/* Gosterime hazir mutfak metni: "coffee_shop;savory_pancakes" ->
+   "Kahveci · Gözleme". Ayrac NOKTA: virgul mutfak adlarinin icinde de
+   gecebiliyor ve iki ayri sey ayni isarete binmesin. */
+function mutfakYaz(ham){
+  const parca = String(ham == null ? "" : ham).split(";")
+    .map(x => x.trim()).filter(Boolean)
+    .map(x => Object.prototype.hasOwnProperty.call(MUTFAK_TR, x)
+              ? MUTFAK_TR[x] : x.replace(/_/g, " "));
+  /* Tekrari at: "coffee;kahve" ikisi de "Kahve" oluyor. */
+  return [...new Set(parca)].join(" · ");
+}
+
 /* OSM'deki web adreslerinin bir kismi SEMASIZ yazilmis ("www.narli.cafe",
    "instagram.com/x"). Oldugu gibi href'e konursa tarayici GORELI adres
    sanip site icinde arar ve baglanti kirilir. Olculdu: 120 mekan.
@@ -605,6 +651,18 @@ function kendiniKontrolEt(){
                             "&lt;img src=x onerror=1&gt;"],
     /* Tek tirnakli oznitelik yazan biri icin: kacmazsa oznitelikten
        cikilip yeni oznitelik acilabiliyordu. */
+    /* --- mutfak metni ---
+       485 farkli OSM etiketi var; sozluk ilk 80'i kapsiyor ve
+       olculdu: etiketlerin %93,9'u, mekanlarin %94,0'i tam cevriliyor. */
+    ["mutfak cevriliyor",        mutfakYaz("turkish"),            "Türk"],
+    ["mutfak coklu ayrilir",     mutfakYaz("burger;coffee_shop"), "Burger · Kahveci"],
+    ["mutfak alt cizgi temizlenir",
+      mutfakYaz("bilinmeyen_sey"),                                "bilinmeyen sey"],
+    ["mutfak tekrar elenir",     mutfakYaz("coffee;kahve"),       "Kahve"],
+    ["mutfak bos girdi",         mutfakYaz(null),                 ""],
+    /* Duz MUTFAK_TR[x] mirasi da dondururdu: "constructor" -> Object. */
+    ["mutfak miras alan gecmez", mutfakYaz("constructor"),        "constructor"],
+
     /* --- web baglantisi ---
        OSM adreslerinin 120'si semasiz. Semasiz href GORELI adres sanilip
        site icinde aranir ve baglanti kirilir. */
