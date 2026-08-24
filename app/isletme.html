@@ -333,6 +333,8 @@ async function katkilariUygula(m){
      (b) giris yapilmis      -> kod formu (QR'dan geldiyse kod dolu gelir)
      (c) giris yok           -> girise yonlendir, KODU KAYBETME
    ============================================================ */
+const KOD_ANAHTAR = "oturalim.sahiplenme.";
+
 async function sahiplikKatmani(m){
   const rozet = document.getElementById("sahiplikRozet");
   const form  = document.getElementById("sahiplikForm");
@@ -355,9 +357,11 @@ async function sahiplikKatmani(m){
      bos doner ve mekan "sahiplenilmemis" gorunur. */
   try { await Kimlik.hazir; } catch (e) { return; }
 
-  let sahipli = false;
+  let sahipli = null;
   try { sahipli = await Kimlik.mekanSahiplenilmis(m.id); }
-  catch (e) { return; }             /* tablo yok: sayfa sahiplenmesiz calisir */
+  catch (e) { return; }
+  /* null = sahiplenme kurulu degil. Form da rozet de gosterilmiyor. */
+  if (sahipli === null) return;
 
   if (sahipli){
     rozet.hidden = false;
@@ -368,8 +372,12 @@ async function sahiplikKatmani(m){
     /* (c) Giris sayfasina giderken kodu YANIMIZDA goturuyoruz; donuste
        kullanici kodu bir daha yazmasin. */
     if (kartKodu){
+      /* Kod GIRIS ADRESINE KONMUYOR. Tek kullanimlik bir sir; oraya
+         yazilsa tarayici gecmisine ve paylasilan baglantiya girerdi.
+         sessionStorage aynı sekmede yasiyor, donuste okunuyor. */
+      try { sessionStorage.setItem(KOD_ANAHTAR + m.id, kartKodu); } catch (e) {}
       const donus = location.pathname + "?" +
-        new URLSearchParams({ il: IL, id: m.id, kod: kartKodu });
+        new URLSearchParams({ il: IL, id: m.id });
       form.hidden = false;
       kutu.value = kartKodu;
       kutu.disabled = true;
@@ -381,7 +389,14 @@ async function sahiplikKatmani(m){
   }
 
   form.hidden = false;              /* (b) */
-  if (kartKodu) kutu.value = kartKodu;
+  /* Giristen donduysek kod sessionStorage'da bekliyor. Okunur okunmaz
+     siliniyor: tek kullanimlik ve isi bitti. */
+  let bekleyen = null;
+  try {
+    bekleyen = sessionStorage.getItem(KOD_ANAHTAR + m.id);
+    if (bekleyen) sessionStorage.removeItem(KOD_ANAHTAR + m.id);
+  } catch (e) {}
+  if (kartKodu || bekleyen) kutu.value = kartKodu || bekleyen;
 
   form.addEventListener("submit", async e => {
     e.preventDefault();

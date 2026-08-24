@@ -14,6 +14,8 @@
    ============================================================ */
 import fs from "node:fs";
 import vm from "node:vm";
+import path from "node:path";
+import os from "node:os";
 
 const yok = () => {};
 
@@ -108,9 +110,23 @@ function imzaAra(basilan, imzalar){
 }
 
 const sonuclar = [];
+/* Kontrol ya bir dizi ya da dizi donduren bir SOZ verebilir. Sozler
+   bekleniyor -- yoksa asenkron bir kontrol hicbir sey dogrulamadan
+   "gecti" derdi (dizi degil Promise geliyor, .length undefined,
+   !undefined true). */
 function kosu(ad, calistir){
   try {
     const kotu = calistir();
+    if (kotu && typeof kotu.then === "function"){
+      sonuclar.push(kotu.then(k => ({ ad, gecti: !k.length, ayrinti: k }))
+                        .catch(e => ({ ad, gecti: false, ayrinti: [String(e)] })));
+      return;
+    }
+    if (!Array.isArray(kotu)){
+      sonuclar.push({ ad, gecti: false,
+                      ayrinti: ["kontrol dizi dondurmedi: " + typeof kotu] });
+      return;
+    }
     sonuclar.push({ ad, gecti: !kotu.length, ayrinti: kotu });
   } catch (e) {
     sonuclar.push({ ad, gecti: false, ayrinti: [e.message] });
@@ -192,6 +208,109 @@ kosu("vitrin ile veri ayni fiyati veriyor", () => {
   return kotu;
 });
 
+/* ---------- kimlik.js: veri katmani GERCEKTEN calisiyor ----------
+   400 satirlik veri katmani bugune kadar yalniz AYRISTIRILIYORDU, hic
+   calistirilmiyordu. Supabase'e cikmadan calistirmak icin dinamik
+   import sahte bir modulle degistiriliyor ve sorgu zinciri taklit
+   ediliyor. Amac Supabase'i sinamak degil, BIZIM kodumuzu: hata
+   siniflandirmasi, uc deger donen fonksiyonlar, girdi temizligi.
+
+   Bunlarin hepsi sessizce yanlis olabilecek turden. Ornek: mekan
+   sahiplenilmis mi sorusu, tablo YOKKEN "hayir" donuyordu -- yani
+   sahiplenme kurulmamis bir sistemde isletme sayfasi kod formunu
+   aciyor, kullanici kodu giriyor ve anlamsiz bir hata aliyordu. */
+kosu("kimlik.js (veri katmani, sahte Supabase)", () => {
+  const kaynak = fs.readFileSync("app/kimlik.js", "utf8");
+
+  /* Sonuc uretici: her sorgu zinciri ayni nesneyi donduruyor ve en
+     sonunda then() ile { data, error } veriyor. */
+  const zincir = (sonuc) => {
+    const z = { then: (f) => Promise.resolve(sonuc).then(f) };
+    for (const ad of ["select","eq","order","limit","insert","update","delete",
+                      "in","neq","gte","lte","range","or"])
+      z[ad] = () => z;
+    /* maybeSingle/single zinciri BITIRIYOR: dizi degil tek kayit doner. */
+    z.maybeSingle = () => Promise.resolve(
+      { data: Array.isArray(sonuc.data) ? (sonuc.data[0] ?? null) : sonuc.data,
+        error: sonuc.error });
+    z.single = z.maybeSingle;
+    return z;
+  };
+  let sonrakiSonuc = { data: [], error: null };
+  const sahteIstemci = {
+    from: () => zincir(sonrakiSonuc),
+    rpc: () => Promise.resolve(sonrakiSonuc),
+    auth: {
+      /* Girisli bir oturum: sahiplikTalep ve katkiGonder giris sarti
+         ariyor. Girissiz fixture ile yazmistim ve kosum takimi ilk
+         calistirmada yakaladi. */
+      getSession: async () => ({ data: { session: { user: { id: "k1" } } } }),
+      onAuthStateChange: () => ({ data: { subscription: { unsubscribe(){} } } })
+    }
+  };
+
+  const sahteModul = "data:text/javascript," + encodeURIComponent(
+    "export const createClient = () => globalThis.__sahteIstemci;");
+  const duzenli = kaynak.replace(/await import\("https:\/\/esm\.sh[^"]*"\)/,
+                                 'await import("' + sahteModul + '")');
+  if (duzenli === kaynak) return ["kimlik.js icindeki esm.sh import'u bulunamadi"];
+
+  const yol = path.join(os.tmpdir(), "kimlik-kontrol-" + process.pid + ".mjs");
+  fs.writeFileSync(yol, duzenli);
+  globalThis.__sahteIstemci = sahteIstemci;
+  globalThis.window = { OTURALIM: { supabaseUrl: "https://x.test",
+                                    supabaseAnahtar: "y" } };
+  globalThis.document = { querySelectorAll: () => [], addEventListener(){} };
+  globalThis.localStorage = { getItem: () => null, setItem(){}, removeItem(){} };
+
+  const kotu = [];
+  return import("file://" + yol).then(async (mod) => {
+    const K = mod.default;
+    await K.hazir;
+    const esit = (ad, a, b) => { if (JSON.stringify(a) !== JSON.stringify(b))
+      kotu.push(ad + ": " + JSON.stringify(a) + " != " + JSON.stringify(b)); };
+
+    /* --- mekanSahiplenilmis UC deger donmeli --- */
+    sonrakiSonuc = { data: [{ id: 1 }], error: null };
+    esit("sahiplenilmis mekan", await K.mekanSahiplenilmis("node/1"), true);
+    sonrakiSonuc = { data: [], error: null };
+    esit("sahiplenilmemis mekan", await K.mekanSahiplenilmis("node/1"), false);
+    /* Tablo yok: false DEGIL null. Yoksa kurulmamis ozellik "hayir" gibi
+       gorunur ve isletme sayfasi calismayan bir form acar. */
+    sonrakiSonuc = { data: null, error: { message: 'relation "public.sahiplik" does not exist', code: "42P01" } };
+    esit("tablo yok -> null", await K.mekanSahiplenilmis("node/1"), null);
+    sonrakiSonuc = { data: null, error: { message: "Could not find the table in the schema cache", code: "PGRST205" } };
+    esit("sema onbelleginde yok -> null", await K.mekanSahiplenilmis("node/1"), null);
+
+    /* --- sahiplikTalep: sunucuya gitmeden once temizlik --- */
+    sonrakiSonuc = { data: [{ mekan_id: "node/1", il: "34", mekan_ad: "X" }], error: null };
+    const t = await K.sahiplikTalep(" abcd-3456 ");
+    esit("talep sonucu", t, { mekanId: "node/1", il: "34", mekanAd: "X" });
+    for (const kotuKod of ["", "  ", "AB-12"]) {
+      let hata = null;
+      try { await K.sahiplikTalep(kotuKod); } catch (e) { hata = e.message; }
+      if (!hata) kotu.push("kisa kod sunucuya gitti: " + JSON.stringify(kotuKod));
+    }
+    /* Sunucu hatasi kullaniciya ANLASILIR cumleyle donmeli. */
+    sonrakiSonuc = { data: null, error: { message: "kod gecersiz" } };
+    let mesaj = null;
+    try { await K.sahiplikTalep("ABCD3456"); } catch (e) { mesaj = e.message; }
+    if (!mesaj || /gecersiz$/.test(mesaj) || mesaj.length < 20)
+      kotu.push("ham SQL mesaji kullaniciya gidiyor: " + mesaj);
+
+    /* --- katkiGonder: tekil kisit "ayni gun" degil "sirada bekliyor" --- */
+    sonrakiSonuc = { error: { message: 'duplicate key value violates unique constraint' } };
+    let km = null;
+    try { await K.katkiGonder({ mekanId: "n", mekanAd: "X", alan: "tel", deger: "1" }); }
+    catch (e) { km = e.message; }
+    if (!km || !/sırada bekliyor/.test(km))
+      kotu.push("katki tekil kisit mesaji yanlis: " + km);
+
+    fs.unlinkSync(yol);
+    return kotu;
+  }).catch(e => [String(e).slice(0, 200)]);
+});
+
 /* ---------- sayfa ici modullerin sozdizimi ---------- */
 kosu("modul betikleri ayristirilabiliyor", () => {
   const kotu = [];
@@ -210,11 +329,12 @@ kosu("modul betikleri ayristirilabiliyor", () => {
 });
 
 /* ---------- rapor ---------- */
+const bitmis = await Promise.all(sonuclar);
 let hata = 0;
-for (const s of sonuclar){
+for (const s of bitmis){
   console.log("  %s %s", s.gecti ? "gecti " : "BASARISIZ", s.ad);
   if (!s.gecti){ hata++; s.ayrinti.forEach(a => console.log("      " + String(a).slice(0, 300))); }
 }
-console.log(hata ? `\n${hata}/${sonuclar.length} tarayici kontrolu BASARISIZ`
-                 : `\n${sonuclar.length} tarayici kontrolunun hepsi gecti`);
+console.log(hata ? `\n${hata}/${bitmis.length} tarayici kontrolu BASARISIZ`
+                 : `\n${bitmis.length} tarayici kontrolunun hepsi gecti`);
 process.exit(hata ? 1 : 0);

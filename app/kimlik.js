@@ -338,11 +338,26 @@ const Kimlik = {
   /* Mekan sahiplenilmis mi. Giris GEREKMIYOR: isletme sayfasi bu rozeti
      herkese gosteriyor. Sahibin KIMLIGI dondurulmuyor -- gorunur olan
      bilgi "dogrulanmis", "kim dogruladi" degil. */
+  /* Uc deger doner: true (sahiplenilmis), false (sahiplenilmemis),
+     null (SAHIPLENME KURULU DEGIL).
+
+     Ucuncusu sart. Onceden hata durumunda false donuyordu, yani
+     sahiplenme.sql calistirilmamis bir kurulumda mekan "sahiplenilmemis"
+     gorunuyor ve isletme sayfasi kod formunu aciyordu -- kullanici kodu
+     giriyor, RPC yok, anlamsiz bir hata aliyordu. Calismayan bir kutu
+     gostermek, hic gostermemekten kotu (katki formunda ayni kural). */
   async mekanSahiplenilmis(mekanId){
-    if (!sb) return false;
+    if (!sb) return null;
     const { data, error } = await sb.from("sahiplik")
       .select("id").eq("mekan_id", mekanId).eq("durum", "aktif").limit(1);
-    if (error){ console.error("sahiplik:", error.message); return false; }
+    if (error){
+      const m = String(error.message || "").toLowerCase();
+      /* Tablo yok / semada gorunmuyor: ozellik kurulu degil. */
+      if (m.includes("does not exist") || m.includes("schema cache") ||
+          error.code === "42P01" || error.code === "PGRST205") return null;
+      console.error("sahiplik:", error.message);
+      return null;
+    }
     return !!(data && data.length);
   },
 
