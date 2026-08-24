@@ -40,7 +40,7 @@ jobs:
       # kuruluyor ama TARAYICI INDIRILMIYOR (~300 MB): "test" kipi ag'a
       # cikmiyor, yalniz ayristirma ve suzme mantigini sinuyor.
       - name: Bagimliliklar
-        run: pip install --quiet httpx pymupdf playwright
+        run: pip install --quiet httpx pymupdf playwright qrcode
 
       - name: Kontroller
         run: python test.py
