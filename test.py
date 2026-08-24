@@ -437,6 +437,59 @@ def sirlar_sizmis_mi():
     return s
 
 
+def adres_ve_tarih_mi():
+    """Iki kural, ikisi de bir kez BOZULDU ve sessiz kaldi.
+
+    1) ?donus= parametresi ADRES olarak kullaniliyor. Denetimsiz hali
+       (P.get("donus") dogrudan location.href'e) iki sey yapiyordu -- ikisi
+       de gercek Chromium'da olculdu:
+         donus=javascript:...      -> CALISIYOR, hem de tam giris yapildiktan
+                                      sonra, oturum jetonu okunabilirken.
+         donus=https://taklit.site -> gercek sitede giris yapip taklit siteye
+                                      dusmek; klasik kimlik avi zinciri.
+       guvenliDonus()'un DAVRANISI ortak.js oz kontrolunde (109 kontrol);
+       burada denetlenen sey cagri yerinin onu ATLAMAMASI.
+
+    2) Gunun tarihi. toISOString() UTC verir; Turkiye kalici UTC+3, yani her
+       gece 00:00-03:00 arasi dunu gosterir -- tam da disari cikip fis
+       paylasan insanin saati. paylas.html hem varsayilan tarihi hem de
+       <input max> degerini oradan aliyordu: bugunu SECTIRMIYORDU.
+       kimlik.js ortak.js'e bagli degil (tek basina import edilebilen bir ES
+       modulu), o yuzden kendi kopyasi var; ikisinin ayrismasi burada
+       yakalaniyor."""
+    s = []
+    okun = lambda ad: io.open(os.path.join(KOK, "app", ad), encoding="utf-8").read()
+
+    giris = _yorumsuz(okun("giris.html"))
+    for kotu in re.findall(r'location\.href\s*=\s*([^;\n]*donus[^;\n]*)', giris):
+        if "guvenliDonus" not in kotu:
+            s.append("giris.html: donus denetimsiz adres olarak kullaniliyor -> %s"
+                     % kotu.strip()[:60])
+    if "function guvenliDonus" not in okun("ortak.js"):
+        s.append("ortak.js: guvenliDonus() yok")
+
+    # toISOString().slice(0,10) = UTC gun. Hicbir yerde kalmamali.
+    for ad in ("ortak.js", "kimlik.js", "kesfet.js",
+               "paylas.html", "isletme.html", "hesabim.html", "yonetim.html"):
+        if re.search(r"toISOString\(\)\s*\.slice\(\s*0\s*,\s*10\s*\)",
+                     _yorumsuz(okun(ad))):
+            s.append("%s: gunun tarihi UTC'den aliniyor (toISOString)" % ad)
+
+    # Iki bugunYerel() ayni formulu kullanmali.
+    govde = []
+    for ad in ("ortak.js", "kimlik.js"):
+        m = re.search(r"function bugunYerel\(d\)\{(.*?)\n\}",
+                      okun(ad).replace("function bugunYerel(d){",
+                                       "function bugunYerel(d){"), re.S)
+        if not m:
+            s.append("%s: bugunYerel() yok" % ad)
+        else:
+            govde.append(re.sub(r"\s+", " ", m.group(1)).strip())
+    if len(govde) == 2 and govde[0] != govde[1]:
+        s.append("ortak.js ve kimlik.js'teki bugunYerel() ayrismis")
+    return s
+
+
 def sayfa_kontrolleri():
     """Sayfalari GERCEK tarayicida acar (test_sayfa.py).
 
@@ -472,6 +525,7 @@ def main():
     kayit("degismez: sema korumalari yerinde", sema_tutarli_mi())
     kayit("degismez: sahne perdesi acilabiliyor", sahne_tutarli_mi())
     kayit("degismez: yayin yapilandirmasi", yayin_basliklari_mi())
+    kayit("degismez: donus adresi ve gunun tarihi", adres_ve_tarih_mi())
     kayit("degismez: sir sizmamis", sirlar_sizmis_mi())
 
     hata = atlanan = 0

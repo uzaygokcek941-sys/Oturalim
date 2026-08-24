@@ -265,7 +265,11 @@ function durumKutusu(sinif, baslik, metin, dugmeHTML){
     '<div class="yok"><h3>' + baslik + "</h3><p>" + metin + "</p>" + (dugmeHTML || "") + "</div>";
 }
 
-function bugun(){ return new Date().toISOString().slice(0, 10); }
+/* ortak.js'ten: YEREL gun. Onceden toISOString() vardi, yani UTC --
+   Turkiye kalici UTC+3 oldugu icin her gece 00:00-03:00 arasi form DUNUN
+   tarihiyle aciliyor ve <input max> bugunu SECTIRMIYORDU. Tam da disari
+   cikip fis paylasan insanin saati. */
+const bugun = bugunYerel;
 
 document.addEventListener("DOMContentLoaded", () => {
   const gelen = P.get("mekan");

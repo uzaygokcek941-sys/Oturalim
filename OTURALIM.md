@@ -432,6 +432,35 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
 - [x] Instagram toplanıyor ama uygulamaya hiç ulaşmıyordu: **192 mekanın**
       instagramı var ve sitesi yok, onlara hem sayfada hem saha kartında
       "sosyal medya bağınız yok" diyorduk.
+- [x] **`?donus=` denetimsizdi — açık yönlendirme ve `javascript:` XSS.**
+      `giris.html` bu parametreyi doğrudan `location.href`'e yazıyordu. Gerçek
+      Chromium'da ölçüldü: `donus=javascript:…` **çalışıyor** — hem de tam giriş
+      yapıldıktan sonra, yani oturum jetonu okunabilir haldeyken.
+      `donus=https://taklit.site` ise kullanıcıyı gerçek sitede giriş yaptırıp
+      taklit siteye düşürüyor; adres çubuğunda doğru alan adını gördüğü için
+      ikna edici bir kimlik avı zinciri. Kural artık tek yerde
+      (`ortak.js` → `guvenliDonus`): yalnız **aynı kökende, uygulamanın kendi
+      klasöründe bir `.html`**. Üreten yerlerin hepsi zaten öyle yazıyordu,
+      yani doğru kullanımın hiçbiri kesilmedi.
+- [x] **Tarih UTC'den alınıyordu.** `toISOString()` UTC verir; Türkiye kalıcı
+      UTC+3, yani her gece **00:00–03:00 arası** (günün %12,5'i) hâlâ dünü
+      gösteriyordu. `paylas.html` hem varsayılan tarihi hem de `<input max>`
+      değerini oradan alıyordu: gece 1'de form dünün tarihiyle açılıyor ve
+      **bugünü seçtirmiyordu** — tam da dışarı çıkıp fiş paylaşan insanın saati.
+- [x] **supabase-js CDN'den gelmeyince katkı formu yine de açılıyordu.**
+      `Kimlik.acik` yalnız yapılandırmanın dolu olduğunu söylüyor, istemcinin
+      kurulduğunu değil. Kullanıcı formu dolduruyor, "Giriş yap ve ekle"
+      diyor ve **ölü** bir giriş sayfasına fırlatılıyordu. Formun kendi
+      yorumundaki kural buydu zaten: *çalışmayan bir kutu göstermek, hiç
+      göstermemekten kötü* — Leaflet'te aynı şey olmuştu.
+- [x] **Görünmeyen sahne için 60 fps kare üretiliyordu.** Kaydırınca gözlemci
+      animasyonu durduruyordu ama `visibilitychange` koşulsuz `baslat()`
+      çağırıyordu: başka sekmeye geçip dönünce, sahne hâlâ ekran dışındayken
+      animasyon tam hızda yeniden başlıyor ve bir daha durmuyordu (gözlemci
+      ancak kesişim *değişince* tetikleniyor). Ölçüldü: kaydırdıktan sonra
+      600 ms'de 0 kare, sekmeden dönünce aynı koşulda **36 kare**. Telefonda
+      bu doğrudan pil. Ayrıca her fare hareketinde köke yazılan `--iz-hiz`
+      özel özelliğini **hiçbir CSS kuralı okumuyordu**; kaldırıldı.
 
 **Kodda kalan teknik borç:**
 - [x] Leaflet SRI ile geliyor (özet npm tarball'ından, resmî değerlerle doğrulandı)

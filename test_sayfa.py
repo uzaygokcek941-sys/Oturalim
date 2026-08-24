@@ -185,6 +185,76 @@ def kendini_kontrol_et():
                                 % (sayilar["şişli"], sayilar["sisli"]))
             sf.close()
 
+            # 1e) supabase-js CDN'den GELMEYINCE katki formu cikmamali.
+            #
+            # Kimlik.acik yalniz yapilandirmanin dolu oldugunu soyluyor;
+            # istemcinin kurulup kurulmadigini degil. Bu kosum takimi zaten
+            # butun dis baglantilari kesiyor, yani supabase-js hicbir zaman
+            # gelmiyor -- ama form yine de aciliyordu. Kullanici formu
+            # dolduruyor, "Giris yap ve ekle" diyor ve OLU bir giris
+            # sayfasina firlatiliyordu. Ayni kural katki formunun kendi
+            # yorumunda yazili: calismayan bir kutu gostermek, hic
+            # gostermemekten kotu.
+            sf, _ = sayfa_ac("/isletme.html?il=34&id=node/8223784325")
+            gorunur = sf.evaluate("""() => {
+                const f = document.getElementById('katkiForm');
+                return f ? !f.hidden : false; }""")
+            if gorunur:
+                sorunlar.append("supabase-js yokken katki formu yine de aciliyor")
+            sf.close()
+
+            # 1f) Gorunmeyen sahne icin kare uretilmemeli.
+            #
+            # Kaydirinca gozlemci animasyonu durduruyordu, ama
+            # visibilitychange KOSULSUZ baslat() cagiriyordu: baska sekmeye
+            # gecip geri donunce, sahne hala ekran disindayken animasyon tam
+            # hizda yeniden basliyor ve bir daha durmuyordu (gozlemci ancak
+            # kesisim DEGISINCE tetikleniyor). Olculdu: 600 ms'de 36 kare.
+            # Telefonda bu dogrudan pil.
+            #
+            # Dort halin dordu de olculuyor. Yalniz "0 kare" aramak yanlis
+            # gecerdi: animasyonu tamamen kapatmak da o kontrolu yesil yapar.
+            sf, _ = sayfa_ac("/index.html", """(() => { window.__kare = 0;
+                const a = window.requestAnimationFrame;
+                window.requestAnimationFrame = function(f){
+                  return a.call(window, function(t){ window.__kare++; return f(t); }); };
+              })();""")
+            gizle = """(v) => {
+                Object.defineProperty(document, 'visibilityState',
+                  { get: () => v ? 'hidden' : 'visible', configurable: true });
+                Object.defineProperty(document, 'hidden',
+                  { get: () => v, configurable: true });
+                document.dispatchEvent(new Event('visibilitychange')); }"""
+
+            def kare(ms=600):
+                a = sf.evaluate("window.__kare")
+                sf.wait_for_timeout(ms)
+                return sf.evaluate("window.__kare") - a
+
+            def sekmeden_don():
+                sf.evaluate(gizle, True)
+                sf.wait_for_timeout(300)
+                sf.evaluate(gizle, False)
+                sf.wait_for_timeout(300)
+
+            if kare() == 0:
+                sorunlar.append("sahne ekrandayken hic kare uretilmiyor")
+            sekmeden_don()
+            if kare() == 0:
+                sorunlar.append("sahne ekrandayken sekmeden donunce baslamiyor")
+            sf.evaluate("scrollTo(0, 3000)")
+            sf.wait_for_timeout(500)
+            if kare() != 0:
+                sorunlar.append("sahne ekran disindayken kare uretiliyor")
+            sekmeden_don()
+            if kare() != 0:
+                sorunlar.append("sahne ekran disinda, sekmeden donunce yeniden basliyor")
+            sf.evaluate("scrollTo(0, 0)")
+            sf.wait_for_timeout(500)
+            if kare() == 0:
+                sorunlar.append("sahne geri kaydirilinca yeniden baslamiyor")
+            sf.close()
+
             # 2) Harita YOKKEN kesfet calismali. Asil bulunan hata buydu.
             sf, hata = sayfa_ac("/kesfet.html?il=06")
             kart = sf.eval_on_selector_all(".kart", "n => n.length")

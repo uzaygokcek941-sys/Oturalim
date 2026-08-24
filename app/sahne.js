@@ -155,7 +155,10 @@ function sokagiKur(){
       const d = Math.hypot(e.clientX - mx, e.clientY - my);
       const p = Math.min(1, d / 420);            // 0 = uzerinde, 1 = uzak
       hedefHiz = 0.15 + p * 0.85;
-      document.documentElement.style.setProperty("--iz-hiz", hedefHiz.toFixed(2));
+      /* Burada bir zamanlar --iz-hiz ozel ozelligi de yaziliyordu. HICBIR
+         CSS kurali onu okumuyordu (stil.css'te yalniz taniminin kendisi
+         vardi): her fare hareketinde koke stil yazip butun belgenin stilini
+         gecersiz kilan, karsiliginda hicbir sey cizmeyen bir islemdi. */
     };
     sahne.addEventListener("pointermove", yakinlik, { passive:true });
     sahne.addEventListener("pointerleave", () => { hedefHiz = 1; }, { passive:true });
@@ -164,14 +167,25 @@ function sokagiKur(){
     dugme.addEventListener("blur",  () => { hedefHiz = 1; });
   }
 
-  /* Gorunmeyen kahraman icin kare uretmek pil yakmaktir. */
+  /* Gorunmeyen kahraman icin kare uretmek pil yakmaktir.
+
+     IKI kosul birden gerekiyor: sahne EKRANDA olmali ve sekme ONDE olmali.
+     Onceden visibilitychange kosulsuz baslat() cagiriyordu, yani: sayfayi
+     kaydir (gozlemci durdurur) -> baska sekmeye gec -> geri don. Sahne hala
+     ekran disinda ama animasyon tam hizda yeniden basliyordu ve bir daha
+     durmuyordu; gozlemci ancak KESISIM DEGISINCE tetikleniyor, degismiyor.
+     Olculdu (Chromium, 900x700): kaydirdiktan sonra 600 ms'de 0 kare;
+     sekmeden donunce ayni kosulda 36 kare -- yani 60 fps, gorunmeyen bir
+     tuval icin. Telefonda bu dogrudan pil. */
+  let ekranda = true;
+  const tazele = () => (ekranda && !document.hidden) ? baslat() : durdur();
+
   if ("IntersectionObserver" in window){
-    new IntersectionObserver(([gi]) => gi.isIntersecting ? baslat() : durdur(),
+    new IntersectionObserver(([gi]) => { ekranda = gi.isIntersecting; tazele(); },
       { threshold:0 }).observe(sahne);
   } else baslat();
 
-  document.addEventListener("visibilitychange",
-    () => document.hidden ? durdur() : baslat());
+  document.addEventListener("visibilitychange", tazele);
 }
 
 /* ---------- 3. Baslat ---------- */

@@ -443,11 +443,20 @@ async function sahiplikKatmani(m){
   });
 }
 
-function katkiFormu(m, eksik){
+async function katkiFormu(m, eksik){
   const form = document.getElementById("katkiForm");
   /* Kimlik kurulu degilse form hic gorunmez: calismayan bir kutu
      gostermek, hic gostermemekten kotu. */
   if (!Kimlik.acik) return;
+
+  /* Kimlik.acik yalniz YAPILANDIRMANIN dolu oldugunu soyluyor -- istemcinin
+     gercekten kurulup kurulmadigini degil. supabase-js CDN'den geliyor ve
+     gelmeyebiliyor (Leaflet'te tam olarak bu oldu, kesfet ekraninin
+     TAMAMINI goturmustu). O halde form gorunuyor, kullanici dolduruyor,
+     Kimlik.girisli false oldugu icin de "giris yap" diye OLU bir giris
+     sayfasina firlatiliyordu. Ust satirdaki kuralin kendisi bunu yasakliyor;
+     burada eksik uygulanmis. */
+  try { if (!(await Kimlik.hazir)) return; } catch (e) { return; }
 
   /* menu BILEREK disarida: fiyatin hatti paylas.html + fis katmani.
      Ayni veriyi iki yerden toplamak iki ayri dogruya yol acar. */

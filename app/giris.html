@@ -283,7 +283,10 @@ el("#form").addEventListener("submit", async e => {
   try {
     if (kip === "giris"){
       await Kimlik.giris(eposta, parola);
-      location.href = P.get("donus") || "hesabim.html";
+      /* donus ADRES olarak kullaniliyor; denetimi ortak.js'te (guvenliDonus).
+         Denetimsiz hali javascript: URL'ini calistiriyordu -- hem de tam
+         giris yapildiktan sonra, jeton okunabilir haldeyken. */
+      location.href = guvenliDonus(P.get("donus")) || "hesabim.html";
 
     } else if (kip === "kayit"){
       const sonuc = await Kimlik.kayit(eposta, parola, el("#ad").value);
@@ -326,7 +329,7 @@ Kimlik.hazir.then(acik => {
     return;
   }
   if (Kimlik.girisli){
-    location.href = P.get("donus") || "hesabim.html";
+    location.href = guvenliDonus(P.get("donus")) || "hesabim.html";
     return;
   }
   kipUygula(P.get("kip") === "kayit" ? "kayit" : "giris");

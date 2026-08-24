@@ -195,6 +195,51 @@ function webBagi(u){
          kacir(ham.replace(/^https?:\/\//i, "").replace(/\/$/, "")) + "</a>";
 }
 
+/* ---------- dönüş adresi ----------
+   giris.html, ?donus= parametresini DOGRUDAN adres olarak kullaniyordu.
+   Denetimsiz birakildiginda iki sey oluyor; ikisi de bu depoda gercek
+   Chromium ile olculdu:
+
+     donus=javascript:...     -> location.href atamasi bunu CALISTIRIYOR.
+                                 Ustelik tam giris yapildiktan sonra, yani
+                                 oturum jetonu okunabilir haldeyken.
+     donus=https://baska.site -> kullanici GERCEK sitede giris yapip taklit
+                                 siteye dusuyor ("tekrar giris yap"). Klasik
+                                 kimlik avi zinciri; adres cubugunda dogru
+                                 alan adini gordugu icin de ikna edici.
+
+   Kural: yalniz AYNI KOKENDE ve uygulamanin kendi klasorunde duran bir
+   .html sayfasi. Uymayan her sey null; cagiran varsayilanina duser.
+   Uretenlerin hepsi zaten kendi goreli adresini yaziyor, yani bu kural
+   dogru kullanimin hicbirini kesmiyor. */
+function guvenliDonus(ham, taban){
+  if (!ham) return null;
+  taban = taban || location.href;
+  let u, t;
+  try { u = new URL(String(ham), taban); t = new URL(taban); }
+  catch (e) { return null; }
+  /* javascript:, data:, blob: -> origin "null"; //baska.site -> baska origin. */
+  if (u.origin === "null" || u.origin !== t.origin) return null;
+  const klasor = t.pathname.replace(/[^/]*$/, "");
+  if (u.pathname.indexOf(klasor) !== 0) return null;
+  const sayfa = u.pathname.slice(klasor.length);
+  if (!/^[A-Za-z0-9._-]+\.html$/.test(sayfa)) return null;   // alt klasor de yok
+  return sayfa + u.search + u.hash;
+}
+
+/* ---------- bugün ----------
+   YEREL gun. new Date().toISOString() UTC veriyor; Turkiye kalici UTC+3,
+   yani her gece 00:00-03:00 arasi (gunun %12,5'i) UTC hala DUNU gosteriyor.
+   Bu, disari cikan insanin fis paylastigi saat araligi. paylas.html hem
+   varsayilan tarihi hem de <input max> degerini buradan aliyordu: gece 1'de
+   form dunun tarihiyle aciliyor ve BUGUNU secmeye izin vermiyordu. */
+function bugunYerel(d){
+  d = d || new Date();
+  return d.getFullYear() + "-" +
+         String(d.getMonth() + 1).padStart(2, "0") + "-" +
+         String(d.getDate()).padStart(2, "0");
+}
+
 /* ---------- katkı doğrulama ----------
    Kullanıcıdan gelen eksik alan bilgisi. Onaya gitmeden ÖNCE burada eleniyor;
    yöneticiye ancak kullanılabilir biçimde olanlar ulaşsın.
@@ -464,7 +509,7 @@ function seviye(m, bugun){
    Hangi günlerde açıldığı tutuluyor; D1/D7/D30 buradan hesaplanıyor. */
 const KOHORT = "oturalim.kohort";
 const BIRGUN = 86400000;
-const bugunISO = () => new Date().toISOString().slice(0,10);
+const bugunISO = () => bugunYerel();   /* yerel gun: gerekce bugunYerel()'de */
 const gunFarki = (a,b) => Math.round((Date.parse(b) - Date.parse(a)) / BIRGUN);
 
 function kohortGuncelle(){
@@ -495,6 +540,9 @@ function kendiniKontrolEt(){
   if (!new URLSearchParams(location.search).has("test")) return;
   const g14 = new Date(2026,7,19,14,0), g03 = new Date(2026,7,19,3,0),
         g01 = new Date(2026,7,19,1,0);
+  /* Sabit taban: kontrol sonucu sayfanin nerede servis edildigine
+     bagli olmasin. */
+  const T = "https://o.test/app/giris.html";
   const kontroller = [
     ["acikMi 24/7",             acikMi("24/7", g14),               true],
     ["acikMi gunduz",           acikMi("Mo-Su 09:00-23:00", g14),  true],
@@ -711,7 +759,31 @@ function kendiniKontrolEt(){
     ["katki web handle elenir", typeof katkiSorunu("web", "@oturalim"),  "string"],
     ["katki bos elenir",    typeof katkiSorunu("adres", "  "),           "string"],
     ["katki bilinmeyen alan elenir",
-      typeof katkiSorunu("menu", "100"),                                 "string"]
+      typeof katkiSorunu("menu", "100"),                                 "string"],
+
+    /* donus adresi: uretenlerin yazdigi her sey gecmeli, geri kalani DUSMELI */
+    ["donus kendi sayfasi",  guvenliDonus("hesabim.html", T),          "hesabim.html"],
+    ["donus sorgulu",        guvenliDonus("isletme.html?il=34&id=n1", T),
+                                                             "isletme.html?il=34&id=n1"],
+    ["donus tam kendi adresi",
+      guvenliDonus("https://o.test/app/paylas.html", T),               "paylas.html"],
+    ["donus javascript",     guvenliDonus("javascript:alert(1)", T),          null],
+    ["donus JaVaScRiPt",     guvenliDonus("JaVaScRiPt:alert(1)", T),          null],
+    ["donus data",           guvenliDonus("data:text/html,<b>", T),           null],
+    ["donus dis site",       guvenliDonus("https://kotu.test/x.html", T),     null],
+    ["donus kokensiz",       guvenliDonus("//kotu.test/x.html", T),           null],
+    ["donus ust klasor",     guvenliDonus("../gizli.html", T),                null],
+    ["donus alt klasor",     guvenliDonus("ic/x.html", T),                    null],
+    ["donus html degil",     guvenliDonus("veri/34.json", T),                 null],
+    ["donus bos",            guvenliDonus("", T),                             null],
+    ["donus yok",            guvenliDonus(null, T),                           null],
+
+    /* bugun: YEREL gun. Gece 01:30'da (UTC hala dun) bugunu vermeli. */
+    ["bugun gece yarisindan sonra",
+      bugunYerel(new Date(2026, 7, 25, 1, 30)),                  "2026-08-25"],
+    ["bugun gunduz",  bugunYerel(new Date(2026, 7, 25, 14, 0)),  "2026-08-25"],
+    ["bugun tek haneli ay/gun",
+      bugunYerel(new Date(2026, 0, 3, 12, 0)),                   "2026-01-03"]
   ];
   const hata = kontroller.filter(k => JSON.stringify(k[1]) !== JSON.stringify(k[2]));
   document.body.insertAdjacentHTML("afterbegin",

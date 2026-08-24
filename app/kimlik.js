@@ -79,6 +79,18 @@ function hataMetni(e){
   return (e && e.message) ? e.message : "Beklenmeyen bir hata oldu.";
 }
 
+/* YEREL gun. ortak.js'te ayni islev bugunYerel() adiyla var; kimlik.js bir
+   ES modulu ve ortak.js'siz de import edilebiliyor, o yuzden kopya duruyor.
+   Ikisinin ayrismasini test.py denetliyor ("bugun ayni hesaplaniyor").
+   toISOString() OLMAZ: UTC verir, Turkiye kalici UTC+3, gece yarisindan
+   sonraki uc saatte dunun tarihini yazardi. */
+function bugunYerel(d){
+  d = d || new Date();
+  return d.getFullYear() + "-" +
+         String(d.getMonth() + 1).padStart(2, "0") + "-" +
+         String(d.getDate()).padStart(2, "0");
+}
+
 /* ---------- profil ---------- */
 async function profilGetir(){
   if (!sb || !oturum) return null;
@@ -189,7 +201,7 @@ const Kimlik = {
       il: p.il || null,
       tutar: p.tutar,
       kisi: p.kisi,
-      tarih: p.tarih || new Date().toISOString().slice(0, 10),
+      tarih: p.tarih || bugunYerel(),
       aciklama: (p.aciklama || "").trim() || null,
       durum: "bekliyor"
     });

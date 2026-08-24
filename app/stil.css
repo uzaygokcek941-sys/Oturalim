@@ -52,7 +52,6 @@
   --neon-yesil:#4ad9a0;  --neon-yesil-los:rgba(74,217,160,.12);
   --asfalt:#0d0a08;                     /* cerceve disi: sokak */
   --cerceve-kalinlik:clamp(10px,2.2vw,22px);
-  --iz-hiz:1;                           /* JS yazar: 1 hizli/bulanik, 0 durgun/net */
   --grain:.035;
 
   --font-baslik:"Fraunces",Georgia,serif;
