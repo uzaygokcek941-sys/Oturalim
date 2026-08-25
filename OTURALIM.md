@@ -286,8 +286,13 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
 **Sende (kod değil):**
 - [x] `app/yapilandirma.js` → `sahiplenmeWhatsapp` dolduruldu (2026-08-23)
 - [x] `sema.sql`, `sayac.sql`, `katki.sql` Supabase'de çalıştırıldı (2026-08-23)
-- [ ] `@oturalim` handle (Instagram + TikTok), bio, ilk 3 içerik
+- [x] `profil.sql`, `yorum.sql`, `menu_katki.sql`, `mekan_foto.sql`, `akran.sql`
+      çalıştırıldı (2026-08-25)
+- [ ] `@oturalim` handle (Instagram + TikTok) — **bio ve ilk 3 içeriğin notu
+      hazır** (`icerik_ilk3.md`); kalan tek şey hesabı açmak
 - [ ] Vercel yayını
+- [ ] `python kutuphane_al.py` — supabase-js'i yerele al (1 dk, `KURULUM.md`)
+- [ ] `python foto_cek.py` — Commons fotoğrafları (buradaki oturumda ağ kapalı)
 - [ ] Günde 1 içerik, gelen DM'e ilk 10 dakikada cevap
 
 **Fiyat verisi — 2026-08-23'te ölçülüp düzeltilenler:**
