@@ -254,6 +254,37 @@ header.ust > .kap{display:flex;align-items:center;gap:var(--a4);width:100%}
   .tema-dugme{margin-left:4px}
 }
 
+/* ---------- fiyat güven skoru ----------
+   Yeşil: mekanın kendi menüsünden ya da üç fişten doğrulanmış.
+   Sarı : zincir menüsünden geliyor ya da fiyat eskimiş.
+   Kırmızı: ölçülmüş fiyat yok.
+
+   Bantlar ölçüldü (35.852 mekan): 50 / 113 / 35.689. Kırmızının bu
+   kadar geniş olması skorun kusuru değil verinin durumu.
+
+   RENK TEK BAŞINA BİLGİ TAŞIMIYOR. Nokta her zaman bir metinle ya da
+   (kart listesinde yer olmadığında) bir aria-label ile geliyor; renk
+   körü bir kullanıcı da, ekran okuyucu da aynı şeyi öğreniyor.
+   Renkler markanın kendi paletinden — yeni renk uydurulmadı. */
+.guven{display:inline-flex;align-items:center;gap:6px;vertical-align:middle}
+.guven i{
+  width:9px;height:9px;border-radius:var(--r-tam);flex:0 0 auto;
+  background:currentColor;
+}
+.guven > span{
+  font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+}
+.guven.yesil  { color:var(--bant-ucuz) }
+.guven.sari   { color:var(--bant-orta) }
+.guven.kirmizi{ color:var(--metin-3) }
+
+/* Kart başlığındaki nokta: adın soluna, satır yüksekliğini bozmadan.
+   Kırmızı burada SOLUK -- 35.852 mekanın 35.689'u kırmızı ve hepsini
+   canlı bir renkle işaretlemek listeyi okunmaz yapardı. Yeşil ve sarı
+   ise nadir, yani göze çarpması gerekeni gösteriyor. */
+.kart h3 .guven{margin-right:7px}
+.kart h3 .guven i{width:8px;height:8px}
+
 /* ---------- 4. Düğmeler ---------- */
 .dugme{
   display:inline-flex;align-items:center;justify-content:center;gap:8px;

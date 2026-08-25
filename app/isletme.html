@@ -181,6 +181,9 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
      one cikmamali. */
   .bilgi dd .kaynak-zincir{font-size:.72rem;letter-spacing:.06em;
      text-transform:uppercase;color:var(--soluk);margin-left:.5rem}
+  #guven{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;
+     margin-top:var(--a2)}
+  .guven-neden{font-size:.85rem;color:var(--soluk)}
   .dayanak{font-size:.85rem;color:var(--soluk);line-height:1.55;
      margin-top:var(--a3);padding-left:var(--a3);
      border-left:2px solid var(--cizgi-2)}
@@ -203,6 +206,11 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
     <span class="tur" id="tur"></span>
   </div>
   <p id="nerede" class="soluk"></p>
+  <!-- Fiyat guven skoru. Yesil: mekanin kendi menusu ya da uc fisten
+       dogrulanmis. Sari: zincir menusunden ya da eskimis. Kirmizi:
+       olculmus fiyat yok. Renk TEK BASINA bilgi tasimiyor -- yaninda
+       metin ve gerekce var. -->
+  <p id="guven" hidden></p>
   <p id="sayac" class="soluk" hidden></p>
 
   <!-- Fotograflar. Uc kaynak: dogrulanmis isletme sahibi, kullanici ve
@@ -461,6 +469,11 @@ function goster(m, ilAd){
     [m.adres, ilAd].filter(Boolean).join(" · ");
 
   const sv = seviye(m), dy = fiyatDayanagi(m, zincir);
+  /* Guven rozeti basligin altinda: sayfaya gelen kullanici tek bir
+     mekana bakiyor, rakamin ne kadar saglam oldugunu once gormeli.
+     Fis ozeti ag'dan sonra geliyor; rozet o zaman tazeleniyor
+     (guvenTazele). */
+  guvenTazele(m, null);
   /* Sema yoksa https varsayiliyor. "javascript:..." gibi bir deger http ile
      baslamadigi icin "https://javascript:..." olur ve zararsiz kalir --
      kacir() ayrica tirnak kaciriyor. */
@@ -1231,6 +1244,25 @@ async function yorumKatmani(mekanId, mekanAd, ilKod){
   });
 }
 
+/* Rozet IKI KEZ ciziliyor: once fissiz (sayfa hemen dolsun), sonra fis
+   ozeti agdan gelince yeniden. Uc fis gelmis bir mekan menusu olmasa da
+   YESIL -- ve o bilgi ancak agdan sonra biliniyor. Tek cizimde biraksak
+   fisle dogrulanmis mekan kirmizi kalirdi.
+
+   Mekan nesnesi saklaniyor cunku ikinci cizim fisKatmani'nden geliyor ve
+   orada m yok. */
+let _guvenMekan = null;
+
+function guvenTazele(m, ozet){
+  if (m) _guvenMekan = m;
+  const kutu = document.getElementById("guven");
+  if (!kutu || !_guvenMekan) return;
+  const g = fiyatGuveni(_guvenMekan, zincir, ozet);
+  kutu.innerHTML = guvenRozeti(g) +
+    (g && g.neden ? ' <span class="guven-neden">' + kacir(g.neden) + "</span>" : "");
+  kutu.hidden = false;
+}
+
 async function fisKatmani(mekanId, mekanAd, ilKod){
   const bol = document.getElementById("fis");
   const ozet = document.getElementById("fisOzet");
@@ -1247,6 +1279,9 @@ async function fisKatmani(mekanId, mekanAd, ilKod){
   } catch (e) { /* ag yok, tablo yok: davet yine gorunsun */ }
 
   ozet.textContent = fisOzeti(o);
+  /* Fis esigi gecildiyse mekan artik YESIL: menusu olmasa bile fiyati
+     giden insanlar dogrulamis oluyor. Skorun buyume yolu bu. */
+  guvenTazele(null, o);
   bol.hidden = false;
 }
 

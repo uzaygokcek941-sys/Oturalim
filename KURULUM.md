@@ -41,6 +41,7 @@ Toplam süre: ~15 dakika. Ücret yok, kart istenmiyor.
    | `veritabani/menu_katki.sql` | Menü/ürün paylaşımı (fotoğraflı) | Menü ekleme bölümü hiç görünmez |
    | `veritabani/mekan_foto.sql` | Mekan fotoğrafları | Fotoğraf şeridi hiç görünmez |
    | `veritabani/akran.sql` | Bütçe akranları ve civar özeti | Keşfette akran şeridi, işletme sayfasında civar fişi görünmez |
+   | `veritabani/fiyat_oyu.sql` | "Bu fiyat hâlâ geçerli mi?" oylaması | Doğrulama düğmesi hiç görünmez, güven skoru yalnız menüye bakar |
 
    Hiçbiri kurulmadığında sayfa normal çalışır; yalnız o bölümler
    sessizce gizli kalır. Beklenen çıktılar:
@@ -54,6 +55,7 @@ Toplam süre: ~15 dakika. Ücret yok, kart istenmiyor.
    Menu katkisi kuruldu: RLS acik, 5 politika, kimlik sutunu kapali
    Mekan fotografi kuruldu: RLS acik, 5 politika, atif zorunlu
    Akran kuruldu: iki fonksiyon, 10 arguman adi tarandi
+   Fiyat oylari kuruldu: tablo, RLS, tek-oy kurali ve fiyat_oy_ozeti().
    ```
 
    > `profil.sql` **`yorum.sql`'den önce** çalıştırılmalı: yorumlar yazarın

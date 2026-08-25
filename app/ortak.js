@@ -1120,6 +1120,83 @@ function dayanakCumlesi(d){
          "fiyatlandırma yapabiliyor, o yüzden bu rakam şubeye özel değil.";
 }
 
+/* ============================================================
+   FİYAT GÜVEN SKORU — yeşil / sarı / kırmızı
+
+   Yol haritasının maddesi. İlk bakışta yazılamıyordu: fiyat yaşı bütün
+   menülerde aynıydı (264 menünün 264'ü de 0-2 aylık) ve kalem sayısı
+   yanıltıyordu ("15+ kalem" bandındaki 120 mekan yalnız 17 farklı ad).
+   Üç renge bölecek gerçek bir eksen yoktu.
+
+   Zincir ölçümü o ekseni verdi. Bantlar SAYILDI (35.852 mekan):
+
+     YEŞİL    50 (%0,14)   mekanın kendi menüsünden, taze
+     SARI    113 (%0,32)   zincir menüsünden ya da eskimiş
+     KIRMIZI 35.689 (%99,55) ölçülmüş fiyat yok
+
+   Kırmızının bu kadar geniş olması skorun kusuru değil, VERİNİN
+   DURUMU -- ve skorun işi tam olarak bunu söylemek. İçi de boş değil:
+   17.013'ünde tür/mutfak tahmini var, 18.676'sında hiçbir sinyal yok.
+   İkisi ayrı cümleyle anlatılıyor, ama ikisi de aynı renk: hiçbiri
+   ölçüm değil.
+
+   FİŞ YEŞİLE ÇIKARIYOR. Üç ayrı fiş gelmiş bir mekan, menüsü hiç
+   olmasa da yeşil. Ürünün tezi bu: fiyatı işletme değil giden insan
+   yazıyor. Yani skor katkı geldikçe BÜYÜYOR -- bugün 50 olan yeşil
+   sayısı sahadan gelen fişlerle artıyor. Eşik FIS_ESIK ile aynı
+   (k-anonimlik): tek fiş bir kişinin o günkü seçimidir.
+
+   RENKLER MARKANIN KENDİ PALETİNDEN: Okyanus (#00BFA6), Gün Batımı
+   (#FFB74D), Mercan (#FF5A5F). Yeni renk uydurulmadı.
+
+   RENK TEK BAŞINA BİLGİ TAŞIMIYOR. Her rozetin yanında metin var ve
+   `title` gerekçeyi yazıyor -- renk körlüğü bir yana, "sarı" tek başına
+   neden sarı olduğunu söylemiyor.
+   ============================================================ */
+
+const GUVEN_ADI = { yesil:"doğrulanmış", sari:"dolaylı", kirmizi:"fiyat yok" };
+
+function fiyatGuveni(m, harita, ozet, bugun){
+  /* Fiş katmanı önce: kullanıcıdan gelen fiyat, kazınmış menüden daha
+     güçlü bir kanıt -- mekanın ilan ettiği değil, fiilen ödenen tutar. */
+  if (fisGoster(ozet))
+    return { sinif:"yesil", ad:GUVEN_ADI.yesil,
+             neden: sayi(ozet.fis) + " fişten doğrulandı" };
+
+  const f = yemekFiyati(m, bugun);
+  if (f == null){
+    const s = seviye(m, bugun);
+    return { sinif:"kirmizi", ad:GUVEN_ADI.kirmizi,
+             neden: s ? "türünden tahmin: " + s.ad : "fiyat bilgisi yok" };
+  }
+
+  const d = harita ? fiyatDayanagi(m, harita, bugun) : null;
+  const yas = fiyatYasEtiketi(m, bugun);
+  const eski = !!(yas && yas.eski);
+  const zincir = !!(d && d.sinif === "zincir");
+
+  if (!zincir && !eski)
+    return { sinif:"yesil", ad:GUVEN_ADI.yesil,
+             neden: "kendi menüsünden" + (yas ? ", " + yas.ad : "") };
+
+  const neden = [];
+  if (zincir) neden.push(d.ad);
+  if (eski) neden.push("fiyat eskimiş" + (yas ? " (" + yas.ad + ")" : ""));
+  return { sinif:"sari", ad:GUVEN_ADI.sari, neden: neden.join(" · ") };
+}
+
+/* Rozetin HTML'i. Tek yerde duruyor çünkü dört ekran basıyor (kart,
+   detay paneli, mekan sayfası, ana ekran önerisi) ve renk ile metnin
+   birlikte gitmesi şart: renk tek başına erişilebilir değil. */
+function guvenRozeti(g, kisa){
+  if (!g) return "";
+  const baslik = g.ad + (g.neden ? " — " + g.neden : "");
+  return '<span class="guven ' + g.sinif + '" title="' + kacir(baslik) +
+         '" aria-label="' + kacir("Fiyat güveni: " + baslik) + '">' +
+         '<i aria-hidden="true"></i>' +
+         (kisa ? "" : "<span>" + kacir(g.ad) + "</span>") + "</span>";
+}
+
 /* ---------- kohort ölçümü ----------
    Çerezsiz ve sunucusuz: yalnız localStorage, yalnız bu cihaz.
    Hangi günlerde açıldığı tutuluyor; D1/D7/D30 buradan hesaplanıyor. */
@@ -1227,6 +1304,18 @@ function kendiniKontrolEt(){
     { id:"z6", ad:"Fiyatsiz",  tur:"Restoran" }
   ];
   const ZH = zincirHaritasi(ZIL);
+
+  /* --- guven skoru fixture'lari ---
+     Tarih ELLE veriliyor: "eski" bandi fiyatin yasina bakiyor ve bugunun
+     tarihine gore degisir. Sabit bir bugun (g14 = 2026-08-19) ile
+     olculuyor, yoksa kontrol takvimle birlikte kayardi. */
+  const _kendi  = { id:"g1", ad:"Tek Sube", tur:"Restoran",
+                    kat:{ "Kebap": { n:2, med:300 } }, tarih:"2026-08" };
+  const _eski   = { id:"g2", ad:"Eski Menu", tur:"Restoran",
+                    kat:{ "Kebap": { n:2, med:300 } }, tarih:"2025-11" };
+  const _yok    = { id:"g3", ad:"Fiyatsiz", tur:"Restoran" };
+  const _tahmin = { id:"g4", ad:"Tahminli", tur:"Fast food" };
+  const GH = zincirHaritasi([_kendi, _eski], g14);
   const kontroller = [
     ["acikMi 24/7",             acikMi("24/7", g14),               true],
     ["acikMi gunduz",           acikMi("Mo-Su 09:00-23:00", g14),  true],
@@ -1681,6 +1770,71 @@ function kendiniKontrolEt(){
       /kendi yayımladığı menüden/.test(
         dayanakCumlesi(fiyatDayanagi(ZIL[4], ZH))),                        true],
     ["dayanak cumlesi bos girdi",  dayanakCumlesi(null),                     ""],
+
+    /* --- fiyat guven skoru: yesil / sari / kirmizi ---
+       Bantlar olculdu (35.852 mekan): yesil 50 (%0,14), sari 113
+       (%0,32), kirmizi 35.689 (%99,55). Kirmizinin genisligi skorun
+       kusuru degil verinin durumu; skorun isi tam olarak bunu soylemek. */
+    ["guven kendi menusu yesil",
+      fiyatGuveni(_kendi, GH, null, g14).sinif,                     "yesil"],
+    ["guven kendi menusu gerekce",
+      /kendi menüsünden/.test(fiyatGuveni(_kendi, GH, null, g14).neden), true],
+    /* Zincir menusu SARI: rakam gercek ama subeye ozel degil. */
+    ["guven zincir sari",
+      fiyatGuveni(ZIL[0], ZH, null, g14).sinif,                      "sari"],
+    ["guven zincir gerekcesi sube sayisi",
+      /3 şubede aynı menü/.test(fiyatGuveni(ZIL[0], ZH, null, g14).neden), true],
+    /* Eskimis fiyat da SARI: rakam duruyor ama kesinligini kaybetti. */
+    ["guven eski fiyat sari",
+      fiyatGuveni(_eski, GH, null, g14).sinif,                       "sari"],
+    ["guven eski gerekcesi",
+      /eskimiş/.test(fiyatGuveni(_eski, GH, null, g14).neden),        true],
+    /* Olcum yoksa KIRMIZI -- tur tahmini rengi degistirmiyor, yalniz
+       gerekceyi yaziyor. "hesapli gorunuyor" bir olcum degil. */
+    ["guven olcumsuz kirmizi",
+      fiyatGuveni(_yok, GH, null, g14).sinif,                     "kirmizi"],
+    ["guven tur tahmini yine kirmizi",
+      fiyatGuveni(_tahmin, GH, null, g14).sinif,                  "kirmizi"],
+    ["guven tur tahmini gerekcede yaziyor",
+      /türünden tahmin/.test(fiyatGuveni(_tahmin, GH, null, g14).neden), true],
+    /* FIS YESILE CIKARIYOR: menusu hic olmayan bir mekan uc fisle
+       yesil oluyor. Urunun tezi bu -- skor katki geldikce buyuyor. */
+    ["guven fis yesile cikariyor",
+      fiyatGuveni(_yok, GH, {fis:3, medyan:300}, g14).sinif,        "yesil"],
+    ["guven fis gerekcesi",
+      /3 fişten doğrulandı/.test(
+        fiyatGuveni(_yok, GH, {fis:3, medyan:300}, g14).neden),      true],
+    /* ESIK ALTI FIS YESIL YAPMAZ: iki fis k-anonimlik esiginin altinda
+       ve zaten rakam gostermiyor; rengi degistirmesi celiski olurdu. */
+    ["guven esik alti fis yesil yapmaz",
+      fiyatGuveni(_yok, GH, {fis:2, medyan:300}, g14).sinif,      "kirmizi"],
+    /* Harita YOKSA zincir bilinemez; skor yine calismali ama zincir
+       oldugunu IDDIA ETMEMELI -- bilmedigi seyi sariya boyamasin. */
+    ["guven haritasiz yine calisiyor",
+      fiyatGuveni(_kendi, null, null, g14).sinif,                  "yesil"],
+    /* Rozet: renk TEK BASINA bilgi tasimamali. */
+    /* GORUNEN metin araniyor, "dogrulanmis" gecen herhangi bir yer degil:
+       ilk yazim /doğrulanmış/ diye bakiyordu ve title ozniteligi de ayni
+       kelimeyi tasidigi icin GORUNUR METNI SILEN sabotaj gecti. Ayni
+       tuzak bu depoda daha once de yasandi (href ile gorunen metin
+       karistirilmisti). */
+    ["guven rozeti GORUNEN metin tasiyor",
+      /<span>doğrulanmış<\/span>/.test(
+        guvenRozeti(fiyatGuveni(_kendi, GH, null, g14))),            true],
+    ["guven rozeti gerekceyi title'a koyuyor",
+      /title="[^"]*kendi menüsünden/.test(
+        guvenRozeti(fiyatGuveni(_kendi, GH, null, g14))),            true],
+    ["guven rozeti aria-label tasiyor",
+      /aria-label="Fiyat güveni:/.test(
+        guvenRozeti(fiyatGuveni(_kendi, GH, null, g14))),            true],
+    /* Kisa hal yalniz noktayi basiyor ama aria-label yine tam. */
+    ["guven rozeti kisa halde metin yok",
+      /<span>doğrulanmış/.test(
+        guvenRozeti(fiyatGuveni(_kendi, GH, null, g14), true)),     false],
+    ["guven rozeti kisa halde de aria-label var",
+      /aria-label="Fiyat güveni:/.test(
+        guvenRozeti(fiyatGuveni(_kendi, GH, null, g14), true)),      true],
+    ["guven rozeti bos girdi",  guvenRozeti(null),                     ""],
 
     /* --- ana ekranin kategorileri ---
        Ciplerin turleri veride GERCEKTEN var olmali; yanlis yazilmis tek

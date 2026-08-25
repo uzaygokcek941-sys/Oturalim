@@ -817,7 +817,13 @@ document.addEventListener("DOMContentLoaded", () => {
       if (butce) p.set("butce", butce);
       return '<a class="oneri' + (x.d && x.d.kesin && x.d.sinif === "girer"
                                   ? " girer" : "") + '" href="kesfet.html?' + p + '">' +
+        /* Guven rozeti oneri kartinda da: uc mekan oneriyoruz ve
+           kullanici hangisinin fiyatinin olculdugunu gormeli. Kart
+           listesinden farkli olarak TAM halde -- burada yalniz uc kart
+           var, yer de var. Fis ozeti bu ekranda yuklenmiyor, o yuzden
+           ozet null geciliyor: olmayan bir dogrulamayi iddia etmesin. */
         "<h3>" + kacir(x.m.ad) + "</h3>" +
+        guvenRozeti(fiyatGuveni(x.m, zincir, null)) +
         '<p class="neden">' + neden.filter(Boolean).map(kacir).join(" · ") + "</p>" +
         '<span class="tur">' + kacir(x.m.tur) + "</span></a>";
     };

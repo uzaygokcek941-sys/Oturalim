@@ -136,7 +136,7 @@ function ilAdi(){
 function kartHTML(m){
   const a = acikMi(m.saat), b = bant(m, butce), o = paylasimOzet(m.id),
         sv = seviye(m), mb = mekanBandi(m, cizimIl), yas = fiyatYasEtiketi(m),
-        dy = fiyatDayanagi(m, zincir);
+        dy = fiyatDayanagi(m, zincir), gv = fiyatGuveni(m, zincir, o);
   /* Mesafe cetveli icin 0-1 arasi deger, GORUNEN listeye gore olceklenir.
      Sabit tavan (5 km) ise yaramiyor: sehir merkezinde ilk 120 mekan
      700 m icinde kaliyor, butun centikler ayni uzunlukta cikiyordu.
@@ -145,7 +145,11 @@ function kartHTML(m){
   return '<button class="kart" type="button" data-id="' + kacir(m.id) + '"' +
     (u != null ? ' style="--uzak:' + u.toFixed(3) + '"' : "") +
     (secili === m.id ? ' aria-current="true"' : "") + ">" +
-    '<div class="ust"><h3>' + kacir(m.ad) + "</h3>" +
+    /* GUVEN NOKTASI adin yaninda, KISA halde: liste 2.300 karta kadar
+       cikiyor ve her karta "fiyat yok" yazmak listeyi ayni cumleyle
+       doldururdu. Renk tek basina bilgi tasimiyor -- aria-label ve
+       title tam gerekceyi veriyor, panelde de yazili hali var. */
+    '<div class="ust"><h3>' + guvenRozeti(gv, true) + kacir(m.ad) + "</h3>" +
     /* Fiyatin yasi kartta da gorunsun. Detay paneli tarihi yaziyor ama
        kart listesinde gezen kullanici oraya hic acmiyor olabilir; alti
        aylik bir sayiyi kayitsiz gostermek, kullanicinin dogrulayamadigi
@@ -296,17 +300,41 @@ function katmanCiz(l, ortala){
   const stil = getComputedStyle(document.documentElement);
   const vurgu = stil.getPropertyValue("--vurgu").trim() || "#ff7a00";
   const sonuk = stil.getPropertyValue("--metin-3").trim() || "#7d7264";
+  /* HARITA BUTCEYE GORE RENKLENIYOR. Renkler CSS'ten okunuyor, burada
+     ikinci kez tanimlanmiyor: tema degisince (acik/koyu) palet de
+     degisiyor ve sabit bir onaltilik deger acik temada okunmaz hale
+     gelirdi -- ayni sorun kartlarda yasandi.
+
+     Butce GIRILMEMISSE renklendirme yapilmiyor: eski davranis (fiyati
+     bilinen vurgulu, bilinmeyen sonuk) duruyor. Sorulmamis bir soruya
+     harita uzerinden cevap vermek, kullanicinin girmedigi bir butceyi
+     varsaymak olurdu. */
+  const bRenk = {
+    girer:      stil.getPropertyValue("--bant-ucuz").trim() || "#00bfa6",
+    asiyor:     stil.getPropertyValue("--bant-tuz").trim()  || "#ff5a5f",
+    muhtemel:   stil.getPropertyValue("--bant-orta").trim() || "#ffb74d",
+    zor:        sonuk,
+    bilinmiyor: sonuk
+  };
 
   l.slice(0, HARITA_UST).forEach(m => {
     const yf = yemekFiyati(m), fiyatli = yf != null;
+    /* butceDurumu() ayni kapi: kart rozeti, suzgec ve ana ekran da
+       oradan geciyor. Harita ayri bir olcut kullansaydi ayni mekan
+       listede "bütçene giriyor", haritada baska renk olurdu. */
+    const bd = butceDurumu(m, butce);
+    const r = bd ? bRenk[bd.sinif] : (fiyatli ? vurgu : sonuk);
+    /* Kesin bilinenler (olculmus) dolu ve buyuk, tahminler soluk ve
+       kucuk: renk "hangi bantta", doygunluk "ne kadar eminiz" diyor. */
+    const kesin = bd ? bd.kesin : fiyatli;
     const i = L.circleMarker([m.lat, m.lon], {
-      radius: fiyatli ? 7 : 5, weight:1.5,
-      color: fiyatli ? vurgu : sonuk,
-      fillColor: fiyatli ? vurgu : sonuk,
-      fillOpacity: fiyatli ? .8 : .45
+      radius: kesin ? 7 : 5, weight:1.5,
+      color: r, fillColor: r,
+      fillOpacity: kesin ? .85 : .4
     }).addTo(katman);
     i.bindPopup("<b>" + kacir(m.ad) + "</b><br>" + kacir(m.tur) +
-                (fiyatli ? " · ortalama " + tl(yf) : ""));
+                (fiyatli ? " · ortalama " + tl(yf) : "") +
+                (bd ? "<br>" + kacir(bd.ad) : ""));
     i.on("click", () => ac(m.id));
     isaretler.set(m.id, i);
     noktalar.push([m.lat, m.lon]);
@@ -711,7 +739,9 @@ function ac(id){
 
   const a = acikMi(m.saat), b = bant(m, butce);
   el("#d-ad").textContent = m.ad;
+  /* Panelde rozet TAM halde: karar burada veriliyor ve yer var. */
   el("#d-meta").innerHTML =
+    guvenRozeti(fiyatGuveni(m, zincir, paylasimOzet(m.id))) +
     '<span class="rozet vurgulu">' + kacir(m.tur) + "</span>" +
     (a === true  ? '<span class="rozet acik">şu an açık</span>' : "") +
     (a === false ? '<span class="rozet kapali">şu an kapalı</span>' : "") +

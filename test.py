@@ -1133,6 +1133,94 @@ def fiyat_dayanagi_mi():
     return s
 
 
+def guven_skoru_mu():
+    """Fiyat guven skoru (yesil/sari/kirmizi) ve butceye gore renklenen harita.
+
+    Bantlar OLCULDU (35.852 mekan): yesil 50 (%0,14), sari 113 (%0,32),
+    kirmizi 35.689 (%99,55). Kirmizinin genisligi skorun kusuru degil
+    verinin durumu -- skorun isi tam olarak bunu soylemek.
+
+    UC SESSIZ KUSUR VAR, ucu de burada aranıyor:
+
+    1) RENK TEK BASINA BILGI TASIYAMAZ. Renk koru bir kullanici ve ekran
+       okuyucu ayni seyi ogrenmeli. Rozet ya gorunur metin ya aria-label
+       tasimali; ikisi de yoksa nokta anlamsiz bir susten ibarettir.
+
+    2) HARITA RENK HARITASI EKSIK KALABILIR. butceDurumu() bes sinif
+       donduruyor; harita bunlardan birini tanimazsa o mekanin noktasi
+       renksiz (undefined) cizilir ve haritada SESSIZCE kaybolur. Bu
+       kosum takimi haritayi goremiyor (Leaflet unpkg'den geliyor, aglar
+       kapali), o yuzden kontrol KAYNAK uzerinden yapiliyor.
+
+    3) RENKLER JS'E GOMULEBILIR. Tema degisince (acik/koyu) palet
+       degisiyor; sabit onaltilik deger acik temada okunmaz hale gelir.
+       Ayni sorun kartlarda yasandi. Renkler CSS degiskeninden okunmali.
+    """
+    s = []
+    okun = lambda ad: io.open(os.path.join(KOK, "app", ad), encoding="utf-8").read()
+    ortak = _js_yorumsuz(okun("ortak.js"))
+    kes = _js_yorumsuz(okun("kesfet.js"))
+    ix = _js_yorumsuz(okun("index.html"))
+    isl = _js_yorumsuz(okun("isletme.html"))
+    css = okun("stil.css")
+
+    for f in ("fiyatGuveni", "guvenRozeti"):
+        if ("function %s(" % f) not in ortak:
+            s.append("ortak.js: %s() yok" % f)
+
+    # Dort ekran da skoru gostermeli: ayni fiyat dort yerde goruluyor.
+    for ad, govde in (("kesfet.js", kes), ("index.html", ix), ("isletme.html", isl)):
+        if "guvenRozeti(" not in govde:
+            s.append("%s: guven rozetini basmiyor" % ad)
+
+    # Rozet renk DISINDA bir sey tasimali.
+    m = re.search(r"function guvenRozeti\(g, kisa\)\{(.*?)\n\}", ortak, re.S)
+    if not m:
+        s.append("ortak.js: guvenRozeti() govdesi okunamadi")
+    else:
+        g = m.group(1)
+        if "aria-label" not in g:
+            s.append("ortak.js: guven rozeti aria-label tasimiyor (renk tek basina)")
+        if "title=" not in g:
+            s.append("ortak.js: guven rozeti gerekceyi title'a koymuyor")
+
+    # Uc sinifin da CSS'i olmali; biri eksikse o bant renksiz kalir.
+    for sinif in ("yesil", "sari", "kirmizi"):
+        if (".guven.%s" % sinif) not in css:
+            s.append("stil.css: .guven.%s kurali yok" % sinif)
+
+    # --- harita: butceDurumu'nun DONDURDUGU her sinif renk haritasinda mi
+    d = re.search(r"function butceDurumu\(m, butce, bugun\)\{(.*?)\n\}", ortak, re.S)
+    h = re.search(r"const bRenk = \{(.*?)\};", kes, re.S)
+    if not d:
+        s.append("ortak.js: butceDurumu() govdesi okunamadi")
+    elif not h:
+        s.append("kesfet.js: harita renk haritasi (bRenk) yok")
+    else:
+        siniflar = set(re.findall(r'sinif:"(\w+)"', d.group(1)))
+        renkli = set(re.findall(r"^\s*(\w+):", h.group(1), re.M))
+        eksik = siniflar - renkli
+        fazla = renkli - siniflar
+        if eksik:
+            s.append("kesfet.js: harita %s sinifini tanimiyor; o mekanlar renksiz cizilir"
+                     % ", ".join(sorted(eksik)))
+        if fazla:
+            s.append("kesfet.js: harita renk haritasinda karsiligi olmayan sinif: %s"
+                     % ", ".join(sorted(fazla)))
+        # Renkler CSS'ten okunmali: sabit deger tema degisince bozulur.
+        if "getPropertyValue" not in h.group(1):
+            s.append("kesfet.js: harita renkleri CSS degiskeninden okunmuyor")
+
+    # Harita butceDurumu'ndan gecmeli: ayri bir olcut, ayni mekani
+    # listede bir renkte haritada baska renkte gosterirdi.
+    m2 = re.search(r"function katmanCiz\(l, ortala\)\{(.*?)\n\}", kes, re.S)
+    if not m2:
+        s.append("kesfet.js: katmanCiz() govdesi okunamadi")
+    elif "butceDurumu(" not in m2.group(1):
+        s.append("kesfet.js: harita butceDurumu()'ndan gecmiyor")
+    return s
+
+
 def sayfa_kontrolleri():
     """Sayfalari GERCEK tarayicida acar (test_sayfa.py).
 
@@ -1233,6 +1321,7 @@ def main():
     kayit("degismez: marka paleti okunur", palet_okunur_mu())
     kayit("degismez: ana ekran butceyi olcum diye satmiyor", ana_ekran_butce_mi())
     kayit("degismez: fiyat kac olcumden geldigini soyluyor", fiyat_dayanagi_mi())
+    kayit("degismez: guven skoru renk disinda da okunuyor", guven_skoru_mu())
     kayit("degismez: kurulum dosyalari depoda", kurulum_dosyalari_izleniyor_mu())
     kayit("degismez: donus adresi ve gunun tarihi", adres_ve_tarih_mi())
     kayit("degismez: sir sizmamis", sirlar_sizmis_mi())

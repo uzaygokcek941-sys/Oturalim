@@ -1462,6 +1462,88 @@ süreçte `importlib.reload` ile denendiğinde stdlib'in kendi `test` paketi
 araya girdi ve kontrol çalışmadan `AttributeError` verdi. Her tur artık
 ayrı bir süreçte koşuyor.
 
+## 2026-08-25 — Fiyat güven skoru ve bütçeye göre renklenen harita
+
+Yol haritasının iki maddesi. Skor **daha önce yazılamıyordu**: fiyat yaşı
+bütün menülerde aynı (264 menünün 264'ü de 0-2 aylık), kalem sayısı da
+yanıltıcıydı. Zincir ölçümü üçüncü ekseni verdi ve skor gerçek oldu.
+
+### Bantlar (35.852 mekan sayıldı)
+
+| Renk | Ne demek | Mekan |
+|---|---|---|
+| 🟢 **yeşil** | mekanın kendi menüsünden, taze — **ya da üç fişten doğrulanmış** | **50** (%0,14) |
+| 🟡 **sarı** | zincir menüsünden geliyor ya da fiyat eskimiş | **113** (%0,32) |
+| 🔴 **kırmızı** | ölçülmüş fiyat yok | **35.689** (%99,55) |
+
+Kırmızının bu kadar geniş olması skorun kusuru değil, **verinin durumu** —
+ve skorun işi tam olarak bunu söylemek. İçi de boş değil: 17.013'ünde
+tür/mutfak tahmini var, 18.676'sında hiçbir sinyal yok. İkisi ayrı
+gerekçeyle anlatılıyor ama aynı renk: hiçbiri ölçüm değil.
+
+Ölçüldü (İstanbul, "fiyatı olan" süzgeci, 102 kart): **26 yeşil, 76 sarı.**
+
+### Fiş yeşile çıkarıyor — skorun büyüme yolu
+
+Üç ayrı fiş gelmiş bir mekan, menüsü hiç olmasa da **yeşil**. Ürünün tezi
+bu: fiyatı işletme değil giden insan yazıyor. Eşik `FIS_ESIK` ile aynı
+(k-anonimlik) — tek fiş bir kişinin o günkü seçimidir.
+
+Yani bugün 50 olan yeşil sayısı sahadan gelen fişlerle **büyüyor**. Skor
+donmuş bir etiket değil, katkının ölçüsü.
+
+Mekan sayfasında rozet **iki kez** çiziliyor: önce fişsiz (sayfa hemen
+dolsun), sonra fiş özeti ağdan gelince yeniden. Tek çizimde bıraksak
+fişle doğrulanmış bir mekan kırmızı kalırdı.
+
+### Renk tek başına bilgi taşımıyor
+
+Her noktanın yanında ya görünür metin ya `aria-label` var, `title` de
+gerekçeyi yazıyor. Renk körü bir kullanıcı da, ekran okuyucu da aynı şeyi
+öğreniyor.
+
+Kart listesinde nokta **kısa** halde (yalnız renk + aria-label): liste
+2.300 karta çıkıyor ve her karta "fiyat yok" yazmak listeyi aynı cümleyle
+doldururdu. Panelde, mekan sayfasında ve ana ekran önerisinde tam hâli.
+
+Renkler **markanın kendi paletinden**: Okyanus `#00BFA6`, Gün Batımı
+`#FFB74D`, Mercan `#FF5A5F`. Yeni renk uydurulmadı.
+
+### Harita bütçeye göre renkleniyor
+
+Nokta rengi `butceDurumu()`'ndan geliyor — kart rozeti, süzgeç ve ana
+ekranla **aynı kapı**. Ayrı bir ölçüt kullansaydı aynı mekan listede
+"bütçene giriyor", haritada başka renk olurdu.
+
+- renk = hangi bant (giriyor / bütçe üstü / hesaplı görünüyor / bilinmiyor)
+- doygunluk ve yarıçap = **ne kadar eminiz** (ölçülmüş dolu ve büyük,
+  tahmin soluk ve küçük)
+
+**Bütçe girilmemişse renklendirme yapılmıyor**, eski davranış duruyor.
+Sorulmamış bir soruya harita üzerinden cevap vermek, kullanıcının
+girmediği bir bütçeyi varsaymak olurdu.
+
+Renkler CSS değişkeninden okunuyor, JS'e gömülmüyor: tema değişince
+(açık/koyu) palet de değişiyor ve sabit onaltılık değer açık temada
+okunmaz hale gelirdi — aynı sorun kartlarda yaşandı.
+
+### Doğrulama ve bir kaçan sabotaj
+
+`ortak.js` öz kontrolleri **243 → 260**; `test.py`'ye "güven skoru renk
+dışında da okunuyor" grubu eklendi.
+
+Bir sabotaj **kaçtı ve kontrol düzeltildi**: rozetin görünür metnini silen
+sabotaj geçiyordu, çünkü kontrol `/doğrulanmış/` diye bakıyordu ve **aynı
+kelime `title` özniteliğinde de duruyor**. Kontrol artık görünür metni
+arıyor (`<span>doğrulanmış</span>`). Bu depoda aynı tuzağa daha önce de
+düşülmüştü — `href` ile görünen metin karıştırılmıştı.
+
+Harita bu koşum takımında **görülemiyor** (Leaflet unpkg'den geliyor,
+ağlar kapalı), o yüzden harita kontrolü kaynak üzerinden yapılıyor ve
+`butceDurumu()`'nun döndürdüğü **her** sınıfın renk haritasında karşılığı
+olduğunu doğruluyor. Bir sınıf unutulursa o mekanların noktası renksiz
+çizilir ve haritada sessizce kaybolur.
+
 ## Yapılmayacaklar
 
 | Yapma | Neden |
