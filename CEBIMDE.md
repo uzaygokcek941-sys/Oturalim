@@ -1240,6 +1240,134 @@ söylemek.
 
 ---
 
+## 2026-08-25 — Bütçe girişli ana ekran
+
+Marka yol haritasındaki ilk madde: **"Bugün cebimde: ₺300 → kategori →
+Yakınımda Bul."** Ana ekran o hâle getirildi.
+
+### Önce ölçüm: bütçe süzgeç olarak çalışmıyor
+
+Ekranı yazmadan önce bütçenin listeyi ne kadar değiştirdiğini saydım. 3 km
+yarıçaplı gerçek semt çemberlerinde:
+
+| Semt | Mekan | ₺300 ile elenen | Oran |
+|---|---|---|---|
+| Kadıköy | 1.096 | 36 | %3,3 |
+| Beyoğlu | 2.203 | 81 | %3,7 |
+| Kızılay | 599 | 16 | %2,7 |
+| Alsancak | 483 | 18 | %3,7 |
+| Muratpaşa | 469 | 24 | %5,1 |
+
+₺150 ile ₺700 arasındaki fark bile küçük: Kadıköy'de 37'ye karşı 28 mekan.
+Sebebi tek cümlede duruyor — **35.852 mekanın 163'ünde (%0,45) ölçülmüş
+menü fiyatı var.** Kalanın 17.013'ü tür/mutfak etiketinden tahmin
+edilebiliyor, 18.676'sı (%52) hakkında hiçbir sinyal yok.
+
+Not: belgelerdeki eski **291** rakamı "menüsü toplanan mekan" sayısı.
+`yemekFiyati()` bunların bir kısmını **göstermiyor** — tek kaleme dayanan,
+bir yıldan eski ya da tema demosu olan menüler eleniyor. Gerçekten
+gösterilebilen sayı **163**. Ana sayfadaki satır bu farkı artık söylüyor.
+
+### O yüzden bütçe süzgeç değil, sınıflandırıcı
+
+Bütçeyi süzgeç gibi gösteren bir ekran — "₺300 ile 12 mekan" — kullanıcıya
+o 12'sinin **ölçüldüğünü** düşündürürdü. Bu depodaki kural açık: *yanlış
+fiyat, fiyat olmamasından kötüdür.* Aynısı vaat için de geçerli.
+
+`butceDurumu()` her mekana beş cevaptan birini veriyor ve hangisinin
+**ölçüm**, hangisinin **tahmin** olduğu cevabın içinde:
+
+| Sınıf | Ne demek | Kesin mi |
+|---|---|---|
+| `girer` | ölçülmüş fiyat, bütçenin altında | evet |
+| `asiyor` | ölçülmüş fiyat, bütçenin üstünde | evet |
+| `muhtemel` | ölçüm yok, türü/mutfağı hesaplı gösteriyor | hayır |
+| `zor` | ölçüm yok, türü/mutfağı üst segment diyor | hayır |
+| `bilinmiyor` | hiçbir sinyal yok | iddia yok |
+
+Karşılaştırmanın kendisi yeniden yazılmadı: kesin taraf `bant()`'tan,
+tahmin `seviye()`'den geliyor. **Keşfet ekranı da aynı kapıdan geçiyor** —
+bütçe üstü eleme orada ayrı yazılmıştı ve birini değiştiren ötekini
+sessizce ayrıştırabilirdi.
+
+Eleme yalnız `asiyor` için. Tahmine dayanarak hiçbir mekan düşmüyor:
+**pahalı sanmak ile pahalı bilmek ayrı şeyler.**
+
+### Ekrandaki en önemli cümle
+
+```
+2 mekanın menü fiyatı ölçüldü, 1 tanesi 300 ₺ altında.
+Kalan 439 mekan için 300 ₺ yeter mi bilmiyorum; türünden tahmin ediyorum.
+```
+
+Gerçek çıktı (Kadıköy, ₺300, Kafe). Bu satır olmadan üç kart, arkasında
+ölçülmüş fiyat varmış gibi okunur.
+
+Dökümün **süzülmemiş** listeden alınması şart. Önce üç aday seçip sonra
+saymak, %0,45'lik ölçümü üçte bir gibi gösterirdi — test.py bunu ayrı bir
+hata olarak arıyor.
+
+Ölçüm hiç yoksa cümle rakam vermiyor, davete dönüyor: *"Buradaki hiçbir
+mekanın menü fiyatı ölçülmedi. ₺300 yeter mi, söyleyemem — fiyatı gidenler
+yazıyor."* Fiş eşiğiyle aynı desen.
+
+### Bütçe akranları ana ekrana geldi
+
+Menü fiyatı yavaş büyüyor; **fiş katmanı kullanıcıdan geliyor.** Yani
+bütçeye verilebilecek tek *büyüyen* cevap o. `butce_akranlari()` artık ana
+ekranda da çağrılıyor — sayım sunucuda, çünkü "kaç kişi" ile "kaç fiş" ayrı
+şeyler ve tarayıcı `kullanici` sütununu göremiyor (sema.sql).
+
+### Kategori çipleri: bütçenin aksine gerçek bir süzgeç
+
+`tur` her mekanda var (%100 kapsama). Çipler mekan sayısına göre seçildi:
+Restoran 14.587, Kafe 10.815, Fast food 6.091, Bar+Pub 1.443, Dondurma 395,
+eğlence grubu 2.521.
+
+**"Tatlı" diye bir çip yok:** verideki tür "Dondurma" ve 395 tane. Çipe
+"Tatlı" deyip dondurmacı listelemek olmayan bir kapsamı vaat etmek olurdu.
+
+Kullanıcı türü kendi seçtiyse "aynı türden üç tane önerme" çeşitlendirmesi
+**kapanıyor** — "Kafe" diyene iki restoran vermek onu yoksaymak olurdu.
+
+### Bulunan ve düzeltilen kusurlar
+
+- **Bütçe çipleri birincil yolda hiç yoktu.** Çipler yalnız *yedek* formun
+  içindeydi ve o form ancak konum reddedilince açılıyor. Yani konumuna izin
+  veren kullanıcıya bütçe **hiç sorulmuyordu** ve öneri sıralaması bütçeden
+  habersiz çalışıyordu. Marka yol haritasının maddesi aslında bir hata
+  raporuymuş.
+- **`_yorumsuz()` JS'te yanlış çalışıyor.** test.py'nin yorum ayıklayıcısı
+  Python için yazılmış: `#`'ten sonrasını atıyor. `el("#butce-ozet")` satırı
+  ikiye bölünüyordu ve satırın geri kalanı kontrole hiç görünmüyordu. Ters
+  yönü daha tehlikeli: JS yorumlarını hiç atmadığı için **silinmiş bir
+  çağrı, onu anlatan yorum cümlesi sayesinde "var" sayılıyordu.** Bu depoda
+  yorumlar uzun — tuzağın en büyük olduğu yer. `_js_yorumsuz()` yazıldı;
+  dize, şablon dizesi ve düzenli ifade tanıyor.
+  - İlk sürümü işaretlemeyi de JS gibi tarıyordu ve `</div>` içindeki `/`
+    bir düzenli ifade başı sanılıp arkasındaki HTML yorumu yutuluyordu.
+  - İkinci sürümü dosya türünü *"`<script` geçiyor mu"* diye anlıyordu;
+    ortak.js kendi açıklamasında o kelimeyi kullanıyor, dosya HTML sanıldı
+    ve **bütün ortak.js yorumları kontrole görünür kaldı.** Ayrım artık
+    `<!doctype` ile.
+- **320 px hiç ölçülmüyordu.** Tarayıcı takımının mobil denetimi yalnız
+  390 px'te koşuyordu; marka değişiminde üst şeridin 335 px'e taştığı elle
+  bakınca görülmüştü — yani kontrol değil şans yakaladı. Denetim artık
+  320 ve 390 px'te koşuyor ve **yatay taşmayı** da ölçüyor (taşıran öğeyi
+  adıyla söylüyor).
+- **Ölü CSS.** `.sayilar` ve `.kahraman-izgara` kuralları hiçbir işaretleme
+  tarafından kullanılmıyordu; silindi.
+
+### Yapılmadı, bilerek
+
+- **Fiyat güven skoru (🟢/🟡/🔴) yok.** Üç renkli bir rozet, arkasında
+  ölçüm olmayan mekanlara da bir renk vermek demek. Bugünkü veri iki renk
+  taşıyor: ölçüldü / ölçülmedi. Fiş sayısı büyüdüğünde tekrar bakılmalı.
+- **Kombinler yok.** "₺300 ile kahve + tatlı" demek iki fiyatı toplamak
+  demek ve bugün tek fiyat bile 163 mekanda var.
+- **Bütçe hâlâ sunucuya gitmiyor.** Yalnız `localStorage`; akran sorgusu
+  bir *tavan* gönderiyor, kişiyi değil.
+
 ## Yapılmayacaklar
 
 | Yapma | Neden |

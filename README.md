@@ -15,6 +15,8 @@ Dışarıda oturmak pahalılaştı ve fiyatlar öngörülemez hale geldi. Aynı 
 iki kafe, aynı kahve, iki kat fark olabiliyor. Uygulamanın tek işi:
 **bütçene göre nereye gidilebileceğini göstermek.**
 
+- Bütçeyle başlayan ana ekran: *"Bugün cebimde ₺300"* → kategori → yakınımda bul
+- Bütçenin ne kadarının **ölçüm**, ne kadarının **tahmin** olduğu ekranda yazıyor
 - Harita + liste, 81 ilin tamamı
 - Bütçe kaydırıcısı — mekanın ana ürün ortalamasına göre süzme
 - Ucuz / orta / pahalı bandı — kendi türündeki mekanlara göre, kanıt varsa
@@ -125,7 +127,7 @@ Kurmak için: [KURULUM.md](KURULUM.md) (~15 dakika, ücretsiz, kart istemiyor).
 
 ```
 app/                 Uygulama — statik HTML/CSS/JS, derleme yok
-  index.html         Anasayfa: bütçe seçici, canlı sayılar, vitrin
+  index.html         Anasayfa: bütçe girişi, kategori, yakındaki üç öneri
   kesfet.html/.js    Harita + liste + filtreler
   isletme.html       Tek işletme sayfası: bilgi, eksikler, katkı, fiş, sayaç
   paylas.html        Fiyat paylaşma

@@ -240,6 +240,16 @@ header.ust > .kap{display:flex;align-items:center;gap:var(--a4);width:100%}
   .marka{font-size:15px;gap:6px}
   .marka svg{width:21px;height:21px}
   .menu a[href="hakkinda.html"]{display:none}
+  /* BULUNDUGUN SAYFANIN baglantisi da dusuyor. Olculdu (320 px,
+     paylas.html): serit 365 px yer istiyordu, ekran 320 -> 45 px yatay
+     kaydirma. Sebep, "Fiyat paylas" baglantisinin O SAYFADA gecerli
+     sayfa olmasi ve bu yuzden .gizle-kucuk tasimamasi -- yani kural
+     her sayfada baska bir sonuc veriyordu ve en uzun etiketin oldugu
+     sayfada tasiyordu.
+
+     Gecerli sayfanin baglantisi zaten hicbir yere goturmuyor; dar
+     ekranda ilk feda edilecek sey o. */
+  .menu a[aria-current="page"]{display:none}
   .menu a{padding:8px 6px}
   .tema-dugme{margin-left:4px}
 }

@@ -899,6 +899,144 @@ function seviye(m, bugun){
   return null;
 }
 
+/* ============================================================
+   BÜTÇE: ne biliyoruz, ne bilmiyoruz
+
+   Ana ekran artık bütçeyle başlıyor ("Bugün cebimde ₺300"). Bu blok o
+   sorunun cevabını tek yerde topluyor.
+
+   ÖNCE ÖLÇÜM, SONRA TASARIM. Bütçenin listeyi ne kadar değiştirdiği
+   sayıldı -- 3 km'lik altı gerçek semt çemberinde:
+
+     Kadıköy   1.096 mekan, ₺300 ile elenen  36  (%3,3)
+     Beyoğlu   2.203 mekan, ₺300 ile elenen  81  (%3,7)
+     Kızılay     599 mekan, ₺300 ile elenen  16  (%2,7)
+     Alsancak    483 mekan, ₺300 ile elenen  18  (%3,7)
+     Muratpaşa   469 mekan, ₺300 ile elenen  24  (%5,1)
+
+   Yani BÜTÇE SÜZGEÇ OLARAK NEREDEYSE HİÇBİR ŞEY YAPMIYOR: 35.852
+   mekanın 163'ünde (%0,45) ölçülmüş menü fiyatı var, gerisinde yok.
+   ₺150 ile ₺700 arasındaki fark Kadıköy'de 37 mekana karşı 28 mekan --
+   elenenlerin çoğu bütçeden değil "üst segment" etiketinden geliyor.
+
+   O YÜZDEN BÜTÇE BURADA SÜZGEÇ DEĞİL, SINIFLANDIRICI. Her mekan için
+   beş cevaptan biri veriliyor ve hangisinin ÖLÇÜM hangisinin TAHMİN
+   olduğu cevabın içinde duruyor:
+
+     girer      ölçülmüş fiyat var ve bütçenin altında      (kesin)
+     asiyor     ölçülmüş fiyat var ve bütçenin üstünde      (kesin)
+     muhtemel   ölçüm yok; türü/mutfağı hesaplı gösteriyor  (tahmin)
+     zor        ölçüm yok; türü/mutfağı üst segment diyor   (tahmin)
+     bilinmiyor hiçbir sinyal yok                           (iddia yok)
+
+   Ekran bu ayrımı SAKLAMIYOR, yazıyor. Bir süzgeç "441 mekandan 12'si"
+   deseydi kullanıcı 12'sinin ölçüldüğünü sanırdı; bu depodaki kural
+   açık: yanlış fiyat, fiyat olmamasından kötüdür.
+
+   Karşılaştırmanın kendisi YENİDEN YAZILMIYOR: kesin cevap bant()'tan,
+   tahmin seviye()'den geliyor. İkisi de zaten kart, harita ve süzgeç
+   tarafından kullanılıyor -- aynı kural tek yerde dursun.
+   ============================================================ */
+
+/* Ana ekrandaki hızlı seçim. Rakamlar burada duruyor ki ekran onları
+   kendi içinde ikinci kez tanımlamasın. */
+const BUTCE_SECENEK = [150, 250, 400, 700];
+
+/* Elle yazılan bütçenin sınırları. Üst sınır uydurma değil: ölçülmüş
+   163 fiyatın en pahalısı ₺1.097 ve kişi başı ₺5.000, Türkiye'de bir
+   öğün için üst sınırın çok ötesi. Alt sınır bir çayın altına düşmesin
+   diye var -- ₺0 "farketmez" demek ve ayrı ele alınıyor. */
+const BUTCE_EN_AZ = 20, BUTCE_EN_COK = 5000;
+
+/* Kullanıcının yazdığını sayıya çevirir. "300", "300 TL", "1.250",
+   "₺300" hepsi kabul; çözülemeyen ya da sınır dışı olan 0 döner --
+   yani "farketmez". Sessizce bir sayıya YUVARLANMIYOR: ₺9'u ₺20 yapıp
+   "bütçen ₺20" demek kullanıcının söylemediği bir şeyi söylemek olurdu. */
+function butceOku(ham){
+  if (ham == null) return 0;
+  /* Binlik ayıracı nokta, ondalık virgül (tr-TR). Ondalık kısım bütçede
+     anlamsız, atılıyor. */
+  const s = String(ham).replace(/[^\d,.]/g, "").replace(/\./g, "").split(",")[0];
+  const n = parseInt(s, 10);
+  if (!Number.isFinite(n) || n < BUTCE_EN_AZ || n > BUTCE_EN_COK) return 0;
+  return n;
+}
+
+/* Tek bir mekan için bütçenin cevabı. Bütçe yoksa null: soru
+   sorulmadıysa cevap uydurulmuyor. */
+function butceDurumu(m, butce, bugun){
+  if (!(butce > 0)) return null;
+  /* Kesin taraf: ölçülmüş fiyatla karşılaştırma. Karşılaştırmayı bant()
+     yapıyor, burada tekrar edilmiyor. */
+  const b = bant(m, butce, bugun);
+  if (b) return b.sinif === "ucuz"
+    ? { sinif:"girer",  ad:"bütçene giriyor", kesin:true }
+    : { sinif:"asiyor", ad:"bütçe üstü",      kesin:true };
+  /* Tahmin tarafı: tür ve mutfak etiketi. */
+  const s = seviye(m, bugun);
+  if (!s)                    return { sinif:"bilinmiyor", ad:"fiyat bilinmiyor", kesin:false };
+  if (s.sinif === "hesapli") return { sinif:"muhtemel",   ad:"hesaplı görünüyor", kesin:false };
+  if (s.sinif === "ust")     return { sinif:"zor",        ad:s.ad,                kesin:false };
+  /* "içki mekanı" ve "biletli" gerçek bilgi ama bütçe sorusunun cevabı
+     değil: ₺300 bir bara yeter mi, bunu söyleyecek verimiz yok. Etiket
+     korunuyor, iddia korunmuyor. */
+  return { sinif:"bilinmiyor", ad:s.ad, kesin:false };
+}
+
+/* Bir listenin bütçe dökümü. Ekrandaki bütün sayılar buradan çıkıyor;
+   sayfa hiçbir rakamı kendi saymıyor. */
+function butceOzeti(liste, butce, bugun){
+  if (!liste || !(butce > 0)) return null;
+  const o = { toplam:liste.length, girer:0, asiyor:0, muhtemel:0, zor:0, bilinmiyor:0 };
+  for (const m of liste){
+    const d = butceDurumu(m, butce, bugun);
+    if (d) o[d.sinif]++;
+  }
+  o.olculdu = o.girer + o.asiyor;
+  o.tahmin  = o.muhtemel + o.zor;
+  return o;
+}
+
+/* Dökümü Türkçeye çevirir. Bu cümle ürünün en önemli cümlesi: bütçenin
+   ne kadarının ÖLÇÜLDÜĞÜNÜ, ne kadarının TAHMİN olduğunu söylüyor.
+   Sıfır bir başarısızlık değil, katkı çağrısı -- fiş eşiğiyle aynı
+   desen. */
+function butceCumlesi(o, butce){
+  if (!o || !(butce > 0) || !o.toplam) return null;
+  if (!o.olculdu)
+    return "Buradaki hiçbir mekanın menü fiyatı ölçülmedi. " + tl(butce) +
+           " yeter mi, söyleyemem — fiyatı gidenler yazıyor.";
+  const kalan = o.toplam - o.olculdu;
+  const bas = sayi(o.olculdu) + " mekanın menü fiyatı ölçüldü, " +
+              (o.girer ? sayi(o.girer) + " tanesi " + tl(butce) + " altında"
+                       : "hiçbiri " + tl(butce) + " altında değil") + ".";
+  if (!kalan) return bas;
+  return bas + " Kalan " + sayi(kalan) + " mekan için " + tl(butce) +
+         " yeter mi bilmiyorum; türünden tahmin ediyorum.";
+}
+
+/* ---------- ana ekranın kategorileri ----------
+   Çipler mekan sayısına göre seçildi, hevese göre değil (81 il, sayım):
+   Restoran 14.587, Kafe 10.815, Fast food 6.091, Bar+Pub 1.443,
+   Dondurma 395, geri kalan eğlence türleri toplam 2.521.
+
+   "Tatlı" diye bir çip YOK: verideki tür "Dondurma" ve 395 tane. Çipe
+   "Tatlı" deyip dondurmacı listelemek, olmayan bir kapsamı vaat etmek
+   olurdu.
+
+   Eğlence tarafı tek tek çip olamayacak kadar parçalı; keşfet ekranının
+   zaten kullandığı "grup:eglence" değeri taşınıyor. Gece kulübü O
+   GRUBUN İÇİNDE, o yüzden İçki çipinde tekrar edilmiyor -- iki çipte
+   birden görünen tür, sayıları iki kez saydırırdı. */
+const CANIM = [
+  { ad:"Kafe",      tur:["Kafe"] },
+  { ad:"Restoran",  tur:["Restoran"] },
+  { ad:"Fast food", tur:["Fast food"] },
+  { ad:"İçki",      tur:["Bar","Pub"] },
+  { ad:"Dondurma",  tur:["Dondurma"] },
+  { ad:"Gezilecek", tur:["grup:eglence"] }
+];
+
 /* ---------- kohort ölçümü ----------
    Çerezsiz ve sunucusuz: yalnız localStorage, yalnız bu cihaz.
    Hangi günlerde açıldığı tutuluyor; D1/D7/D30 buradan hesaplanıyor. */
@@ -969,6 +1107,25 @@ function kendiniKontrolEt(){
     KALABALIK.push({ id:"k"+i, tur:"Kafe",
                      lat: 39.9 + (i < 300 ? 0.0008 : 0.0040), lon: 32.85 });
   const K = civarOzeti(BEN, KALABALIK);
+
+  /* --- bütçe dökümü için sahte liste ---
+     Beş mekan, beş AYRI cevap. Fixture elle yazıldı ki döküm hangi
+     kategoriye kimi koyduğunu gerçekten sınasın:
+       olcum-ucuz  ölçülmüş ₺120  -> girer
+       olcum-tuz   ölçülmüş ₺400  -> asiyor
+       hesapli     Fast food      -> muhtemel
+       ust         steak_house    -> zor
+       yok         sinyal yok     -> bilinmiyor
+     Menü kalemleri İKİ tane: YEMEK_ASGARI_KALEM eşiği bir kalemli
+     fixture'ı sessizce ölçümsüz sayardı ve döküm sapardı. */
+  const BUTCE_LISTE = [
+    { id:"ucuz",    tur:"Restoran", kat:{ "Çorba": { n:2, med:120 } } },
+    { id:"tuz",     tur:"Restoran", kat:{ "Kebap": { n:2, med:400 } } },
+    { id:"hesapli", tur:"Fast food" },
+    { id:"ust",     tur:"Restoran", mutfak:"steak_house" },
+    { id:"yok",     tur:"Restoran" }
+  ];
+  const BO = butceOzeti(BUTCE_LISTE, 200);
   const kontroller = [
     ["acikMi 24/7",             acikMi("24/7", g14),               true],
     ["acikMi gunduz",           acikMi("Mo-Su 09:00-23:00", g14),  true],
@@ -1309,6 +1466,108 @@ function kendiniKontrolEt(){
     /* Fis sayisi esigi gecse bile medyan yoksa gosterilecek sey yok. */
     ["fisGoster medyansiz",    fisGoster({fis:9,medyan:null}),               false],
     ["fisGoster bos",          fisGoster(null),                             false],
+
+    /* --- butce: girdiyi okuma ---
+       Kullanicinin yazdigi seyi cozemiyorsak "farketmez"e dusuyoruz;
+       sessizce bir sayiya YUVARLAMIYORUZ. */
+    ["butce sade sayi",        butceOku("300"),                              300],
+    ["butce birimli",          butceOku("300 TL"),                           300],
+    ["butce simgeli ve binlik", butceOku("₺1.250"),                         1250],
+    ["butce ondalik atilir",   butceOku("1.250,50"),                        1250],
+    ["butce cozulemez",        butceOku("abc"),                                0],
+    ["butce bos",              butceOku(""),                                   0],
+    ["butce null",             butceOku(null),                                 0],
+    /* Sinir disi girdi YUVARLANMIYOR: 5'i 20 yapmak kullanicinin
+       soylemedigi bir seyi soylemek olurdu. */
+    ["butce alt sinirin altinda", butceOku("5"),                               0],
+    ["butce ust sinirin ustunde", butceOku("9000"),                            0],
+    ["butce alt sinirda kabul",   butceOku("20"),                             20],
+    ["butce ust sinirda kabul",   butceOku("5000"),                         5000],
+
+    /* --- butce: tek mekanin durumu ---
+       KESIN ile TAHMIN ayrimi bu ozelligin butun anlami: 35.852 mekanin
+       163'unde olculmus fiyat var. Ikisini ayni sinifa koyan bir surum,
+       %0,45'lik olcumu %100 gibi gosterirdi. */
+    ["butce sorulmazsa cevap yok",
+      butceDurumu({kat:{"Çorba":{n:2,med:120}}}, 0),                       null],
+    ["butce olculmus ve giriyor",
+      butceDurumu({kat:{"Çorba":{n:2,med:120}}}, 200).sinif,            "girer"],
+    ["butce olculmus giriyor KESIN",
+      butceDurumu({kat:{"Çorba":{n:2,med:120}}}, 200).kesin,               true],
+    ["butce olculmus ve asiyor",
+      butceDurumu({kat:{"Kebap":{n:2,med:400}}}, 200).sinif,           "asiyor"],
+    ["butce hesapli TAHMIN",
+      butceDurumu({tur:"Fast food"}, 200).sinif,                     "muhtemel"],
+    ["butce hesapli kesin DEGIL",
+      butceDurumu({tur:"Fast food"}, 200).kesin,                          false],
+    ["butce ust segment",
+      butceDurumu({tur:"Restoran", mutfak:"steak_house"}, 200).sinif,     "zor"],
+    ["butce sinyal yok",
+      butceDurumu({tur:"Restoran"}, 200).sinif,                    "bilinmiyor"],
+    /* Bar'a ₺300 yeter mi: verimiz yok. Etiket kalir, IDDIA kalmaz --
+       "icki mekani"ni "hesapli" saymak uydurma bir cevap olurdu. */
+    ["butce bar iddia etmiyor",
+      butceDurumu({tur:"Bar"}, 200).sinif,                         "bilinmiyor"],
+    ["butce bar etiketi korunuyor",
+      butceDurumu({tur:"Bar"}, 200).ad,                           "içki mekanı"],
+
+    /* --- butce: liste dokumu --- */
+    ["butce dokum toplam",     BO.toplam,                                      5],
+    ["butce dokum girer",      BO.girer,                                       1],
+    ["butce dokum asiyor",     BO.asiyor,                                      1],
+    ["butce dokum muhtemel",   BO.muhtemel,                                    1],
+    ["butce dokum zor",        BO.zor,                                         1],
+    ["butce dokum bilinmiyor", BO.bilinmiyor,                                  1],
+    /* Olculen ve tahmin AYRI toplaniyor: ekrandaki cumle bu ikisini
+       birbirine karistirmasin diye. */
+    ["butce dokum olculen",    BO.olculdu,                                     2],
+    ["butce dokum tahmin",     BO.tahmin,                                      2],
+    ["butce dokum butcesiz",   butceOzeti(BUTCE_LISTE, 0),                  null],
+    ["butce dokum listesiz",   butceOzeti(null, 200),                       null],
+
+    /* --- butce: ekrandaki cumle ---
+       Cumlenin isi rakam vermek DEGIL, rakamin NE KADARININ olculdugunu
+       soylemek. "Kalan ... tahmin ediyorum" kismi silinirse ekran
+       %0,45'lik olcumu butun listeye ait gibi gosterir. */
+    ["butce cumle olculeni yaziyor",
+      /2 mekanın menü fiyatı ölçüldü/.test(butceCumlesi(BO, 200)),         true],
+    ["butce cumle giren sayisini yaziyor",
+      /1 tanesi 200 ₺ altında/.test(butceCumlesi(BO, 200)),                true],
+    ["butce cumle kalani TAHMIN diyor",
+      /Kalan 3 mekan .* tahmin ediyorum/.test(butceCumlesi(BO, 200)),      true],
+    /* Hicbiri girmiyorsa "0 tanesi giriyor" demek yerine acikca soyle. */
+    ["butce cumle hicbiri girmiyorsa",
+      /hiçbiri 100 ₺ altında değil/.test(
+        butceCumlesi(butceOzeti(BUTCE_LISTE, 100), 100)),                  true],
+    /* Olcum HIC yoksa cumle rakam vermiyor, katki cagirisina donuyor. */
+    ["butce cumle olcumsuz -> davet",
+      /fiyatı gidenler yazıyor/.test(
+        butceCumlesi(butceOzeti([{tur:"Restoran"}], 200), 200)),           true],
+    ["butce cumle olcumsuzken rakam vermiyor",
+      /mekanın menü fiyatı ölçüldü/.test(
+        butceCumlesi(butceOzeti([{tur:"Restoran"}], 200), 200)),          false],
+    ["butce cumle butcesiz sus",  butceCumlesi(BO, 0),                     null],
+    ["butce cumle dokumsuz sus",  butceCumlesi(null, 200),                 null],
+    ["butce cumle bos liste",
+      butceCumlesi(butceOzeti([], 200), 200),                              null],
+
+    /* --- ana ekranin kategorileri ---
+       Ciplerin turleri veride GERCEKTEN var olmali; yanlis yazilmis tek
+       bir tur adi, cipe basan kullaniciya bos liste verir ve bunu
+       hicbir sey soylemez. */
+    ["kategori sayisi",        CANIM.length,                                   6],
+    ["kategori turleri tanimli",
+      CANIM.every(k => k.tur.length &&
+        k.tur.every(t => t.slice(0,5) === "grup:"
+          ? !!TUR_GRUP[t.slice(5)] : TUR_GRUP.yeme.has(t) ||
+            TUR_GRUP.eglence.has(t))),                                      true],
+    /* Iki cipte birden gorunen tur, ayni mekani iki kez saydirirdi. */
+    ["kategoriler ortusmuyor",
+      (() => { const g = new Set();
+        for (const k of CANIM) for (const t of k.tur){
+          const uy = t.slice(0,5) === "grup:" ? [...TUR_GRUP[t.slice(5)]] : [t];
+          for (const x of uy){ if (g.has(x)) return false; g.add(x); }
+        } return true; })(),                                                true],
 
     /* --- butce akranlari --- */
     ["akran butcesiz sus",     akranCumlesi({akran:5,mekan:2}, 0),           null],

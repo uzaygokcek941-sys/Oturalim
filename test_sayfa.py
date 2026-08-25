@@ -31,6 +31,7 @@ Tarayici yoksa kontrol ATLANIR, gectigi soylenmez.
 import base64
 import io
 import os
+import re
 import subprocess
 import struct
 import sys
@@ -449,54 +450,90 @@ def kendini_kontrol_et():
             # kontrol gurultuye bogulup okunmaz olurdu.
             # Telefon olculeri BAGLAM seviyesinde veriliyor: new_page()
             # viewport/is_mobile kabul etmiyor, onlar context secenegi.
-            tel_ctx = t.new_context(viewport={"width": 390, "height": 844},
+            # IKI GENISLIK. 390 px yaygin telefon; 320 px en dar hal
+            # (iPhone SE 1. nesil, Android'de kucuk yazi tipi olcegi).
+            # 320 uzun sure OLCULMUYORDU ve marka degisiminde ust seridin
+            # 335 px'e tasidigi ancak elle bakinca goruldu -- yani kontrol
+            # degil sans yakaladi. Butce ve kategori cipleri de tam bu
+            # genislikte sikisiyor.
+            for _genislik in (320, 390):
+              tel_ctx = t.new_context(viewport={"width": _genislik, "height": 844},
                                     is_mobile=True, has_touch=True,
                                     service_workers="block")
-            tel = tel_ctx.new_page()
-            # Kutuphane TAKLITLE karsilaniyor: mobil olcum, uygulamanin
-            # gercek kullanicidaki hali uzerinde yapilmali -- yani kutuphane
-            # CALISIRKEN. Onceden supabase-js hic gelmiyordu ve katki formu
-            # hic acilmiyordu; formun select'i bu yuzden 23 px'te kalmis ve
-            # aylarca olculmemisti. Olcumun, kutuphanenin yerele alinip
-            # alinmadigina gore degismemesi de sart.
-            tel.route("**://*/**", lambda r: (
-                r.fulfill(status=200, body=SAHTE_MODUL,
-                          headers={"content-type": "text/javascript",
-                                   "access-control-allow-origin": "*"})
-                if "supabase-js" in r.request.url
-                else (r.continue_() if r.request.url.startswith(TABAN) else r.abort())))
-            tel.add_init_script(GIRIS_TAKLIT)
-            # Isletme sahibinin iki ekrani da BURADA olmali: ikisi de form
-            # ve formlarin olcusu tam bu kontrolun yakaladigi sey (katki
-            # formunun select'i 23 px kalmisti). Bu baglam taklit modulu
-            # servis ettigi icin panel gercekten CIZILIYOR -- kutuphanesiz
-            # bir olcumde panel giris sayfasina yonlenir ve form hic
-            # olculmezdi.
-            for yolu in ("/index.html", "/kesfet.html?il=34", "/paylas.html",
-                         "/giris.html", "/isletme.html?il=34&id=node/8223784325",
-                         "/isletme-giris.html", "/isletmem.html"):
-                tel.goto(TABAN + yolu, wait_until="domcontentloaded", timeout=20000)
-                tel.wait_for_timeout(2200)
-                kucuk = tel.evaluate("""() => [...document.querySelectorAll(
-                    'button, input:not([type=hidden]), select, textarea,'
-                    + ' [role=tab], a.dugme, a.cip')]
-                  .filter(e => e.getClientRects().length > 0)
-                  /* Gorsel olarak gizlenmis girdi (.gizli) dokunma hedefi
-                     DEGIL: yanindaki <label class="dugme"> hedef ve o 44 px.
-                     WCAG 2.5.8 bu duruma acik istisna koyuyor -- ayni isi
-                     yapan, olcuyu tutturan baska bir denetim varsa kucugu
-                     muaf. Dosya secme girdisi tam olarak bu desen. */
-                  .filter(e => !(e.classList.contains('gizli') &&
-                                 document.querySelector('label[for="' + e.id + '"]')))
-                  .map(e => { const r = e.getBoundingClientRect();
-                    return { ad: e.tagName.toLowerCase() + '.'
-                                 + String(e.className || '').split(' ')[0],
-                             g: Math.round(r.width), y: Math.round(r.height) }; })
-                  .filter(x => x.y < 24 || x.g < 24)""")
-                for x in kucuk:
-                    sorunlar.append("%s: %s dokunma hedefi %dx%d (en az 24x24)"
-                                    % (yolu, x["ad"], x["g"], x["y"]))
-            tel.close()
+              tel = tel_ctx.new_page()
+              # Kutuphane TAKLITLE karsilaniyor: mobil olcum, uygulamanin
+              # gercek kullanicidaki hali uzerinde yapilmali -- yani kutuphane
+              # CALISIRKEN. Onceden supabase-js hic gelmiyordu ve katki formu
+              # hic acilmiyordu; formun select'i bu yuzden 23 px'te kalmis ve
+              # aylarca olculmemisti. Olcumun, kutuphanenin yerele alinip
+              # alinmadigina gore degismemesi de sart.
+              tel.route("**://*/**", lambda r: (
+                  r.fulfill(status=200, body=SAHTE_MODUL,
+                            headers={"content-type": "text/javascript",
+                                     "access-control-allow-origin": "*"})
+                  if "supabase-js" in r.request.url
+                  else (r.continue_() if r.request.url.startswith(TABAN) else r.abort())))
+              tel.add_init_script(GIRIS_TAKLIT)
+              # Isletme sahibinin iki ekrani da BURADA olmali: ikisi de form
+              # ve formlarin olcusu tam bu kontrolun yakaladigi sey (katki
+              # formunun select'i 23 px kalmisti). Bu baglam taklit modulu
+              # servis ettigi icin panel gercekten CIZILIYOR -- kutuphanesiz
+              # bir olcumde panel giris sayfasina yonlenir ve form hic
+              # olculmezdi.
+              for yolu in ("/index.html", "/kesfet.html?il=34", "/paylas.html",
+                           "/giris.html", "/isletme.html?il=34&id=node/8223784325",
+                           "/isletme-giris.html", "/isletmem.html"):
+                  tel.goto(TABAN + yolu, wait_until="domcontentloaded", timeout=20000)
+                  tel.wait_for_timeout(2200)
+                  kucuk = tel.evaluate("""() => [...document.querySelectorAll(
+                      'button, input:not([type=hidden]), select, textarea,'
+                      + ' [role=tab], a.dugme, a.cip')]
+                    .filter(e => e.getClientRects().length > 0)
+                    /* Gorsel olarak gizlenmis girdi (.gizli) dokunma hedefi
+                       DEGIL: yanindaki <label class="dugme"> hedef ve o 44 px.
+                       WCAG 2.5.8 bu duruma acik istisna koyuyor -- ayni isi
+                       yapan, olcuyu tutturan baska bir denetim varsa kucugu
+                       muaf. Dosya secme girdisi tam olarak bu desen. */
+                    .filter(e => !(e.classList.contains('gizli') &&
+                                   document.querySelector('label[for="' + e.id + '"]')))
+                    .map(e => { const r = e.getBoundingClientRect();
+                      return { ad: e.tagName.toLowerCase() + '.'
+                                   + String(e.className || '').split(' ')[0],
+                               g: Math.round(r.width), y: Math.round(r.height) }; })
+                    .filter(x => x.y < 24 || x.g < 24)""")
+                  for x in kucuk:
+                      sorunlar.append("%s (%d px): %s dokunma hedefi %dx%d (en az 24x24)"
+                                      % (yolu, _genislik, x["ad"], x["g"], x["y"]))
+
+                  # YATAY TASMA. Sayfa kendi genisligini asarsa kullanici
+                  # saga kaydirmak zorunda kaliyor ve saga kayan bir sayfada
+                  # dugmelerin yarisi ekran disinda duruyor. Iki kez oldu ve
+                  # ikisi de ELLE bulundu: 320 px'te ust serit 335 px'e
+                  # tasti, uzun bir Turkce baslik 288 px'lik kaba 308 px
+                  # istedi. Olculen sey SONUC -- hangi ogenin tastigi degil,
+                  # sayfanin tasip tasmadigi.
+                  #
+                  # 2 px pay: alt piksel yuvarlamasi ve kaydirma cubugu
+                  # genisligi bazi hallerde 1 px oynatiyor.
+                  tasma = tel.evaluate("""() => {
+                      const d = document.documentElement;
+                      if (d.scrollWidth <= d.clientWidth + 2) return null;
+                      /* Tasiran ogeyi de soyle: "sayfa tasiyor" tek basina
+                         aranacak yer birakmiyor. */
+                      const en = d.clientWidth;
+                      const suclu = [...document.querySelectorAll('body *')]
+                        .filter(e => { const r = e.getBoundingClientRect();
+                                       return r.width > 0 && r.right > en + 2; })
+                        .map(e => e.tagName.toLowerCase() + '.' +
+                                  String(e.className || '').split(' ')[0] +
+                                  ' (' + Math.round(e.getBoundingClientRect().right) + ' px)');
+                      return { genislik: d.scrollWidth, kap: en, suclu: suclu.slice(0, 3) };
+                  }""")
+                  if tasma:
+                      sorunlar.append("%s (%d px): sayfa yatay tasiyor -- %d px yer istiyor, %s"
+                                      % (yolu, _genislik, tasma["genislik"],
+                                         ", ".join(tasma["suclu"]) or "sucluyu bulamadim"))
+              tel.close()
 
             # 1a4) Yuklenen resim EXIF TASIMAMALI.
             #
@@ -601,6 +638,113 @@ def kendini_kontrol_et():
                 if not acik:
                     sorunlar.append("Konum alinamayinca sehir secici acilmiyor")
             sf.close()
+
+            # 1c2) BUTCE GIRISLI ANA EKRAN: rakam, ne kadarinin
+            #      OLCULDUGUNU soylemeden ekrana cikmamali.
+            #
+            # Ana ekran artik butceyle basliyor ("Bugun cebimde 300 TL").
+            # Buradaki tehlike bir cokme degil, sessiz bir YALAN:
+            #
+            #   1. Dokum uc karttan cikarsa "2 mekanin fiyati olculdu"
+            #      cumlesi uc mekana ait olur ve %0,45'lik olcum ucte bir
+            #      gibi gorunur. Dokum SUZULMEMIS listeden gelmeli.
+            #   2. Butce listeyi kesiyormus gibi gorunurse kullanici kalan
+            #      mekanlarin butcesine uydugunu sanir. Olculdu: 300 TL
+            #      Kadikoy'de 1.096 mekanin yalniz 36'sini eliyor (%3,3),
+            #      cunku eleme YALNIZ olculmus fiyatla yapiliyor.
+            #
+            # Ikisi de sayfa "calisiyor" gorunurken olabilir; o yuzden
+            # olculen sey EKRANDAKI SAYININ KENDISI.
+            #
+            # Konum izni VERILMIS ayri bir baglam: birincil yol bu ve
+            # oteki kontroller izni hep reddedilmis halde kosuyor, yani
+            # ekranin asil akisi hic acilmiyordu.
+            kon_ctx = t.new_context(service_workers="block",
+                                    geolocation={"latitude": 40.990,
+                                                 "longitude": 29.028},  # Kadikoy
+                                    permissions=["geolocation"])
+            kon = kon_ctx.new_page()
+            kon_hata = []
+            kon.on("pageerror", lambda e: kon_hata.append(str(e)[:120]))
+            kon.route("**://*/**", lambda r: (
+                r.continue_() if r.request.url.startswith(TABAN) else r.abort()))
+
+            def _butce_ara(butce, kategori):
+                kon.goto(TABAN + "/index.html", wait_until="domcontentloaded",
+                         timeout=20000)
+                kon.wait_for_timeout(1400)
+                kon.fill("#butce-girdi", butce)
+                if kategori:
+                    # Cip bir ANAHTAR ve secim cihazda saklaniyor: ikinci
+                    # cagride kayitli secim geri geliyor, korlemesine
+                    # tiklamak onu KAPATIYORDU. Ilk yazimda tam bu oldu ve
+                    # kontrol "payda butceyle degisiyor" diye bagirdi --
+                    # dogru bagirdi, sebebi kendi kusuruydu.
+                    cip = kon.locator('.canim-cip:text-is("%s")' % kategori)
+                    if cip.get_attribute("aria-pressed") != "true":
+                        cip.click()
+                kon.click("#yakinimdakiler")
+                kon.wait_for_selector(".oneri", timeout=15000)
+                kon.wait_for_timeout(400)
+                return kon.inner_text("#konum-durum")
+
+            durum = _butce_ara("300", "Kafe")
+            m = re.search(r"([\d.]+) mekan, en yakın üçü", durum)
+            if not m:
+                sorunlar.append("ana ekran: '%s' -- kac mekan icinden secildigi yazmiyor"
+                                % durum[:70])
+            else:
+                toplam = int(m.group(1).replace(".", ""))
+                # Kadikoy'un 3 km cemberinde 441 kafe olculdu. Kesin sayi
+                # veriye bagli, ama UC OLMADIGI kesin: dokum uc karttan
+                # cikarsa bu sayi da uce duser.
+                if toplam < 50:
+                    sorunlar.append("ana ekran: dokum %d mekandan cikmis; "
+                                    "uc karttan sayiliyor olabilir" % toplam)
+                ozet = kon.eval_on_selector(
+                    "#butce-ozet", "n => n.hidden ? '' : n.textContent.trim()")
+                if not ozet:
+                    sorunlar.append("ana ekran: butcenin ne kadarinin OLCULDUGU yazmiyor")
+                else:
+                    # Cumledeki iki sayi TOPLAMI listeyi vermeli: "N mekanin
+                    # menu fiyati olculdu ... Kalan M mekan". N+M != toplam
+                    # ise ekran kendi rakamiyla celisiyor demektir.
+                    sy = [int(x.replace(".", "")) for x in
+                          re.findall(r"([\d.]+) mekan", ozet)]
+                    if len(sy) == 2 and sum(sy) != toplam:
+                        sorunlar.append("ana ekran: ozet %d+%d=%d diyor ama liste %d mekan"
+                                        % (sy[0], sy[1], sum(sy), toplam))
+                    if "tahmin" not in ozet:
+                        sorunlar.append("ana ekran: olculmemis mekanlar TAHMIN diye "
+                                        "isaretlenmiyor -> %s" % ozet[:80])
+                # Secim kesfete tasinmali: kullanici butceyi ve kategoriyi
+                # bir kez sesin, iki kez degil.
+                hepsi = kon.eval_on_selector(".hepsi", "n => n.getAttribute('href')")
+                for parca in ("butce=300", "tur=Kafe"):
+                    if parca not in (hepsi or ""):
+                        sorunlar.append("ana ekran: '%s' kesfet baglantisinda yok (%s)"
+                                        % (parca, hepsi))
+
+                # BUTCE PAYDAYI DEGISTIRMEMELI. Dokum, butce ustu oldugu
+                # OLCULEN mekanlar cikarilmadan onceki listeden aliniyor;
+                # 150 TL ile 700 TL ayni paydayi vermeli. Ayrisirsa ekran
+                # butceyi suzgec gibi gostermeye baslamis demektir.
+                d2 = _butce_ara("700", "Kafe")
+                m2 = re.search(r"([\d.]+) mekan, en yakın üçü", d2)
+                if m2 and int(m2.group(1).replace(".", "")) != toplam:
+                    sorunlar.append("ana ekran: payda butceyle degisiyor (300 -> %d, "
+                                    "700 -> %s); butce suzgec gibi gorunuyor"
+                                    % (toplam, m2.group(1)))
+
+            # Butce cihazda kalmali: ayni kisi ertesi gun yeniden yazmasin.
+            kon.goto(TABAN + "/index.html", wait_until="domcontentloaded", timeout=20000)
+            kon.wait_for_timeout(1200)
+            if kon.input_value("#butce-girdi") != "700":
+                sorunlar.append("ana ekran: butce cihazda saklanmiyor (%r)"
+                                % kon.input_value("#butce-girdi"))
+            if kon_hata:
+                sorunlar.append("ana ekran JS hatasi: %s" % kon_hata[0])
+            kon.close(); kon_ctx.close()
 
             # 1d) Turkce harfsiz arama ayni sonucu vermeli.
             #

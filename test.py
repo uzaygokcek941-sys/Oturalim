@@ -203,6 +203,18 @@ def veri_tutarli_mi():
             s.append("vitrin.json %s=%s ama veride %s — vitrin_uret.py calistir"
                      % (anahtar, v.get(anahtar), gercek))
 
+    # SAYFA METNINDEKI mekan sayisi. Elle yazilan her rakam eskiyor:
+    # olculdu, kesfet.html iki yerde "36.102 mekan" diyordu, gercek 35.852.
+    # Bu sayilar <meta description> ve og:description icinde, yani arama
+    # sonucunda ve paylasilan baglantida gorunen ilk cumle. Kimse oraya
+    # bakmiyor -- tam da bu yuzden kontrol gerekiyor.
+    for ad in sorted(glob.glob(os.path.join(KOK, "app", "*.html"))):
+        h = io.open(ad, encoding="utf-8").read()
+        for yazan in set(re.findall(r"(\d{2}\.\d{3}) mekan", h)):
+            if yazan.replace(".", "") != str(toplam):
+                s.append("%s: metinde '%s mekan' yaziyor, gercek %s"
+                         % (os.path.basename(ad), yazan, "{:,}".format(toplam).replace(",", ".")))
+
     # Anasayfadaki SABIT yedekler: JS kapaliyken gorunen sayi bunlar.
     ana = oku("app", "index.html")
     for kimlik, gercek in (("d-toplam", toplam), ("d-kalem", kalem), ("d-fiyatli", fiyatli)):
@@ -239,6 +251,101 @@ def sayfalar_tutarli_mi():
         s.append("hesabim.html sekme/bolum/gizleme ayrisiyor: %s / %s / %s"
                  % (dugme, bolum, gizle))
     return s
+
+
+def _js_tara(kaynak):
+    """JS govdesinden /* */ ve // yorumlarini atar; kodu birakir.
+
+    Dizeler, sablon dizeleri ve duzenli ifadeler taniniyor: "//" bir dize
+    olabiliyor (guvenliBag'da protokolsuz adres denetimi) ve /a\/\/b/
+    icindeki "//" yorum degil."""
+    n = len(kaynak)
+    cikan = []
+    i = 0
+    onceki = ""            # son anlamli karakter: "/" regex mi bolme mi
+    while i < n:
+        c = kaynak[i]
+        if kaynak[i:i + 2] == "/*":
+            j = kaynak.find("*/", i + 2)
+            i = n if j < 0 else j + 2
+            cikan.append(" ")
+            continue
+        if kaynak[i:i + 2] == "//":
+            j = kaynak.find("\n", i)
+            i = n if j < 0 else j
+            cikan.append(" ")
+            continue
+        if c in "'\"`":
+            k = i + 1
+            while k < n:
+                if kaynak[k] == "\\":
+                    k += 2
+                    continue
+                if kaynak[k] == c:
+                    break
+                k += 1
+            cikan.append(kaynak[i:k + 1])
+            onceki = c
+            i = k + 1
+            continue
+        if c == "/" and onceki in ("", "(", ",", "=", ":", "[", "!", "&",
+                                   "|", "?", "{", "}", ";", "+", "-", "*",
+                                   "%", "~", "^", "<", ">"):
+            k = i + 1                          # duzenli ifade govdesi
+            sinif = False
+            while k < n:
+                if kaynak[k] == "\\":
+                    k += 2
+                    continue
+                if kaynak[k] == "[":
+                    sinif = True
+                elif kaynak[k] == "]":
+                    sinif = False
+                elif kaynak[k] == "/" and not sinif:
+                    break
+                elif kaynak[k] == "\n":
+                    break
+                k += 1
+            cikan.append(kaynak[i:k + 1])
+            onceki = "/"
+            i = k + 1
+            continue
+        cikan.append(c)
+        if not c.isspace():
+            onceki = c
+        i += 1
+    return "".join(cikan)
+
+
+def _js_yorumsuz(kaynak):
+    """JS/HTML kaynagindan YORUMLARI atar; kodu ve isaretlemeyi birakir.
+
+    NEDEN AYRI BIR AYIRICI. _yorumsuz() Python icin yazildi: "#"den sonrasini
+    atiyor. JS'te "#" bir yorum degil, SECICI -- el("#butce-ozet") satiri
+    ikiye bolunuyordu ve satirin geri kalani (butceCumlesi cagrisi) kontrole
+    hic gorunmuyordu. Ilk yazimda tam bunu yasadim: dogru yazilmis kod
+    "eksik" diye raporlandi.
+
+    Ters yonu daha tehlikeli: JS yorumlarini HIC atmayan bir kontrol,
+    yorumda gecen bir isim yuzunden "bu fonksiyon cagriliyor" der. Yani
+    silinmis bir cagri, onu anlatan aciklama cumlesi sayesinde gecerdi.
+    Bu depoda yorumlar uzun; tam da bu tuzagin buyuk oldugu yer.
+
+    ISARETLEME JS TARAYICISINDAN GECMIYOR. Ilk surum butun dosyayi tek
+    tarayicidan geciriyordu ve "</div>" icindeki "/" bir duzenli ifade
+    basi sanilip arkasindaki HTML yorumu yutuluyordu. Artik once HTML
+    yorumlari ayikleniyor, sonra YALNIZ <script> govdeleri taraniyor.
+
+    Dosyanin turune "<script gecıyor mu" diye BAKILMIYOR: ortak.js kendi
+    aciklamasinda o kelimeyi kullaniyor ve dosya HTML sanilip hic
+    taranmiyordu -- yani butun ortak.js yorumlari kontrole gorunur
+    kaliyordu. Ayrim <!doctype ile yapiliyor."""
+    if not re.match(r"\s*<!doctype", kaynak, re.I):
+        return _js_tara(kaynak)     # duz .js dosyasi
+    kaynak = re.sub(r"<!--.*?-->", " ", kaynak, flags=re.S)
+    return re.sub(r"(<script\b[^>]*>)(.*?)(</script>)",
+                  lambda m: m.group(1) + _js_tara(m.group(2)) + m.group(3),
+                  kaynak, flags=re.S)
 
 
 def _yorumsuz(kaynak):
@@ -827,6 +934,110 @@ def adres_ve_tarih_mi():
     return s
 
 
+def ana_ekran_butce_mi():
+    """Ana ekran butceyi SORUYOR mu, ve sordugu seyi DOGRU anlatiyor mu.
+
+    Marka yol haritasi "Bugun cebimde: 300 TL -> kategori -> Yakinimda Bul"
+    diyor. Ekran o hale getirildi; bu kontrol grubu onun iki sessiz bicimde
+    bozulmasini engelliyor.
+
+    1) BUTCE SUZGEC SANILMASIN. Olculdu: 3 km'lik gercek semt cemberlerinde
+       300 TL butce listenin yalniz %2,7-%5,1'ini eliyor (Kadikoy 1.096
+       mekandan 36, Beyoglu 2.203'ten 81, Kizilay 599'dan 16). Sebep:
+       35.852 mekanin 163'unde (%0,45) olculmus menu fiyati var. Ekran
+       butceyi suzgec gibi gosterirse -- "300 TL ile 12 mekan" -- kullanici
+       12'sinin OLCULDUGUNU saniyor. O yuzden #butce-ozet satiri sart ve
+       icerigi butceCumlesi()'nden gelmeli.
+
+    2) DOKUM UC KARTTAN DEGIL, BUTUN LISTEDEN CIKMALI. Once uc aday secip
+       sonra saymak, %0,45'lik olcumu ucte bir gibi gosterirdi. Sayim
+       suzulmemis `konu` listesinden yapiliyor.
+
+    3) IKI EKRAN AYNI KURALI KULLANMALI. Butce ustu elemesi once hem
+       index.html'de hem kesfet.js'te ayri ayri yaziliydi; birini
+       degistiren otekini sessizce ayristirabiliyordu. Ikisi de
+       butceDurumu()'ndan geciyor.
+
+    Kural gorunmez oldugu icin bu kontrol var: ekranda "12 mekan" yaziyor
+    ve rakamin arkasinda olcum mu tahmin mi oldugunu HICBIR SEY soylemiyor.
+    """
+    s = []
+    okun = lambda ad: io.open(os.path.join(KOK, "app", ad), encoding="utf-8").read()
+    ham = okun("index.html")
+    # _yorumsuz() DEGIL: o Python icin yazildi ve "#"den sonrasini atiyor,
+    # yani el("#butce-ozet") satirini ikiye boluyor. Ustelik JS yorumlarini
+    # HIC atmiyor -- silinmis bir cagri, onu anlatan yorum cumlesi
+    # sayesinde "var" sayilirdi.
+    ix = _js_yorumsuz(ham)
+    ortak = _js_yorumsuz(okun("ortak.js"))
+    kes = _js_yorumsuz(okun("kesfet.js"))
+
+    # --- ekran butceyi soruyor mu
+    for parca, ne in (('id="cep"', "butce formu"),
+                      ('id="butce-girdi"', "butce yazi alani"),
+                      ('id="butceler"', "hazir butce cipleri"),
+                      ('id="canim"', "kategori cipleri"),
+                      ('id="butce-ozet"', "olcum/tahmin satiri")):
+        if parca not in ham:
+            s.append("index.html: %s yok (%s)" % (ne, parca))
+
+    # --- rakamlar ve tur adlari TEK yerde
+    if "const BUTCE_SECENEK" not in ortak:
+        s.append("ortak.js: BUTCE_SECENEK yok")
+    if "const CANIM" not in ortak:
+        s.append("ortak.js: CANIM (kategori listesi) yok")
+    if "BUTCE_SECENEK.map" not in ix:
+        s.append("index.html: butce cipleri BUTCE_SECENEK'ten cizilmiyor")
+    if "CANIM.map" not in ix:
+        s.append("index.html: kategori cipleri CANIM'dan cizilmiyor")
+    # Cipler elle yazilmis olmasin: sabit data-butce="150" gibi bir satir,
+    # ortak.js'teki listeyle sessizce ayrisir.
+    if re.search(r'data-butce="\d', ham):
+        s.append("index.html: butce cipi elle yazilmis (data-butce=\"...\")")
+
+    # --- siniflandirma yeniden yazilmamis
+    for f in ("butceDurumu", "butceOzeti", "butceCumlesi"):
+        if ("function %s(" % f) not in ortak:
+            s.append("ortak.js: %s() yok" % f)
+        if f not in ix:
+            s.append("index.html: %s() kullanilmiyor" % f)
+    # Ekran butceyi kendi karsilastirmasin.
+    if re.search(r"yemekFiyati\([^)]*\)\s*[<>]", ix):
+        s.append("index.html: butce karsilastirmasi ekranda tekrar yazilmis")
+
+    # --- dokum SUZULMEMIS listeden
+    if "butceOzeti(konu" not in ix:
+        s.append("index.html: butce dokumu suzulmemis listeden alinmiyor")
+    for kotu in ("butceOzeti(secim", "butceOzeti(aday"):
+        if kotu in ix:
+            s.append("index.html: dokum uc karttan cikariliyor (%s)" % kotu)
+
+    # --- olcum/tahmin satiri gercekten basiliyor
+    if "butceCumlesi(ozet" not in ix:
+        s.append("index.html: #butce-ozet butceCumlesi()'nden beslenmiyor")
+
+    # --- eleme YALNIZ kesin bilinen icin
+    for ad, govde in (("index.html", ix), ("kesfet.js", kes)):
+        if 'sinif === "asiyor"' not in govde:
+            s.append("%s: butce elemesi butceDurumu()'ndan gecmiyor" % ad)
+        for tahmin in ('sinif === "zor"', 'sinif === "bilinmiyor"'):
+            m = re.search(r"filter\([^)]*%s" % re.escape(tahmin), govde)
+            if m:
+                s.append("%s: TAHMINE dayanarak mekan eleniyor (%s)" % (ad, tahmin))
+
+    # --- secim kesfete tasiniyor
+    if ix.count('p.set("butce", butce)') + ix.count('hepsi.set("butce", butce)') < 3:
+        s.append("index.html: butce kesfete/mekana giden her baglantida tasinmiyor")
+    if 'append("tur", t)' not in ix:
+        s.append("index.html: secilen kategori kesfete tasinmiyor")
+
+    # --- cihazda saklanan anahtarlar marka onekiyle
+    for anahtar in re.findall(r'localStorage\.(?:get|set)Item\("([^"]+)"', ix):
+        if not anahtar.startswith("cebimde."):
+            s.append("index.html: localStorage anahtari marka onekli degil: %s" % anahtar)
+    return s
+
+
 def sayfa_kontrolleri():
     """Sayfalari GERCEK tarayicida acar (test_sayfa.py).
 
@@ -925,6 +1136,7 @@ def main():
     kayit("degismez: yayin yapilandirmasi", yayin_basliklari_mi())
     kayit("degismez: PWA ve Play parcalari", pwa_tutarli_mi())
     kayit("degismez: marka paleti okunur", palet_okunur_mu())
+    kayit("degismez: ana ekran butceyi olcum diye satmiyor", ana_ekran_butce_mi())
     kayit("degismez: kurulum dosyalari depoda", kurulum_dosyalari_izleniyor_mu())
     kayit("degismez: donus adresi ve gunun tarihi", adres_ve_tarih_mi())
     kayit("degismez: sir sizmamis", sirlar_sizmis_mi())

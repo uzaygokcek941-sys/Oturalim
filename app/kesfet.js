@@ -89,12 +89,17 @@ function suzulmus(){
        Olcut cip, rozet ve detay panelinde AYNI: fisGoster(). */
     if (bayraklar.has("fis") && !fisGoster(paylasimOzet(m.id))) return false;
     if (bayraklar.has("acik")  && acikMi(m.saat) !== true) return false;
-    /* Bütçe süzgeci yalnız fiyatı bilinenleri eler. Fiyatı olmayan mekanı
-       elemiyoruz: "bilinmiyor" ile "pahalı" aynı şey değil, listeden
-       düşürmek kullanıcıyı yanıltır. */
-    /* Karsilastirma YEMEK fiyatiyla; m.min menudeki en ucuz icecek. */
-    const yf = yemekFiyati(m);
-    if (butce && yf != null && yf > butce) return false;
+    /* Bütçe süzgeci yalnız BÜTÇE ÜSTÜ OLDUĞU ÖLÇÜLMÜŞ mekanı eler.
+       Fiyatı olmayanı elemiyoruz: "bilinmiyor" ile "pahalı" aynı şey
+       değil, listeden düşürmek kullanıcıyı yanıltır. Tahmine ("üst
+       segment") dayanarak da elemiyoruz -- pahalı SANMAK ile pahalı
+       BİLMEK ayrı şeyler.
+
+       Kural butceDurumu()'nda ve ana ekran da aynı yerden geçiyor:
+       önceden karşılaştırma iki ekranda ayrı ayrı yazılıydı ve birini
+       değiştiren ötekini sessizce ayrıştırabiliyordu. */
+    const bd = butceDurumu(m, butce);
+    if (bd && bd.sinif === "asiyor") return false;
     /* Aranan metin de aranan yer de AYNI sadelestirmeden geciyor:
        "kofte" yazan da "köfte" yazan da ayni sonucu gormeli. */
     if (arama && !sade(m.ad + " " + (m.mutfak || "") + " " + (m.adres || ""))
