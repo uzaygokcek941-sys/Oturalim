@@ -173,11 +173,12 @@ sahiplenmeWhatsapp: "905XXXXXXXXX",   // faturasız, ayrı bir hat
 Boş kaldığı sürece işletme sayfası normal çalışır, yalnız **"Bu işletme benim"**
 düğmesi gizli kalır. Kişisel hattını yazma — numara işletmelere görünüyor.
 
-## Alan adı belli olunca: site haritası
+## Site haritası — YAPILDI (oturalim.vercel.app)
 
 `sitemap.xml` mutlak adres istiyor, o yüzden depoda hazır durmuyor —
 uydurulmuş alan adıyla üretilmiş bir site haritası, üretilmemiş olandan
-kötüdür. Vercel adresin belli olunca bir kez çalıştır:
+kötüdür. Üretildi ve depoda: `app/sitemap.xml` (12.287 URL) + `app/robots.txt`.
+Veri büyüdükçe yeniden çalıştır — `Sitemap:` satırı çoğalmıyor, ölçüldü:
 
 ```bash
 python site_haritasi.py oturalim.vercel.app --isletmeler
