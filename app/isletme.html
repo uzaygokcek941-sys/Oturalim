@@ -234,6 +234,26 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
 
   /* MENU LISTESI -- maketteki satir duzeni: ad solda, fiyat sagda.
      Fotograf YOK: veride kalemlerin fotograf alani hic bulunmuyor. */
+  /* KAPAK -- maketteki fotograf serit. Tam genislik degil: sayfanin
+     geri kalani .kap icinde ve kenardan kenara bir gorsel, alttaki
+     metin sutunuyla hizasiz durur. */
+  .kapak{
+    margin:0 0 var(--a4); border-radius:var(--r-b); overflow:hidden;
+    background:var(--zemin-2); position:relative;
+  }
+  .kapak img{
+    display:block; width:100%; height:clamp(160px,32vw,240px);
+    object-fit:cover;
+  }
+  /* Atif fotografin USTUNDE degil ALTINDA: uzerine yazmak, koyu bir
+     fotografta okunmaz bir satir birakirdi ve lisans metni okunmak
+     zorunda. */
+  .kapak figcaption{
+    padding:6px 10px; font-size:.72rem; line-height:1.35;
+    color:var(--metin-2); background:var(--yuzey-us);
+  }
+  .kapak figcaption a{color:inherit}
+
   .menu-liste{margin-top:var(--a5)}
   .menu-liste h2{margin:0 0 var(--a2)}
   .menu-not{margin:0 0 var(--a4);color:var(--metin-2);font-size:.92rem}
@@ -285,6 +305,16 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
 </header>
 
 <main class="kap" id="govde" data-sekme="menu" hidden>
+
+  <!-- KAPAK. Makette mekan ekraninin ustunu fotograf dolduruyor.
+       Fotografi olmayan mekanda bolum HIC cikmiyor: gri bir yer
+       tutucu "burada bir sey var" izlenimi verirdi. Sekmeye BAGLI
+       DEGIL -- basligin bir parcasi, hangi sekme acik olursa olsun
+       yerinde duruyor. -->
+  <figure class="kapak" id="kapak" hidden>
+    <img id="kapakResim" alt="">
+    <figcaption id="kapakAtif" hidden></figcaption>
+  </figure>
   <div class="kunye">
     <h1 id="ad"></h1>
     <span class="tur" id="tur"></span>
@@ -984,13 +1014,24 @@ if (!ID || !IL || IL === "00"){
    ============================================================ */
 const KAYNAK_ROZET = { sahip: "işletmeden", commons: "" , kullanici: "" };
 
-function fotoKutusu(f){
+/* Bir fotograf GOSTERILEBILIR mi. Kural TEK YERDE: kapak da, serit de
+   ayni suzgecten geciyor. Ikisi ayri yazilsaydi, atifsiz bir commons
+   fotografi seritte gizlenip kapakta gosterilebilirdi. */
+function kapaklikMi(f){
+  if (!f) return null;
   const adres = f.adres || Kimlik.mekanFotoAdresi(f.yol);
-  if (!adres) return "";
+  if (!adres) return null;
+  const commons = f.kaynak === "commons";
   /* Commons ATIFSIZ cizilmiyor: eksikse fotografi hic gostermiyoruz.
      Atifsiz gostermek, lisansi ihlal etmek olurdu. */
-  const commons = f.kaynak === "commons";
-  if (commons && !(f.yazar && f.lisans && f.kaynak_bag)) return "";
+  if (commons && !(f.yazar && f.lisans && f.kaynak_bag)) return null;
+  return { adres, commons };
+}
+
+function fotoKutusu(f){
+  const uygun = kapaklikMi(f);
+  if (!uygun) return "";
+  const adres = uygun.adres, commons = uygun.commons;
 
   const rozet = KAYNAK_ROZET[f.kaynak]
     ? '<span class="galeri-rozet">' + kacir(KAYNAK_ROZET[f.kaynak]) + "</span>" : "";
@@ -1017,6 +1058,37 @@ function fotoKutusu(f){
   "</div>";
 }
 
+/* Kapak: listenin ilk UYGUN karesi. Sirasi galeriyle ayni (en yeni
+   once), yani seritte ilk gorunen fotograf kapakta da o. */
+function kapagiCiz(liste, mekanAd){
+  const bol = document.getElementById("kapak");
+  if (!bol) return;
+  const f = (liste || []).find(x => kapaklikMi(x));
+  if (!f){ bol.hidden = true; return; }
+  const u = kapaklikMi(f);
+  const im = document.getElementById("kapakResim");
+  im.src = u.adres;
+  /* alt metni ACIKLAMADAN geliyor; yoksa mekanin adi. Bos birakmak,
+     ekran okuyucuya fotografi hic anlatmamak olurdu. */
+  im.alt = f.aciklama || (mekanAd + " fotoğrafı");
+  const atif = document.getElementById("kapakAtif");
+  if (u.commons){
+    /* Lisans baglantisi KAPAKTA DA duruyor: fotograf buyudu diye atif
+       kaybolamaz. */
+    atif.innerHTML = kacir(f.yazar) + " · " +
+      '<a href="' + kacir(guvenliBag(f.kaynak_bag)) + '" target="_blank" ' +
+      'rel="noopener">' + kacir(f.lisans) + "</a> · Wikimedia Commons";
+    atif.hidden = false;
+  } else if (f.kaynak === "sahip"){
+    atif.textContent = "işletmeden";
+    atif.hidden = false;
+  } else {
+    atif.textContent = "";
+    atif.hidden = true;
+  }
+  bol.hidden = false;
+}
+
 async function galeriKatmani(mekanId, mekanAd, ilKod){
   const bol = document.getElementById("galeri");
   const serit = document.getElementById("galeriSerit");
@@ -1030,6 +1102,7 @@ async function galeriKatmani(mekanId, mekanAd, ilKod){
     const html = l.map(fotoKutusu).filter(Boolean).join("");
     serit.innerHTML = html;
     bol.hidden = !html;
+    kapagiCiz(l, mekanAd);
   }
   await ciz();
 

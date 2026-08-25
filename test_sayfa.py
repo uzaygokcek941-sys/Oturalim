@@ -286,6 +286,13 @@ GIRISLI = [
    # (Noktali I gelmesi ayrica lang="tr"nin dogru calistigini gosteriyor.)
    ["Bir Fotografci", "CC BY-SA 4.0", "İŞLETMEDEN", "Buranın fotoğrafı var mı"],
    ["kul-1"]),
+  # KAPAK: maketteki ust fotograf. Sekmeye bagli DEGIL -- basligin
+  # parcasi, yani sekme tiklamadan gorunmeli. Kapak seritteki ilk
+  # UYGUN kareyi aliyor ve ATFI da tasiyor: fotograf buyudu diye
+  # lisans satiri kaybolamaz. Taklit veride ilk kare "sahip"
+  # kaynakli, o yuzden "işletmeden" bekleniyor.
+  ("isletme.html/kapak", "/isletme.html?il=34&id=node/8223784325", None,
+   ["işletmeden"], ["kul-1"]),
   # Isletme sayfasi: kalem ve fotograf ayri ayri cizilmeli.
   ("isletme.html/menu", "/isletme.html?il=34&id=node/8223784325", None,
    ["Kullanıcıların eklediği fiyatlar", "Latte", "Menüyü görüyor musun"],
