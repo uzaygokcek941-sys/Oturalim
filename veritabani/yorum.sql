@@ -1,5 +1,5 @@
 -- ============================================================
--- Oturalım — mekan yorumları
+-- Cebimde — mekan yorumları
 --
 -- Supabase panelinde SQL Editor'e yapıştırıp bir kez çalıştır.
 -- Tekrar çalıştırılabilir. sema.sql ve profil.sql'den SONRA.

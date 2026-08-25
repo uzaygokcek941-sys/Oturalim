@@ -104,7 +104,7 @@ def menu_cikar(ham: str, max_ad_uzunluk: int = 60):
 def getir(url: str) -> str:
     r = subprocess.run(
         ["curl", "-sL", "--max-time", "30", "-A",
-         "Mozilla/5.0 (compatible; OturalimBot/0.1)", url],
+         "Mozilla/5.0 (compatible; CebimdeBot/0.1)", url],
         capture_output=True, text=True, encoding="utf-8", errors="replace")
     return r.stdout or ""
 

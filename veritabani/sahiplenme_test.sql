@@ -1,5 +1,5 @@
 -- ============================================================
--- Oturalım — sahiplenme davranış testi (gerçek Postgres'te)
+-- Cebimde — sahiplenme davranış testi (gerçek Postgres'te)
 --
 -- Bu dosya kurulum SQL'i DEGIL. Sahiplenme akisinin guvenlik
 -- ozelliklerini gercek bir Postgres'te sinar. Supabase'e yapistirma.

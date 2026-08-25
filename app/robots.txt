@@ -16,4 +16,4 @@ Disallow: /hesabim.html
 Disallow: /yonetim.html
 
 # Sitemap satiri alan adi belli olunca site_haritasi.py tarafindan yazilir.
-Sitemap: https://oturalim.vercel.app/sitemap.xml
+Sitemap: https://cebimde.vercel.app/sitemap.xml

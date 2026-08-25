@@ -1,5 +1,5 @@
 -- ============================================================
--- Oturalım — menü ve ürün paylaşımı (fotoğraflı)
+-- Cebimde — menü ve ürün paylaşımı (fotoğraflı)
 --
 -- Supabase panelinde SQL Editor'e yapıştırıp bir kez çalıştır.
 -- Tekrar çalıştırılabilir. sema.sql'den SONRA.

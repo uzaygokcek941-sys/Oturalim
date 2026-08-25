@@ -464,6 +464,97 @@ def yayin_basliklari_mi():
     return s
 
 
+def _kontrast(a, b):
+    """WCAG kontrast orani. Iki onaltilik renk."""
+    def kanal(c):
+        return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+    def parlaklik(h):
+        h = h.lstrip("#")
+        r, g, bl = (kanal(int(h[i:i+2], 16) / 255) for i in (0, 2, 4))
+        return 0.2126 * r + 0.7152 * g + 0.0722 * bl
+    x, y = sorted((parlaklik(a), parlaklik(b)), reverse=True)
+    return (x + 0.05) / (y + 0.05)
+
+
+def palet_okunur_mu():
+    """Marka paletinin OKUNUR kaldigini olcer.
+
+    Renk degistirmek en kolay ve en sessiz kirma yollarindan biri: sayfa
+    acilir, her sey calisir, sadece yazi okunmaz. Bu kontrol degerleri
+    stil.css'ten OKUYUP hesapliyor -- elle yazilmis bir liste ilk renk
+    degisiminde eskirdi.
+
+    Marka kilavuzunun ekran maketlerinde turuncu dugmenin uzerinde BEYAZ
+    yazi vardi ve olculdugunde 2,61:1 cikti (esik 4,5). Renk degil
+    MUREKKEP degistirildi; bu kontrol o karari tutuyor.
+    """
+    s = []
+    css = oku("app", "stil.css")
+
+    def belirtec(blok, ad):
+        m = re.search(r"--%s:\s*(#[0-9a-fA-F]{6})" % re.escape(ad), blok)
+        return m.group(1) if m else None
+
+    koyu = css[css.index(":root{"):css.index("@media (prefers-color-scheme:light)")]
+    acik = css[css.index(':root[data-tema="acik"]{'):]
+    acik = acik[:acik.index("}")]
+
+    # (blok adi, blok, zemin, metin ciftleri)
+    for ad, blok in (("koyu", koyu), ("acik", acik)):
+        zemin = belirtec(blok, "zemin")
+        marka = belirtec(blok, "marka")
+        murekkep = belirtec(blok, "vurgu-metin")
+        if not (zemin and marka and murekkep):
+            s.append("%s tema: --zemin/--marka/--vurgu-metin okunamadi" % ad)
+            continue
+        for etiket, renk, esik in (("metin", belirtec(blok, "metin"), 4.5),
+                                   ("metin-2", belirtec(blok, "metin-2"), 4.5),
+                                   ("vurgu", belirtec(blok, "vurgu"), 4.5),
+                                   ("yesil", belirtec(blok, "yesil"), 4.5),
+                                   ("kirmizi", belirtec(blok, "kirmizi"), 4.5),
+                                   ("sari", belirtec(blok, "sari"), 4.5)):
+            if not renk:
+                s.append("%s tema: --%s yok" % (ad, etiket)); continue
+            o = _kontrast(renk, zemin)
+            if o < esik:
+                s.append("%s tema: --%s (%s) zemin uzerinde %.2f:1, en az %.1f olmali"
+                         % (ad, etiket, renk, o, esik))
+        # Dugme: MARKA zemininde vurgu-metin murekkebi.
+        o = _kontrast(murekkep, marka)
+        if o < 4.5:
+            s.append("%s tema: dugme yazisi (%s) marka zemininde (%s) %.2f:1"
+                     % (ad, murekkep, marka, o))
+
+    # Marka rengi IKI TEMADA DA ayni olmali: dugme rengi temaya gore
+    # degisirse marka degisir.
+    if belirtec(koyu, "marka") != belirtec(acik, "marka"):
+        s.append("--marka iki temada farkli: %s / %s"
+                 % (belirtec(koyu, "marka"), belirtec(acik, "marka")))
+
+    # Iki ACIK TEMA blogu (sistem tercihi + elle secim) ayni degerleri
+    # tasimali; ayrisirlarsa elle secilen tema sistemden farkli gorunur.
+    sistem = css[css.index("@media (prefers-color-scheme:light)"):
+                 css.index(':root[data-tema="acik"]{')]
+    ayikla = lambda b: sorted(re.findall(r"(--[\w-]+):\s*([^;]+);", b))
+    a1, a2 = ayikla(sistem), ayikla(acik)
+    if a1 != a2:
+        fark = set(a1) ^ set(a2)
+        s.append("iki acik tema blogu ayrisiyor: %s" % sorted(fark)[:4])
+
+    # Eski paletten kalan sabit renk olmamali.
+    ESKI = ("f08a3c", "15110e", "1d1815", "272019", "f4efe7", "a2957f",
+            "332a21", "453a2d", "d9701f", "3d2413", "b3a695", "fbf7f0")
+    for y in sorted(glob.glob(os.path.join(KOK, "app", "*.html")) +
+                    glob.glob(os.path.join(KOK, "app", "*.css")) +
+                    glob.glob(os.path.join(KOK, "app", "*.js"))):
+        metin = io.open(y, encoding="utf-8").read().lower()
+        kalan = [c for c in ESKI if "#" + c in metin]
+        if kalan:
+            s.append("%s eski paletten renk tasiyor: %s"
+                     % (os.path.basename(y), ", ".join(kalan)))
+    return s
+
+
 def pwa_tutarli_mi():
     """Manifest, service worker ve Play parcalari birbirini tutuyor mu.
 
@@ -833,6 +924,7 @@ def main():
     kayit("degismez: sahne perdesi acilabiliyor", sahne_tutarli_mi())
     kayit("degismez: yayin yapilandirmasi", yayin_basliklari_mi())
     kayit("degismez: PWA ve Play parcalari", pwa_tutarli_mi())
+    kayit("degismez: marka paleti okunur", palet_okunur_mu())
     kayit("degismez: kurulum dosyalari depoda", kurulum_dosyalari_izleniyor_mu())
     kayit("degismez: donus adresi ve gunun tarihi", adres_ve_tarih_mi())
     kayit("degismez: sir sizmamis", sirlar_sizmis_mi())

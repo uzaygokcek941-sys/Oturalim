@@ -1,5 +1,5 @@
 /* ============================================================
-   Oturalım — sahne katmanı
+   Cebimde — sahne katmanı
    Sinematik dil: Chungking Express (1994), Wong Kar-wai.
    Çekirdek fikir: step-printing. Film 6 kare/sn çekilip her kare
    dörtlenmiş; sonuçta öndeki özne net kalırken arkası algılanamaz
@@ -13,14 +13,14 @@
    dukkandan karanlik sokaga bakmak. Bej zemine neon izi dusurmek filmin
    de urunun de mantigina aykiri olurdu. Cerceve ICI temayi izler. */
 .sahne{
-  --zemin:#15110e;   --zemin-2:#1d1815;   --zemin-3:#272019;
-  --metin:#f4efe7;   --metin-2:#a2957f;   --metin-3:#a2957f;
-  --cizgi:#332a21;   --cizgi-2:#453a2d;
-  --vurgu:#f08a3c;   --vurgu-koyu:#d9701f; --vurgu-los:#3d2413;
-  --vurgu-metin:#1a0e04;
-  --neon-sari:#ffd24a; --neon-sari-los:rgba(255,210,74,.14);
-  --neon-yesil:#4ad9a0;
-  --asfalt:#0d0a08;  --grain:.035;
+  --zemin:#0f172a;   --zemin-2:#16213b;   --zemin-3:#1e2b47;
+  --metin:#f8fafc;   --metin-2:#94a3b8;   --metin-3:#94a3b8;
+  --cizgi:#24314f;   --cizgi-2:#33425f;
+  --vurgu:#ff7a00;   --vurgu-koyu:#e06a00; --vurgu-los:#3a2408;
+  --vurgu-metin:#1a0e00;
+  --neon-sari:#ffb74d; --neon-sari-los:rgba(255,183,77,.14);
+  --neon-yesil:#00bfa6;
+  --asfalt:#070c17;  --grain:.035;
   color:var(--metin);
 
   position:relative;
@@ -252,7 +252,7 @@
   position:absolute; left:0; top:50%;
   height:1px; transform:translateY(-50%);
   width:calc(5px + var(--uzak,0) * 24px);
-  background:var(--vurgu);
+  background:var(--marka);
   opacity:calc(.9 - var(--uzak,0) * .5);
   transition:width var(--hiz) var(--egri);
 }

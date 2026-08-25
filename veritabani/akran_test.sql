@@ -1,5 +1,5 @@
 -- ============================================================
--- Oturalım — bütçe akranları / civar fişi davranış testi
+-- Cebimde — bütçe akranları / civar fişi davranış testi
 --
 -- Bu dosya kurulum SQL'i DEGIL. Supabase'e yapistirma.
 -- Kosumu: sh veritabani/kos.sh  (test.py ve CI onu cagiriyor)

@@ -1,5 +1,5 @@
 /* ============================================================
-   Oturalım — tüm sayfaların paylaştığı davranış
+   Cebimde — tüm sayfaların paylaştığı davranış
    Tema, açılış saati mantığı, biçimlendirme, kohort ölçümü.
    Bağımlılık yok. Her sayfa <script src="ortak.js" defer> ile alır.
    ============================================================ */
@@ -7,7 +7,7 @@
 /* ---------- tema ----------
    Seçim <head> içindeki küçük satır içi betikle uygulanıyor (FOUC olmasın).
    Buradaki iş yalnızca düğmeye davranış vermek. */
-const TEMA_ANAHTAR = "oturalim.tema";
+const TEMA_ANAHTAR = "cebimde.tema";
 
 function temaUygula(t){
   if (t === "acik" || t === "koyu") document.documentElement.dataset.tema = t;
@@ -21,7 +21,7 @@ function temaUygula(t){
     if (gunes) gunes.hidden = koyuMu;
   });
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.content = koyuMu ? "#15110e" : "#fbf7f0";
+  if (meta) meta.content = koyuMu ? "#0f172a" : "#ffffff";
 }
 
 function temaKur(){
@@ -606,7 +606,7 @@ const SOSYAL = {
 
 const sosyalAlanVar = a => Object.prototype.hasOwnProperty.call(SOSYAL, a);
 
-/* Değer ya kullanıcı adı ("oturalim") ya tam adres. Tam adres geldiyse
+/* Değer ya kullanıcı adı ("cebimde") ya tam adres. Tam adres geldiyse
    olduğu gibi kullanılıyor -- kullanıcı adını ayıklamaya çalışmak,
    /p/, /pages/ gibi biçimlerde yanlış adres üretirdi. */
 function sosyalBag(alan, deger){
@@ -902,7 +902,7 @@ function seviye(m, bugun){
 /* ---------- kohort ölçümü ----------
    Çerezsiz ve sunucusuz: yalnız localStorage, yalnız bu cihaz.
    Hangi günlerde açıldığı tutuluyor; D1/D7/D30 buradan hesaplanıyor. */
-const KOHORT = "oturalim.kohort";
+const KOHORT = "cebimde.kohort";
 const BIRGUN = 86400000;
 const bugunISO = () => bugunYerel();   /* yerel gun: gerekce bugunYerel()'de */
 const gunFarki = (a,b) => Math.round((Date.parse(b) - Date.parse(a)) / BIRGUN);
@@ -1182,9 +1182,9 @@ function kendiniKontrolEt(){
     ["katki tel bosluklu",  katkiSorunu("tel", "+90 532 123 45 67"),     null],
     ["katki tel kisa elenir", typeof katkiSorunu("tel", "12345"),        "string"],
     ["katki adres kisa elenir", typeof katkiSorunu("adres", "abc"),      "string"],
-    ["katki web tam bag",   katkiSorunu("web", "instagram.com/oturalim"), null],
+    ["katki web tam bag",   katkiSorunu("web", "instagram.com/cebimde"), null],
     ["katki web https",     katkiSorunu("web", "https://a.com/b"),       null],
-    ["katki web handle elenir", typeof katkiSorunu("web", "@oturalim"),  "string"],
+    ["katki web handle elenir", typeof katkiSorunu("web", "@cebimde"),  "string"],
     ["katki bos elenir",    typeof katkiSorunu("adres", "  "),           "string"],
     ["katki bilinmeyen alan elenir",
       typeof katkiSorunu("menu", "100"),                                 "string"],
@@ -1241,9 +1241,9 @@ function kendiniKontrolEt(){
 
     /* sosyal: kullanici adi da tam adres de kabul, sema denetleniyor */
     ["sosyal kullanici adi",
-      /href="https:\/\/instagram\.com\/oturalim"/.test(sosyalBag("insta","oturalim")), true],
+      /href="https:\/\/instagram\.com\/cebimde"/.test(sosyalBag("insta","cebimde")), true],
     ["sosyal @ isareti temizlenir",
-      /instagram\.com\/oturalim"/.test(sosyalBag("insta","@oturalim")),       true],
+      /instagram\.com\/cebimde"/.test(sosyalBag("insta","@cebimde")),       true],
     ["sosyal tam adres korunur",
       /href="https:\/\/facebook\.com\/p\/x-123"/.test(
         sosyalBag("facebook","https://facebook.com/p/x-123")),               true],

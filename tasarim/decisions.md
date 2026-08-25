@@ -6,7 +6,7 @@
 
 Seçim gerekçesi tesadüf değil: filmin ikinci hikâyesi **Midnight Express** adlı
 ayaküstü bir yemek büfesinde geçer. Kalabalık bir şehirde yalnız insanlar,
-gece açık bir tezgâh, oraya uğrayıp birbirine değme. Oturalım'ın sorduğu soru
+gece açık bir tezgâh, oraya uğrayıp birbirine değme. Cebimde'nin sorduğu soru
 bu — "bu akşam nereye oturayım".
 
 ### Araştırma notu (web, doğrulanmış)

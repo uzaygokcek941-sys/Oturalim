@@ -1,5 +1,5 @@
 -- ============================================================
--- Oturalım — işletme sahiplenme (Faz 4)
+-- Cebimde — işletme sahiplenme (Faz 4)
 --
 -- Supabase panelinde SQL Editor'e yapıştırıp bir kez çalıştır.
 -- Tekrar çalıştırılabilir: her şey "if not exists" / "or replace".

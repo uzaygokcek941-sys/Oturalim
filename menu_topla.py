@@ -26,7 +26,7 @@ from menu_cikar import menu_cikar
 ISCI = 16              # es zamanli alan adi; her alan adina yine tek istek gidiyor
 ZAMAN_ASIMI = "25"     # paralel calistigi icin uzun zaman asimi duvar saatine
                        # neredeyse hic mal olmuyor; 12sn'de yavas siteler dusuyordu
-UA = "Mozilla/5.0 (compatible; OturalimBot/0.1)"
+UA = "Mozilla/5.0 (compatible; CebimdeBot/0.1)"
 
 WOO_UCLARI = ("/wp-json/wc/store/v1/products?per_page=100",
               "/wp-json/wc/store/products?per_page=100")

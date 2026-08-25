@@ -1,5 +1,5 @@
 -- ============================================================
--- Oturalım — genişletilmiş profil
+-- Cebimde — genişletilmiş profil
 --
 -- Supabase panelinde SQL Editor'e yapıştırıp bir kez çalıştır.
 -- Tekrar çalıştırılabilir: her şey "if not exists" / "or replace".

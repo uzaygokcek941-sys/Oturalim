@@ -24,7 +24,7 @@ BIN=$(ls -d /usr/lib/postgresql/*/bin 2>/dev/null | sort -V | tail -1)
 [ -n "$BIN" ] || { echo "ATLANDI: postgres yok"; exit 0; }
 command -v psql >/dev/null || { echo "ATLANDI: psql yok"; exit 0; }
 
-DIZIN=${PGTMP:-/tmp/oturalim-pg}
+DIZIN=${PGTMP:-/tmp/cebimde-pg}
 PORT=${PGPORT_TEST:-5433}
 rm -rf "$DIZIN"; mkdir -p "$DIZIN"
 # initdb root olarak kosmuyor; root isek postgres kullanicisina devrediyoruz.

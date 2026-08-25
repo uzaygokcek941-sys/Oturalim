@@ -1,24 +1,56 @@
 {
   "id": "/",
-  "name": "Oturalım — bütçene göre otur",
-  "short_name": "Oturalım",
-  "description": "81 ilde 35.852 mekan. Bütçeni yaz, nereye gidebileceğini gör. Fiyatı gidenler yazıyor.",
+  "name": "Cebimde — cebindeki bütçeyle keşfet",
+  "short_name": "Cebimde",
+  "description": "Cebindeki bütçeyle keşfet. 81 ilde 35.852 mekan; bütçeni yaz, nereye gidebileceğini gör. Fiyatı gidenler yazıyor.",
   "lang": "tr",
   "dir": "ltr",
   "start_url": "/index.html",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#15110e",
-  "theme_color": "#15110e",
-  "categories": ["food", "lifestyle", "travel"],
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "categories": [
+    "food",
+    "lifestyle",
+    "travel"
+  ],
   "icons": [
-    { "src": "ikon/ikon-192.png",       "sizes": "192x192",   "type": "image/png", "purpose": "any" },
-    { "src": "ikon/ikon-512.png",       "sizes": "512x512",   "type": "image/png", "purpose": "any" },
-    { "src": "ikon/ikon-maske-512.png", "sizes": "512x512",   "type": "image/png", "purpose": "maskable" },
-    { "src": "ikon/ikon-1024.png",      "sizes": "1024x1024", "type": "image/png", "purpose": "any" }
+    {
+      "src": "ikon/ikon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "ikon/ikon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "ikon/ikon-maske-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "ikon/ikon-1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    }
   ],
   "shortcuts": [
-    { "name": "Keşfet",       "short_name": "Keşfet", "url": "/kesfet.html" },
-    { "name": "Fiyat paylaş", "short_name": "Paylaş", "url": "/paylas.html" }
+    {
+      "name": "Keşfet",
+      "short_name": "Keşfet",
+      "url": "/kesfet.html"
+    },
+    {
+      "name": "Fiyat paylaş",
+      "short_name": "Paylaş",
+      "url": "/paylas.html"
+    }
   ]
 }

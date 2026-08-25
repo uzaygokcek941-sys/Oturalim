@@ -71,7 +71,7 @@ def tarih_coz(s):
 
 def cek(sehir_id, tur_id):
     url = "%s?turIds=%s&sehirIds=%d" % (RSS, tur_id, sehir_id)
-    r = subprocess.run(["curl", "-s", "--max-time", "40", "-A", "Oturalim/0.1", url],
+    r = subprocess.run(["curl", "-s", "--max-time", "40", "-A", "Cebimde/0.1", url],
                        capture_output=True)
     if r.returncode != 0 or not r.stdout:
         return None

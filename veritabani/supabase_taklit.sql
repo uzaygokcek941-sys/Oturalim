@@ -1,5 +1,5 @@
 -- ============================================================
--- Oturalım — Supabase taklidi (yalnız TEST icin)
+-- Cebimde — Supabase taklidi (yalnız TEST icin)
 --
 -- Supabase'in kurulum SQL'lerinin dayandigi seyleri bos bir Postgres'te
 -- kurar: auth semasi, auth.uid(), anon/authenticated rolleri ve varsayilan

@@ -1,5 +1,5 @@
 -- ============================================================
--- Oturalım — işletme sayfası görüntülenme sayacı
+-- Cebimde — işletme sayfası görüntülenme sayacı
 --
 -- Supabase panelinde SQL Editor'e yapıştırıp bir kez çalıştır.
 -- Tekrar çalıştırılabilir: her şey "if not exists" / "or replace".

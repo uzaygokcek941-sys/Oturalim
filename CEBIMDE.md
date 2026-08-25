@@ -1,6 +1,6 @@
-# Oturalım
+# Cebimde
 
-> **Bütçene göre otur.**
+> **Cebindeki bütçeyle keşfet.**
 
 Çankaya (Ankara) ile başlıyor, sonra tüm Türkiye.
 
@@ -16,8 +16,8 @@ fiyat keşfi olarak devam ediyor.
 
 | Karar | Değer |
 |---|---|
-| Ürün adı | **Oturalım** |
-| Slogan | Bütçene göre otur. |
+| Ürün adı | **Cebimde** |
+| Slogan | Cebindeki bütçeyle keşfet. |
 | İlk semt | **Çankaya, Ankara** → sonra 81 il |
 | Ürünün tek işi | *Bütçeme göre nereye gidilir* |
 | Odak süresi | 3 ay, tek ürün |
@@ -123,14 +123,14 @@ Günde 1. Telefonla çek, kurgu yok. Kapanış çağrısı: **"Uygulamada hepsi 
 ## İlerleme
 
 ### Bu 48 saat
-- [ ] `@oturalim` Instagram ve TikTok handle'ını al *(hesap senin, kod tarafı yok)*
+- [ ] `@cebimde` Instagram ve TikTok handle'ını al *(hesap senin, kod tarafı yok)*
 - [x] Bio yazıldı — **eski taslak iki yerinden yanlıştı** ve düzeltildi:
       ~~"Çankaya'da bütçene göre nereye gidilir. 724 mekan, gerçek fiyatlar."~~
       724 → **35.852** (uygulama Çankaya'yı aştı, 81 il), ve *"gerçek fiyatlar"*
       abartı: 35.852 mekanın **291'inde** menü fiyatı var (%0,81). Manşete
       çıkarmak, gelen kullanıcının ilk açtığı on mekanda fiyat görmemesi
       demekti — *yanlış fiyat, fiyat olmamasından kötü* kuralı vaat için de
-      geçerli. Yerine: **"Bütçene göre otur. 81 ilde 35.852 mekan. Fiyatı
+      geçerli. Yerine: **"Cebindeki bütçeyle keşfet. 81 ilde 35.852 mekan. Fiyatı
       gidenler yazıyor."** Son cümle katkı çağrısını bio'nun içine koyuyor.
 - [x] İlk 3 içeriğin çekim notu hazır (`icerik_ilk3.md`) — hook, gövde,
       kapanış ve her rakam depodan **sayılarak**. 11 numaralı fikrin hook'u
@@ -270,7 +270,7 @@ yeni anon anahtar `app/yapilandirma.js` içine yazılmalı.
 
 **KVKK:** `gizlilik.html` hesap bölümüyle güncellendi, `hakkinda.html`'deki
 "üyelik yok" satırı "zorunlu üyelik yok" olarak düzeltildi. Yayın öncesi
-`iletisim@oturalim.app` yer tutucusu gerçek adresle değişmeli (3 dosya).
+`iletisim@cebimde.app` yer tutucusu gerçek adresle değişmeli (3 dosya).
 
 Yerelde çalıştırmak için: `python -m http.server 8123 --directory app`
 
@@ -288,7 +288,7 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
 - [x] `sema.sql`, `sayac.sql`, `katki.sql` Supabase'de çalıştırıldı (2026-08-23)
 - [x] `profil.sql`, `yorum.sql`, `menu_katki.sql`, `mekan_foto.sql`, `akran.sql`
       çalıştırıldı (2026-08-25)
-- [ ] `@oturalim` handle (Instagram + TikTok) — **bio ve ilk 3 içeriğin notu
+- [ ] `@cebimde` handle (Instagram + TikTok) — **bio ve ilk 3 içeriğin notu
       hazır** (`icerik_ilk3.md`); kalan tek şey hesabı açmak
 - [ ] Vercel yayını
 - [ ] `python kutuphane_al.py` — supabase-js'i yerele al (1 dk, `KURULUM.md`)
@@ -1142,6 +1142,101 @@ panel giriş sayfasına yönlenir ve form hiç ölçülmezdi.
 düştüm: beklenti olarak `isletmem.html` yazmıştım ama o bir `href`,
 `inner_text`'te geçmiyor — görünen metne çevrildi. (Galeri atfında ve
 "gerçekten ödenen" kutusunda da aynısı olmuştu.)
+
+---
+
+## 2026-08-25 — Marka değişti: Oturalım → Cebimde
+
+Ad, renk, logo, yazı tipi ve slogan marka kılavuzuna göre değişti.
+**Cebindeki bütçeyle keşfet.**
+
+### Ölçüm bir marka kararını değiştirdi
+
+Kılavuzun ekran maketlerinde turuncu düğmenin üstünde **beyaz** yazı var.
+Ölçtüm: `#FF7A00` üzerinde beyaz **2,61:1** — WCAG'in 4,5 eşiğinin çok
+altında. Düğme yazısı okunmayacaktı.
+
+**Rengi değiştirmedim, mürekkebi değiştirdim:** düğme tam marka
+turuncusu kalıyor, üstündeki yazı koyu (`#1A0E00`, **7,26:1**). Marka
+bozulmadı, okunurluk da bozulmadı.
+
+Bu ayrım iki token gerektirdi:
+
+| Token | Ne | Temaya göre |
+|---|---|---|
+| `--marka` | Düğme zemini, logo, grafik | **Sabit** `#FF7A00` |
+| `--vurgu` | **Metin** rengi | Koyuda `#FF7A00`, açıkta `#C2410C` |
+
+Ayrım keyfi değil: kodda `--vurgu` **44 yerde `color`**, yalnız 8 yerde
+`background`. Yani asıl işi metin rengi olmak ve beyaz zeminde ham
+turuncu 2,61:1. Sekiz `background` kullanımı `--marka`'ya çevrildi;
+çevirmeseydim açık temada düğme yazısı 3,66:1'e düşerdi.
+
+`test.py` artık paleti **stil.css'ten okuyup hesaplıyor** (31. kontrol
+grubu): her rengin zemin üzerindeki kontrastı, düğme yazısının marka
+zemininde kontrastı, `--marka`'nın iki temada aynı olması, iki açık tema
+bloğunun ayrışmaması ve eski paletten kalan sabit renk olmaması. Beş
+sabotaj denendi, beşi de yakalandı.
+
+### Yazı tipi: Montserrat Rounded **yok**
+
+Kılavuz "Montserrat Rounded" diyor. **O kesim Google Fonts'ta yok** —
+ticari/özel bir kesim. En yakın gerçek eşleşme Montserrat'ın kendisi:
+aynı harf iskeleti, yuvarlatılmamış uçlar. Rounded kesimini satın alırsan
+yerele koyup tek satır değiştiriyorsun; o zaman `fonts.googleapis.com`
+CSP'den de düşebilir.
+
+**Yazı tipi değişimi iki gerçek kusur ortaya çıkardı** — Montserrat,
+önceki Karla/Fraunces çiftinden belirgin geniş:
+
+1. **320 px'te başlık taşıyordu.** Ölçüldü (hakkinda.html): marka 106 +
+   Keşfet 56 + Hakkında 77 + tema 44 = **335 px**, ekran 320. 620 px
+   kırılımı yetmez oldu; 380 px altı için ayrı kırılım kondu ve
+   "Hakkında" düşüyor — "Ana sayfa" gibi, ikisi de **alt bilgide** duruyor.
+2. **Uzun Türkçe kelime satıra sığmıyordu.** Tek bir `h2` 288 px'lik kaba
+   308 px istiyor ve sayfayı 14 px kaydırıyordu. `overflow-wrap:break-word`
+   kondu — yalnız kelime başka türlü sığmıyorsa devreye giriyor.
+
+İkisi de eski markayla **yoktu**; ölçüm olmasa ikisi de yayına çıkardı.
+
+### Logo tek dosyada
+
+Önceki ikon üretici şekli Pillow ile **elde çiziyordu**, yani marka iki
+yerde tanımlıydı: sayfaların favicon'ında ve betikte. Artık iki SVG var
+ve PNG'ler onlardan türetiliyor (Chromium ile):
+
+- `app/marka.svg` — logo işareti (turuncu iğne, cüzdandan çıkan kartlar)
+- `app/marka-ikon.svg` — uygulama ikonu (turuncu zemin, **beyaz** iğne)
+
+İkisi ayrı çünkü işleri ayrı: Android ve iOS ikonu kendi zeminini
+istiyor; logoyu saydam zeminle vermek ana ekranda renksiz bir leke
+bırakırdı. Sayfalar da artık satır içi kopya değil `marka.svg`'yi
+kullanıyor.
+
+### Değişmeyen: "oturulur"
+
+Blanket bir `otur → ceb` değiştirmesi **yapılmadı**. "oturum",
+"kaça oturulur", "oturuyor" markadan bağımsız Türkçe ve **97 yerde**
+geçiyor. Hedefli değiştirme listesi kullanıldı.
+
+Bir kalıntı bu yüzden kaçtı ve ayrıca bulundu: `gizlilik.html`'de e-posta
+konusu **URL-kodluydu** (`Otural%C4%B1m`), düz arama görmedi.
+
+### Kendi testimi kırdım
+
+EXIF sınaması sabit bir base64 bloğu kullanıyordu ve **cihaz adı onun
+içine gömülüydü**. Marka değişince beklenti güncellendi, base64
+güncellenemedi — ikili bir sabitin içindeki metni hiçbir arama görmüyor.
+Kontrol "girdi dosyasında EXIF yok" diye patladı. Sabit yerine **üretici**
+kondu; isim artık tek yerde.
+
+### Yapılmadı, bilerek
+
+Kılavuzdaki **bütçe girişli ana ekran** ("Bugün cebimde: ₺300 →
+kategori → Yakınımda Bul") bu turda yapılmadı; ürün değişikliği, marka
+değişikliği değil. Ana sayfanın alt metni bugünkü davranışı anlatıyor:
+bütçe keşfet ekranında yazılıyor. Tutulmayan bir söz vermektense eksik
+söylemek.
 
 ---
 

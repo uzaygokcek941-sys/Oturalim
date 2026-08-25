@@ -83,7 +83,7 @@ def dogrula(govde):
 
 def indir():
     import urllib.request
-    istek = urllib.request.Request(ADRES, headers={"User-Agent": "oturalim/1.0"})
+    istek = urllib.request.Request(ADRES, headers={"User-Agent": "cebimde/1.0"})
     with urllib.request.urlopen(istek, timeout=60) as c:
         return c.read().decode("utf-8")
 

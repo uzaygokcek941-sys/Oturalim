@@ -1,5 +1,5 @@
 -- ============================================================
--- Oturalım — bütçe akranları ve civar fişi
+-- Cebimde — bütçe akranları ve civar fişi
 --
 -- Supabase panelinde SQL Editor'e yapıştırıp bir kez çalıştır.
 -- Tekrar çalıştırılabilir. sema.sql'den SONRA.

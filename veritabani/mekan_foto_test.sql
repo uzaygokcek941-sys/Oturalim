@@ -1,5 +1,5 @@
 -- ============================================================
--- Oturalım — mekan fotoğrafı davranış testi (gerçek Postgres'te)
+-- Cebimde — mekan fotoğrafı davranış testi (gerçek Postgres'te)
 --
 -- Bu dosya kurulum SQL'i DEGIL. Supabase'e yapistirma.
 -- Kosumu: sh veritabani/kos.sh
@@ -207,7 +207,7 @@ end $$;
 
 \echo '--- 12. kaynak listesi KAPALI (Google Maps vb. giremez)'
 -- Serbest metin olsaydi yayimlama hakki olmayan bir kaynak sessizce
--- eklenebilirdi. OTURALIM.md "Yapilmayacaklar" listesindeki karar.
+-- eklenebilirdi. CEBIMDE.md "Yapilmayacaklar" listesindeki karar.
 reset role;
 do $$
 begin

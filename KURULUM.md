@@ -1,4 +1,4 @@
-# Oturalım — giriş sistemi kurulumu
+# Cebimde — giriş sistemi kurulumu
 
 Site şu an giriş sistemi **olmadan da tam çalışıyor**. Aşağıdaki adımları
 yapana kadar giriş, favori ve paylaşım özellikleri kapalı görünür; mekan
@@ -12,7 +12,7 @@ Toplam süre: ~15 dakika. Ücret yok, kart istenmiyor.
 
 1. [supabase.com](https://supabase.com) → **Start your project** → GitHub ile giriş yap.
 2. **New project**:
-   - **Name:** `oturalim`
+   - **Name:** `cebimde`
    - **Database password:** güçlü bir parola üret ve bir yere kaydet
      (bunu bir daha göremezsin; site için gerekmiyor ama veritabanına
      doğrudan bağlanmak istersen lazım olur)
@@ -99,7 +99,7 @@ Toplam süre: ~15 dakika. Ücret yok, kart istenmiyor.
 3. `app/yapilandirma.js` dosyasını aç ve doldur:
 
 ```js
-window.OTURALIM = {
+window.CEBIMDE = {
   supabaseUrl: "https://xxxxx.supabase.co",
   supabaseAnahtar: "eyJhbGciOi..."
 };
@@ -199,7 +199,7 @@ Biri tutmazsa dosya yazılmıyor ve var olan dosyaya dokunulmuyor.
 Çalıştırmazsan site normal çalışır — yalnız kütüphane CDN'den gelmeye
 devam eder.
 
-## Site haritası — YAPILDI (oturalim.vercel.app)
+## Site haritası — YAPILDI (cebimde.vercel.app)
 
 `sitemap.xml` mutlak adres istiyor, o yüzden depoda hazır durmuyor —
 uydurulmuş alan adıyla üretilmiş bir site haritası, üretilmemiş olandan
@@ -207,7 +207,7 @@ kötüdür. Üretildi ve depoda: `app/sitemap.xml` (12.287 URL) + `app/robots.tx
 Veri büyüdükçe yeniden çalıştır — `Sitemap:` satırı çoğalmıyor, ölçüldü:
 
 ```bash
-python site_haritasi.py oturalim.vercel.app --isletmeler
+python site_haritasi.py cebimde.vercel.app --isletmeler
 ```
 
 Bu iki dosyayı yazar ve **ikisi de depoya girmeli** (derleme adımı yok,

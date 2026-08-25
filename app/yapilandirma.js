@@ -1,5 +1,5 @@
 /* ============================================================
-   Oturalım — Supabase bağlantı ayarları
+   Cebimde — Supabase bağlantı ayarları
 
    Buraya kendi projenin iki değerini yapıştır:
      Supabase paneli → Project Settings → API
@@ -17,7 +17,7 @@
    tamamen atlar; tarayıcıya inerse bütün veri savunmasız kalır.
    ============================================================ */
 
-window.OTURALIM = {
+window.CEBIMDE = {
   supabaseUrl: "https://zlhlstfnayoaytoqmmcw.supabase.co",
   /* Sahiplenme hattı. Ayrı, faturasız bir numara olmalı — kişisel
      hattını yazma. Boş kaldığı sürece işletme sayfası normal çalışır,

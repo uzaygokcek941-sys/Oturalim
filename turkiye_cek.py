@@ -89,7 +89,7 @@ def cek(kod):
     for deneme in range(1, DENEME + 1):
         r = subprocess.run(
             ["curl", "-s", "-o", yol, "-w", "%{http_code}", "--max-time", "400",
-             "-A", "Oturalim/0.1", "--data-urlencode", f"data={sorgu(kod)}", ENDPOINT],
+             "-A", "Cebimde/0.1", "--data-urlencode", f"data={sorgu(kod)}", ENDPOINT],
             capture_output=True, text=True)
         kod_http = r.stdout.strip()
         if kod_http == "200" and gecerli_json(yol):

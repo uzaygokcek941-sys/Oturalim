@@ -1,5 +1,5 @@
 /* ============================================================
-   Oturalım — sahne motoru
+   Cebimde — sahne motoru
    Chungking Express'in step-printing tekniği: film 6 kare/sn çekilip
    her kare dörtlenmis. Netice — onde duran net kalir, arka plan
    algilanamaz hizda akar.
@@ -133,7 +133,7 @@ function sokagiKur(){
 
   function tekKare(){
     // Az-hareket modu: akis yok, tek bir durgun kare.
-    ctx.fillStyle = "#0d0a08"; ctx.fillRect(0, 0, g, y);
+    ctx.fillStyle = "#070c17"; ctx.fillRect(0, 0, g, y);
     hiz = 0.14;
     for (const iz of izler){
       ctx.strokeStyle = "rgba(" + iz.r + "," + (iz.a * 0.8) + ")";

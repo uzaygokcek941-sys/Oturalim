@@ -45,7 +45,7 @@ HEDEF = os.path.join(KOK, "app", ".well-known", "assetlinks.json")
 
 # Play'de yayimlandiktan SONRA DEGISTIRILEMEZ. Ilk yuklemeden once karar
 # ver; degistirmek yeni bir uygulama yayimlamak demek.
-PAKET = "com.oturalim.app"
+PAKET = "com.cebimde.app"
 
 PARMAK = re.compile(r"^(?:[0-9A-F]{2}:){31}[0-9A-F]{2}$")
 

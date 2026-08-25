@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>İşletmem — Oturalım</title>
+<title>İşletmem — Cebimde</title>
 <meta name="robots" content="noindex">
-<meta name="theme-color" content="#15110e">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2315110e'/%3E%3Cpath d='M20 16v12a12 12 0 0 0 24 0V16' stroke='%23f08a3c' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3Cpath d='M32 40v10' stroke='%23f08a3c' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#0f172a">
+<link rel="icon" href="marka.svg" type="image/svg+xml">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="ikon/ikon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Oturalım">
+<meta name="apple-mobile-web-app-title" content="Cebimde">
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -24,7 +24,7 @@
    sahne.js'i hic yuklemiyordu. */
 setTimeout(function(){if(!window.__sahneHazir)document.documentElement.classList.remove("js-sahne");},2000);</script>
 <script>
-try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.dataset.tema=t;}catch(e){}
+try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dataset.tema=t;}catch(e){}
 </script>
 <style>
   .im-bas{display:flex;align-items:flex-start;justify-content:space-between;
@@ -94,13 +94,9 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
 
 <header class="ust">
   <div class="kap">
-    <a class="marka" href="index.html" aria-label="Oturalım ana sayfa">
-      <svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
-        <rect width="64" height="64" rx="14" fill="currentColor" opacity=".08"/>
-        <path d="M20 16v12a12 12 0 0 0 24 0V16" stroke="#f08a3c" stroke-width="5" stroke-linecap="round"/>
-        <path d="M32 40v10" stroke="#f08a3c" stroke-width="5" stroke-linecap="round"/>
-      </svg>
-      <span>Otur<em>alım</em></span>
+    <a class="marka" href="index.html" aria-label="Cebimde ana sayfa">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="mg" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#ffa03a"/><stop offset="1" stop-color="#f4690a"/></linearGradient></defs><g transform="rotate(-14 26 11)"><rect x="13" y="3.2" width="26" height="7.2" rx="2.2" fill="#00bfa6"/><rect x="11" y="6.6" width="28" height="7.2" rx="2.2" fill="#ffb74d"/></g><path d="M32 8c-9.6 0-17.4 7.5-17.4 16.8 0 8.8 5.9 15.1 12.9 23.8 1.9 2.4 4.5 5.6 4.5 5.6s2.6-3.2 4.5-5.6c7-8.7 12.9-15 12.9-23.8C49.4 15.5 41.6 8 32 8Z" fill="url(#mg)"/><circle cx="32" cy="25.4" r="9.1" fill="#fff"/><g stroke="#f4690a" stroke-width="1.75" stroke-linecap="round"><path d="M27.5 20.1v3.3M29.4 20.1v3.3M31.3 20.1v3.3"/><path d="M29.4 23.4v7.2"/><path d="M35.9 20.1v4.4" stroke-width="3.3"/><path d="M35.9 24.2v6.4"/></g></svg>
+      <span>Ceb<em>imde</em></span>
     </a>
     <nav class="menu" aria-label="Ana menü">
       <a href="index.html">Ana sayfa</a>
@@ -417,10 +413,10 @@ el("#kodForm").addEventListener("submit", async olay => {
   /* Girişte kod kullanıldıysa müjdeyi burada veriyoruz; kodun tutmadığı
      hal de aynı yerden bildiriliyor -- iki haber tek yerde. */
   try {
-    const yeni = sessionStorage.getItem("oturalim.yeniSahiplik");
-    const hata = sessionStorage.getItem("oturalim.kodHatasi");
-    sessionStorage.removeItem("oturalim.yeniSahiplik");
-    sessionStorage.removeItem("oturalim.kodHatasi");
+    const yeni = sessionStorage.getItem("cebimde.yeniSahiplik");
+    const hata = sessionStorage.getItem("cebimde.kodHatasi");
+    sessionStorage.removeItem("cebimde.yeniSahiplik");
+    sessionStorage.removeItem("cebimde.kodHatasi");
     if (yeni) uyar("iyi", yeni + " hesabına bağlandı.");
     else if (hata) uyar("hata", hata);
   } catch (e) {}

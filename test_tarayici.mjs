@@ -268,7 +268,7 @@ kosu("kimlik.js (veri katmani, sahte Supabase)", () => {
   const yol = path.join(os.tmpdir(), "kimlik-kontrol-" + process.pid + ".mjs");
   fs.writeFileSync(yol, duzenli);
   globalThis.__sahteIstemci = sahteIstemci;
-  globalThis.window = { OTURALIM: { supabaseUrl: "https://x.test",
+  globalThis.window = { CEBIMDE: { supabaseUrl: "https://x.test",
                                     supabaseAnahtar: "y" } };
   globalThis.document = { querySelectorAll: () => [], addEventListener(){} };
   globalThis.localStorage = { getItem: () => null, setItem(){}, removeItem(){} };

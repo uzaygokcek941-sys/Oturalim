@@ -1,5 +1,5 @@
 /* ============================================================
-   Oturalım — kimlik ve hesap katmanı  (ES modülü)
+   Cebimde — kimlik ve hesap katmanı  (ES modülü)
 
    Supabase ile kayıt / giriş / oturum, favoriler, fiyat paylaşımı
    ve yönetici kararları. Tüm yetki kontrolü veritabanındaki RLS
@@ -9,7 +9,7 @@
    döner ve sayfalar giriş özelliklerini gizler.
    ============================================================ */
 
-const AYAR = (window.OTURALIM || {});
+const AYAR = (window.CEBIMDE || {});
 const ACIK = Boolean(AYAR.supabaseUrl && AYAR.supabaseAnahtar);
 
 let sb = null;

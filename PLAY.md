@@ -1,4 +1,4 @@
-# Google Play — Oturalım
+# Google Play — Cebimde
 
 Uygulama **TWA** (Trusted Web Activity) olarak paketleniyor: Android
 paketinin içinde adres çubuğu olmayan bir Chrome, o da bu siteyi açıyor.
@@ -35,12 +35,12 @@ açılıyor mu.
 ### 0. Önce site yayında olmalı
 
 TWA bir adrese bağlanıyor. `twa-manifest.json` içindeki `host` şu an
-`oturalim.vercel.app`. **Kendi alan adını alacaksan Play'e çıkmadan önce
+`cebimde.vercel.app`. **Kendi alan adını alacaksan Play'e çıkmadan önce
 al** — host'u sonradan değiştirmek yeni bir paket demek.
 
 ### 1. Paket adına karar ver — bu geri alınamaz
 
-`twa-manifest.json` ve `assetlinks_uret.py` içinde `com.oturalim.app`.
+`twa-manifest.json` ve `assetlinks_uret.py` içinde `com.cebimde.app`.
 **Play'de yayımlandıktan sonra paket adı değiştirilemez;** değiştirmek
 yeni bir uygulama yayımlamak, indirmelerin ve yorumların sıfırlanması
 demek. Değiştireceksen şimdi, iki dosyada birden (`test.py` ikisinin
@@ -50,7 +50,7 @@ ayrışmasını hata sayıyor).
 
 ```bash
 npm install -g @bubblewrap/cli
-bubblewrap init --manifest=https://oturalim.vercel.app/manifest.webmanifest
+bubblewrap init --manifest=https://cebimde.vercel.app/manifest.webmanifest
 ```
 
 İlk çalıştırmada JDK ve Android SDK'yı kendisi indiriyor (~1 GB, bir
@@ -111,8 +111,8 @@ tarayıcı gibi görünür.
 
 | Alan | Ne yazılacak |
 |---|---|
-| Uygulama adı | Oturalım |
-| Kısa açıklama | Bütçene göre otur. 81 ilde 35.852 mekan. |
+| Uygulama adı | Cebimde |
+| Kısa açıklama | Cebindeki bütçeyle keşfet. 81 ilde 35.852 mekan. |
 | Tam açıklama | Aşağıda |
 | Uygulama ikonu | `app/ikon/ikon-512.png` |
 | Öne çıkan görsel | 1024×500 — henüz yok, hazırlanmalı |

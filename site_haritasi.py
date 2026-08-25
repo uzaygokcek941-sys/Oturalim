@@ -5,8 +5,8 @@ Alan adi burada SABIT DEGIL, disaridan veriliyor. Sebep: sitemap mutlak URL
 istiyor ve depoda gercek alan adi yazili degil; uydurulmus bir alan adiyla
 uretilmis sitemap, uretilmemis sitemap'ten kotudur.
 
-    python site_haritasi.py oturalim.vercel.app
-    python site_haritasi.py oturalim.vercel.app --isletmeler
+    python site_haritasi.py cebimde.vercel.app
+    python site_haritasi.py cebimde.vercel.app --isletmeler
     python site_haritasi.py test
 
 INCE ICERIK KURALI: --isletmeler verilse bile her mekan girmiyor. 35.852

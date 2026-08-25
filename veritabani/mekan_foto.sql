@@ -1,5 +1,5 @@
 -- ============================================================
--- Oturalım — mekan fotoğrafları
+-- Cebimde — mekan fotoğrafları
 --
 -- Supabase panelinde SQL Editor'e yapıştırıp bir kez çalıştır.
 -- Tekrar çalıştırılabilir. sema.sql ve sahiplenme.sql'den SONRA.
@@ -21,7 +21,7 @@
 --
 -- GOOGLE MAPS VE BENZERİ KAYNAKLAR BURAYA GİRMEZ. Teknik bir sınır değil:
 -- o fotoğraflar yazarlarının telifinde ve platforma lisanslı; kendi
--- sitende yayımlama hakkın yok. OTURALIM.md "Yapılmayacaklar" listesinde
+-- sitende yayımlama hakkın yok. CEBIMDE.md "Yapılmayacaklar" listesinde
 -- yazılı bir karar. Bu yüzden kaynak sütunu SERBEST METİN DEĞİL, kısıtlı.
 -- ============================================================
 

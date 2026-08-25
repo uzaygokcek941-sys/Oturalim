@@ -1,5 +1,5 @@
 -- ============================================================
--- Oturalım — sayaç davranış testi (gerçek Postgres'te)
+-- Cebimde — sayaç davranış testi (gerçek Postgres'te)
 --
 -- Bu dosya kurulum SQL'i DEGIL. Supabase'e yapistirma.
 -- Kosumu: sh veritabani/kos.sh  (test.py ve CI onu cagiriyor)

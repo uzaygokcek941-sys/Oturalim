@@ -1,5 +1,5 @@
 /* ============================================================
-   Oturalım — keşfet ekranı
+   Cebimde — keşfet ekranı
    Liste + harita + filtreler. Durum URL'de taşınır, böylece filtreli
    bir görünüm olduğu gibi paylaşılabilir.
    ortak.js'in yüklenmiş olmasını bekler (acikMi, bant, tl, sayi, kacir).
@@ -184,7 +184,7 @@ function ciz(haritayiOrtala){
   /* Gorunmez h1 secili sehri soyluyor. Sabit birakmak, sehir
      degistiginde sayfanin basligini yanlis yapardi. */
   const b = el("#baslik");
-  if (b) b.textContent = (ilAdi() || "Türkiye") + " mekanları — Oturalım";
+  if (b) b.textContent = (ilAdi() || "Türkiye") + " mekanları — Cebimde";
   el("#sifirla").hidden = !suzuluyor;
 
   /* Sicrama girisi YALNIZ ilk cizimde. Her filtre degisiminde tekrar
@@ -272,7 +272,7 @@ function katmanCiz(l, ortala){
   isaretler.clear();
   const noktalar = [];
   const stil = getComputedStyle(document.documentElement);
-  const vurgu = stil.getPropertyValue("--vurgu").trim() || "#f08a3c";
+  const vurgu = stil.getPropertyValue("--vurgu").trim() || "#ff7a00";
   const sonuk = stil.getPropertyValue("--metin-3").trim() || "#7d7264";
 
   l.slice(0, HARITA_UST).forEach(m => {
@@ -928,7 +928,7 @@ document.addEventListener("DOMContentLoaded", () => {
   /* şehir listesi */
   const secim = el("#il");
   let kayitli = null;
-  try { kayitli = localStorage.getItem("oturalim.il"); } catch (e) {}
+  try { kayitli = localStorage.getItem("cebimde.il"); } catch (e) {}
 
   fetch("veri/index.json").then(r => r.json()).then(d => {
     secim.innerHTML = d.iller.map(i =>
@@ -939,7 +939,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 : d.varsayilan;
     ilYukle(secim.value, true);
     secim.addEventListener("change", () => {
-      try { localStorage.setItem("oturalim.il", secim.value); } catch (e) {}
+      try { localStorage.setItem("cebimde.il", secim.value); } catch (e) {}
       ilYukle(secim.value, false);
     });
   }).catch(e => {

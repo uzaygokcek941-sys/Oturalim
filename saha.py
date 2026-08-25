@@ -5,8 +5,8 @@ sahiplen.py yuruyus kumelerini uretiyor; bu betik o kumelerden secilenler
 icin KAPIYA BIRAKILACAK karti basiyor. Kartin uzerinde mekana ozel bir QR
 ve tek kullanimlik bir sahiplenme kodu var (Faz 4).
 
-    python saha.py oturalim.vercel.app             # en yogun 3 kume
-    python saha.py oturalim.vercel.app --kume 5
+    python saha.py cebimde.vercel.app             # en yogun 3 kume
+    python saha.py cebimde.vercel.app --kume 5
     python saha.py olc                             # dagitim sonrasi olcum
     python saha.py test
 
@@ -153,7 +153,7 @@ def kart_html(taban, kayitlar):
 
     return """<!doctype html>
 <meta charset="utf-8">
-<title>Oturalım — saha kartları</title>
+<title>Cebimde — saha kartları</title>
 <style>
   @page { size: A4; margin: 12mm; }
   *{box-sizing:border-box}
@@ -208,7 +208,7 @@ def qr_svg(veri):
 
 def sql_uret(kayitlar):
     satirlar = [
-        "-- Oturalım — saha kodlari (saha.py uretti)",
+        "-- Cebimde — saha kodlari (saha.py uretti)",
         "-- Supabase SQL Editor'e yapistirip BIR KEZ calistir.",
         "--",
         "-- Burada KODUN KENDISI YOK, yalniz sha256 ozeti. Kodlar",
@@ -444,7 +444,7 @@ if __name__ == "__main__":
         olc()
         sys.exit(0)
     a = argparse.ArgumentParser(description="Saha kartlari uret")
-    a.add_argument("alan_adi", help="ornek: oturalim.vercel.app")
+    a.add_argument("alan_adi", help="ornek: cebimde.vercel.app")
     a.add_argument("--kume", type=int, default=3, help="kac kume (varsayilan 3)")
     n = a.parse_args()
     main(n.alan_adi, n.kume)

@@ -3,22 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Oturalım — yakınında nerede oturulur</title>
-<meta name="description" content="Türkiye'deki 35.852 kafe, restoran ve barı bütçene, bahçesine ve şu an açık olup olmadığına göre filtrele. Ücretsiz, üyeliksiz, reklamsız.">
-<meta property="og:title" content="Oturalım — bütçene göre otur">
-<meta property="og:description" content="35.852 mekan, 81 il. Nerede oturulur, kaça oturulur.">
+<title>Cebimde — cebindeki bütçeyle keşfet</title>
+<meta name="description" content="Cebindeki bütçeyle keşfet. Türkiye'deki 35.852 kafe, restoran ve barı bütçene, bahçesine ve şu an açık olup olmadığına göre filtrele. Ücretsiz, üyeliksiz, reklamsız.">
+<meta property="og:title" content="Cebimde — cebindeki bütçeyle keşfet">
+<meta property="og:description" content="35.852 mekan, 81 il. Cebinde ne varsa, masanda o var.">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="tr_TR">
 <meta property="og:image" content="og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#15110e">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2315110e'/%3E%3Cpath d='M20 16v12a12 12 0 0 0 24 0V16' stroke='%23f08a3c' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3Cpath d='M32 40v10' stroke='%23f08a3c' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#0f172a">
+<link rel="icon" href="marka.svg" type="image/svg+xml">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="ikon/ikon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Oturalım">
+<meta name="apple-mobile-web-app-title" content="Cebimde">
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -34,7 +34,7 @@ document.documentElement.classList.add("js-sahne");/* Emniyet: sahne.js gelmezse
    sahne.js'i hic yuklemiyordu. */
 setTimeout(function(){if(!window.__sahneHazir)document.documentElement.classList.remove("js-sahne");},2000);</script>
 <script>/* FOUC olmasın: tema tercihini boyamadan önce uygula */
-try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.dataset.tema=t;}catch(e){}</script>
+try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dataset.tema=t;}catch(e){}</script>
 <style>
   /* ---- kahraman ---- */
   .kahraman{position:relative;overflow:hidden;padding-block:clamp(40px,7vw,88px) 0}
@@ -72,7 +72,7 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   }
   .butce-cip small{display:block;font-size:13px;font-weight:500;color:var(--metin-3);letter-spacing:.02em}
   .butce-cip:hover{border-color:var(--cizgi-2);color:var(--metin)}
-  .butce-cip[aria-pressed="true"]{background:var(--vurgu);border-color:var(--vurgu);color:var(--vurgu-metin)}
+  .butce-cip[aria-pressed="true"]{background:var(--marka);border-color:var(--vurgu);color:var(--vurgu-metin)}
   .butce-cip[aria-pressed="true"] small{color:var(--vurgu-metin);opacity:.72}
   .sehir-satir{display:flex;gap:var(--a3);align-items:flex-end;flex-wrap:wrap}
   .sehir-satir label{flex:1 1 220px}
@@ -165,13 +165,9 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
 
 <header class="ust">
   <div class="kap">
-    <a class="marka" href="index.html" aria-label="Oturalım ana sayfa">
-      <svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
-        <rect width="64" height="64" rx="14" fill="currentColor" opacity=".08"/>
-        <path d="M20 16v12a12 12 0 0 0 24 0V16" stroke="#f08a3c" stroke-width="5" stroke-linecap="round"/>
-        <path d="M32 40v10" stroke="#f08a3c" stroke-width="5" stroke-linecap="round"/>
-      </svg>
-      <span>Otur<em>alım</em></span>
+    <a class="marka" href="index.html" aria-label="Cebimde ana sayfa">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="mg" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#ffa03a"/><stop offset="1" stop-color="#f4690a"/></linearGradient></defs><g transform="rotate(-14 26 11)"><rect x="13" y="3.2" width="26" height="7.2" rx="2.2" fill="#00bfa6"/><rect x="11" y="6.6" width="28" height="7.2" rx="2.2" fill="#ffb74d"/></g><path d="M32 8c-9.6 0-17.4 7.5-17.4 16.8 0 8.8 5.9 15.1 12.9 23.8 1.9 2.4 4.5 5.6 4.5 5.6s2.6-3.2 4.5-5.6c7-8.7 12.9-15 12.9-23.8C49.4 15.5 41.6 8 32 8Z" fill="url(#mg)"/><circle cx="32" cy="25.4" r="9.1" fill="#fff"/><g stroke="#f4690a" stroke-width="1.75" stroke-linecap="round"><path d="M27.5 20.1v3.3M29.4 20.1v3.3M31.3 20.1v3.3"/><path d="M29.4 23.4v7.2"/><path d="M35.9 20.1v4.4" stroke-width="3.3"/><path d="M35.9 24.2v6.4"/></g></svg>
+      <span>Ceb<em>imde</em></span>
     </a>
     <nav class="menu" aria-label="Ana menü">
       <a href="index.html" aria-current="page">Ana sayfa</a>
@@ -194,9 +190,10 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
     <canvas class="sokak" aria-hidden="true"></canvas>
     <div class="kap">
       <div class="cerceve" data-giris="odak">
-      <h1>Yakınında <em>nerede</em> hesaplı oturulur?</h1>
+      <h1>Cebinde ne varsa, <em>masanda</em> o var.</h1>
       <p class="giris">
-        Konumunu ver, sana üç yer önereyim. Üyelik yok, reklam yok, ücret yok.
+        Konumunu ver, sana üç yer önereyim; bütçeni keşfet ekranında
+        yazıyorsun. Üyelik yok, reklam yok, ücret yok.
       </p>
 
       <div class="konum-kutu">
@@ -357,15 +354,11 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
     <div class="alt-izgara">
       <div>
         <a class="marka" href="index.html" style="margin-bottom:var(--a3)">
-          <svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
-            <rect width="64" height="64" rx="14" fill="currentColor" opacity=".08"/>
-            <path d="M20 16v12a12 12 0 0 0 24 0V16" stroke="#f08a3c" stroke-width="5" stroke-linecap="round"/>
-            <path d="M32 40v10" stroke="#f08a3c" stroke-width="5" stroke-linecap="round"/>
-          </svg>
-          <span>Otur<em>alım</em></span>
+          <svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="mg" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#ffa03a"/><stop offset="1" stop-color="#f4690a"/></linearGradient></defs><g transform="rotate(-14 26 11)"><rect x="13" y="3.2" width="26" height="7.2" rx="2.2" fill="#00bfa6"/><rect x="11" y="6.6" width="28" height="7.2" rx="2.2" fill="#ffb74d"/></g><path d="M32 8c-9.6 0-17.4 7.5-17.4 16.8 0 8.8 5.9 15.1 12.9 23.8 1.9 2.4 4.5 5.6 4.5 5.6s2.6-3.2 4.5-5.6c7-8.7 12.9-15 12.9-23.8C49.4 15.5 41.6 8 32 8Z" fill="url(#mg)"/><circle cx="32" cy="25.4" r="9.1" fill="#fff"/><g stroke="#f4690a" stroke-width="1.75" stroke-linecap="round"><path d="M27.5 20.1v3.3M29.4 20.1v3.3M31.3 20.1v3.3"/><path d="M29.4 23.4v7.2"/><path d="M35.9 20.1v4.4" stroke-width="3.3"/><path d="M35.9 24.2v6.4"/></g></svg>
+          <span>Ceb<em>imde</em></span>
         </a>
         <p style="font-size:16px;max-width:38ch">
-          Bütçene göre otur. Türkiye'deki mekanları gerçek fiyat bilgisiyle gösteren
+          Cebindeki bütçeyle keşfet. Türkiye'deki mekanları gerçek fiyat bilgisiyle gösteren
           bağımsız bir proje.
         </p>
       </div>
@@ -416,7 +409,7 @@ document.addEventListener("DOMContentLoaded", () => {
   /* şehir listesi */
   const secim = el("#il");
   let kayitliIl = null;
-  try { kayitliIl = localStorage.getItem("oturalim.il"); } catch (e) {}
+  try { kayitliIl = localStorage.getItem("cebimde.il"); } catch (e) {}
 
   let iller = [];
   fetch("veri/index.json").then(r => r.json()).then(d => {
@@ -726,7 +719,7 @@ document.addEventListener("DOMContentLoaded", () => {
           yedegiAc("Şehir listesi yüklenemedi. Elle seçebilirsin.");
           return;
         }
-        try { localStorage.setItem("oturalim.il", il.kod); } catch (e) {}
+        try { localStorage.setItem("cebimde.il", il.kod); } catch (e) {}
         onerVer(il, p.coords.latitude, p.coords.longitude);
       },
       err => {
@@ -743,7 +736,7 @@ document.addEventListener("DOMContentLoaded", () => {
   /* keşfete gönder — durum URL'de taşınıyor, link paylaşılabilir */
   el("#secim").addEventListener("submit", e => {
     e.preventDefault();
-    try { localStorage.setItem("oturalim.il", secim.value); } catch (err) {}
+    try { localStorage.setItem("cebimde.il", secim.value); } catch (err) {}
     const p = new URLSearchParams({ il: secim.value });
     if (butce) p.set("butce", butce);
     location.href = "kesfet.html?" + p;

@@ -1,6 +1,6 @@
 # İlk 3 içerik — çekim notu
 
-Format kararı `OTURALIM.md`'de: dikey, 45–60 sn, ilk 3 saniyede hook, tek
+Format kararı `CEBIMDE.md`'de: dikey, 45–60 sn, ilk 3 saniyede hook, tek
 fikir, **somut rakam**, kurgu yok. Kapanış: *"Uygulamada hepsi var."*
 
 Aşağıdaki her rakam depodan **sayılarak** çıkarıldı, tahmin yok. Söylediğin
@@ -33,7 +33,7 @@ Plandaki taslak **eskidi ve iki yerinden yanlış**:
 
 Doğru olan ve yine iddialı olan:
 
-> **Bütçene göre otur.** 81 ilde 35.852 mekan. Fiyatı gidenler yazıyor.
+> **Cebindeki bütçeyle keşfet.** 81 ilde 35.852 mekan. Fiyatı gidenler yazıyor.
 
 Son cümle ürünün ne olduğunu da anlatıyor: fiyat bizden değil, **kullanıcıdan**
 geliyor. Katkı çağrısı bio'nun içinde duruyor.
@@ -92,7 +92,7 @@ daralsın. Kaydırıcıyı oynat. Konuşma az, ekran anlatsın.
 **Kapanış.** *"Ücretsiz, reklamsız, üyelik yok. Bütçeni yaz, gerisini o
 gösteriyor."*
 
-> Gerçekten doğru: gelir yok, reklam yok, maliyet 0 TL (`OTURALIM.md`, Faz 0).
+> Gerçekten doğru: gelir yok, reklam yok, maliyet 0 TL (`CEBIMDE.md`, Faz 0).
 > Söylediğin her cümlenin arkasında duracak bir kayıt var.
 
 ---

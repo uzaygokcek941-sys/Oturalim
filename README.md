@@ -1,6 +1,6 @@
-# Oturalım
+# Cebimde
 
-> **Bütçene göre otur.**
+> **Cebindeki bütçeyle keşfet.**
 
 Türkiye'deki kafe, restoran ve barları bütçene, bahçesine ve şu an açık olup
 olmadığına göre süzen web uygulaması. Üyelik zorunlu değil, reklam yok, çerez yok.

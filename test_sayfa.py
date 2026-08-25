@@ -32,6 +32,7 @@ import base64
 import io
 import os
 import subprocess
+import struct
 import sys
 import time
 
@@ -64,10 +65,43 @@ window.L = {
 SAHTE_MODUL = io.open(os.path.join(KOK, "test_sahte_supabase.js"),
                       encoding="utf-8").read()
 
-# GPS ve cihaz bilgisi tasiyan GERCEK bir EXIF blogu (APP1). Elle
-# kuruldu; hazir bir fotograf koymak depoya ikili dosya sokardi.
-EXIF_BLOK = base64.b64decode(
-    "/+EAfUV4aWYAAElJKgAIAAAAAAMPAQIADQAAADIAAAAQAQIADQAAADIAAAAliAQAAQAAAD8AAAAAAAAAT3R1cmFsaW1UZXN0AAIAAQACAAIAAABOAAAAAgAFAAMAAABdAAAAAAAAACkAAAABAAAAAQAAAAEAAAAAAAAAAQAAAA==")
+# GPS ve cihaz bilgisi tasiyan GERCEK bir EXIF blogu (APP1).
+#
+# URETILIYOR, ELLE YAZILMIYOR. Onceden sabit bir base64 dizgisiydi ve
+# icinde cihaz adi GOMULUYDU. Marka adi degisince asagidaki beklenti
+# guncellendi ama base64 GUNCELLENEMEDI -- ikili bir sabitin icindeki
+# metni hicbir arama gormuyor. Sonuc: kontrol "girdi dosyasinda EXIF
+# yok" diye patladi. Sabit yerine uretici koyunca isim TEK yerde kaldi.
+EXIF_CIHAZ = "CebimdeTest"
+
+
+def _exif_kur(cihaz=EXIF_CIHAZ):
+    """Gecerli bir APP1 blogu: Make, Model ve GPS IFD isaretcisi.
+
+    Hazir bir fotograf koymak depoya ikili dosya sokardi; ustelik
+    fotografin EXIF tasidigini de ayrica dogrulamak gerekirdi."""
+    ad = cihaz.encode("ascii") + b"\x00"
+    tiff = b"II" + struct.pack("<HI", 0x2A, 8)
+    veri_ofs = 8 + 2 + 3 * 12 + 4           # IFD0'dan sonraki ilk bos bayt
+    gps_ofs = veri_ofs + len(ad)
+    girisler = [(0x010F, 2, len(ad), veri_ofs),    # Make
+                (0x0110, 2, len(ad), veri_ofs),    # Model
+                (0x8825, 4, 1, gps_ofs)]           # GPS IFD isaretcisi
+    ifd0 = struct.pack("<H", len(girisler))
+    for t, tur, n, v in girisler:
+        ifd0 += struct.pack("<HHII", t, tur, n, v)
+    ifd0 += struct.pack("<I", 0)
+    gps = [(0x0001, 2, 2, int.from_bytes(b"N\x00\x00\x00", "little")),
+           (0x0003, 2, 2, int.from_bytes(b"E\x00\x00\x00", "little"))]
+    gpsb = struct.pack("<H", len(gps))
+    for t, tur, n, v in gps:
+        gpsb += struct.pack("<HHII", t, tur, n, v)
+    gpsb += struct.pack("<I", 0)
+    govde = b"Exif\x00\x00" + tiff + ifd0 + ad + gpsb
+    return b"\xff\xe1" + struct.pack(">H", len(govde) + 2) + govde
+
+
+EXIF_BLOK = _exif_kur()
 
 # Girisli halin verisi. Degerler BILEREK ayirt edilebilir: ekranda
 # "Ornek Kafe" gormek, listenin gercekten bu satirdan cizildigini
@@ -479,7 +513,7 @@ def kendini_kontrol_et():
             # Sinama GERCEK bir EXIF blogu takiyor: "EXIF yok" diye
             # dogrulamak, hic EXIF'i olmayan bir dosyayla da gecerdi.
             sf, _ = sayfa_ac("/index.html")
-            exif = sf.evaluate("""async (exifDizi) => {
+            exif = sf.evaluate("""async ({ exifDizi, CIHAZ }) => {
               const t = document.createElement("canvas");
               t.width = 900; t.height = 400;
               const c = t.getContext("2d");
@@ -503,12 +537,12 @@ def kendini_kontrol_et():
               const sonrasi = await oku(hazir);
               return {
                 oncesiExif:   oncesi.includes("Exif"),
-                oncesiCihaz:  oncesi.includes("OturalimTest"),
+                oncesiCihaz:  oncesi.includes(CIHAZ),
                 sonrasiExif:  sonrasi.includes("Exif"),
-                sonrasiCihaz: sonrasi.includes("OturalimTest"),
+                sonrasiCihaz: sonrasi.includes(CIHAZ),
                 tur: hazir.type, boyut: hazir.size
               };
-            }""", list(EXIF_BLOK))
+            }""", {"exifDizi": list(EXIF_BLOK), "CIHAZ": EXIF_CIHAZ})
             # Once girdinin GERCEKTEN EXIF tasidigini dogrula, yoksa
             # kontrol bos bir dosyayla da yesil kalirdi.
             if not (exif["oncesiExif"] and exif["oncesiCihaz"]):
@@ -772,7 +806,7 @@ def kendini_kontrol_et():
             sf = ctx.new_page()
             sf.route("**://*/**", lambda r: (
                 r.fulfill(status=200, headers={"content-type": "text/javascript"},
-                          body="window.OTURALIM={supabaseUrl:'',supabaseAnahtar:''};")
+                          body="window.CEBIMDE={supabaseUrl:'',supabaseAnahtar:''};")
                 if r.request.url.endswith("yapilandirma.js")
                 else (r.continue_() if r.request.url.startswith(TABAN) else r.abort())))
             sf.goto(TABAN + "/giris.html", wait_until="domcontentloaded", timeout=20000)

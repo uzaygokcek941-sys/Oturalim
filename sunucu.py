@@ -69,7 +69,7 @@ def main():
     if not os.path.isdir(KOK):
         sys.exit("app/ klasoru bulunamadi: " + KOK)
     with ThreadingHTTPServer(("127.0.0.1", port), OnbelleksizIsleyici) as s:
-        print("Oturalim -> http://localhost:%d  (onbellek kapali)" % port)
+        print("Cebimde -> http://localhost:%d  (onbellek kapali)" % port)
         try:
             s.serve_forever()
         except KeyboardInterrupt:

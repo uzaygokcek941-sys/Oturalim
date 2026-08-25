@@ -1,5 +1,5 @@
 -- ============================================================
--- Oturalım — veritabanı şeması ve güvenlik politikaları
+-- Cebimde — veritabanı şeması ve güvenlik politikaları
 --
 -- Supabase panelinde SQL Editor'e yapıştırıp bir kez çalıştır.
 -- Tekrar çalıştırılabilir: her şey "if not exists" / "or replace".
