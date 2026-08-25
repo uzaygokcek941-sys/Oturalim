@@ -720,6 +720,65 @@ etkisi tam olarak budur.
 
 ---
 
+## 2026-08-25 — Mekan fotoğrafları
+
+İstenen şey "Google Maps ve web'den fotoğraf ve yorum çek"ti. **Google Maps
+kısmı yapılmadı ve yapılmayacak** — teknik zorluk değil, hak meselesi:
+oradaki fotoğraflar ve yorumlar yazarlarının telifinde ve platforma
+lisanslı; Places API'nin kendi şartları bile yorumu 30 günden fazla
+saklamayı ve harita dışında göstermeyi yasaklıyor. Zaten aşağıdaki
+**Yapılmayacaklar** listesinde duran bir karar.
+
+Yerine, **yayımlama hakkı olan** üç kaynak kuruldu:
+
+| kaynak | nasıl | onay |
+|---|---|---|
+| doğrulanmış işletme sahibi | mekan sayfasından yükler | **doğrudan yayında** |
+| kullanıcı | mekan sayfasından yükler | kuyrukta bekler |
+| Wikimedia Commons | `foto_cek.py` → `mekan_foto.sql` | atıflı, doğrudan |
+
+`kaynak` sütunu **serbest metin değil**, kısıtlı bir liste — yayımlama
+hakkı olmayan bir kaynak sessizce eklenemesin diye. Ve `'commons'`
+**istemciden yazılamıyor**: yazılabilseydi kullanıcı kendi fotoğrafını
+"Commons'tan geldi" diye işaretleyip atıf alanlarını uydurabilirdi.
+
+**Atıf silinemez.** CC BY ve CC BY-SA yazar adını ve lisansı göstermeyi
+zorunlu kılıyor. İki kapı da kapalı: veritabanı kısıtı atıfsız Commons
+satırını kabul etmiyor, gösterim tarafı da atıfsız satırı **hiç
+çizmiyor**.
+
+**Menü fotoğrafından ayrı tablo**, çünkü onay ölçütü farklı: menü
+fotoğrafında aranan şey okunabilirlik, mekan fotoğrafında **içinde
+tanınabilir insan olmaması**. Bir kafenin salonunu çeken kullanıcı orada
+oturanları da çeker; onlar fotoğraflanmayı kabul etmedi.
+
+`foto_cek.py` kapsamı **sayarak** yazıyor, tahmin etmiyor. Beklenti düşük:
+Commons'ta anıt ve müze bol, mahalle kafesi yok denecek kadar az.
+
+### Ölçülen ve düzeltilen
+
+- **İç içe `<a>`.** Lisans bağlantısını fotoğraf bağlantısının içine
+  koymuştum; HTML iç içe bağı kabul etmiyor ve tarayıcı yapıyı bölüyor —
+  3 kutu yerine 4 çıktı, atıf bloğu dışarı taştı. Bağ artık yalnız resmi
+  sarıyor, atıf kardeş.
+- **`CC BY-NC 4.0` serbest sayılıyordu.** Lisans kalıbım öneki eşleştirip
+  `-NC`'yi (ticari kullanım yasak) görmüyordu. Kalıbı akıllandırmak yerine
+  **önce reddet, sonra izin ver**e geçtim: yasaklı işaretler (NC, ND) ayrı
+  ve önce eleniyor. Bir lisansı yanlışlıkla serbest saymanın bedeli
+  hukuki, yanlışlıkla elemenin bedeli bir eksik fotoğraf.
+- **`innerText` CSS'in `text-transform`'unu uyguluyor.** Rozet kaynakta
+  küçük harfle yazılı ama ekranda `İŞLETMEDEN`; test kaynağa göre yazılmıştı
+  ve düşüyordu. (Noktalı İ gelmesi ayrıca `lang="tr"`nin doğru çalıştığını
+  gösteriyor.)
+- **Atıfsız fotoğraf kontrolüm sabotajda kaçtı**: fotoğrafın adresi `src`
+  özniteliğinde duruyor ve `inner_text`'te hiç geçmiyor, yani metne bakan
+  kontrol hiçbir şey görmüyordu. DOM'a bakan bir kontrole çevrildi.
+- İki kova için iki ayrı yükleme fonksiyonu vardı; **tek kurala** indirildi.
+  Ayrı kalsalardı birinde EXIF adımının unutulması an meselesiydi — ve o
+  adımın tek bekçisi istemci.
+
+---
+
 ## Yapılmayacaklar
 
 | Yapma | Neden |

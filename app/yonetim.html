@@ -205,6 +205,34 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
 
         <div id="mkListe"></div>
 
+        <!-- Besinci kuyruk: mekan fotograflari. Menu fotografindan AYRI
+             olcut: orada okunabilirlik, burada ICINDE INSAN OLMAMASI.
+             Bir kafenin salonunu ceken kullanici orada oturanlari da
+             ceker ve onlar fotograflanmayi kabul etmedi. -->
+        <div class="bolum-bas" style="margin:var(--a6) 0 var(--a5)">
+          <span class="etiket">Yönetim</span>
+          <h2 style="font-size:32px">Mekan fotoğrafları</h2>
+          <p>
+            Kullanıcıların yüklediği mekan fotoğrafları. Ölçüt menü
+            fotoğrafından farklı: burada asıl mesele <b>içinde tanınabilir
+            insan olup olmadığı</b>. Orada oturanlar fotoğraflanmayı kabul
+            etmedi — emin değilsen reddet.
+            <br>Doğrulanmış işletme sahibinin fotoğrafı kuyruğa girmez,
+            doğrudan yayına çıkar.
+          </p>
+        </div>
+
+        <div class="ozet" id="mfOzet"></div>
+
+        <div class="suzgec" id="mfSuzgec">
+          <button class="cip" data-durum="bekliyor"   aria-pressed="true">Bekleyen</button>
+          <button class="cip" data-durum="onaylandi"  aria-pressed="false">Onaylanan</button>
+          <button class="cip" data-durum="reddedildi" aria-pressed="false">Reddedilen</button>
+          <button class="cip" data-durum=""           aria-pressed="false">Hepsi</button>
+        </div>
+
+        <div id="mfListe"></div>
+
         <!-- Ucuncu bolum: sahiplik. Kuyruk DEGIL -- burada onaylanacak bir
              sey yok, sahiplik kodla kazaniliyor. Burasi bir DENETIM listesi:
              kim neyi sahiplenmis ve gerekirse geri alma. -->
@@ -327,6 +355,7 @@ async function listeyiCiz(){
 let katkiSuzgec = "bekliyor";
 let yorumSuzgec = "bekliyor";
 let mkSuzgec = "bekliyor";
+let mfSuzgec = "bekliyor";
 
 async function katkiOzetiCiz(){
   const hepsi = await Kimlik.katkiYonetimListesi("");
@@ -398,6 +427,71 @@ async function sahiplikCiz(){
       try { await Kimlik.sahiplikIptal(Number(b.dataset.siptal), notu);
             await sahiplikCiz(); uyar("iyi", "Sahiplik iptal edildi."); }
       catch (e){ uyar("hata", e.message); b.disabled = false; }
+    }));
+}
+
+async function mfListesiniCiz(){
+  const yuva = el("#mfListe");
+  yuva.innerHTML = '<p class="bos"><strong>Yükleniyor…</strong></p>';
+  const liste = await Kimlik.mekanFotoYonetimListesi(mfSuzgec);
+
+  el("#mfOzet").innerHTML = liste.length
+    ? "<div><b>" + sayi(liste.length) + "</b><span>kayıt</span></div>" +
+      "<div><b>" + sayi(liste.filter(f => f.kaynak === "sahip").length) +
+      "</b><span>işletmeden</span></div>"
+    : "";
+
+  if (!liste.length){
+    yuva.innerHTML = '<p class="bos">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 13 4 4L19 7"/></svg>' +
+      "<strong>Bu listede kayıt yok</strong>" +
+      (mfSuzgec === "bekliyor" ? "Bekleyen fotoğraf kalmadı." : "Başka bir süzgeç dene.") +
+      "</p>";
+    return;
+  }
+
+  yuva.innerHTML = liste.map(f => {
+    const d = DURUM[f.durum] || DURUM.bekliyor;
+    const sayfa = f.il && f.mekan_id
+      ? ' · <a href="isletme.html?il=' + encodeURIComponent(f.il) +
+        "&id=" + encodeURIComponent(f.mekan_id) + '" target="_blank" rel="noopener">sayfayı aç</a>'
+      : "";
+    const u = f.adres || Kimlik.mekanFotoAdresi(f.yol);
+    return '<article class="kayit ' + f.durum + '">' +
+      "<div><h3>" + kacir(f.mekan_ad) + "</h3>" +
+        '<div class="satir">' +
+          "<span>" + kacir(f.kaynak) + "</span>" +
+          (f.aciklama ? "<span>" + kacir(f.aciklama) + "</span>" : "") +
+          (f.il ? "<span>il " + kacir(f.il) + "</span>" : "") +
+          "<span>" + tarihTR(f.olusturuldu) + "</span>" +
+          '<span class="rozet ' + d.sinif + '">' + d.ad + "</span></div>" +
+        /* Buyuk aç: kucuk bir kutuda arkadaki bir yuzu kacirmak kolay. */
+        (u ? '<div class="mk-yonetim" data-resim><a href="' + kacir(u) + '" target="_blank" rel="noopener">' +
+             '<img src="' + kacir(u) + '" alt="" loading="lazy"></a></div>' : "") +
+        '<div class="aciklama"><b>' + kacir(f.mekan_id) + "</b>" + sayfa + "</div>" +
+      "</div>" +
+      '<div><div class="kararlar">' +
+        (f.durum !== "onaylandi"
+          ? '<button class="dugme kucuk onay" type="button" data-fkarar="onaylandi" data-id="' + f.id + '">Onayla</button>' : "") +
+        (f.durum !== "reddedildi"
+          ? '<button class="dugme ikincil kucuk ret" type="button" data-fkarar="reddedildi" data-id="' + f.id + '">Reddet</button>' : "") +
+        (f.durum !== "bekliyor"
+          ? '<button class="dugme duz kucuk" type="button" data-fkarar="bekliyor" data-id="' + f.id + '">Beklemeye al</button>' : "") +
+      "</div></div></article>";
+  }).join("");
+
+  yuva.querySelectorAll("[data-fkarar]").forEach(b =>
+    b.addEventListener("click", async () => {
+      const kardesler = [...b.parentElement.querySelectorAll("button")];
+      kardesler.forEach(x => { x.disabled = true; });
+      try {
+        await Kimlik.mekanFotoKarar(Number(b.dataset.id), b.dataset.fkarar);
+        await mfListesiniCiz();
+        uyar("iyi", "Fotoğraf güncellendi.");
+      } catch (e){
+        uyar("hata", e.message);
+        kardesler.forEach(x => { x.disabled = false; });
+      }
     }));
 }
 
@@ -586,6 +680,15 @@ async function katkiListesiniCiz(){
     }));
 }
 
+el("#mfSuzgec").addEventListener("click", e => {
+  const b = e.target.closest("button[data-durum]");
+  if (!b) return;
+  mfSuzgec = b.dataset.durum;
+  document.querySelectorAll("#mfSuzgec button").forEach(x =>
+    x.setAttribute("aria-pressed", String(x === b)));
+  mfListesiniCiz();
+});
+
 el("#mkSuzgec").addEventListener("click", e => {
   const b = e.target.closest("button[data-durum]");
   if (!b) return;
@@ -635,7 +738,7 @@ Kimlik.hazir.then(async acik => {
   el("#icerik").hidden = false;
   await Promise.all([ozetiCiz(), listeyiCiz(), katkiOzetiCiz(),
                      katkiListesiniCiz(), yorumListesiniCiz(),
-                     mkListesiniCiz(), sahiplikCiz()]);
+                     mkListesiniCiz(), mfListesiniCiz(), sahiplikCiz()]);
 });
 </script>
 </body>

@@ -80,6 +80,10 @@ window.__SAHTE_VERI = {
                    kullanici_adi: "deneme_kisi", dogum_yili: 1998,
                    meslek: "Öğretmen", kisilik: "Sessiz köşe severim",
                    avatar: null, herkese_acik: true }],
+    mekan_fotolari: [{ id: 1, kullanici: "kul-1", mekan_id: "node/1", il: "34",
+                   mekan_ad: "Foto Kafe", yol: "kul-1/a.jpg", adres: null,
+                   aciklama: "Bahçe", kaynak: "kullanici", durum: "bekliyor",
+                   olusturuldu: "2026-08-20T10:00:00Z" }],
     menu_katkilari: [{ id: 1, kullanici: "kul-1", mekan_id: "node/1", il: "34",
                    mekan_ad: "Menu Kafe", urun: "Latte", fiyat: 95, foto: null,
                    durum: "bekliyor", olusturuldu: "2026-08-22T12:00:00Z" }],
@@ -124,6 +128,22 @@ window.__SAHTE_VERI = {
         yazar_adi: null, yazar_ad: null, yazar_avatar: null,
         yazar_dogum: null, yazar_meslek: null }], error: null }),
     mekan_puani: () => ({ data: [{ adet: 3, ortalama: 4 }], error: null }),
+    /* Uc kaynak birden: sahip, kullanici ve commons. Ucuncusu ATIFLI
+       olmali, dorduncusu ATIFSIZ -- atifsiz olan CIZILMEMELI. */
+    mekan_fotograflari: () => ({ data: [
+      { id: 1, yol: "kul-1/a.jpg", adres: null, aciklama: "Bahçe",
+        kaynak: "sahip", yazar: null, lisans: null, kaynak_bag: null,
+        olusturuldu: "2026-08-20T10:00:00Z" },
+      { id: 2, yol: "kul-1/b.jpg", adres: null, aciklama: "Salon",
+        kaynak: "kullanici", yazar: null, lisans: null, kaynak_bag: null,
+        olusturuldu: "2026-08-19T10:00:00Z" },
+      { id: 3, yol: null, adres: "/og.png?commons=c", aciklama: null,
+        kaynak: "commons", yazar: "Bir Fotografci", lisans: "CC BY-SA 4.0",
+        kaynak_bag: "https://commons.wikimedia.org/wiki/File:C.jpg",
+        olusturuldu: "2026-08-18T10:00:00Z" },
+      { id: 4, yol: null, adres: "/og.png?commons=d", aciklama: null,
+        kaynak: "commons", yazar: null, lisans: null, kaynak_bag: null,
+        olusturuldu: "2026-08-17T10:00:00Z" }], error: null }),
     /* Biri kalem, biri YALNIZ fotograf: ikisi de cizilmeli. */
     mekan_menu_katkilari: () => ({ data: [
       { id: 1, urun: "Latte", fiyat: 95, foto: null,
@@ -190,6 +210,17 @@ GIRISLI = [
    ["Yorumlar", "Yorum Kafe", "Sessiz ve ucuz"], ["kul-1"]),
   ("yonetim.html/menu", "/yonetim.html", None,
    ["Menü katkıları", "Menu Kafe", "Latte"], ["kul-1"]),
+  ("yonetim.html/foto", "/yonetim.html", None,
+   ["Mekan fotoğrafları", "Foto Kafe"], ["kul-1"]),
+  # Galeri: atifli commons fotografi ATFIYLA cizilmeli, ATIFSIZ olan
+  # HIC cizilmemeli -- atifsiz gostermek lisansi ihlal eder.
+  ("isletme.html/galeri", "/isletme.html?il=34&id=node/8223784325", None,
+   # "İŞLETMEDEN" BUYUK harfle: rozetin CSS'inde text-transform:uppercase
+   # var ve innerText donusmus metni veriyor. Kaynakta kucuk harfle
+   # yaziyor -- kaynaga bakip burayi "duzeltmek" kontrolu bozar.
+   # (Noktali I gelmesi ayrica lang="tr"nin dogru calistigini gosteriyor.)
+   ["Bir Fotografci", "CC BY-SA 4.0", "İŞLETMEDEN", "Buranın fotoğrafı var mı"],
+   ["kul-1"]),
   # Isletme sayfasi: kalem ve fotograf ayri ayri cizilmeli.
   ("isletme.html/menu", "/isletme.html?il=34&id=node/8223784325", None,
    ["Kullanıcıların eklediği fiyatlar", "Latte", "Menüyü görüyor musun"],
@@ -691,6 +722,37 @@ def kendini_kontrol_et():
                     r.abort()
                 except Exception:
                     pass
+            sf.close()
+
+            # 1m) ATIFSIZ Commons fotografi HIC CIZILMEMELI.
+            #
+            # CC BY ve CC BY-SA, yazar adini ve lisansi gostermeyi ZORUNLU
+            # kiliyor; atifsiz kullanim lisansi ihlal eder. Veritabani
+            # kisiti atifsiz satiri zaten kabul etmiyor, ama eski bir
+            # satir ya da baska bir yol kalabilir -- gosterim tarafi da
+            # kendi basina korumali.
+            #
+            # Kontrol DOM'A bakiyor, metne DEGIL: fotografin adresi
+            # src ozniteliginde duruyor ve inner_text'te hic gecmiyor.
+            # Ilk yazim metne bakiyordu ve sabotajda KACTI.
+            sf, _ = sayfa_ac("/isletme.html?il=34&id=node/8223784325",
+                             GIRIS_TAKLIT, sahte_modul=True)
+            sf.wait_for_timeout(1500)
+            g = sf.evaluate("""() => {
+              const k = [...document.querySelectorAll('.galeri-kutu')];
+              return {
+                adet: k.length,
+                kaynaklar: k.map(x => (x.querySelector('img') || {}).src || ""),
+                atifsizVar: k.some(x =>
+                  ((x.querySelector('img') || {}).src || "").includes('commons=d'))
+              };
+            }""")
+            # Taklit veride 4 fotograf var; biri ATIFSIZ commons.
+            if g["adet"] != 3:
+                sorunlar.append("galeri: %d kutu cizildi, 3 olmaliydi (%s)"
+                                % (g["adet"], g["kaynaklar"]))
+            if g["atifsizVar"]:
+                sorunlar.append("galeri: ATIFSIZ commons fotografi cizilmis")
             sf.close()
 
             # 2) Harita YOKKEN kesfet calismali. Asil bulunan hata buydu.

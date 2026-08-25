@@ -563,6 +563,82 @@ const Kimlik = {
     return (data && data.publicUrl) || "";
   },
 
+  /* ---------- mekan fotoğrafları ----------
+     Üç kaynak, üç ayrı güven seviyesi: 'sahip' (doğrulanmış işletme
+     sahibi, doğrudan yayında), 'kullanici' (onaydan geçer), 'commons'
+     (Wikimedia, ATIF ZORUNLU ve taşınıyor).
+
+     Google Maps vb. BURAYA GİRMEZ ve giremez: kaynak sütunu kısıtlı ve
+     'commons' istemciden yazılamıyor (veritabani/mekan_foto.sql). */
+  async mekanFotograflari(mekanId){
+    if (!sb) return [];
+    const { data, error } = await sb.rpc("mekan_fotograflari", { p_mekan_id: mekanId });
+    if (error){ console.error("mekan fotograflari:", error.message); return []; }
+    return data || [];
+  },
+
+  async mekanFotoGonder(f){
+    if (!sb || !oturum) throw new Error("Fotoğraf için giriş yap.");
+    const { error } = await sb.from("mekan_fotolari").insert({
+      kullanici: oturum.user.id,
+      mekan_id: f.mekanId,
+      il: f.il || null,
+      mekan_ad: String(f.mekanAd).trim(),
+      yol: f.yol,
+      aciklama: (f.aciklama || "").trim() || null,
+      durum: "bekliyor"
+      /* kaynak GÖNDERİLMİYOR: varsayılan 'kullanici', sahibiyse
+         tetikleyici 'sahip' yapıyor. İstemcinin söylemesi gereken
+         bir şey değil. */
+    });
+    if (error) throw new Error(hataMetni(error));
+  },
+
+  async mekanFotoYukle(dosya){
+    return this._fotoYukle("mekan", dosya);
+  },
+
+  mekanFotoAdresi(yol){
+    if (!sb || !yol) return "";
+    const { data } = sb.storage.from("mekan").getPublicUrl(yol);
+    return (data && data.publicUrl) || "";
+  },
+
+  async mekanFotolarim(){
+    if (!sb || !oturum) return [];
+    const { data, error } = await sb.from("mekan_fotolari")
+      .select("id, mekan_id, mekan_ad, il, yol, adres, aciklama, kaynak, durum, olusturuldu")
+      .order("olusturuldu", { ascending: false });
+    if (error){ console.error("mekan fotolarim:", error.message); return []; }
+    return data || [];
+  },
+
+  async mekanFotoSil(id, yol){
+    if (!sb || !oturum) throw new Error("Giriş yapılmamış.");
+    const { error } = await sb.from("mekan_fotolari").delete().eq("id", id);
+    if (error) throw new Error(hataMetni(error));
+    if (yol){ try { await sb.storage.from("mekan").remove([yol]); } catch (e) {} }
+  },
+
+  async mekanFotoYonetimListesi(durum){
+    if (!sb || !oturum) return [];
+    let q = sb.from("mekan_fotolari")
+      .select("id, mekan_id, mekan_ad, il, yol, adres, aciklama, kaynak, durum, olusturuldu")
+      .order("olusturuldu", { ascending: false }).limit(200);
+    if (durum) q = q.eq("durum", durum);
+    const { data, error } = await q;
+    if (error){ console.error("mekan foto yonetim:", error.message); return []; }
+    return data || [];
+  },
+
+  async mekanFotoKarar(id, durum){
+    if (!sb || !oturum) throw new Error("Giriş yapılmamış.");
+    if (!["onaylandi","reddedildi","bekliyor"].includes(durum))
+      throw new Error("Geçersiz durum.");
+    const { error } = await sb.from("mekan_fotolari").update({ durum }).eq("id", id);
+    if (error) throw new Error(hataMetni(error));
+  },
+
   /* ---------- menü ve ürün paylaşımı ----------
      paylasimlar bir HESAP taşıyor ("3 kişi, 850 ₺"), burası bir LİSTE
      FİYATI ("Latte 95 ₺"). Ayrı tablolar, ayrı sorular.
@@ -637,6 +713,13 @@ const Kimlik = {
      Sunucu bunu doğrulayamıyor -- Storage dosyayı ayrıştırmıyor -- o
      yüzden kural burada ve test_tarayici.mjs onu ölçüyor. */
   async menuFotoYukle(dosya){
+    return this._fotoYukle("menu", dosya);
+  },
+
+  /* Iki kova, TEK kural. Ayri ayri yazilmis iki yukleme, ikisinden
+     birinde EXIF adiminin unutulmasi demekti -- ve o adimin tek bekcisi
+     istemci (sunucu dosyayi ayristirmiyor). */
+  async _fotoYukle(kova, dosya){
     if (!sb || !oturum) throw new Error("Giriş yapılmamış.");
     if (!/^image\//.test((dosya && dosya.type) || ""))
       throw new Error("Yalnız resim dosyası yükleyebilirsin.");
@@ -646,10 +729,11 @@ const Kimlik = {
       throw new Error("Dosya çok büyük (en fazla 25 MB).");
     if (typeof resimHazirla !== "function")
       throw new Error("Resim işleyici yüklenmedi.");
+    /* EXIF burada dusuyor: GPS koordinati, cekim saati, cihaz modeli. */
     const hazir = await resimHazirla(dosya);
     const yol = oturum.user.id + "/" + Date.now() + "-" +
                 Math.random().toString(36).slice(2, 8) + ".jpg";
-    const { error } = await sb.storage.from("menu")
+    const { error } = await sb.storage.from(kova)
       .upload(yol, hazir, { contentType: "image/jpeg", upsert: false });
     if (error) throw new Error(hataMetni(error));
     return yol;

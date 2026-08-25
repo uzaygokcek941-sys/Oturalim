@@ -75,7 +75,8 @@ function depo(kova){
       return Promise.resolve({ data: null, error: null });
     },
     getPublicUrl(yol){
-      return { data: { publicUrl: "https://ornek.test/" + kova + "/" + yol } };
+      return { data: { publicUrl: "/og.png?" + kova + "=" +
+                                  encodeURIComponent(yol) } };
     }
   };
 }

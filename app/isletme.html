@@ -66,6 +66,30 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   .katki-not{font-size:.88rem;color:var(--soluk);margin-top:var(--a2)}
   .katki-not.kotu{color:var(--vurgu)}
 
+  /* ---- fotograf seridi ---- */
+  .galeri{margin:var(--a4) 0}
+  /* Yatay serit: telefonda bir izgara ekranin yarisini yerdi, oysa
+     fotograf burada ana icerik degil. */
+  .galeri-serit{display:flex;gap:var(--a2);overflow-x:auto;padding-bottom:6px;
+    scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
+  .galeri-kutu{flex:0 0 auto;width:min(78vw,320px);scroll-snap-align:start;
+    border-radius:var(--r-s,6px);overflow:hidden;border:1px solid var(--cizgi);
+    background:var(--zemin-3,#eee);position:relative;display:block}
+  .galeri-kutu > a{display:block;position:relative}
+  .galeri-kutu img{width:100%;height:200px;object-fit:cover;display:block}
+  /* Atif: CC BY / CC BY-SA yazar ve lisans gostermeyi ZORUNLU kiliyor.
+     Gorsel olarak kucuk ama SILINEMEZ -- gostermeyen kullanim lisansi
+     ihlal eder. */
+  .galeri-atif{font-size:.7rem;line-height:1.35;padding:5px 7px;
+    color:var(--soluk);background:var(--zemin-3,#f4f4f4)}
+  .galeri-atif a{color:inherit}
+  .galeri-rozet{position:absolute;top:6px;left:6px;font-size:.68rem;
+    letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;
+    border-radius:999px;background:var(--vurgu);color:var(--vurgu-metin,#fff)}
+  .mfoto{border-top:1px solid var(--cizgi);padding-top:var(--a4);margin-top:var(--a4)}
+  #mfOnizleme{width:72px;height:72px;object-fit:cover;border-radius:var(--r-s,6px);
+    border:1px solid var(--cizgi)}
+
   /* ---- kullanici menu katkilari ---- */
   .mkatki{border-top:1px solid var(--cizgi);padding-top:var(--a4);margin-top:var(--a4)}
   .mkatki h2{margin:0 0 var(--a2)}
@@ -145,12 +169,49 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   <p id="nerede" class="soluk"></p>
   <p id="sayac" class="soluk" hidden></p>
 
+  <!-- Fotograflar. Uc kaynak: dogrulanmis isletme sahibi, kullanici ve
+       Wikimedia Commons. Commons ATIFSIZ gosterilmiyor -- lisansi ihlal
+       ederdi. Google Maps vb. BURAYA GIRMIYOR: o fotograflar
+       yazarlarinin telifinde ve platforma lisansli, yayimlama hakkimiz
+       yok (OTURALIM.md "Yapilmayacaklar"). -->
+  <section class="galeri" id="galeri" hidden>
+    <div class="galeri-serit" id="galeriSerit"></div>
+  </section>
+
   <dl class="bilgi" id="bilgi"></dl>
 
   <section class="fis" id="fis" hidden>
     <h2>Buraya gidenler ne ödemiş</h2>
     <p id="fisOzet"></p>
     <a class="dugme ikincil" id="fisEkle" href="paylas.html">Ödediğini ekle</a>
+  </section>
+
+  <!-- Mekan fotografi ekleme. Menu fotografindan AYRI: orada aranan sey
+       okunabilirlik, burada aranan sey ICINDE INSAN OLMAMASI. Bir kafenin
+       salonunu ceken kullanici orada oturan insanlari da ceker; onlar
+       fotograflanmayi kabul etmedi. -->
+  <section class="mfoto" id="mekanFoto" data-giris="perde" hidden>
+    <form class="katki" id="mfForm">
+      <p><strong>Buranın fotoğrafı var mı?</strong> Bahçesini, salonunu ya da
+        cephesini çek. Kontrol edildikten sonra sayfada görünür.</p>
+      <div class="mk-foto">
+        <label class="dugme ikincil kucuk" for="mfDosya" style="cursor:pointer">
+          Fotoğraf seç
+        </label>
+        <input id="mfDosya" type="file" accept="image/*" class="gizli"
+               aria-label="Mekan fotoğrafı">
+        <button class="dugme duz kucuk" id="mfSil" type="button" hidden>Kaldır</button>
+        <img id="mfOnizleme" alt="" hidden>
+      </div>
+      <input id="mfAciklama" type="text" maxlength="200" placeholder="Kısa açıklama (isteğe bağlı)"
+             aria-label="Fotoğraf açıklaması" style="margin-top:var(--a3);width:100%">
+      <p class="katki-not" id="mfNot">
+        Konum ve cihaz bilgisi (EXIF) yüklenmeden önce siliniyor.
+        <strong>İçinde tanınabilir insan olmamasına dikkat et</strong> — orada
+        oturanlar fotoğraflanmayı kabul etmedi.
+      </p>
+      <button class="dugme" id="mfGonder" type="submit">Gönder</button>
+    </form>
   </section>
 
   <!-- Menü katkıları. paylasimlar bir HESAP taşıyor ("3 kişi, 850 ₺"),
@@ -415,6 +476,7 @@ function goster(m, ilAd){
   fisKatmani(ID, m.ad, IL);
   yorumKatmani(ID, m.ad, IL);
   menuKatkiKatmani(ID, m.ad, IL);
+  galeriKatmani(ID, m.ad, IL);
 }
 
 /* ============================================================
@@ -676,6 +738,149 @@ function fisOzeti(o){
            (FIS_ESIK - n) + " tane daha gelince ortalama burada görünecek.";
   return "Kişi başı ~" + tl(o.medyan) + " · " +
          (o.kisi ? sayi(o.kisi) + " kişinin " : "") + sayi(n) + " fişinden.";
+}
+
+/* ============================================================
+   Fotograflar
+
+   Uc kaynak, uc ayri guven seviyesi:
+     sahip     -> dogrulanmis isletme sahibi. Dogrudan yayinda; sahiplik
+                  SAHADA, elden verilen kodla kazaniliyor.
+     kullanici -> giden biri cekti. Onaydan gecer.
+     commons   -> Wikimedia. Serbest lisansli ama ATIF ZORUNLU.
+
+   ATIF SILINEMEZ. CC BY ve CC BY-SA, yazar adini ve lisansi gostermeyi
+   sart kosuyor; gostermeyen kullanim lisansi ihlal eder. Bu yuzden
+   commons satiri atifsiz CIZILMIYOR -- veritabani kisiti da atifsiz
+   satiri kabul etmiyor, iki kapi da kapali.
+
+   Google Maps ve benzeri kaynaklar buraya GIRMIYOR: o fotograflar
+   yazarlarinin telifinde ve platforma lisansli, kendi sitemizde
+   yayimlama hakkimiz yok. OTURALIM.md "Yapilmayacaklar" listesinde
+   yazili bir karar.
+   ============================================================ */
+const KAYNAK_ROZET = { sahip: "işletmeden", commons: "" , kullanici: "" };
+
+function fotoKutusu(f){
+  const adres = f.adres || Kimlik.mekanFotoAdresi(f.yol);
+  if (!adres) return "";
+  /* Commons ATIFSIZ cizilmiyor: eksikse fotografi hic gostermiyoruz.
+     Atifsiz gostermek, lisansi ihlal etmek olurdu. */
+  const commons = f.kaynak === "commons";
+  if (commons && !(f.yazar && f.lisans && f.kaynak_bag)) return "";
+
+  const rozet = KAYNAK_ROZET[f.kaynak]
+    ? '<span class="galeri-rozet">' + kacir(KAYNAK_ROZET[f.kaynak]) + "</span>" : "";
+  const atif = commons
+    ? '<div class="galeri-atif">' + kacir(f.yazar) + " · " +
+      '<a href="' + kacir(guvenliBag(f.kaynak_bag)) + '" target="_blank" rel="noopener">' +
+      kacir(f.lisans) + "</a> · Wikimedia Commons</div>"
+    : (f.aciklama ? '<div class="galeri-atif">' + kacir(f.aciklama) + "</div>" : "");
+
+  /* IC ICE <a> OLMAZ. Ilk yazimda atif (icinde lisans baglantisi olan bir
+     div) fotograf baglantisinin ICINE konmustu; ic ice bagi HTML kabul
+     etmiyor ve tarayici yapiyi BOLUYOR -- kutu sayisi 3 yerine 4 cikti,
+     atif blogu disari tasti. Simdi bag yalniz RESMI sariyor, atif kardes.
+
+     Commons fotografi KAYNAK SAYFASINA baglaniyor (lisans oradan
+     dogrulanabilsin); yuklenen fotograf yalniz buyutuluyor. */
+  const hedef = commons ? guvenliBag(f.kaynak_bag) : adres;
+  return '<div class="galeri-kutu" data-resim>' +
+    '<a href="' + kacir(hedef) + '" target="_blank" rel="noopener">' +
+      rozet +
+      '<img src="' + kacir(adres) + '" alt="' + kacir(f.aciklama || "") +
+      '" loading="lazy">' +
+    "</a>" + atif +
+  "</div>";
+}
+
+async function galeriKatmani(mekanId, mekanAd, ilKod){
+  const bol = document.getElementById("galeri");
+  const serit = document.getElementById("galeriSerit");
+  const ekle = document.getElementById("mekanFoto");
+
+  if (!Kimlik.acik) return;
+  try { if (!(await Kimlik.hazir)) return; } catch (e) { return; }
+
+  async function ciz(){
+    const l = await Kimlik.mekanFotograflari(mekanId);
+    const html = l.map(fotoKutusu).filter(Boolean).join("");
+    serit.innerHTML = html;
+    bol.hidden = !html;
+  }
+  await ciz();
+
+  /* Ekleme formu: giris sarti yok, dugme metni durumu soyluyor. */
+  const alan = document.getElementById("mfDosya");
+  const onizle = document.getElementById("mfOnizleme");
+  const fsil = document.getElementById("mfSil");
+  const not = document.getElementById("mfNot");
+  const dug = document.getElementById("mfGonder");
+  const form = document.getElementById("mfForm");
+  let yol = null, onizlemeAdresi = "";
+
+  const donus = "isletme.html?il=" + encodeURIComponent(ilKod) +
+                "&id=" + encodeURIComponent(mekanId);
+  Kimlik.izle(d => { dug.textContent = d.girisli ? "Gönder" : "Giriş yap ve ekle"; });
+  ekle.hidden = false;
+
+  function temizle(){
+    yol = null;
+    if (onizlemeAdresi){ URL.revokeObjectURL(onizlemeAdresi); onizlemeAdresi = ""; }
+    onizle.hidden = true; onizle.removeAttribute("src");
+    fsil.hidden = true; alan.value = "";
+  }
+
+  alan.addEventListener("change", async e => {
+    const d = e.target.files && e.target.files[0];
+    if (!d) return;
+    if (!Kimlik.girisli){
+      not.textContent = "Fotoğraf eklemek için önce giriş yap.";
+      not.classList.add("kotu"); alan.value = ""; return;
+    }
+    not.classList.remove("kotu");
+    not.textContent = "Fotoğraf hazırlanıyor…";
+    try {
+      yol = await Kimlik.mekanFotoYukle(d);
+      onizlemeAdresi = URL.createObjectURL(d);
+      onizle.src = onizlemeAdresi; onizle.hidden = false; fsil.hidden = false;
+      not.textContent = "Fotoğraf eklendi. Konum ve cihaz bilgisi silindi.";
+    } catch (hata){
+      temizle();
+      not.textContent = hata.message; not.classList.add("kotu");
+    }
+  });
+  fsil.addEventListener("click", temizle);
+
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+    if (!Kimlik.girisli){
+      location.href = "giris.html?donus=" + encodeURIComponent(donus);
+      return;
+    }
+    if (!yol){
+      not.textContent = "Önce bir fotoğraf seç.";
+      not.classList.add("kotu"); return;
+    }
+    dug.disabled = true;
+    const eski = dug.textContent;
+    dug.textContent = "Gönderiliyor…";
+    try {
+      await Kimlik.mekanFotoGonder({
+        mekanId, il: ilKod, mekanAd, yol,
+        aciklama: document.getElementById("mfAciklama").value
+      });
+      /* Isletme sahibinin fotografi DOGRUDAN yayinda (tetikleyici); o
+         yuzden gonderdikten sonra seridi yeniden ciziyoruz -- sahibi
+         kendi fotografini aninda gormeli. */
+      await ciz();
+      form.innerHTML = '<p><strong>Teşekkürler, aldım.</strong> ' +
+        "Kontrol ettikten sonra bu sayfada görünecek.</p>";
+    } catch (hata){
+      not.textContent = hata.message; not.classList.add("kotu");
+      dug.disabled = false; dug.textContent = eski;
+    }
+  });
 }
 
 /* ============================================================

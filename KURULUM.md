@@ -39,6 +39,7 @@ Toplam süre: ~15 dakika. Ücret yok, kart istenmiyor.
    | `veritabani/profil.sql` | Genişletilmiş profil (fotoğraf, yaş, meslek) | Ayarlarda yalnız ad ve parola görünür |
    | `veritabani/yorum.sql` | Mekan yorumları ve puanlar | Yorum bölümü hiç görünmez |
    | `veritabani/menu_katki.sql` | Menü/ürün paylaşımı (fotoğraflı) | Menü ekleme bölümü hiç görünmez |
+   | `veritabani/mekan_foto.sql` | Mekan fotoğrafları | Fotoğraf şeridi hiç görünmez |
 
    Hiçbiri kurulmadığında sayfa normal çalışır; yalnız o bölümler
    sessizce gizli kalır. Beklenen çıktılar:
@@ -50,6 +51,7 @@ Toplam süre: ~15 dakika. Ücret yok, kart istenmiyor.
    Profil kuruldu: 6 alan, kullanici adi uretiliyor, tablo kapali
    Yorum kuruldu: RLS acik, 5 politika, kimlik sutunu kapali
    Menu katkisi kuruldu: RLS acik, 5 politika, kimlik sutunu kapali
+   Mekan fotografi kuruldu: RLS acik, 5 politika, atif zorunlu
    ```
 
    > `profil.sql` **`yorum.sql`'den önce** çalıştırılmalı: yorumlar yazarın
@@ -192,6 +194,34 @@ alınmıyor: 35.852 mekanın **23.519'unda** ad ve harita noktasından başka
 bilgi yok; o sayfaları indekse itmek ince içerik üretmek olur. Şu an
 **12.387 işletme sayfası** (%34,3) eşiği geçiyor — kullanıcı katkısı geldikçe
 bu sayı büyüyor, o yüzden ara ara yeniden çalıştırmak mantıklı.
+
+## Mekan fotoğrafları nereden geliyor
+
+Üç kaynak var, üçü de yayımlama hakkı olan kaynaklar:
+
+1. **Doğrulanmış işletme sahibi** — saha kartıyla sahiplenen kişi yüklerse
+   fotoğraf kuyruğa girmez, doğrudan yayına çıkar. En temiz kaynak.
+2. **Kullanıcılar** — mekan sayfasından yükleniyor, onaydan geçiyor.
+3. **Wikimedia Commons** — `python foto_cek.py` serbest lisanslı fotoğrafları
+   toplayıp `mekan_foto.sql` üretiyor; SQL Editor'e yapıştırıyorsun.
+   Atıf (yazar + lisans) zorunlu ve satırlarda taşınıyor.
+
+```bash
+python turkiye_cek.py     # ham/ klasörünü doldurur (zaten yaptıysan gerek yok)
+python foto_cek.py        # mekan_foto.sql üretir
+```
+
+> **Kapsamı düşük olacak, bunu baştan söylüyorum.** Commons'ta anıt, cami ve
+> müze bol; mahalle kafesi yok denecek kadar az. Betik sonunda kaç mekanın
+> kapsandığını **sayarak** yazıyor. Sayfaları asıl dolduracak olan işletme
+> sahipleri ve kullanıcılar.
+
+> **Google Maps, TripAdvisor ve benzeri kaynaklar buraya girmiyor** ve
+> giremez: oradaki fotoğraflar ve yorumlar yazarlarının telifinde, platforma
+> lisanslı. Kendi sitende yayımlama hakkın yok — Places API'nin kendi
+> şartları bile yorumu 30 günden fazla saklamayı ve harita dışında
+> göstermeyi yasaklıyor. `kaynak` sütunu bu yüzden serbest metin değil,
+> kısıtlı bir liste.
 
 ## SQL'i değiştirirsen
 

@@ -31,7 +31,7 @@ VERI = os.path.join(KOK, "app", "veri")
 
 # Kendi kontrolu olan betikler. Hepsi "test" argumanini ayni sekilde anliyor.
 BETIKLER = ["app_veri.py", "etkinlik_cek.py", "fiyat_analiz.py", "menu_cikar.py",
-            "turkiye_cek.py",
+            "turkiye_cek.py", "foto_cek.py",
             "menu_ocr.py", "menu_pdf_tara.py", "saha.py", "sahiplen.py",
             "site_haritasi.py"]
 
@@ -578,7 +578,8 @@ def sql_kontrolleri():
     eksik = [ad for ad, imza in (("sahiplenme", "20 kontrolun hepsi gecti"),
                                  ("sayac", "sayac: 11 kontrolun hepsi gecti"),
                                  ("yorum", "yorum: 20 kontrolun hepsi gecti"),
-                                 ("menu katkisi", "menu katkisi: 12 kontrolun hepsi gecti"))
+                                 ("menu katkisi", "menu katkisi: 12 kontrolun hepsi gecti"),
+                                 ("mekan fotografi", "mekan fotografi: 12 kontrolun hepsi gecti"))
              if imza not in cikti]
     if eksik:
         return kayit("SQL davranisi (gercek Postgres)",
