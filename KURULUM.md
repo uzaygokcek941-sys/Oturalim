@@ -206,9 +206,15 @@ bu sayı büyüyor, o yüzden ara ara yeniden çalıştırmak mantıklı.
    toplayıp `mekan_foto.sql` üretiyor; SQL Editor'e yapıştırıyorsun.
    Atıf (yazar + lisans) zorunlu ve satırlarda taşınıyor.
 
+> **İki ayrı dosya, karıştırma:**
+> `veritabani/mekan_foto.sql` **tabloyu kurar** (bir kez çalıştırılır, depoda).
+> `foto_ekle.sql` ise `foto_cek.py`'nin ürettiği **veri** dosyasıdır (senin
+> makinende oluşur, depoya girmez). Başta ikisinin de adı `mekan_foto.sql`'di
+> ve `.gitignore` şema dosyasını da yutmuştu — adlar bu yüzden ayrıldı.
+
 ```bash
 python turkiye_cek.py     # ham/ klasörünü doldurur (zaten yaptıysan gerek yok)
-python foto_cek.py        # mekan_foto.sql üretir
+python foto_cek.py        # foto_ekle.sql üretir
 ```
 
 > **Kapsamı düşük olacak, bunu baştan söylüyorum.** Commons'ta anıt, cami ve

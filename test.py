@@ -438,6 +438,47 @@ def sirlar_sizmis_mi():
     return s
 
 
+def kurulum_dosyalari_izleniyor_mu():
+    """veritabani/ altindaki her SQL dosyasi depoda OLMALI.
+
+    Bu gercek bir kayip oldu ve sessizdi: .gitignore'a foto_cek.py'nin
+    urettigi dosya icin "mekan_foto.sql" satiri yazildi. Kalip yol
+    belirtmiyordu, yani AYNI ADLI her dosyayi yutuyor -- ve
+    veritabani/mekan_foto.sql SEMA dosyasini da yuttu. Dosya diskte
+    duruyordu, testler geciyordu, ama depoya hic girmedi; kullanici
+    depoyu cektiginde kurulum eksikti.
+
+    KURULUM.md'nin listeledigi her dosyanin gercekten var oldugu da
+    burada denetleniyor: belge var olmayan bir dosyayi isaret edemez."""
+    s = []
+    izlenen = set(subprocess.run(["git", "ls-files", "veritabani/"], cwd=KOK,
+                                 capture_output=True, text=True).stdout.split())
+    for yol in sorted(glob.glob(os.path.join(KOK, "veritabani", "*.sql"))):
+        goreli = os.path.relpath(yol, KOK)
+        if goreli not in izlenen:
+            y = subprocess.run(["git", "check-ignore", "-v", goreli],
+                               cwd=KOK, capture_output=True, text=True)
+            s.append("%s depoda yok%s" % (
+                goreli, (" (.gitignore: %s)" % y.stdout.strip()) if y.stdout else ""))
+
+    # kos.sh calistirdigi her dosya gercekten var mi
+    kos = io.open(os.path.join(KOK, "veritabani", "kos.sh"), encoding="utf-8").read()
+    m = re.search(r'DOSYALAR="([^"]+)"', kos)
+    if not m:
+        s.append("kos.sh: DOSYALAR listesi okunamadi")
+    else:
+        for ad in m.group(1).split():
+            if not os.path.exists(os.path.join(KOK, "veritabani", ad + ".sql")):
+                s.append("kos.sh %s.sql dosyasini cagiriyor ama dosya yok" % ad)
+
+    # KURULUM.md'nin isaret ettigi her dosya var mi
+    kur = io.open(os.path.join(KOK, "KURULUM.md"), encoding="utf-8").read()
+    for ad in set(re.findall(r"veritabani/(\w+\.sql)", kur)):
+        if not os.path.exists(os.path.join(KOK, "veritabani", ad)):
+            s.append("KURULUM.md veritabani/%s diyor ama dosya yok" % ad)
+    return s
+
+
 def adres_ve_tarih_mi():
     """Iki kural, ikisi de bir kez BOZULDU ve sessiz kaldi.
 
@@ -614,6 +655,7 @@ def main():
     kayit("degismez: sema korumalari yerinde", sema_tutarli_mi())
     kayit("degismez: sahne perdesi acilabiliyor", sahne_tutarli_mi())
     kayit("degismez: yayin yapilandirmasi", yayin_basliklari_mi())
+    kayit("degismez: kurulum dosyalari depoda", kurulum_dosyalari_izleniyor_mu())
     kayit("degismez: donus adresi ve gunun tarihi", adres_ve_tarih_mi())
     kayit("degismez: sir sizmamis", sirlar_sizmis_mi())
 

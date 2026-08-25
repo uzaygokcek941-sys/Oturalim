@@ -45,6 +45,10 @@ saha_kartlar.html
 saha_kodlar.sql
 saha_liste.csv
 
-# foto_cek.py ciktilari
-mekan_foto.csv
-mekan_foto.sql
+# foto_cek.py ciktilari. KOKE SABITLENMIS (bastaki /): yol belirtmeyen
+# bir kalip AYNI ADLI her dosyayi yutuyor ve tam olarak bu oldu --
+# "mekan_foto.sql" satiri veritabani/mekan_foto.sql SEMA dosyasini da
+# kapsadi, dosya hic itilmedi ve kurulum eksik kaldi. Uretilen dosyanin
+# adi da ayrildi (foto_ekle.sql), boylece cakisma tekrar edemez.
+/mekan_foto.csv
+/foto_ekle.sql

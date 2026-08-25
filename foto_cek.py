@@ -8,7 +8,7 @@ Kullanim:
 
 Cikti:
     mekan_foto.csv        -- mekan_id, adres, yazar, lisans, kaynak_bag
-    mekan_foto.sql        -- Supabase'e yapistirilacak insert'ler (gitignore)
+    foto_ekle.sql        -- Supabase'e yapistirilacak insert'ler (gitignore)
 
 NEDEN BU KAYNAK, BASKASI DEGIL
 ==============================
@@ -22,14 +22,14 @@ yazili bir karar.
 Wikimedia Commons FARKLI: oradaki dosyalar serbest lisansli (CC0, CC BY,
 CC BY-SA) ve yeniden yayimlanabilir. KARSILIGINDA ATIF ZORUNLU: yazar adi
 ve lisans gosterilmeli. Bu betik atifi TOPLAMADAN fotograf yazmiyor ve
-veritabani kisiti da atifsiz satiri kabul etmiyor (mekan_foto.sql).
+veritabani kisiti da atifsiz satiri kabul etmiyor (foto_ekle.sql).
 
 BEKLENEN KAPSAM DUSUK, bunu bastan soyluyorum
 =============================================
 Commons'ta anit, cami, tarihi yapi ve muze bol; mahalle kafesi yok
 denecek kadar az. Bu betik "her mekana fotograf" getirmiyor; getirdigi
 sey, getirebildigi kadari. Sayfalari asil dolduracak olan kullanici ve
-DOGRULANMIS ISLETME SAHIBI yuklemeleri (veritabani/mekan_foto.sql).
+DOGRULANMIS ISLETME SAHIBI yuklemeleri (veritabani/foto_ekle.sql).
 Kac mekan kapsandigi kosum sonunda YAZIYOR -- tahmin degil, sayim.
 
 UC ETIKET, UC AYRI YOL (OSM'de):
@@ -310,13 +310,13 @@ def main(kodlar):
         w = csv.DictWriter(f, fieldnames=ALANLAR)
         w.writeheader()
         w.writerows(hepsi)
-    with open("mekan_foto.sql", "w", encoding="utf-8") as f:
+    with open("foto_ekle.sql", "w", encoding="utf-8") as f:
         f.write(sql_uret(hepsi))
 
     oran = (100.0 * len(hepsi) / toplam_mekan) if toplam_mekan else 0
     print("\nTOPLAM: %d mekanin %d'inde fotograf etiketi, %d'i serbest "
           "lisansli (%%%.2f)" % (toplam_mekan, etiketli, len(hepsi), oran))
-    print("mekan_foto.sql yazildi -- Supabase SQL Editor'e yapistir.")
+    print("foto_ekle.sql yazildi -- Supabase SQL Editor'e yapistir.")
     if oran < 1:
         print("\nBEKLENEN BIR SONUC. Commons'ta anit ve muze bol, mahalle "
               "kafesi yok denecek kadar az.\nSayfalari asil dolduracak olan "
