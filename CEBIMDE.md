@@ -1714,6 +1714,72 @@ aralarında "veri üretiminde kalem kategorisi kalktı" ve "her kategoriden
 en ucuz kalem kuralı kalktı" var; ikincisi betiği değiştirip **veriyi
 yeniden üretmeyi unutmayı** da yakalıyor.
 
+## 2026-08-25 — Kullanıcı seviyesi
+
+Yol haritasının maddesi. Seviye bir **süs** değil bir **sayım**:
+kullanıcının kaç onaydan geçmiş katkı yaptığı.
+
+| Eşik | Ad | Gerekçe |
+|---|---|---|
+| 0 | Yeni | — |
+| 1 | Katkıcı | ilk katkı: bir mekan senin sayende daha eksiksiz |
+| 3 | Doğrulayıcı | **FIS_ESIK ile aynı sayı** — tek başına bir mekanın fiyatını k-anonimlik eşiğine taşıyabilecek katkı |
+| 10 | Düzenli | **yuvarlak sayı, ölçüm değil** |
+| 25 | Kaşif | **yuvarlak sayı, ölçüm değil** |
+| 50 | Emektar | **yuvarlak sayı, ölçüm değil** |
+
+Son üçünün gerekçesi yok ve bu bilerek yazılıyor: uygulama daha yayında
+değil, yani gerçek bir katkı dağılımı yok. Dağılım oluşunca bu üç sayı
+ölçüme göre yeniden konmalı. Uydurma bir eğriye "veri" demektense
+uydurma olduğunu söylemek daha dürüst. `test.py` 3. eşiğin `FIS_ESIK`
+ile aynı kalmasını denetliyor — ayrışırsa "Doğrulayıcı" adı gerekçesini
+kaybeder.
+
+### Üç sessiz kusur, üçü de kapalı
+
+**1) Gönderilen değil ONAYDAN GEÇMİŞ katkı sayılıyor.** Gönderileni
+saymak, seviyeyi kuyruğa çöp atarak yükseltilebilir yapardı. Ön onay
+zaten hakaret ve yanlış bilgi için var; seviye de aynı kapıdan geçiyor.
+
+**2) Fiyat oyu seviyeye girmiyor.** Oy tek dokunuş ve onay kuyruğu yok
+(oradaki savunma eşik). Onaysız ve tek dokunuşluk bir eylemi seviyeye
+bağlamak, tam da oyunlaştırmanın bozulduğu yer olurdu. Oy sayısı ekranda
+**ayrı** yazıyor: *"4 fiyat doğrulaman var (seviyeye girmiyor)"* —
+görünmez değil, seviyeye etkisiz.
+
+**3) Sayım satır çekmiyor.** `head:true` ile yalnız sayı dönüyor.
+Hesabım ekranındaki sekmeler tembel yükleniyor; seviyeyi o listelerden
+hesaplamak *"hangi sekmeye bastığına göre değişen seviye"* demekti.
+`test.py` seviye çiziminin bir sekme çizicisinin içine taşınmasını da
+hata sayıyor.
+
+### Seviye herkese açık değil
+
+Kullanıcı kendi sayfasında görüyor, başka kimseye gösterilmiyor.
+Başkasına göstermek için sayımın **sunucuda** yapılması gerekirdi —
+tarayıcıda hesaplanan bir rozet, sahibi tarafından istediği gibi
+yazılabilir ve "doğrulanmış katkıcı" gibi bir iddiayı taşıyamaz.
+
+Katkı yoksa kutu **hiç çıkmıyor**: yeni açılmış bir hesaba *"Yeni
+seviye, 0 katkı"* göstermek boş bir ilerleme çubuğundan başka bir şey
+değil.
+
+Döküm türe göre yazılıyor (*"3 fiyat paylaşımı · 2 eksik bilgi · 2
+yorum"*): tek bir "7 katkı" sayısı neyin sayıldığını söylemiyor ve
+kullanıcı doğrulayamıyor.
+
+### Doğrulama
+
+Beş durum gerçek tarayıcıda ölçüldü: katkı yok (kutu gizli), 1, 3
+(eşik), 7 + 4 oy, 55 (en üst).
+
+Taklit Supabase'e **sayım desteği** eklendi (`count`/`head`): olmasaydı
+seviye her zaman sıfır çıkardı — yani ekran "çalışıyor" görünüp yanlış
+sayı gösterirdi.
+
+`ortak.js` öz kontrolleri **296 → 313**; `test.py`'ye "seviye onaylı
+katkıyı sayıyor" grubu eklendi (altı sabotaj, altısı da yakalandı).
+
 ## Yapılmayacaklar
 
 | Yapma | Neden |

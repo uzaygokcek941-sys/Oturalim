@@ -22,6 +22,7 @@ iki kafe, aynı kahve, iki kat fark olabiliyor. Uygulamanın tek işi:
 - Harita bütçeye göre renkleniyor; renk bandı, doygunluk ne kadar emin olduğumuzu gösteriyor
 - "Bu fiyat hâlâ geçerli mi?" — tek dokunuşla doğrulama; üç kişi söyleyince skor değişiyor
 - **Cebimde kombini** — "300 ₺ ile: börek 30 ₺ + tiramisu 70 ₺ = 100 ₺"; menüde yazan iki kalem, uydurma yok
+- Kullanıcı seviyesi — onaydan geçmiş katkı sayısı; fiyat oyu (tek dokunuş) seviyeye girmiyor
 - Harita + liste, 81 ilin tamamı
 - Bütçe kaydırıcısı — mekanın ana ürün ortalamasına göre süzme
 - Ucuz / orta / pahalı bandı — kendi türündeki mekanlara göre, kanıt varsa

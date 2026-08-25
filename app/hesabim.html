@@ -36,6 +36,12 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
   .hesap-bas h1{font-size:40px;line-height:1.15}
   .hesap-bas .posta{font-size:13px;color:var(--metin-3);margin-top:4px;word-break:break-all}
 
+  .seviye{margin-bottom:var(--a4);padding:var(--a4);border:1px solid var(--cizgi);
+     border-radius:var(--r);background:var(--zemin-2)}
+  .seviye-ad{font-family:var(--font-baslik);font-size:1.15rem;letter-spacing:-.01em}
+  .seviye-ad b{color:var(--vurgu)}
+  .seviye-not{margin-top:var(--a2);font-size:.95rem;line-height:1.55}
+  .seviye-dokum{margin-top:var(--a2);font-size:.85rem;color:var(--soluk);line-height:1.6}
   .sekmeler{display:flex;gap:var(--a1);padding:var(--a1);background:var(--zemin-3);
     border-radius:var(--r);margin-bottom:var(--a5);overflow-x:auto;scrollbar-width:none}
   .sekmeler::-webkit-scrollbar{display:none}
@@ -145,6 +151,15 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
             Çıkış yap
           </button>
         </div>
+
+        <!-- Kullanici seviyesi. Sekmelerin USTUNDE: sekmeler tembel
+             yukleniyor ve seviye hangi sekmeye bastigina gore
+             degismemeli. Sayim ayri bir uctan geliyor (katkiOzetim). -->
+        <section class="seviye" id="seviye" hidden>
+          <p class="seviye-ad"><b id="seviyeAd"></b></p>
+          <p class="seviye-not" id="seviyeNot"></p>
+          <p class="seviye-dokum" id="seviyeDokum"></p>
+        </section>
 
         <div class="sekmeler" role="tablist" id="sekmeler">
           <button role="tab" type="button" aria-selected="true"  data-bolum="favoriler">Favorilerim</button>
@@ -302,6 +317,41 @@ const tarihTR = d => new Date(d).toLocaleDateString("tr-TR",
   { day: "numeric", month: "long", year: "numeric" });
 
 /* ---------- favoriler ---------- */
+/* ---------- kullanici seviyesi ----------
+   Seviye bir SUS degil bir SAYIM: kac ONAYDAN GECMIS katki yaptin.
+   Kural ortak.js'te (seviyeHesapla / seviyeCumlesi); burasi yalniz
+   sayilari getirip basiyor.
+
+   Katki YOKSA kutu HIC CIKMIYOR. Yeni acilmis bir hesaba "Yeni seviye,
+   0 katki" diye bir rozet gostermek, bos bir ilerleme cubugundan baska
+   bir sey degil -- davet zaten paylas.html'de ve mekan sayfalarinda. */
+async function seviyeyiCiz(){
+  const kutu = document.getElementById("seviye");
+  if (!kutu) return;
+  let o = null;
+  try { o = await Kimlik.katkiOzetim(); } catch (e) { /* tablo yok, ag yok */ }
+  if (!o || (!o.onayli && !o.oy)){ kutu.hidden = true; return; }
+
+  const s = seviyeHesapla(o.onayli);
+  document.getElementById("seviyeAd").textContent = s.ad;
+  document.getElementById("seviyeNot").textContent = seviyeCumlesi(s);
+
+  /* Dokum: hangi katki turunden kac tane. Tek bir "12 katki" sayisi
+     neyin sayildigini soylemiyor ve kullanici dogrulayamiyor. Sifir
+     olan tur hic yazilmiyor. */
+  const parcalar = [
+    [o.fis, "fiyat paylaşımı"], [o.katki, "eksik bilgi"],
+    [o.yorum, "yorum"], [o.menu, "menü katkısı"], [o.foto, "fotoğraf"]
+  ].filter(x => x[0]).map(x => sayi(x[0]) + " " + x[1]);
+  /* Fiyat oyu AYRI yaziliyor: seviyeye girmiyor (tek dokunus, onay
+     kuyrugu yok) ama gorunmez de degil. */
+  const oySatiri = o.oy
+    ? sayi(o.oy) + " fiyat doğrulaman var (seviyeye girmiyor)" : "";
+  document.getElementById("seviyeDokum").textContent =
+    [parcalar.join(" · "), oySatiri].filter(Boolean).join(" — ");
+  kutu.hidden = false;
+}
+
 async function favorileriCiz(){
   const yuva = el("#bolum-favoriler");
   yuva.innerHTML = '<p class="bos"><strong>Yükleniyor…</strong></p>';
@@ -713,6 +763,9 @@ Kimlik.hazir.then(async acik => {
   el("#yukleniyor").hidden = true;
   el("#icerik").hidden = false;
   await favorileriCiz();
+  /* Seviye favorilerden SONRA: ikisi de agdan geliyor ve favoriler
+     sayfanin ilk gorunen icerigi. */
+  await seviyeyiCiz();
 });
 </script>
 </body>

@@ -1350,6 +1350,77 @@ function kombinCumlesi(k, butce){
     : " — " + tl(k.toplam - butce) + " aşıyor.");
 }
 
+/* ============================================================
+   KULLANICI SEVİYESİ
+
+   Yol haritasının maddesi. Seviye bir SÜS değil, bir SAYIM: kullanıcının
+   uygulamaya kaç doğrulanmış katkı yaptığı.
+
+   ONAYDAN GEÇMİŞ KATKI SAYILIYOR, gönderilen değil. Gönderileni saymak,
+   seviyeyi kuyruğa çöp atarak yükseltilebilir yapardı; ön onay zaten
+   hakaret ve yanlış bilgi için var, seviye de aynı kapıdan geçsin.
+
+   FİYAT OYU SEVİYEYE GİRMİYOR. Oy tek dokunuş ve onay kuyruğu yok
+   (veritabani/fiyat_oyu.sql: gönderilen şey bir boolean, oradaki savunma
+   eşik). Onaysız ve tek dokunuşluk bir eylemi seviyeye bağlamak, tam da
+   oyunlaştırmanın bozulduğu yer olurdu. Oy sayısı ekranda AYRI yazıyor
+   -- görünmez değil, seviyeye etkisiz.
+
+   EŞİKLER NEREDEN GELİYOR, VE HANGİSİ UYDURMA:
+     0   Yeni
+     1   Katkıcı       ilk katkı: bir mekan senin sayende daha eksiksiz
+     3   Doğrulayıcı   FIS_ESIK ile aynı sayı -- tek başına bir mekanın
+                       fiyatını k-anonimlik eşiğine taşıyabilecek katkı
+     10  Düzenli       YUVARLAK SAYI, ölçüm değil
+     25  Kaşif         YUVARLAK SAYI, ölçüm değil
+     50  Emektar       YUVARLAK SAYI, ölçüm değil
+
+   İlk üçünün gerekçesi var, son üçü yok ve bu bilerek yazılıyor:
+   uygulama daha yayında değil, yani gerçek bir katkı dağılımı yok.
+   Dağılım oluşunca bu üç sayı ölçüme göre yeniden konmalı. Uydurma bir
+   eğriye "veri" demektense uydurma olduğunu söylemek daha dürüst.
+
+   SEVİYE HERKESE AÇIK DEĞİL. Kullanıcı kendi sayfasında görüyor; başka
+   kimseye gösterilmiyor. Başkasına göstermek için sayımın SUNUCUDA
+   yapılması gerekirdi -- tarayıcıda hesaplanan bir rozet, sahibi
+   tarafından istediği gibi yazılabilir ve "doğrulanmış katkıcı" gibi bir
+   iddiayı taşıyamaz.
+   ============================================================ */
+
+const SEVIYELER = [
+  { esik: 0,  ad: "Yeni" },
+  { esik: 1,  ad: "Katkıcı" },
+  { esik: 3,  ad: "Doğrulayıcı" },
+  { esik: 10, ad: "Düzenli" },
+  { esik: 25, ad: "Kaşif" },
+  { esik: 50, ad: "Emektar" }
+];
+
+/* onayli: onaydan geçmiş katkı sayısı (fiş, katkı, yorum, menü, fotoğraf).
+   Dönen: {ad, sira, onayli, sonraki, kalan}. sonraki null ise en üst
+   seviyedeyiz ve "kalan" 0. */
+function seviyeHesapla(onayli){
+  const n = Number.isFinite(+onayli) && +onayli > 0 ? Math.floor(+onayli) : 0;
+  let sira = 0;
+  for (let i = 0; i < SEVIYELER.length; i++) if (n >= SEVIYELER[i].esik) sira = i;
+  const sonraki = SEVIYELER[sira + 1] || null;
+  return { ad: SEVIYELER[sira].ad, sira, onayli: n, sonraki,
+           kalan: sonraki ? sonraki.esik - n : 0 };
+}
+
+/* Ekranda okunacak hali. "Bir sonraki seviyeye ne kadar kaldığı" RAKAMLA
+   yazılıyor: kullanıcıyı ilerleme çubuğuna bakıp tahmin etmeye bırakmak,
+   ekranın işini kullanıcıya yıkmak olurdu. */
+function seviyeCumlesi(s){
+  if (!s) return "";
+  if (!s.onayli)
+    return "Henüz onaylanmış katkın yok. İlk katkın seni " +
+           SEVIYELER[1].ad + " yapar.";
+  const bas = sayi(s.onayli) + " onaylanmış katkı.";
+  if (!s.sonraki) return bas + " En üst seviyedesin.";
+  return bas + " " + sayi(s.kalan) + " katkı daha: " + s.sonraki.ad + ".";
+}
+
 /* ---------- kohort ölçümü ----------
    Çerezsiz ve sunucusuz: yalnız localStorage, yalnız bu cihaz.
    Hangi günlerde açıldığı tutuluyor; D1/D7/D30 buradan hesaplanıyor. */
@@ -2153,6 +2224,37 @@ function kendiniKontrolEt(){
     ["kombin alkolsuz hic yoksa alkollu geliyor",
       ((kombinKur(KOMBIN_SADECE_ALKOL, 0) || {kalemler:[]}).kalemler[1] || {}).a,
                                                                     "Raki"],
+
+    /* --- kullanici seviyesi ---
+       ONAYDAN GECMIS katki sayiliyor, gonderilen degil: gonderileni
+       saymak seviyeyi kuyruga cop atarak yukseltilebilir yapardi.
+       Fiyat oyu seviyeye GIRMIYOR -- tek dokunus ve onay kuyrugu yok. */
+    ["seviye sifir katki",       seviyeHesapla(0).ad,                    "Yeni"],
+    ["seviye ilk katki",         seviyeHesapla(1).ad,                 "Katkıcı"],
+    ["seviye ikide hala katkici", seviyeHesapla(2).ad,                "Katkıcı"],
+    /* 3 = FIS_ESIK: tek basina bir mekanin fiyatini esige tasiyabilecek
+       sayi. Esigin kendisi degisirse bu ad da anlamini kaybeder. */
+    ["seviye ucte dogrulayici",  seviyeHesapla(3).ad,             "Doğrulayıcı"],
+    ["seviye onda duzenli",      seviyeHesapla(10).ad,                "Düzenli"],
+    ["seviye elli ve ustu emektar", seviyeHesapla(500).ad,           "Emektar"],
+    /* Bozuk girdi seviyeyi yukseltmemeli: negatif, metin, null hepsi
+       sifir sayiliyor. */
+    ["seviye negatif sifir sayilir",  seviyeHesapla(-5).ad,            "Yeni"],
+    ["seviye metin sifir sayilir",    seviyeHesapla("abc").ad,         "Yeni"],
+    ["seviye null sifir sayilir",     seviyeHesapla(null).ad,          "Yeni"],
+    ["seviye ondalik asagi yuvarlanir", seviyeHesapla(2.9).ad,      "Katkıcı"],
+    /* Kalan katki RAKAMLA: kullaniciyi ilerleme cubuguna bakip tahmin
+       etmeye birakmak, ekranin isini kullaniciya yikmak olurdu. */
+    ["seviye kalan katki sayisi",     seviyeHesapla(7).kalan,               3],
+    ["seviye en ustte sonraki yok",   seviyeHesapla(50).sonraki,         null],
+    ["seviye en ustte kalan sifir",   seviyeHesapla(50).kalan,              0],
+    ["seviye cumlesi sifirda davet",
+      /İlk katkın seni Katkıcı yapar/.test(seviyeCumlesi(seviyeHesapla(0))), true],
+    ["seviye cumlesi kalani yaziyor",
+      /3 katkı daha: Düzenli/.test(seviyeCumlesi(seviyeHesapla(7))),      true],
+    ["seviye cumlesi en ustte",
+      /En üst seviyedesin/.test(seviyeCumlesi(seviyeHesapla(50))),        true],
+    ["seviye cumlesi bos girdi",      seviyeCumlesi(null),                 ""],
 
     /* --- ana ekranin kategorileri ---
        Ciplerin turleri veride GERCEKTEN var olmali; yanlis yazilmis tek

@@ -20,7 +20,8 @@ function suz(satirlar, kosullar){
 }
 
 function sorgu(tablo){
-  const durum = { kosul: [], sira: null, artan: true, limit: null, tek: false };
+  const durum = { kosul: [], sira: null, artan: true, limit: null, tek: false,
+                  say: false, bas: false };
   const calistir = () => {
     let l = (V.tablolar[tablo] || []).slice();
     l = suz(l, durum.kosul);
@@ -28,11 +29,23 @@ function sorgu(tablo){
       const x = a[durum.sira], y = b[durum.sira];
       return (x < y ? -1 : x > y ? 1 : 0) * (durum.artan ? 1 : -1);
     });
+    /* SAYIM: select("id", {count:"exact", head:true}) satir cekmeden
+       yalniz sayi donduruyor. Kullanici seviyesi bunu kullaniyor
+       (kimlik.js katkiOzetim) ve taklit bunu bilmezse seviye HER ZAMAN
+       sifir cikardi -- yani ekran "calisiyor" gorunup yanlis sayi
+       gosterirdi. Sayim LIMIT'ten once: sayi, sayfalamadan bagimsiz. */
+    const adet = l.length;
     if (durum.limit != null) l = l.slice(0, durum.limit);
+    if (durum.say)
+      return { data: durum.bas ? null : l, count: adet, error: null };
     return durum.tek ? { data: l[0] || null, error: null } : { data: l, error: null };
   };
   const z = {
-    select(){ return z; },
+    select(_alan, secenek){
+      if (secenek && secenek.count) durum.say = true;
+      if (secenek && secenek.head) durum.bas = true;
+      return z;
+    },
     eq(k, d){ durum.kosul.push([k, d]); return z; },
     order(k, o){ durum.sira = k; durum.artan = !(o && o.ascending === false); return z; },
     limit(n){ durum.limit = n; return z; },

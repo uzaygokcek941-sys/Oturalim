@@ -1373,6 +1373,92 @@ def kombin_mi():
     return s
 
 
+def seviye_mi():
+    """Kullanici seviyesi: SUS degil SAYIM.
+
+    Uc sessiz kusur var, ucu de burada araniyor:
+
+    1) GONDERILEN katki sayilirsa seviye kuyruga cop atarak
+       yukseltilebilir. Yalniz durum='onaylandi' sayilmali. On onay
+       zaten hakaret ve yanlis bilgi icin var; seviye de ayni kapidan
+       gecsin.
+
+    2) FIYAT OYU seviyeye girerse ozellik oyunlastirmanin bozuldugu yere
+       duser: oy tek dokunus ve onay kuyrugu YOK (savunma orada esik).
+       Oy sayisi ekranda ayri yaziyor, seviyeye etkisiz.
+
+    3) SAYIM SATIR CEKEREK yapilirsa hesabim ekranindaki tembel
+       sekmelere baglanir ve seviye "hangi sekmeye bastigina gore"
+       degisir. Sayim head:true ile, ayri bir uctan.
+    """
+    s = []
+    okun = lambda *y: io.open(os.path.join(KOK, *y), encoding="utf-8").read()
+    ortak = _js_yorumsuz(okun("app", "ortak.js"))
+    kim = _js_yorumsuz(okun("app", "kimlik.js"))
+    hes = _js_yorumsuz(okun("app", "hesabim.html"))
+
+    for f in ("seviyeHesapla", "seviyeCumlesi"):
+        if ("function %s(" % f) not in ortak:
+            s.append("ortak.js: %s() yok" % f)
+    if "const SEVIYELER" not in ortak:
+        s.append("ortak.js: SEVIYELER yok")
+
+    # Esikler artan olmali ve 0'dan baslamali; bozuk siralama seviyeyi
+    # sessizce yanlis hesaplatir.
+    m = re.search(r"const SEVIYELER = \[(.*?)\];", ortak, re.S)
+    if not m:
+        s.append("ortak.js: SEVIYELER listesi okunamadi")
+    else:
+        esikler = [int(x) for x in re.findall(r"esik:\s*(\d+)", m.group(1))]
+        if not esikler:
+            s.append("ortak.js: SEVIYELER bos")
+        else:
+            if esikler[0] != 0:
+                s.append("ortak.js: SEVIYELER 0'dan baslamiyor (%d)" % esikler[0])
+            if esikler != sorted(esikler) or len(set(esikler)) != len(esikler):
+                s.append("ortak.js: SEVIYELER esikleri artan degil: %s" % esikler)
+            # 3. esik FIS_ESIK ile ayni olmali: "Dogrulayici" adinin
+            # gerekcesi tam olarak o sayi.
+            mf = re.search(r"const FIS_ESIK = (\d+)", ortak)
+            if mf and int(mf.group(1)) not in esikler:
+                s.append("ortak.js: FIS_ESIK (%s) SEVIYELER esiklerinde yok; "
+                         "'Dogrulayici' gerekcesini kaybetti" % mf.group(1))
+
+    # --- sayim ucu
+    if "async katkiOzetim(" not in kim:
+        s.append("kimlik.js: katkiOzetim() yok")
+    else:
+        m2 = re.search(r"async katkiOzetim\(\)\{(.*?)\n  \},", kim, re.S)
+        if not m2:
+            s.append("kimlik.js: katkiOzetim() govdesi okunamadi")
+        else:
+            g = m2.group(1)
+            if "head: true" not in g:
+                s.append("kimlik.js: katki sayimi satir cekiyor (head:true yok)")
+            if 'eq("durum", "onaylandi")' not in g:
+                s.append("kimlik.js: ONAYLANMAMIS katki da sayiliyor; "
+                         "seviye kuyruga cop atarak yukseltilebilir")
+            # Oy AYRI donmeli ve toplama girmemeli.
+            if "onayli: fis + katki + yorum + menu + foto" not in g:
+                s.append("kimlik.js: onayli toplami beklenen bilesenlerden degil")
+            if re.search(r"onayli:[^;\n]*\boy\b", g):
+                s.append("kimlik.js: fiyat oyu seviye toplamina giriyor")
+
+    # --- ekran
+    if "seviyeHesapla(" not in hes:
+        s.append("hesabim.html: seviyeyi hic hesaplamiyor")
+    if "katkiOzetim(" not in hes:
+        s.append("hesabim.html: katki sayimini istemiyor")
+    # Sekmelerden bagimsiz olmali: seviye cizimi bir sekme cizicisinin
+    # icinden cagrilirsa o sekmeye basilmadan gorunmez.
+    for sekme in ("paylasimlariCiz", "yorumlariCiz", "katkilariCiz"):
+        m3 = re.search(r"async function %s\(\)\{(.*?)\n\}" % sekme, hes, re.S)
+        if m3 and "seviyeyiCiz(" in m3.group(1):
+            s.append("hesabim.html: seviye %s() icinden cagriliyor; "
+                     "sekmeye basilmadan gorunmez" % sekme)
+    return s
+
+
 def sayfa_kontrolleri():
     """Sayfalari GERCEK tarayicida acar (test_sayfa.py).
 
@@ -1476,6 +1562,7 @@ def main():
     kayit("degismez: guven skoru renk disinda da okunuyor", guven_skoru_mu())
     kayit("degismez: k-anonimlik esigi sunucuda da var", esik_iki_tarafta_ayni_mi())
     kayit("degismez: kombin mekanin kendi menusunden", kombin_mi())
+    kayit("degismez: seviye onayli katkiyi sayiyor", seviye_mi())
     kayit("degismez: kurulum dosyalari depoda", kurulum_dosyalari_izleniyor_mu())
     kayit("degismez: donus adresi ve gunun tarihi", adres_ve_tarih_mi())
     kayit("degismez: sir sizmamis", sirlar_sizmis_mi())

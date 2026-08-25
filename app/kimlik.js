@@ -509,6 +509,39 @@ const Kimlik = {
                  medyan: o.medyan == null ? null : +o.medyan } : null;
   },
 
+  /* ---------- katkı sayımı (kullanıcı seviyesi) ----------
+     Kullanıcının KENDİ satırlarını sayıyor; RLS zaten yalnız onları
+     gösteriyor.
+
+     SATIR ÇEKİLMİYOR, SAYILIYOR: `head:true` ile yalnız sayı dönüyor.
+     Hesabım ekranındaki sekmeler tembel yükleniyor (kullanıcı sekmeye
+     basmadan liste inmiyor), yani seviyeyi o listelerden hesaplamak
+     "hangi sekmeye bastığına göre değişen seviye" demekti.
+
+     ONAYDAN GEÇMİŞ olan sayılıyor. Fiyat oyu AYRI dönüyor ve seviyeye
+     girmiyor -- gerekçe ortak.js'te (tek dokunuş, onay kuyruğu yok). */
+  async katkiOzetim(){
+    if (!sb || !oturum) return null;
+    const kim = oturum.user.id;
+    const say = async (tablo, onayli) => {
+      let q = sb.from(tablo).select("id", { count: "exact", head: true })
+                .eq("kullanici", kim);
+      if (onayli) q = q.eq("durum", "onaylandi");
+      const { count, error } = await q;
+      /* Tablo kurulu değilse (kullanıcı o SQL'i çalıştırmadıysa) hata
+         dönüyor; sayım 0 sayılıyor, ekran çökmüyor. */
+      if (error) return 0;
+      return count || 0;
+    };
+    const [fis, katki, yorum, menu, foto, oy] = await Promise.all([
+      say("paylasimlar", true), say("katkilar", true), say("yorumlar", true),
+      say("menu_katkilari", true), say("mekan_fotolari", true),
+      say("fiyat_oylari", false)
+    ]);
+    return { fis, katki, yorum, menu, foto, oy,
+             onayli: fis + katki + yorum + menu + foto };
+  },
+
   /* ---------- sosyal fiyat doğrulama ----------
      "Bu fiyat hâlâ geçerli mi?" — tek dokunuş.
 
