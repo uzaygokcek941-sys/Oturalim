@@ -1459,6 +1459,91 @@ def seviye_mi():
     return s
 
 
+def butce_talebi_mi():
+    """Isletme panelindeki butce talebi: OZGUN sayi, ama ifsa etmeden.
+
+    Uc sessiz kusur var:
+
+    1) TAM TUTAR SAKLANIRSA sayac satiri (mekan, gun, cihaz) giderek
+       daha ayirt edici olur. Bant saklanmali, rakam degil -- ve bant
+       esikleri BUTCE_SECENEK'ten gelmeli, ikinci bir olcek
+       uydurulmamali.
+
+    2) K-ANONIMLIK ESIGI SUNUCUDA olmali. Kucuk sayilarda "bakanlarin
+       1'i 150 TL altiydi" demek o tek kisinin butcesini ifsa etmekle
+       ayni sey. Istemcide gizlemek yetmez: anon anahtar tasarim geregi
+       herkese acik.
+
+    3) IKI IMZA YAN YANA DURAMAZ. mekan_goruldu artik iki argumanli;
+       eski tek argumanli surum dusurulmezse PostgREST hangisini
+       cagiracagini bilemez ve sayac SESSIZCE calismaz olur.
+    """
+    s = []
+    okun = lambda *y: io.open(os.path.join(KOK, *y), encoding="utf-8").read()
+    ortak = _js_yorumsuz(okun("app", "ortak.js"))
+    kim = _js_yorumsuz(okun("app", "kimlik.js"))
+    isl = _js_yorumsuz(okun("app", "isletme.html"))
+    pan = _js_yorumsuz(okun("app", "isletmem.html"))
+    sql = okun("veritabani", "sayac.sql")
+
+    for f in ("butceBandi", "butceBandiAdi", "butceTalebiCumlesi", "sayiEki"):
+        if ("function %s(" % f) not in ortak:
+            s.append("ortak.js: %s() yok" % f)
+
+    # Bant esikleri BUTCE_SECENEK'ten gelmeli.
+    m = re.search(r"function butceBandi\(butce\)\{(.*?)\n\}", ortak, re.S)
+    if not m:
+        s.append("ortak.js: butceBandi() govdesi okunamadi")
+    elif "BUTCE_SECENEK" not in m.group(1):
+        s.append("ortak.js: bant esikleri BUTCE_SECENEK'ten gelmiyor; "
+                 "ikinci bir olcek uydurulmus")
+
+    # Istemci BANT gonderiyor, tam tutar degil.
+    if "p_butce_bandi" not in isl:
+        s.append("isletme.html: goruntulenmeye butce bandi gonderilmiyor")
+    if re.search(r"p_butce\b\s*:", isl):
+        s.append("isletme.html: sunucuya TAM TUTAR gonderiliyor (bant degil)")
+
+    # --- SQL tarafi
+    if "butce_bandi smallint" not in sql:
+        s.append("sayac.sql: butce_bandi sutunu yok")
+    if "add column if not exists butce_bandi" not in sql:
+        s.append("sayac.sql: var olan tabloya sutun eklenmiyor; "
+                 "eski kurulumda ozellik sessizce bos kalir")
+    if "create or replace function public.mekan_butce_talebi" not in sql:
+        s.append("sayac.sql: mekan_butce_talebi() yok")
+    else:
+        m2 = re.search(r"create or replace function public\.mekan_butce_talebi.*?\$\$(.*?)\$\$",
+                       sql, re.S)
+        if not m2:
+            s.append("sayac.sql: mekan_butce_talebi() govdesi okunamadi")
+        else:
+            g = m2.group(1)
+            if ">= 5" not in g:
+                s.append("sayac.sql: butce talebinde k-anonimlik esigi yok; "
+                         "tek kisinin butcesi disari cikabilir")
+            if "current_date - 30" not in g:
+                s.append("sayac.sql: butce talebi pencere kullanmiyor (30 gun)")
+    # Eski imza dusurulmus mu.
+    if "drop function if exists public.mekan_goruldu(text);" not in sql:
+        s.append("sayac.sql: eski tek argumanli mekan_goruldu dusurulmemis; "
+                 "PostgREST hangisini cagiracagini bilemez")
+
+    # Panel gostermeli.
+    if "mekanButceTalebi(" not in kim:
+        s.append("kimlik.js: mekanButceTalebi() yok")
+    if "butceTalebiCumlesi(" not in pan:
+        s.append("isletmem.html: butce talebini gostermiyor")
+
+    # --- satilmayacaklar: urunun kendisi
+    belge = okun("CEBIMDE.md")
+    for satir in ("Sıralamada üst sıra", "Olumsuz yorumu kaldırma",
+                  "Fiyatı gizleme"):
+        if satir not in belge:
+            s.append("CEBIMDE.md: gelir modelinde '%s' satiri yok" % satir)
+    return s
+
+
 def sayfa_kontrolleri():
     """Sayfalari GERCEK tarayicida acar (test_sayfa.py).
 
@@ -1563,6 +1648,7 @@ def main():
     kayit("degismez: k-anonimlik esigi sunucuda da var", esik_iki_tarafta_ayni_mi())
     kayit("degismez: kombin mekanin kendi menusunden", kombin_mi())
     kayit("degismez: seviye onayli katkiyi sayiyor", seviye_mi())
+    kayit("degismez: butce talebi ifsa etmiyor", butce_talebi_mi())
     kayit("degismez: kurulum dosyalari depoda", kurulum_dosyalari_izleniyor_mu())
     kayit("degismez: donus adresi ve gunun tarihi", adres_ve_tarih_mi())
     kayit("degismez: sir sizmamis", sirlar_sizmis_mi())

@@ -64,6 +64,9 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
                   color:var(--metin);font-size:16px;padding:8px 12px}
   .im-satir select{flex:0 0 11rem}
   .im-satir input{flex:1 1 13rem;min-width:0}
+  .im-talep{margin-top:var(--a3);padding-left:var(--a3);
+     border-left:2px solid var(--vurgu);font-size:.95rem;line-height:1.55;
+     color:var(--metin-2)}
   .im-not{font-size:.86rem;color:var(--soluk);margin-top:var(--a2)}
   .im-not.kotu{color:var(--kirmizi)}
   .im-not.iyi{color:var(--yesil)}
@@ -245,11 +248,12 @@ async function mekanKutusu(o){
   }
 
   /* --- sayılar --- */
-  const [sayac, puan, fis, mekan] = await Promise.all([
+  const [sayac, puan, fis, mekan, talep] = await Promise.all([
     Kimlik.mekanSayaci(o.mekan_id).catch(() => null),
     Kimlik.mekanPuani(o.mekan_id).catch(() => null),
     Kimlik.fisOzeti(o.mekan_id).catch(() => null),
-    mekaniGetir(o.il, o.mekan_id)
+    mekaniGetir(o.il, o.mekan_id),
+    Kimlik.mekanButceTalebi(o.mekan_id).catch(() => null)
   ]);
 
   const kutular = [];
@@ -272,10 +276,20 @@ async function mekanKutusu(o){
     kutular.push("<b>" + tl(fis.medyan) + "</b><span>kişi başı, " +
                  sayi(fis.fis) + " fişten</span>");
 
+  /* BUTCE TALEBI: panelin tek ozgun sayisi. Goruntulenme sayisini her
+     sayac verir; "bana bakanlar hangi butceyle ariyordu" sorusunu bu
+     uygulamanin verisi cevapliyor.
+
+     Esik SUNUCUDA (5 bakis): esigin altinda dagilim hic donmuyor, o
+     yuzden burada ayrica gizlemeye gerek yok -- ama cumle bos donerse
+     satir da cikmiyor. */
+  const talepCumlesi = butceTalebiCumlesi(talep);
   sayilar.innerHTML = kutular.length
     ? '<div class="im-sayilar">' + kutular.map(k => "<div>" + k + "</div>").join("") + "</div>"
     : '<p class="im-not">Henüz gösterilecek bir sayı yok. ' +
       "Sayfan görüldükçe burada belirecek.</p>";
+  if (talepCumlesi)
+    sayilar.innerHTML += '<p class="im-talep">' + kacir(talepCumlesi) + "</p>";
 
   /* --- eksikler --- */
   const eksik = eksikSatirlari(mekan);

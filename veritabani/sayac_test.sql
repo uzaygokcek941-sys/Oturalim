@@ -183,4 +183,115 @@ begin
   raise notice 'gecti: tuz ozete karisiyor';
 end $$;
 
-\echo '=== sayac: 11 kontrolun hepsi gecti ==='
+\echo '--- 12. BUTCE BANDI kaydediliyor ve dagilim donuyor'
+-- Isletme sahibinin panelindeki tek OZGUN sayi bu: "bana bakanlar hangi
+-- butceyle ariyordu". Goruntulenme sayisini her sayac verir, butce
+-- talebini vermez.
+reset role;
+truncate public.goruntulenme;
+insert into public.goruntulenme (mekan_id, gun, cihaz, butce_bandi) values
+  ('node/b', current_date, gen_random_uuid(), 1),
+  ('node/b', current_date, gen_random_uuid(), 1),
+  ('node/b', current_date, gen_random_uuid(), 2),
+  ('node/b', current_date, gen_random_uuid(), 5),
+  -- BUTCESIZ bakis: dagilima girmiyor ama esik sayimina giriyor.
+  ('node/b', current_date, gen_random_uuid(), null);
+set role anon;
+do $$
+declare r record; n int := 0; toplam int := 0;
+begin
+  for r in select * from public.mekan_butce_talebi('node/b') loop
+    n := n + 1; toplam := toplam + r.kisi;
+    if r.bant = 1 and r.kisi <> 2 then
+      raise exception 'BASARISIZ: bant 1 kisi % (2)', r.kisi;
+    end if;
+  end loop;
+  if n <> 3 then raise exception 'BASARISIZ: % bant dondu (3)', n; end if;
+  -- Butcesiz bakis dagilimda YOK: "bilinmiyor" ile "farketmez" ayri
+  -- seyler ve ikisini birlestirmek dagilimi bozar.
+  if toplam <> 4 then raise exception 'BASARISIZ: dagilim toplami % (4)', toplam; end if;
+  raise notice 'gecti: 3 bant, 4 kisi, butcesiz bakis disarida';
+end $$;
+
+\echo '--- 13. ESIK ALTINDA dagilim HIC donmuyor (k-anonimlik)'
+-- Kucuk sayilarda "bakanlarin 1'i 150 TL altiydi" demek, o tek kisinin
+-- butcesini ifsa etmekle ayni sey -- hele isletmecinin tanidigi biriyse.
+-- Esik fis esiginden yuksek (5) cunku burada DAGILIMIN KENDISI donuyor.
+reset role;
+truncate public.goruntulenme;
+insert into public.goruntulenme (mekan_id, gun, cihaz, butce_bandi) values
+  ('node/az', current_date, gen_random_uuid(), 1),
+  ('node/az', current_date, gen_random_uuid(), 2),
+  ('node/az', current_date, gen_random_uuid(), 3),
+  ('node/az', current_date, gen_random_uuid(), 4);
+set role anon;
+do $$
+declare n int;
+begin
+  select count(*) into n from public.mekan_butce_talebi('node/az');
+  if n <> 0 then raise exception 'BASARISIZ: esik alti % bant dondu', n; end if;
+  raise notice 'gecti: 4 bakista dagilim yok';
+end $$;
+
+\echo '--- 13b. ESIK ASILINCA dagilim geliyor (esik fazla yukseltilmedi)'
+-- Yalniz "gizliyor mu" diye bakmak yetmez: esigi 500 yapan bir
+-- degisiklik de 13. adimi gecirir ve ozelligi sessizce goturur.
+reset role;
+insert into public.goruntulenme (mekan_id, gun, cihaz, butce_bandi)
+  values ('node/az', current_date, gen_random_uuid(), 1);
+set role anon;
+do $$
+declare n int;
+begin
+  select count(*) into n from public.mekan_butce_talebi('node/az');
+  if n <> 4 then raise exception 'BASARISIZ: 5 bakista % bant dondu (4)', n; end if;
+  raise notice 'gecti: 5 bakista dagilim aciliyor';
+end $$;
+
+\echo '--- 14. BAYAT bakis dagilima girmiyor (30 gun)'
+reset role;
+truncate public.goruntulenme;
+insert into public.goruntulenme (mekan_id, gun, cihaz, butce_bandi)
+select 'node/eski', current_date - 40, gen_random_uuid(), 1 from generate_series(1, 9);
+set role anon;
+do $$
+declare n int;
+begin
+  select count(*) into n from public.mekan_butce_talebi('node/eski');
+  if n <> 0 then raise exception 'BASARISIZ: 40 gunluk bakis sayildi'; end if;
+  raise notice 'gecti: bayat bakis disarida';
+end $$;
+
+\echo '--- 15. BOZUK bant goruntulenmeyi DUSURMUYOR'
+-- Sayac bir olcum araci; istemciden gelen bozuk bir bant yuzunden
+-- gorunmenin kendisi kaybolmamali. Bant null'a duser, satir kalir.
+reset role;
+truncate public.goruntulenme;
+set role anon;
+select public.mekan_goruldu('node/bozuk', 99::smallint);
+reset role;
+do $$
+declare n int; b smallint;
+begin
+  select count(*), max(butce_bandi) into n, b
+    from public.goruntulenme where mekan_id = 'node/bozuk';
+  if n <> 1 then raise exception 'BASARISIZ: bozuk bant satiri dusurdu (% satir)', n; end if;
+  if b is not null then raise exception 'BASARISIZ: aralik disi bant kaydedildi (%)', b; end if;
+  raise notice 'gecti: bozuk bant null, gorunme kaydedildi';
+end $$;
+
+\echo '--- 16. anon HAM satirlari hala goremiyor'
+set role anon;
+do $$
+declare n int;
+begin
+  begin
+    select count(*) into n from public.goruntulenme;
+    raise exception 'BASARISIZ: anon goruntulenme okuyabiliyor (% satir)', n;
+  exception when insufficient_privilege then null;
+  end;
+  raise notice 'gecti: ham satirlar kapali';
+end $$;
+reset role;
+
+\echo '=== sayac: 16 kontrolun hepsi gecti ==='

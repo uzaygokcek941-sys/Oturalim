@@ -42,7 +42,7 @@
    kalici olarak kirmasi, service worker'in olmamasindan cok daha kotu.
    ============================================================ */
 
-const SURUM = "ve169b3f689ce";      /* sw_uret.py YAZIYOR — elle degistirme */
+const SURUM = "ve0702cfb4a9f";      /* sw_uret.py YAZIYOR — elle degistirme */
 
 const KABUK = SURUM + "-kabuk";
 const VERI  = SURUM + "-veri";

@@ -33,7 +33,7 @@ Toplam süre: ~15 dakika. Ücret yok, kart istenmiyor.
 
    | Dosya | Ne açar | Çalıştırmazsan |
    |---|---|---|
-   | `veritabani/sayac.sql` | İşletme sayfası görüntülenme sayacı | Sayaç satırı hiç görünmez |
+   | `veritabani/sayac.sql` | Görüntülenme sayacı **ve bütçe talebi** | Sayaç satırı ve işletme panelindeki "bakanlar hangi bütçeyle arıyordu" hiç görünmez |
    | `veritabani/katki.sql` | Eksik bilgi katkı formu | Form hiç görünmez |
    | `veritabani/sahiplenme.sql` | İşletme sahiplenme kodu (saha kartları) | Kod alanı hiç görünmez |
    | `veritabani/profil.sql` | Genişletilmiş profil (fotoğraf, yaş, meslek) | Ayarlarda yalnız ad ve parola görünür |

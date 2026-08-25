@@ -1492,8 +1492,18 @@ async function sayacCalistir(mekanId){
     if (!sb) return;
 
     /* Ayni gun ikinci kez bakinca sunucuda cakisir; hata degil, beklenen
-       durum -- fonksiyon sessizce hicbir sey yapmiyor. */
-    await sb.rpc("mekan_goruldu", { p_mekan_id:mekanId });
+       durum -- fonksiyon sessizce hicbir sey yapmiyor.
+
+       BUTCE BANDI da gidiyor: isletme sahibinin panelindeki tek ozgun
+       sayi "bana bakanlar hangi butceyle ariyordu". TAM TUTAR DEGIL
+       BANT -- sayac satiri (mekan, gun, cihaz) uclusu ve oraya tam
+       rakam yazmak ucluyu daha ayirt edici yapardi.
+
+       Butce URL'den okunuyor; girilmemisse null gidiyor ve dagilima
+       hic girmiyor ("bilinmiyor" ile "farketmez" ayri seyler). */
+    const _bant = butceBandi(new URLSearchParams(location.search).get("butce"));
+    await sb.rpc("mekan_goruldu",
+                 { p_mekan_id:mekanId, p_butce_bandi:_bant });
 
     const { data, error } = await sb.rpc("mekan_sayaci", { p_mekan_id:mekanId });
     if (error || !data || !data.length) return;

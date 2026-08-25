@@ -1156,6 +1156,37 @@ function dayanakCumlesi(d){
 
 const GUVEN_ADI = { yesil:"doğrulanmış", sari:"dolaylı", kirmizi:"fiyat yok" };
 
+/* Rakamla yazılmış bir sayıya 3. tekil iyelik eki: 9 -> "9'u".
+
+   NEDEN GEREKLİ: ek, sayının OKUNUŞUNUN son hecesine bakıyor. "9'i"
+   yanlış, "9'u" doğru; "3'i" yanlış, "3'ü" doğru. Ekranda iki yerde
+   yanlış yazıyordu ("3 kişiden 3'i", "14 kişinin 9'i").
+
+   Ek son SÖYLENEN kelimeden geliyor, sayının tamamından değil:
+   14 = "on dört" -> dört -> "14'ü";  47 = "kırk yedi" -> "47'si".
+   Sesli harfle biten okunuşlar kaynaştırma "s" alıyor (iki, altı,
+   yedi, yirmi, elli). */
+const _EK_BIR = ["ı", "i", "si", "ü", "ü", "i", "sı", "si", "i", "u"];
+const _EK_ON  = ["u", "si", "u", "ı", "si", "ı", "i", "i", "ı"];
+
+function sayiEki(n){
+  const x = Math.abs(Math.floor(Number(n) || 0));
+  /* SIFIR AYRI: bütün modlardan geçip "milyon" dalına düşüyordu ("0'u").
+     Okunuşu "sıfır" ve eki "ı". Kontrol yakaladı. */
+  if (!x) return "ı";
+  if (x % 10) return _EK_BIR[x % 10];
+  if (x % 100) return _EK_ON[Math.floor((x % 100) / 10) - 1];
+  if (x % 1000) return "ü";                    /* yüz */
+  if (x % 1000000) return "i";                 /* bin */
+  return "u";                                  /* milyon */
+}
+
+/* "9" -> "9'u". Binlik ayraçlı hali de doğru: ek sayıdan hesaplanıyor,
+   metinden değil. */
+function sayiEkli(n){
+  return sayi(n) + "'" + sayiEki(n);
+}
+
 /* ---------- sosyal fiyat doğrulama ----------
    "Bu fiyat hâlâ geçerli mi?" oylaması (veritabani/fiyat_oyu.sql).
 
@@ -1177,8 +1208,8 @@ function oyCumlesi(oy){
   if (oy.kisi < OY_ESIK)
     return sayi(OY_ESIK - oy.kisi) + " kişi daha söyleyince sonucu yazacağım.";
   return oy.gecerli >= oy.degisti
-    ? sayi(oy.kisi) + " kişiden " + sayi(oy.gecerli) + "'i \"hâlâ böyle\" dedi."
-    : sayi(oy.kisi) + " kişiden " + sayi(oy.degisti) + "'i \"değişmiş\" dedi.";
+    ? sayi(oy.kisi) + " kişiden " + sayiEkli(oy.gecerli) + " \"hâlâ böyle\" dedi."
+    : sayi(oy.kisi) + " kişiden " + sayiEkli(oy.degisti) + " \"değişmiş\" dedi.";
 }
 
 /* Oy eşiği geçildi mi ve sonuç ne. null = hüküm yok. */
@@ -1419,6 +1450,56 @@ function seviyeCumlesi(s){
   const bas = sayi(s.onayli) + " onaylanmış katkı.";
   if (!s.sonraki) return bas + " En üst seviyedesin.";
   return bas + " " + sayi(s.kalan) + " katkı daha: " + s.sonraki.ad + ".";
+}
+
+/* ============================================================
+   BÜTÇE TALEBİ — "bana bakanlar hangi bütçeyle arıyordu?"
+
+   İşletme panelindeki tek ÖZGÜN sayı bu. Görüntülenme sayısını her
+   sayaç verir; bütçe talebini bu uygulamanın verisi verir.
+
+   TAM TUTAR DEĞİL BANT SAKLANIYOR. Sayaç satırı (mekan, gün, cihaz)
+   üçlüsü; oraya "347 TL" yazmak üçlüyü giderek daha ayırt edici
+   yapardı. Beş kova, eşikleri BUTCE_SECENEK'ten geliyor -- ekranda
+   kullanıcıya sunulan sayılarla aynı, ikinci bir ölçek uydurulmadı.
+
+   NULL = bütçe girilmemiş. Sıfır değil: "bilinmiyor" ile "farketmez"
+   ayrı şeyler ve ikisini birleştirmek dağılımı bozar.
+   ============================================================ */
+
+/* Bant sınırları BUTCE_SECENEK'ten türetiliyor: [150, 250, 400, 700]
+   -> 1: <150, 2: 150-249, 3: 250-399, 4: 400-699, 5: 700+ */
+function butceBandi(butce){
+  const n = butceOku(butce);
+  if (!n) return null;                    /* girilmemiş ya da çözülemedi */
+  let b = 1;
+  for (const esik of BUTCE_SECENEK) if (n >= esik) b++;
+  return b;
+}
+
+/* Bandın okunabilir adı. Ekranda "bant 3" yazmak kimseye bir şey
+   söylemez. */
+function butceBandiAdi(b){
+  const e = BUTCE_SECENEK;
+  if (b === 1) return tl(e[0]) + " altı";
+  if (b > 1 && b <= e.length) return tl(e[b - 2]) + " – " + tl(e[b - 1] - 1);
+  if (b === e.length + 1) return tl(e[e.length - 1]) + " ve üstü";
+  return "";
+}
+
+/* Dağılımı işletme sahibinin okuyacağı cümleye çevirir.
+   [{bant, kisi}] -> "Bakanların 62'si 250 ₺ altı bütçeyle arıyordu."
+
+   EN KALABALIK BANT yazılıyor, tam liste değil: beş satırlık bir tablo
+   panelde asıl bilgiyi boğardı ve sahip zaten tek bir soru soruyor --
+   "bana bakanlar ne kadar harcamayı düşünüyor". */
+function butceTalebiCumlesi(dagilim){
+  if (!dagilim || !dagilim.length) return "";
+  let iyi = dagilim[0];
+  for (const d of dagilim) if (d.kisi > iyi.kisi) iyi = d;
+  const toplam = dagilim.reduce((t, d) => t + d.kisi, 0);
+  return "Bütçe yazan " + sayi(toplam) + " kişinin " + sayiEkli(iyi.kisi) +
+         " " + butceBandiAdi(iyi.bant) + " arıyordu.";
 }
 
 /* ---------- kohort ölçümü ----------
@@ -2123,11 +2204,13 @@ function kendiniKontrolEt(){
       /kişiden/.test(oyCumlesi({kisi:2, gecerli:2, degisti:0})),      false],
     ["oy esik alti kac kisi kaldigini soyluyor",
       /1 kişi daha/.test(oyCumlesi({kisi:2, gecerli:2, degisti:0})),   true],
+    /* SAYI EKI okunusa gore: "3'i" degil "3'u". Iki cumlede birden
+       yanlisti ve kontroller yanlisi pinliyordu. */
     ["oy esikte sonucu yaziyor",
-      /3 kişiden 3'i "hâlâ böyle"/.test(
+      /3 kişiden 3'ü "hâlâ böyle"/.test(
         oyCumlesi({kisi:3, gecerli:3, degisti:0})),                    true],
     ["oy cogunluk degismis derse onu yaziyor",
-      /4 kişiden 3'i "değişmiş"/.test(
+      /4 kişiden 3'ü "değişmiş"/.test(
         oyCumlesi({kisi:4, gecerli:1, degisti:3})),                    true],
     /* Karar: esik altinda HUKUM YOK. */
     ["oy karari esik alti yok",  oyKarari({kisi:2, gecerli:2, degisti:0}), null],
@@ -2255,6 +2338,56 @@ function kendiniKontrolEt(){
     ["seviye cumlesi en ustte",
       /En üst seviyedesin/.test(seviyeCumlesi(seviyeHesapla(50))),        true],
     ["seviye cumlesi bos girdi",      seviyeCumlesi(null),                 ""],
+
+    /* --- butce talebi (isletme paneli) ---
+       TAM TUTAR DEGIL BANT saklaniyor: sayac satiri (mekan, gun, cihaz)
+       uclusu ve oraya "347 TL" yazmak ucluyu giderek daha ayirt edici
+       yapardi. Bes kova, esikleri BUTCE_SECENEK'ten -- ekranda
+       kullaniciya sunulan sayilarla ayni, ikinci bir olcek uydurulmadi. */
+    ["bant girilmemis butce null",   butceBandi(0),                     null],
+    ["bant cozulemeyen butce null",  butceBandi("abc"),                 null],
+    ["bant ilk esigin altinda",      butceBandi(100),                      1],
+    ["bant ilk esikte",              butceBandi(150),                      2],
+    ["bant ikinci aralik",           butceBandi(300),                      3],
+    ["bant ucuncu aralik",           butceBandi(500),                      4],
+    ["bant son esikte",              butceBandi(700),                      5],
+    ["bant son esigin ustunde",      butceBandi(4000),                     5],
+    /* Bant ADI ekranda okunacak: "bant 3" kimseye bir sey soylemez. */
+    ["bant adi ilk",                 butceBandiAdi(1),           "150 ₺ altı"],
+    ["bant adi ortada",              butceBandiAdi(3),      "250 ₺ – 399 ₺"],
+    ["bant adi son",                 butceBandiAdi(5),       "700 ₺ ve üstü"],
+    ["bant adi gecersiz",            butceBandiAdi(9),                    ""],
+    /* Cumle EN KALABALIK bandi yaziyor; bes satirlik bir tablo panelde
+       asil bilgiyi bogardi. */
+    ["talep cumlesi en kalabalik bandi yaziyor",
+      /9 kişinin 5'i 250 ₺ – 399 ₺ arıyordu/.test(butceTalebiCumlesi(
+        [{bant:1,kisi:2},{bant:3,kisi:5},{bant:5,kisi:2}])),            true],
+    /* --- Turkce sayi eki ---
+       Ek sayinin OKUNUSUNUN son hecesine bakiyor ve son SOYLENEN
+       kelimeden geliyor: 14 = "on dort" -> "14'u"; 47 = "kirk yedi" ->
+       "47'si". Ekranda iki yerde yanlis yaziyordu. */
+    ["ek bir",        sayiEkli(1),        "1'i"],
+    ["ek iki (kaynastirma)", sayiEkli(2), "2'si"],
+    ["ek uc",         sayiEkli(3),        "3'ü"],
+    ["ek dort",       sayiEkli(4),        "4'ü"],
+    ["ek alti (kaynastirma)", sayiEkli(6), "6'sı"],
+    ["ek dokuz",      sayiEkli(9),        "9'u"],
+    ["ek on",         sayiEkli(10),      "10'u"],
+    /* Iki basamakli: son kelime birler basamagi. */
+    ["ek on dort",    sayiEkli(14),      "14'ü"],
+    ["ek kirk yedi",  sayiEkli(47),      "47'si"],
+    /* Tam onluk: son kelime onlar basamagi. */
+    ["ek kirk",       sayiEkli(40),      "40'ı"],
+    ["ek elli",       sayiEkli(50),      "50'si"],
+    ["ek doksan",     sayiEkli(90),      "90'ı"],
+    ["ek yuz",        sayiEkli(100),    "100'ü"],
+    ["ek bin",        sayiEkli(1000), "1.000'i"],
+    /* Binlik ayrac ekten bagimsiz: ek SAYIDAN hesaplaniyor, metinden
+       degil. 1.250 = "bin iki yuz elli" -> elli -> si */
+    ["ek binlik ayracli", sayiEkli(1250), "1.250'si"],
+    ["ek sifir",      sayiEkli(0),        "0'ı"],
+    ["talep cumlesi bos dagilim",    butceTalebiCumlesi([]),             ""],
+    ["talep cumlesi null",           butceTalebiCumlesi(null),           ""],
 
     /* --- ana ekranin kategorileri ---
        Ciplerin turleri veride GERCEKTEN var olmali; yanlis yazilmis tek

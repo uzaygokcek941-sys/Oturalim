@@ -1780,6 +1780,111 @@ sayı gösterirdi.
 `ortak.js` öz kontrolleri **296 → 313**; `test.py`'ye "seviye onaylı
 katkıyı sayıyor" grubu eklendi (altı sabotaj, altısı da yakalandı).
 
+## 2026-08-25 — İşletme aboneliği ve gelir modeli
+
+Yol haritasının son maddesi. Diğerlerinden farklı: para ve hukuk
+içeriyor, o yüzden **ne yapılabildiği ile ne yapılamadığı ayrı ayrı**
+yazılıyor.
+
+### Bugün ödeme alınamıyor — ve bu bir tercih değil
+
+Faz 0 kararı: *"Şirket: gelir doğana kadar kurulmayacak."* Türkiye'de
+şirket olmadan işletmeden düzenli ödeme almak fatura ve vergi
+yükümlülüğü doğuruyor; ödeme altyapısı da (iyzico, PayTR, Stripe) tüzel
+kişilik istiyor.
+
+Yani **abonelik akışı bugün kurulamaz.** Kurulsaydı, ödeme alamayan bir
+"Abone ol" düğmesi olurdu — tutulmayan bir söz. Bu depodaki kural fiyat
+için ne diyorsa vaat için de aynısı geçerli.
+
+**Bu bir tavuk-yumurta ve kararı senin vermen gerekiyor:** şirketi gelir
+öncesi kurmak (aylık ~10-12 bin TL Bağ-Kur), yoksa ilk müşteri
+bulununca kurmak. Ben bu kararı veremem; verilene kadar altyapıyı
+hazırladım.
+
+### Satılmayacak olanlar — bu liste ürünün kendisi
+
+| Satılmaz | Neden |
+|---|---|
+| **Sıralamada üst sıra** | Para ile sıra satmak, "bütçene göre nereye gidilir" sorusunun cevabını bozar. Ürünün tek işi bu. |
+| **Puan, rozet, "önerilen" etiketi** | Uydurulmuş sosyal kanıt zaten Yapılmayacaklar'da. Parayla verileni koymak daha kötüsü. |
+| **Olumsuz yorumu kaldırma** | Ön onay hakaret için var, memnuniyetsizlik için değil. |
+| **Fiyatı gizleme / değiştirme** | Fiyat gidenden geliyor; işletmenin onu susturabilmesi katmanı bitirir. |
+| **Kullanıcı verisi** | Ham IP zaten saklanmıyor, konum sunucuya hiç gitmiyor. Satılacak bir şey yok. |
+
+Geriye kalan **tek dürüst gelir**: işletmenin **kendi sayfası** ve
+**kendi verisi** üzerinde ona değer katan şeyler. Listeyi bozmayan,
+listeye para karıştırmayan şeyler.
+
+### Bugün kurulan: bütçe talebi
+
+Bir işletmenin gerçekten merak ettiği şey "kaç kişi baktı" değil,
+**"bana bakanlar ne kadar harcamayı düşünüyordu"**. Görüntülenme
+sayısını her sayaç verir; bu soruyu yalnız bu uygulamanın verisi
+cevaplayabilir — ve abonelik önerisini somut yapan şey bu.
+
+Panelde:
+
+> Bütçe yazan 14 kişinin 9'u 250 ₺ – 399 ₺ arıyordu.
+
+**Tam tutar değil bant saklanıyor.** Sayaç satırı `(mekan, gün, cihaz)`
+üçlüsü; oraya "347 TL" yazmak üçlüyü giderek daha ayırt edici yapardı.
+Beş kova, eşikleri `BUTCE_SECENEK`'ten — ekranda kullanıcıya sunulan
+sayılarla aynı, ikinci bir ölçek uydurulmadı. `null` = bütçe girilmemiş;
+sıfır değil, çünkü "bilinmiyor" ile "farketmez" ayrı şeyler.
+
+**k-anonimlik eşiği sunucuda (5 bakış).** Altında dağılım **hiç
+dönmüyor**: küçük sayılarda *"bakanların 1'i 150 ₺ altıydı"* demek, o
+tek kişinin bütçesini ifşa etmekle aynı şey — hele o kişi işletmecinin
+tanıdığı biriyse. Eşik fiş eşiğinden yüksek (3 yerine 5) çünkü burada
+**dağılımın kendisi** dönüyor, tek bir medyan değil.
+
+### Ücretsiz kalacaklar
+
+Bugünkü panelin tamamı — görüntülenme, puan, fiş medyanı, eksik bilgi
+listesi, düzenleme formu, **ve bütçe talebi** — ücretsiz kalıyor.
+Sebep ideolojik değil: işletme sayfasını düzeltince **veri iyileşiyor**,
+yani o katkı zaten bize değer üretiyor. Onu paywall'un arkasına koymak,
+para almak için veriyi kötüleştirmek olurdu.
+
+Ücretli katman, işletmenin **kendi** sayfasına ek olarak isteyeceği
+şeylerden kurulmalı: zaman içindeki değişim (bu ay geçen aya göre),
+civarla kıyas, menü yayımlama aracı, yoruma cevap. Hiçbiri listeyi
+etkilemiyor.
+
+**Fiyat konmadı.** Fiyat, gerçek bir işletmeyle konuşulmadan konursa
+tahmin olur. İlk kural yine aynı: ölç, sonra karar ver.
+
+### Doğrulama
+
+`sayac_test.sql` 11 → **16 adım**. Yeni adımlar: bant kaydediliyor mu,
+eşik altında dağılım dönmüyor mu, **eşik aşılınca dönüyor mu** (yalnız
+"gizliyor mu" diye bakmak yetmez — eşiği 500 yapan bir değişiklik de
+gizleme adımını geçerdi), bayat bakış eleniyor mu, **bozuk bant
+görüntülenmenin kendisini düşürüyor mu** (sayaç bir ölçüm aracı; bozuk
+bir bant yüzünden görünme kaybolmamalı), ham satırlar hâlâ kapalı mı.
+
+`mekan_goruldu` imzası iki argümanlı oldu ve eski tek argümanlı sürüm
+düşürüldü — iki imza yan yana dururken PostgREST hangisini çağıracağını
+bilemez ve sayaç sessizce çalışmaz olur. Dosyanın kendi kurulum kontrolü
+eski imzayı arıyordu ve **kendi kurulumunda patlıyordu**; o da
+düzeltildi.
+
+`create table if not exists` var olan tabloya **sütun eklemez**: sayacı
+daha önce kurmuş bir kurulumda `butce_bandi` sessizce oluşmaz ve özellik
+"çalışıyor" görünüp hiçbir şey göstermezdi. `alter table ... add column
+if not exists` eklendi.
+
+### Yol boyunca: Türkçe sayı eki
+
+Panel cümlesini yazarken iki yerde **yanlış ek** olduğu görüldü:
+*"3 kişiden 3'i"* → doğrusu **3'ü**, *"14 kişinin 9'i"* → **9'u**. Ek
+sayının **okunuşunun** son hecesine bakıyor ve son **söylenen**
+kelimeden geliyor: 14 = "on dört" → `14'ü`, 47 = "kırk yedi" → `47'si`.
+`sayiEki()` yazıldı; 16 kontrolle sınanıyor. Sıfır ilk yazımda bütün
+modlardan geçip "milyon" dalına düşüyordu (`0'u`) — kontrol yakaladı,
+doğrusu `0'ı`.
+
 ## Yapılmayacaklar
 
 | Yapma | Neden |

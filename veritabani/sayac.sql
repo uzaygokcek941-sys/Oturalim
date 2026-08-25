@@ -61,11 +61,39 @@ create table if not exists public.goruntulenme (
   mekan_id  text not null check (char_length(mekan_id) between 1 and 80),
   gun       date not null default current_date,
   cihaz     uuid not null,
+  -- BÜTÇE BANDI: bakan kişi hangi bütçeyle arıyordu.
+  --
+  -- İşletme sahibinin gerçekten merak ettiği sayı bu: "bana bakanlar ne
+  -- kadar harcamayı düşünüyordu". Uygulamanın kendine özgü verisi de bu
+  -- -- görüntülenme sayısını her sayaç verir, bütçe talebini vermez.
+  --
+  -- BANT, RAKAM DEĞİL. 1..5 arası bir kova saklanıyor; tam tutar
+  -- saklansaydı (mekan, gün, cihaz, 347 TL) üçlü giderek daha ayırt
+  -- edici olurdu. Kova sayısı beş, kovalar ortak.js'teki BUTCE_SECENEK
+  -- eşiklerinden geliyor.
+  --
+  -- NULL = bütçe girilmemiş. Sıfır değil: "bilinmiyor" ile "farketmez"
+  -- ayrı şeyler ve ikisini birleştirmek dağılımı bozar.
+  butce_bandi smallint check (butce_bandi between 1 and 5),
   primary key (mekan_id, gun, cihaz)
 );
 
 comment on table public.goruntulenme is
   'Isletme sayfasi tekil gunluk goruntulenme. cihaz = sunucuda uretilen gunluk ziyaretci izi; ham IP saklanmaz, gunler arasi baglanamaz.';
+
+-- TEKRAR CALISTIRILABILIRLIK: "create table if not exists" var olan
+-- tabloya sutun EKLEMEZ. Sayaci daha once kurmus bir kurulumda
+-- butce_bandi sessizce olusmaz ve mekan_butce_talebi hep bos doner --
+-- yani ozellik "calisiyor" gorunup hicbir sey gostermez.
+alter table public.goruntulenme
+  add column if not exists butce_bandi smallint;
+do $$
+begin
+  alter table public.goruntulenme
+    add constraint goruntulenme_butce_bandi_check
+    check (butce_bandi between 1 and 5);
+exception when duplicate_object then null;
+end $$;
 
 create index if not exists goruntulenme_mekan_gun_idx
   on public.goruntulenme (mekan_id, gun desc);
@@ -124,7 +152,11 @@ revoke all on function public.ziyaretci_izi() from public, anon, authenticated;
 
 -- ---------- Sayma ----------
 -- Tek yazma yolu. Parametresi yalnız mekan; kimlik istemciden GELMİYOR.
-create or replace function public.mekan_goruldu(p_mekan_id text)
+-- p_butce_bandi İSTEĞE BAĞLI: eski istemci (önbellekten açılmış bir
+-- sayfa) tek argümanla çağırmaya devam edebilsin. Varsayılan null =
+-- "bütçe girilmemiş".
+create or replace function public.mekan_goruldu(p_mekan_id text,
+                                                p_butce_bandi smallint default null)
 returns void
 language plpgsql
 security definer
@@ -132,6 +164,7 @@ set search_path = public
 as $$
 declare
   iz uuid;
+  bant smallint;
 begin
   if p_mekan_id is null or char_length(p_mekan_id) not between 1 and 80 then
     return;
@@ -142,15 +175,27 @@ begin
     return;
   end if;
 
+  -- İstemciden gelen bant DENETLENİYOR: aralık dışı bir değer null'a
+  -- düşüyor, hata vermiyor. Sayaç bir ölçüm aracı; bozuk bir bant
+  -- yüzünden görüntülenmenin kendisi kaybolmamalı.
+  bant := case when p_butce_bandi between 1 and 5 then p_butce_bandi end;
+
   -- Aynı gün ikinci kez bakınca çakışır; hata değil, beklenen durum.
-  insert into public.goruntulenme (mekan_id, gun, cihaz)
-  values (p_mekan_id, current_date, iz)
+  -- Bant da GÜNCELLENMİYOR: ilk bakıştaki bütçe kalıyor. Güncellemek,
+  -- aynı kişinin gün içinde kaydırıcıyla oynamasını "talep değişti"
+  -- diye raporlamak olurdu.
+  insert into public.goruntulenme (mekan_id, gun, cihaz, butce_bandi)
+  values (p_mekan_id, current_date, iz, bant)
   on conflict do nothing;
 end;
 $$;
 
-revoke all on function public.mekan_goruldu(text) from public;
-grant execute on function public.mekan_goruldu(text) to anon, authenticated;
+revoke all on function public.mekan_goruldu(text, smallint) from public;
+grant execute on function public.mekan_goruldu(text, smallint) to anon, authenticated;
+-- Eski tek argümanlı sürüm varsa kaldırılıyor: iki imza yan yana
+-- durursa PostgREST hangisini çağıracağını bilemez ve sayaç sessizce
+-- çalışmaz olur.
+drop function if exists public.mekan_goruldu(text);
 
 comment on function public.mekan_goruldu is
   'Sayfa goruntulenmesini kaydeder. Ziyaretci kimligi sunucuda uretilir, istemci veremez.';
@@ -179,6 +224,45 @@ grant execute on function public.mekan_sayaci(text) to anon, authenticated;
 comment on function public.mekan_sayaci is
   'Tek mekanin tekil goruntulenme sayilari. Ham satir donmez.';
 
+-- ---------- Bütçe talebi ----------
+-- "Bana bakanlar hangi bütçeyle arıyordu." İşletme sahibinin panelinde
+-- görünen tek özgün sayı bu; görüntülenme sayısını her sayaç verir.
+--
+-- K-ANONİMLİK EŞİĞİ SUNUCUDA. 30 günde beşten az bakış olan mekanda
+-- dağılım DÖNMÜYOR: küçük sayılarda "bakanların 1'i 150 TL altıydı"
+-- demek, o tek kişinin bütçesini ifşa etmekle aynı şey -- hele o kişi
+-- işletmecinin tanıdığı biriyse. Eşik fiş eşiğinden yüksek (3 yerine 5)
+-- çünkü burada dağılımın kendisi dönüyor, tek bir medyan değil.
+--
+-- Toplam DÖNMEYE DEVAM EDİYOR: "kaç kişi baktı" zaten mekan_sayaci'nda
+-- var ve kimseyi ifşa etmiyor.
+create or replace function public.mekan_butce_talebi(p_mekan_id text)
+returns table (bant smallint, kisi int)
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  with son as (
+    select butce_bandi
+    from public.goruntulenme
+    where mekan_id = p_mekan_id and gun > current_date - 30
+  )
+  select butce_bandi, count(*)::int
+  from son
+  where butce_bandi is not null
+    and (select count(*) from son) >= 5
+  group by butce_bandi
+  order by butce_bandi;
+$$;
+
+revoke all on function public.mekan_butce_talebi(text) from public;
+grant execute on function public.mekan_butce_talebi(text) to anon, authenticated;
+
+comment on function public.mekan_butce_talebi is
+  'Son 30 gunde mekana bakanlarin butce bandi dagilimi. 5 bakisin '
+  'altinda hic donmez (k-anonimlik). Ham satir donmez.';
+
 -- ============================================================
 -- Kendini kontrol — bu blok hata vermeden geçmeli
 -- ============================================================
@@ -204,8 +288,16 @@ begin
     raise exception 'anon tuzu okuyabiliyor';
   end if;
 
-  if not has_function_privilege('anon', 'public.mekan_goruldu(text)', 'EXECUTE') then
+  -- IMZA IKI ARGUMANLI: butce bandi eklendi ve eski tek argumanli surum
+  -- dusuruldu. Kontrol eski imzayi ariyordu ve dosya kendi kurulumunda
+  -- patliyordu -- yani sayac hic kurulamiyordu.
+  if not has_function_privilege('anon', 'public.mekan_goruldu(text, smallint)',
+                                'EXECUTE') then
     raise exception 'anon mekan_goruldu cagiramiyor, sayac hic islemez';
+  end if;
+  if not has_function_privilege('anon', 'public.mekan_butce_talebi(text)',
+                                'EXECUTE') then
+    raise exception 'anon mekan_butce_talebi cagiramiyor';
   end if;
   if has_function_privilege('anon', 'public.ziyaretci_izi()', 'EXECUTE') then
     raise exception 'anon ziyaretci_izi cagirabiliyor';

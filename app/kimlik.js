@@ -467,6 +467,18 @@ const Kimlik = {
                  toplam: +o.toplam || 0, ilkGun: o.ilk_gun || null } : null;
   },
 
+  /* Butce talebi: son 30 gunde bakanlarin butce bandi dagilimi.
+     Sunucu 5 bakisin altinda HIC dondurmuyor (k-anonimlik, sayac.sql):
+     kucuk sayilarda "bakanlarin 1'i 150 TL altiydi" demek o tek kisinin
+     butcesini ifsa etmekle ayni sey. */
+  async mekanButceTalebi(mekanId){
+    if (!sb) return null;
+    const { data, error } = await sb.rpc("mekan_butce_talebi",
+      { p_mekan_id: mekanId });
+    if (error){ console.error("butce talebi:", error.message); return null; }
+    return (data || []).map(o => ({ bant: +o.bant, kisi: +o.kisi || 0 }));
+  },
+
   async sahiplikBirak(id){
     if (!sb || !oturum) throw new Error("Giriş yapılmamış.");
     const { error } = await sb.rpc("sahipligi_birak", { p_id: id });
