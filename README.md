@@ -5,7 +5,7 @@
 Türkiye'deki kafe, restoran ve barları bütçene, bahçesine ve şu an açık olup
 olmadığına göre süzen web uygulaması. Üyelik zorunlu değil, reklam yok, çerez yok.
 
-**35.852 mekan · 81 il · 7.141 menü kalemi · 774 etkinlik**
+**35.852 mekan · 81 il · 7.335 menü kalemi · 774 etkinlik**
 
 ---
 
@@ -21,6 +21,7 @@ iki kafe, aynı kahve, iki kat fark olabiliyor. Uygulamanın tek işi:
 - Fiyat güven skoru — yeşil (kendi menüsü ya da üç fiş) / sarı (zincir, eskimiş) / kırmızı (ölçüm yok)
 - Harita bütçeye göre renkleniyor; renk bandı, doygunluk ne kadar emin olduğumuzu gösteriyor
 - "Bu fiyat hâlâ geçerli mi?" — tek dokunuşla doğrulama; üç kişi söyleyince skor değişiyor
+- **Cebimde kombini** — "300 ₺ ile: börek 30 ₺ + tiramisu 70 ₺ = 100 ₺"; menüde yazan iki kalem, uydurma yok
 - Harita + liste, 81 ilin tamamı
 - Bütçe kaydırıcısı — mekanın ana ürün ortalamasına göre süzme
 - Ucuz / orta / pahalı bandı — kendi türündeki mekanlara göre, kanıt varsa
@@ -49,8 +50,8 @@ Google Maps, Yemeksepeti, Getir gibi platformlardan **hiçbir veri alınmadı**;
 kullanım şartları buna izin vermiyor.
 
 Dürüst not, dört katmanlı: **35.852 mekanın 291'i (%0,81)** menüsünü
-yayımlamış. O 7.141 kalem bağımsız değil — **%70,8'i zincir tekrarı**, yani
-geriye **85 farklı menü** kalıyor (bir Domino's menüsü 96 şubeye uygulanıyor).
+yayımlamış. O 7.335 kalem bağımsız değil — **%68,9'u zincir tekrarı**, yani
+geriye **93 farklı menü** kalıyor (bir Domino's menüsü 94 şubeye uygulanıyor).
 Ve uygulama bunların yalnız **163'ünde** bir rakam söylüyor: mekanın
 **ana ürün türünün ortalaması**. En ucuz kalem değil, içecek değil, garnitür
 değil — pizzacıda pizzaların, fırında böreklerin ortalaması. Hangi türden

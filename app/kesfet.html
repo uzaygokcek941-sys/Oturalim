@@ -285,6 +285,15 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
   /* Zincir menusu: rakam dogru ama SUBEYE OZEL DEGIL. Sari degil notr
      bir serit -- bu bir uyari degil, bir kaynak aciklamasi. */
   .uyari.zincir{border-left-color:var(--cizgi-2);color:var(--metin-2)}
+  /* Kombin: menunun ustunde, rakamlari one cikan tek satir. Rozet degil
+     cumle, cunku tasidigi sey iki kalem adi ve bir toplam. */
+  .kombin{
+    margin:var(--a3) 0 var(--a2);padding:var(--a3) var(--a4);
+    border-radius:var(--r-s);background:var(--vurgu-los);
+    font-size:14px;line-height:1.6;color:var(--metin-2);
+    font-variant-numeric:tabular-nums;
+  }
+  .kombin b{color:var(--metin)}
   @media (max-width:620px){
     dialog#detay{
       max-width:none;width:100%;margin:0 0 auto;position:fixed;bottom:0;top:auto;

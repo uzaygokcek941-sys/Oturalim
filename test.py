@@ -1288,6 +1288,91 @@ def esik_iki_tarafta_ayni_mi():
     return s
 
 
+def kombin_mi():
+    """Cebimde kombini: "bu butceyle burada ne yenir".
+
+    OLCUM KOMBININ SEKLINI BELIRLEDI. Iki mekanli kombin ("A'da kahve,
+    B'de tatli") bu veriyle kurulamiyor: 400 m icinde FARKLI adli ikinci
+    fiyatli mekani olan 22/163 = %13. Tek mekan icinde %90 (146/163).
+    Kombin bu yuzden mekanin KENDI menusunden kuruluyor.
+
+    KALEM KATEGORISI VERIDE OLMALI. Kombin ana urun ile icecegi ayirt
+    etmek zorunda; kategori once yalniz kat[] toplamlarindaydi. Kural
+    PYTHON'DA (fiyat_analiz.kategorile) -- tarayiciya kopyalamak ayni
+    sozlugu iki dilde tutmak demekti.
+
+    HER KATEGORIDEN EN UCUZ KALEM LISTEDE OLMALI. Menu en ucuz 40 kalem
+    olarak kirpiliyordu ve olculdu: kombin 163 mekanin yalniz 47'sinde
+    kurulabiliyordu, tikanan 116'nin 99'u Domino's -- pizzalarin hepsi
+    (~480 TL) en ucuz 40'in disinda kaliyordu, yani mekanin ANA URUNU
+    kayda hic girmiyordu. Ayni carpiklik kullaniciya da gorunuyordu:
+    panel "en ucuz 40 kalem, 35-165 TL" yazip ustunde "yemek ~480 TL"
+    gosteriyordu.
+    """
+    s = []
+    okun = lambda *y: io.open(os.path.join(KOK, *y), encoding="utf-8").read()
+    ortak = _js_yorumsuz(okun("app", "ortak.js"))
+    kes = _js_yorumsuz(okun("app", "kesfet.js"))
+    isl = _js_yorumsuz(okun("app", "isletme.html"))
+    uret = okun("app_veri.py")
+
+    for f in ("kombinKur", "kombinCumlesi"):
+        if ("function %s(" % f) not in ortak:
+            s.append("ortak.js: %s() yok" % f)
+
+    # Iki ekran da gostermeli.
+    for ad, govde in (("kesfet.js", kes), ("isletme.html", isl)):
+        if "kombinKur(" not in govde:
+            s.append("%s: kombini hic kurmuyor" % ad)
+        if "kombinCumlesi(" not in govde:
+            s.append("%s: kombin cumlesini basmiyor" % ad)
+
+    # Ana urun karari ortak.js'te kalmali; kombin onu yeniden yazmamali.
+    m = re.search(r"function kombinKur\(m, butce, bugun\)\{(.*?)\n\}", ortak, re.S)
+    if not m:
+        s.append("ortak.js: kombinKur() govdesi okunamadi")
+    else:
+        g = m.group(1)
+        if "anaKategoriler(" not in g:
+            s.append("ortak.js: kombin ana urunu anaKategoriler()'den almiyor")
+        if "ICECEK_KAT" not in g or "TATLI_KAT" not in g:
+            s.append("ortak.js: kombin icecek/tatli kumelerini kullanmiyor")
+        # Yanina hicbir sey yoksa kombin KURULMAMALI.
+        if "if (!yanina) return null;" not in g:
+            s.append("ortak.js: yanina kalem yokken kombin yine donuyor")
+
+    # Kategorisiz kalem sepete girmemeli.
+    m2 = re.search(r"function _ucuzKalem\(menu, kume\)\{(.*?)\n\}", ortak, re.S)
+    if not m2:
+        s.append("ortak.js: _ucuzKalem() yok")
+    elif "!k.k" not in m2.group(1):
+        s.append("ortak.js: kategorisiz kalem sepete girebiliyor")
+
+    # --- veri tarafi: kalem kategorisi ve kategori basina en ucuz kalem
+    if 'kalem["k"] = kat' not in uret:
+        s.append("app_veri.py: menu kalemine kategori yazilmiyor")
+    if "_gorulen" not in uret or "kalemler.append(k)" not in uret:
+        s.append("app_veri.py: her kategoriden en ucuz kalem listeye alinmiyor")
+
+    # Uretilmis veride GERCEKTEN var mi: betigi degistirip veriyi
+    # yeniden uretmeyi unutmak, ekranda kombini sessizce yok eder.
+    import veri_bicim as _vb
+    kategorili = kalem = 0
+    for kod in ("34", "06"):
+        yol = os.path.join(KOK, "app", "veri", kod + ".json")
+        if not os.path.exists(yol):
+            continue
+        d = _vb.coz(json.loads(io.open(yol, encoding="utf-8").read()))
+        for mk in d.get("mekanlar", []):
+            for x in (mk.get("menu") or []):
+                kalem += 1
+                if "k" in x:
+                    kategorili += 1
+    if kalem and not kategorili:
+        s.append("app/veri: menu kalemlerinde kategori yok — python app_veri.py calistir")
+    return s
+
+
 def sayfa_kontrolleri():
     """Sayfalari GERCEK tarayicida acar (test_sayfa.py).
 
@@ -1390,6 +1475,7 @@ def main():
     kayit("degismez: fiyat kac olcumden geldigini soyluyor", fiyat_dayanagi_mi())
     kayit("degismez: guven skoru renk disinda da okunuyor", guven_skoru_mu())
     kayit("degismez: k-anonimlik esigi sunucuda da var", esik_iki_tarafta_ayni_mi())
+    kayit("degismez: kombin mekanin kendi menusunden", kombin_mi())
     kayit("degismez: kurulum dosyalari depoda", kurulum_dosyalari_izleniyor_mu())
     kayit("degismez: donus adresi ve gunun tarihi", adres_ve_tarih_mi())
     kayit("degismez: sir sizmamis", sirlar_sizmis_mi())

@@ -876,8 +876,19 @@ function ac(id){
     const dy = fiyatDayanagi(m, zincir);
     const dayanakSatiri = dy && dy.sinif === "zincir"
       ? '<p class="uyari zincir">' + kacir(dayanakCumlesi(dy)) + "</p>" : "";
+    /* CEBIMDE KOMBINI: "bu butceyle burada ne yenir". Ortalama fiyat
+       "kaca oturulur" diyor; kombin menude YAZAN iki kalemi gosteriyor.
+       Menunun USTUNDE cunku kullanicinin sordugu somut soru bu; menu
+       listesi onun dayanagi. Kurulamiyorsa satir hic cikmiyor --
+       uydurma bir sepet, sepet olmamasindan kotu. */
+    const kmb = kombinKur(m, butce);
+    const kombinSatiri = kmb
+      ? '<p class="kombin"><b>' + kacir(butce ? tl(butce) + " ile" : "En ucuz öğün") +
+        ":</b> " + kombinCumlesi(kmb, butce) + "</p>"
+      : "";
     govde +=
       '<div class="d-menu-bas"><h3>Menü</h3><span>' + baslik + "</span></div>" +
+      kombinSatiri +
       sirali.map(k =>
         '<div class="kalem' + (butce && k.f > butce ? " disi" : "") + '">' +
         "<span>" + kacir(k.a) + "</span><b>" + tl(k.f) + "</b></div>").join("") +

@@ -552,7 +552,35 @@ def mekan_kaydi(m, menu):
 
     # Kategori dokumu TAM listeden: kayda giren 40 kalem en ucuzlar oldugu icin
     # onlardan hesaplanan kirilim sistematik olarak asagi kayardi.
-    kalemler = sorted(tum_kalemler, key=lambda x: x["f"])[:40]
+    #
+    # HER KATEGORIDEN EN UCUZ KALEM DE GIRIYOR. Olculdu: "Cebimde
+    # kombini" fiyati gosterilebilen 163 mekanin yalniz 47'sinde
+    # kurulabiliyordu ve tikanan 116'nin 99'u Domino's idi -- pizzalarin
+    # hepsi (~480 TL) en ucuz 40'in disinda kaliyor, listede yalniz
+    # garnitur ve icecek duruyordu. Yani mekanin ANA URUNU kayda hic
+    # girmiyordu.
+    #
+    # Ayni carpiklik kullaniciya da gorunuyordu: detay paneli "en ucuz
+    # 40 kalem, 35-165 TL" yazip ustunde "yemek ~480 TL" gosteriyordu.
+    #
+    # Kural MEKANIN ANA URUNUNE BAKMIYOR: "hangi kategori ana urun"
+    # karari ortak.js'te (anaKategoriler) ve onu buraya kopyalamak ayni
+    # kurali iki dilde tutmak olurdu. Bunun yerine mekanik bir kural --
+    # HER kategoriden en ucuz kalem listede. Ana urun de dahil olmak
+    # zorunda, cunku o da bir kategori.
+    _sirali = sorted(tum_kalemler, key=lambda x: x["f"])
+    kalemler = _sirali[:40]
+    _sec = {id(k) for k in kalemler}
+    _gorulen = set()
+    for k in _sirali:                       # ucuzdan pahaliya
+        kat = kategorile(k["a"])[0]
+        if not kat or kat in _gorulen:
+            continue
+        _gorulen.add(kat)
+        if id(k) not in _sec:
+            kalemler.append(k)
+            _sec.add(id(k))
+    kalemler.sort(key=lambda x: x["f"])
     kayit = {
         "id": m["osm_id"],
         # OSM'de 12 mekan adi bas/son bosluklu girilmis ("Canikli ").
@@ -605,7 +633,27 @@ def mekan_kaydi(m, menu):
         # ("14 Agustos" ile "20 Agustos" arasinda kullanici icin fark yok)
         # ve 81 dosyada bedava yer kapliyor.
         kayit["tarih"] = min(k["t"] for k in tum_kalemler)[:7]
-        kayit["menu"] = [{"a": k["a"], "f": k["f"]} for k in kalemler]
+        # Kalemin KATEGORISI de yaziliyor ("Pizza", "Kola / gazli").
+        #
+        # NEDEN: "Cebimde kombini" -- 300 TL ile bu mekanda ne yenir --
+        # ana urun ile icecegi AYIRT EDEBILMEYI gerektiriyor. Kategori
+        # yalniz kat[] toplamlarindaydi, tek tek kalemlerde yoktu; yani
+        # tarayici "bu satir pizza mi kola mi" diyemiyordu.
+        #
+        # Kural PYTHON'DA KALIYOR (fiyat_analiz.kategorile). Tarayiciya
+        # kopyalamak, ayni sozlugu iki dilde tutmak demekti -- kat[]
+        # toplamlarinin burada uretilmesinin gerekcesiyle ayni.
+        #
+        # Kategorilenemeyen kalemde alan HIC YAZILMIYOR: null yazmak 81
+        # dosyada bedava yer kaplardi ve "bilinmiyor" ile "yok" ayrimini
+        # bozmazdi.
+        kayit["menu"] = []
+        for k in kalemler:
+            kalem = {"a": k["a"], "f": k["f"]}
+            kat = kategorile(k["a"])[0]
+            if kat:
+                kalem["k"] = kat
+            kayit["menu"].append(kalem)
         kayit["min"] = kalemler[0]["f"]
         kayit["max"] = kalemler[-1]["f"]
         # Liste kirpildiysa GERCEK kalem sayisi da yaziliyor.

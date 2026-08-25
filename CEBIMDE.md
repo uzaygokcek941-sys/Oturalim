@@ -1628,6 +1628,92 @@ aynen geçerdi. Her fonksiyona eşik altı bir adım eklendi ve üç sabotajın
 sunucuda da var" grubu eklendi (dört sabotaj); SQL takımı
 `fiyat_oyu_test.sql` ile 14 adım, `sahiplenme_test` 21, `akran_test` 12.
 
+## 2026-08-25 — Cebimde kombini: "bu bütçeyle burada ne yenir?"
+
+Ortalama fiyat *"kaça oturulur"* diyor. Kombin daha somut bir soruyu
+cevaplıyor ve cevabı uydurma değil — menüde **yazan** iki kalem:
+
+> **300 ₺ ile:** ANNE BÖREĞİ 30 ₺ + TİRAMİSU 70 ₺ = 100 ₺ — bütçene giriyor.
+
+### Ölçüm kombinin şeklini belirledi
+
+| Kombin türü | Kapsama |
+|---|---|
+| Tek mekan içinde (ana ürün + içecek/tatlı) | **148 / 163 = %91** |
+| İki mekan, 400 m, farklı adlı | 22 / 163 = **%13** |
+
+Yani *"A'da kahve, B'de tatlı"* gibi iki mekanlı bir kombin bu veriyle
+kurulamıyor — ülke çapında 22 mekan. Kombin bu yüzden **tek mekanın
+kendi menüsünden**.
+
+**En ucuzu seçiliyor**, bütçeye "oturan" bir sepet aranmıyor: bütçeye
+göre kalem seçmek, kullanıcının sormadığı bir tercihte bulunmak olurdu
+(*"400 lira varsa en pahalısını al"*). Sorulan şey "yeter mi".
+
+### İki veri değişikliği gerekti
+
+**1) Kalem kategorisi.** Kombin ana ürünle içeceği ayırt etmek zorunda;
+kategori yalnız `kat[]` toplamlarındaydı, tek tek kalemlerde yoktu.
+`app_veri.py` artık her kaleme `k` yazıyor. Kural **Python'da kalıyor**
+(`fiyat_analiz.kategorile`) — tarayıcıya kopyalamak aynı sözlüğü iki
+dilde tutmak demekti. Sınıflanamayan kaleme alan hiç yazılmıyor ve o
+kalem kombine girmiyor: ne olduğunu bilmediğimiz bir şeyi "yanına
+içecek" diye sunmak uydurma bir sepet olurdu. Ölçüldü: İstanbul'un 4.499
+kaleminin 2.036'sı (%45) sınıflanıyor.
+
+**2) Her kategoriden en ucuz kalem listede.** Menü **en ucuz 40 kalem**
+olarak kırpılıyordu ve kombin 163 mekanın yalnız **47'sinde**
+kurulabiliyordu. Tıkanan 116'nın **99'u Domino's**: pizzaların hepsi
+(~480 TL) en ucuz 40'ın dışında kalıyor, listede yalnız garnitür ve
+içecek duruyordu — yani mekanın **ana ürünü kayda hiç girmiyordu.**
+
+Aynı çarpıklık kullanıcıya da görünüyordu: detay paneli *"en ucuz 40
+kalem, 35-165 TL"* yazıp üstünde *"yemek ~480 TL"* gösteriyordu.
+
+Kural mekanın ana ürününe **bakmıyor** — o karar `ortak.js`'te
+(`anaKategoriler`) ve onu Python'a kopyalamak aynı kuralı iki dilde
+tutmak olurdu. Bunun yerine mekanik bir kural: **her kategoriden en ucuz
+kalem listede.** Ana ürün de bir kategori olduğu için zorunlu olarak
+giriyor.
+
+Sonuç: **%29 → %90** (146/163). Veri boyutu değişmedi (3,8 MB).
+
+### Alkolsüz önce
+
+Ölçülen vaka: Amara Şile Ocakbaşı'nda kombin *"patlıcan salatası + Efes
+Malt"* çıkıyordu, çünkü menüdeki en ucuz içecek biraydı. Uygulama
+alkollü mekanları listeliyor ve bu doğru; ama kimsenin istemediği bir
+öğüne **varsayılan olarak içki koymak** ayrı bir şey. Alkollü kalem
+ancak alkolsüz hiç yoksa geliyor. Ölçüldü: **151 kombinin 0'ında** alkol
+kategorisinde kalem var.
+
+Sınır not edildi: sınıflandırma **ada** bakıyor, "Baileys Americano"
+kategori olarak Americano. Düzeltmek yeni bir anahtar kelime listesi
+demek ve o liste kendi başına bir ayrışma kaynağı olurdu.
+
+### Kaçan sabotaj ve nedeni
+
+Bir sabotaj "kaçtı" göründü: kategorisiz kalemi kabul eden sürüm kombini
+`null`'a düşürüyor, kontrolüm de `kombinKur(...).kalemler` diyerek
+**TypeError fırlatıyordu** — yani kontrol listesi hiç kurulmuyor ve 294
+kontrolün hiçbiri raporlanmadan grup patlıyordu. Sonuç "yakalandı" gibi
+değil "kaçtı" gibi görünüyordu. Kontroller artık null-güvenli ve sepetin
+**tamamını** pinliyor.
+
+Bir de kendi koşum yöntemim kusurluydu: sabotaj betiğini `| head -12`
+ile borulamıştım; `head` kapanınca betik **SIGPIPE ile ortada öldü** ve
+`ortak.js` sabotajlı kaldı. Bu depoda benzeri daha önce de olmuştu
+(zaman aşımına uğrayan sabotaj döngüsü). Sabotaj çıktısı artık dosyaya
+yazılıyor.
+
+### Doğrulama
+
+`ortak.js` öz kontrolleri **279 → 296**; `test.py`'ye "kombin mekanın
+kendi menüsünden" grubu eklendi. Altı sabotajın altısı yakalandı —
+aralarında "veri üretiminde kalem kategorisi kalktı" ve "her kategoriden
+en ucuz kalem kuralı kalktı" var; ikincisi betiği değiştirip **veriyi
+yeniden üretmeyi unutmayı** da yakalıyor.
+
 ## Yapılmayacaklar
 
 | Yapma | Neden |

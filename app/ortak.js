@@ -1245,6 +1245,111 @@ function guvenRozeti(g, kisa){
          (kisa ? "" : "<span>" + kacir(g.ad) + "</span>") + "</span>";
 }
 
+/* ============================================================
+   CEBİMDE KOMBİNİ — "bu bütçeyle burada ne yenir?"
+
+   Yol haritasının maddesi. ÖLÇÜLDÜ, ve ölçüm kombinin ŞEKLİNİ belirledi:
+
+     tek mekan içinde (ana ürün + içecek/tatlı)   148 / 163  = %91
+     iki mekan, 400 m, FARKLI adlı                 22 / 163  = %13
+
+   Yani "A'da kahve, B'de tatlı" gibi iki mekanlı bir kombin bu veriyle
+   kurulamıyor -- ülke çapında 22 mekan. Tek mekan içinde ise %91.
+   Kombin bu yüzden TEK MEKANIN KENDİ MENÜSÜNDEN kuruluyor.
+
+   Ortalama fiyat "burada kaça oturulur" diyor; kombin daha somut bir
+   soruyu cevaplıyor: "300 lira ile bu mekanda NE alabilirim". Cevap
+   uydurma değil, menüde YAZAN iki kalem:
+
+     Margarita 240 ₺ + Ayran 40 ₺ = 280 ₺
+
+   EN UCUZU seçiliyor, bütçeye "oturan" bir sepet aranmıyor. Sebep:
+   bütçeye göre kalem seçmek, kullanıcının sormadığı bir tercihte
+   bulunmak olurdu ("400 lira varsa en pahalısını al"). Sorulan şey
+   "yeter mi" ve onun cevabı en ucuz kombinde.
+
+   KALEM KATEGORİSİ VERİDE. `m.menu` kalemleri artık `k` alanı taşıyor
+   (app_veri.py, fiyat_analiz.kategorile). Sınıflanamayan kalemde alan
+   hiç yok ve o kalem kombine girmiyor -- ne olduğunu bilmediğimiz bir
+   şeyi "yanına içecek" diye sunmak, uydurma bir sepet olurdu.
+   Ölçüldü: İstanbul'un 4.499 kaleminin 2.036'sı (%45) sınıflanıyor.
+
+   MENÜ EN UCUZ 40 KALEM. Yani buradan çıkan kombin gerçekten mekanın
+   en ucuz kombinidir; kırpılan kalemler daha pahalı olanlar.
+   ============================================================ */
+
+/* Yanına ne gider: önce içecek, yoksa tatlı. Bir öğün "yemek + içecek"
+   olarak kuruluyor; tatlı ikinci tercih çünkü içeceksiz tatlı bir öğün
+   değil, ek. */
+/* Alkollü kategoriler. Ayrı bir küme olarak duruyor çünkü ICECEK_KAT
+   yemekFiyati()'nin dışlama listesi ve oraya "alkolsüz" ayrımı sokmak
+   ortalamayı da değiştirirdi -- iki soru, iki küme. */
+const ALKOL_KAT = new Set(["Rakı / içkiler", "Şarap", "Bira"]);
+function _alkolsuz(kume){
+  return new Set([...kume].filter(k => !ALKOL_KAT.has(k)));
+}
+
+function _ucuzKalem(menu, kume){
+  let iyi = null;
+  for (const k of (menu || [])){
+    if (!k.k || !kume.has(k.k) || k.f == null) continue;
+    if (!iyi || k.f < iyi.f) iyi = k;
+  }
+  return iyi;
+}
+
+function kombinKur(m, butce, bugun){
+  const menu = m && m.menu;
+  if (!menu || !menu.length) return null;
+  /* Ana ürün, mekanın KENDİ dağılımından (anaKategoriler): börekçide
+     poğaça ana ürün, kebapçıda yan. Kural tek yerde. */
+  const ana = anaKategoriler(m);
+  if (!ana || !ana.length) return null;
+  const anaKume = new Set(ana);
+
+  const yemek = _ucuzKalem(menu, anaKume);
+  if (!yemek) return null;
+  /* İçecek ve tatlı kümeleri yemekFiyati()'nin kullandığıyla AYNI:
+     ortalamadan dışlanan şey, kombinde yanına konan şey.
+
+     ALKOLSÜZ ÖNCE. Ölçülen vaka: Amara Şile Ocakbaşı'nda kombin
+     "patlıcan salatası + Efes Malt" çıkıyordu, çünkü menüdeki en ucuz
+     içecek biraydı. Uygulama alkollü mekanları listeliyor ve bu doğru;
+     ama kimsenin istemediği bir öğüne varsayılan olarak içki koymak
+     ayrı bir şey. Alkollü kalem ancak alkolsüz hiç yoksa geliyor.
+     Ölçüldü: 151 kombinin 0'ında alkol kategorisinde kalem var.
+
+     SINIR: sınıflandırma ADA bakıyor. "Baileys Americano" kategori
+     olarak Americano; içindeki likörü ad sözlüğü görmüyor. Bunu
+     düzeltmek yeni bir anahtar kelime listesi demek ve o liste de
+     kendi başına bir ayrışma kaynağı olurdu -- kategori kuralı
+     fiyat_analiz.py'de tek yerde duruyor. */
+  const yanina = _ucuzKalem(menu, _alkolsuz(ICECEK_KAT)) ||
+                 _ucuzKalem(menu, TATLI_KAT) ||
+                 _ucuzKalem(menu, ICECEK_KAT);
+  if (!yanina) return null;
+  /* Aynı kalemi iki kez saymayalım: tek kategorili bir menüde (yalnız
+     tatlı satan pastane) ana ürün ile "yanına" aynı satır olabilir. */
+  if (yanina === yemek) return null;
+
+  const toplam = yemek.f + yanina.f;
+  return { kalemler: [yemek, yanina], toplam,
+           butceIci: !(butce > 0) || toplam <= butce };
+}
+
+/* Ekranda okunacak hali. Bütçe girilmişse yeter/yetmez de yazıyor --
+   rakamı verip kullanıcıyı hesap yapmaya bırakmak, ekranın işini
+   kullanıcıya yıkmak olurdu. */
+function kombinCumlesi(k, butce){
+  if (!k) return "";
+  const liste = k.kalemler.map(x => kacir(x.a) + " " + tl(x.f)).join(" + ");
+  const bas = liste + " = " + tl(k.toplam);
+  if (!(butce > 0)) return bas;
+  return bas + (k.butceIci
+    ? " — bütçene giriyor."
+    : " — " + tl(k.toplam - butce) + " aşıyor.");
+}
+
 /* ---------- kohort ölçümü ----------
    Çerezsiz ve sunucusuz: yalnız localStorage, yalnız bu cihaz.
    Hangi günlerde açıldığı tutuluyor; D1/D7/D30 buradan hesaplanıyor. */
@@ -1326,6 +1431,56 @@ function kendiniKontrolEt(){
        yok         sinyal yok     -> bilinmiyor
      Menü kalemleri İKİ tane: YEMEK_ASGARI_KALEM eşiği bir kalemli
      fixture'ı sessizce ölçümsüz sayardı ve döküm sapardı. */
+  /* --- kombin fixture'lari ---
+     Menu kalemleri artik KATEGORI tasiyor (app_veri.py). Fixture elle
+     yazildi ki kombin gercekten EN UCUZ ana urun + EN UCUZ icecegi
+     secsin; sirasi karisik veriliyor cunku secim siraya degil FIYATA
+     bakmali. */
+  const KOMBIN = {
+    id:"k1", ad:"Kombin Test", tur:"Restoran",
+    kat:{ "Pizza": { n:2, med:300 }, "Kola / gazlı": { n:2, med:60 } },
+    menu:[ { a:"Buyuk Pizza", f:400, k:"Pizza" },
+           { a:"Kola",        f:60,  k:"Kola / gazlı" },
+           { a:"Kucuk Pizza", f:300, k:"Pizza" },
+           { a:"Kucuk Kola",  f:40,  k:"Kola / gazlı" },
+           { a:"Bilinmeyen",  f:5 } ]          /* kategorisiz: girmemeli */
+  };
+  /* Icecegi olmayan mekan: TATLIYA dusmeli. */
+  const KOMBIN_TATLI = {
+    id:"k2", ad:"Tatlici", tur:"Restoran",
+    kat:{ "Pizza": { n:2, med:300 }, "Tatlı": { n:2, med:120 } },
+    menu:[ { a:"Pizza", f:300, k:"Pizza" }, { a:"Sutlac", f:120, k:"Tatlı" } ]
+  };
+  /* Sonuc NULL-GUVENLI okunuyor. Ilk yazimda kontroller dogrudan
+     kombinKur(...).kalemler diyordu; kombini null'a dusuren bir sabotaj
+     TypeError firlatiyor ve kontrol listesi HIC KURULMUYORDU -- yani
+     292 kontrolun hicbiri raporlanmadan grup patliyordu. Sabotaj
+     "yakalandi" gibi degil "kacti" gibi gorunuyordu. */
+  const KR = kombinKur(KOMBIN, 0) || { kalemler: [], toplam: 0, butceIci: null };
+  const KR400 = kombinKur(KOMBIN, 400) || {}, KR200 = kombinKur(KOMBIN, 200) || {};
+
+  /* Alkol kurali: EN UCUZ icecek bira ama alkolsuzu de var. */
+  const KOMBIN_ALKOL = {
+    id:"k4", ad:"Ocakbasi", tur:"Restoran",
+    kat:{ "Kebap": { n:2, med:300 }, "Bira": { n:2, med:80 }, "Ayran": { n:2, med:120 } },
+    menu:[ { a:"Kebap", f:300, k:"Kebap" },
+           { a:"Bira",  f:80,  k:"Bira" },
+           { a:"Ayran", f:120, k:"Ayran" } ]
+  };
+  /* Alkolsuz HIC yoksa alkollu geliyor: mekanin menusu buysa saklamak
+     da bir seyi degistirmiyor. */
+  const KOMBIN_SADECE_ALKOL = {
+    id:"k5", ad:"Meyhane", tur:"Restoran",
+    kat:{ "Kebap": { n:2, med:300 }, "Rakı / içkiler": { n:2, med:400 } },
+    menu:[ { a:"Kebap", f:300, k:"Kebap" }, { a:"Raki", f:400, k:"Rakı / içkiler" } ]
+  };
+
+  /* Yalniz ana urun: kombin kurulamaz, uydurma yanina konmaz. */
+  const KOMBIN_TEK = {
+    id:"k3", ad:"Tek", tur:"Restoran",
+    kat:{ "Pizza": { n:2, med:300 } },
+    menu:[ { a:"Pizza", f:300, k:"Pizza" } ]
+  };
   const BUTCE_LISTE = [
     { id:"ucuz",    tur:"Restoran", kat:{ "Çorba": { n:2, med:120 } } },
     { id:"tuz",     tur:"Restoran", kat:{ "Kebap": { n:2, med:400 } } },
@@ -1941,6 +2096,63 @@ function kendiniKontrolEt(){
     /* Oy yoksa eski davranis aynen duruyor. */
     ["oysuz skor degismedi",
       fiyatGuveni(ZIL[0], ZH, null, null, g14).sinif,                 "sari"],
+
+    /* --- Cebimde kombini ---
+       OLCULDU: iki mekanli kombin bu veriyle kurulamiyor (400 m icinde
+       farkli adli ikinci fiyatli mekani olan 22/163 = %13); tek mekan
+       icinde %90 (146/163). O yuzden kombin mekanin KENDI menusunden.
+
+       EN UCUZ secliyor, butceye "oturan" sepet aranmiyor: butceye gore
+       kalem secmek kullanicinin sormadigi bir tercihte bulunmak olurdu.
+       Sorulan sey "yeter mi". */
+    ["kombin en ucuz ana urunu secer",
+      (KR.kalemler[0] || {}).a,                              "Kucuk Pizza"],
+    ["kombin en ucuz icecegi secer",
+      (KR.kalemler[1] || {}).a,                               "Kucuk Kola"],
+    ["kombin toplami",         KR.toplam,                              340],
+    /* KATEGORISIZ kalem girmemeli: 5 TL'lik "Bilinmeyen" en ucuz kalem
+       ama ne oldugunu bilmedigimiz bir seyi "yanina icecek" diye
+       sunmak uydurma bir sepet olurdu. */
+    /* Sepetin TAMAMI pinleniyor, "Bilinmeyen yok mu" diye bakmak
+       yerine: kategorisiz kalemi kabul eden bir surum sepeti bozup
+       null'a dusuyor ve "icinde Bilinmeyen yok" kontrolu o halde de
+       gecerdi -- yani dogru sebeple degil yanlis sebeple. */
+    ["kombin sepeti tam olarak bu iki kalem",
+      KR.kalemler.map(k => k.a).join(" + "),   "Kucuk Pizza + Kucuk Kola"],
+    ["kombin butce iciyse isaretler",  KR400.butceIci,               true],
+    ["kombin butce disiysa isaretler", KR200.butceIci,              false],
+    ["kombin butcesiz hep ici",        KR.butceIci,                  true],
+    /* Icecegi olmayan mekan tatliya duser -- ama tatlisi da yoksa
+       kombin KURULMAZ. */
+    ["kombin icecek yoksa tatliya duser",
+      ((kombinKur(KOMBIN_TATLI, 0) || {kalemler:[]}).kalemler[1] || {}).a,
+                                                                  "Sutlac"],
+    ["kombin yalniz ana urunle kurulmaz",  kombinKur(KOMBIN_TEK, 0),  null],
+    ["kombin menusuz mekan",   kombinKur({tur:"Restoran"}, 0),        null],
+    ["kombin bos girdi",       kombinKur(null, 0),                    null],
+
+    /* --- kombin cumlesi --- */
+    ["kombin cumlesi kalemleri yaziyor",
+      /Kucuk Pizza 300 ₺ \+ Kucuk Kola 40 ₺ = 340 ₺/.test(
+        kombinCumlesi(kombinKur(KOMBIN, 0), 0)),                      true],
+    ["kombin cumlesi butceye giriyorsa soyluyor",
+      /bütçene giriyor/.test(
+        kombinCumlesi(kombinKur(KOMBIN, 400), 400)),                  true],
+    /* Asan tutar RAKAMLA yaziliyor: "yetmiyor" demek kullaniciyi hesap
+       yapmaya birakir. */
+    ["kombin cumlesi asan tutari yaziyor",
+      /140 ₺ aşıyor/.test(kombinCumlesi(kombinKur(KOMBIN, 200), 200)), true],
+    ["kombin cumlesi bos girdi",  kombinCumlesi(null, 300),             ""],
+    /* ALKOLSUZ ONCE. Olculen vaka: kombin "patlican salatasi + Efes
+       Malt" cikiyordu cunku menudeki en ucuz icecek biraydi. Uygulama
+       alkollu mekanlari listeliyor ve bu dogru; kimsenin istemedigi bir
+       ogune varsayilan olarak icki koymak ayri bir sey. */
+    ["kombin ucuz olsa da alkolu secmiyor",
+      ((kombinKur(KOMBIN_ALKOL, 0) || {kalemler:[]}).kalemler[1] || {}).a,
+                                                                   "Ayran"],
+    ["kombin alkolsuz hic yoksa alkollu geliyor",
+      ((kombinKur(KOMBIN_SADECE_ALKOL, 0) || {kalemler:[]}).kalemler[1] || {}).a,
+                                                                    "Raki"],
 
     /* --- ana ekranin kategorileri ---
        Ciplerin turleri veride GERCEKTEN var olmali; yanlis yazilmis tek

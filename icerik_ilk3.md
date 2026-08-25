@@ -15,7 +15,7 @@ sayı ekranda gösterdiğin şeyle tutmalı — tutmazsa ilk yorum onu yakalar.
 | İstanbul | **12.095** | en büyük il |
 | Restoran / Kafe / Fast food | **14.587 / 10.815 / 6.091** | |
 | Menü fiyatı **bilinen** mekan | **291** (%0,81) | |
-| Menü kalemi | **7.141** | |
+| Menü kalemi | **7.335** | |
 
 ---
 

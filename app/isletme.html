@@ -193,6 +193,10 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
   .oy-not{margin-top:var(--a3);font-size:.85rem;color:var(--soluk);min-height:1.2em}
   .oy-not.kotu{color:var(--kirmizi)}
   .guven-neden{font-size:.85rem;color:var(--soluk)}
+  .kombin{margin-top:var(--a3);padding:var(--a3) var(--a4);
+     border-radius:var(--r-s);background:var(--vurgu-los);
+     font-size:.95rem;line-height:1.6;font-variant-numeric:tabular-nums}
+  .kombin b{color:var(--metin)}
   .dayanak{font-size:.85rem;color:var(--soluk);line-height:1.55;
      margin-top:var(--a3);padding-left:var(--a3);
      border-left:2px solid var(--cizgi-2)}
@@ -246,6 +250,9 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
   <!-- Fiyatin kac olcumden geldigi. Bilgi listesinde yalniz kisa etiket
        var ("56 subede ayni menu"); NEDEN onemli oldugu burada yaziyor. -->
   <p class="dayanak" id="dayanak" hidden></p>
+  <!-- Cebimde kombini: menude YAZAN iki kalemle "bu butceyle ne yenir".
+       Kurulamiyorsa hic cikmiyor. -->
+  <p class="kombin" id="kombin" hidden></p>
 
   <section class="fis" id="fis" hidden>
     <h2>Buraya gidenler ne ödemiş</h2>
@@ -552,6 +559,21 @@ function goster(m, ilAd){
   } else {
     dSatir.textContent = "";
     dSatir.hidden = true;
+  }
+
+  /* Kombin. Butce URL'den geliyor (?butce=): kullanici ana ekranda ya
+     da kesfette bir rakam yazdiysa mekan sayfasi da onu bilmeli --
+     yoksa ayni soruyu ucuncu kez sormus oluruz. */
+  const _b = butceOku(new URLSearchParams(location.search).get("butce"));
+  const kmb = kombinKur(m, _b);
+  const kmbKutu = document.getElementById("kombin");
+  if (kmb){
+    kmbKutu.innerHTML = "<b>" + kacir(_b ? tl(_b) + " ile" : "En ucuz öğün") +
+      ":</b> " + kombinCumlesi(kmb, _b);
+    kmbKutu.hidden = false;
+  } else {
+    kmbKutu.textContent = "";
+    kmbKutu.hidden = true;
   }
 
   const eksik = eksikleriBul(m);
