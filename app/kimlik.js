@@ -40,7 +40,17 @@ async function kur(){
   let mod;
   try {
     mod = await Promise.race([
-      import("https://esm.sh/@supabase/supabase-js@2.45.4"),
+      /* TEK ADRES: app/lib/supabase-js.js. O dosya su an CDN'e
+         yonlendiren bir yer tutucu; `python kutuphane_al.py` gercek
+         paketlenmis surumu onun uzerine yaziyor ve kutuphane ayni
+         kaynaktan gelmeye basliyor.
+
+         Burada yedek mantigi YOK ve olmamali: "once yereli dene,
+         olmazsa CDN" hali her yuklemede bir 404 uretir ve daha kotusu,
+         yerel dosya BOZUKKEN sessizce CDN'e duserdi -- yani SRI'nin
+         cozdugu sorunu geri getirirdi. Hangi surumun geldigi tek bir
+         dosyanin icerigine bakiyor. */
+      import("./lib/supabase-js.js"),
       new Promise((_, hata) => setTimeout(
         () => hata(new Error("supabase-js zaman asimi")), AG_BEKLEME))
     ]);

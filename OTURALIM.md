@@ -577,9 +577,30 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
 
 **Kodda kalan teknik borç:**
 - [x] Leaflet SRI ile geliyor (özet npm tarball'ından, resmî değerlerle doğrulandı)
-- [ ] **supabase-js hâlâ SRI'siz** — `import()` integrity desteklemiyor, yerele
-      almak da derleme adımı ister. Üç import noktası bire indirildi; kalan tek
-      yer `kimlik.js`. Gerçek çözüm: sürüm sabit, esm.sh'e güveniliyor.
+- [x] **supabase-js yerele alınabiliyor** (`kutuphane_al.py`). Eski gerekçe
+      —"yerele almak derleme adımı ister"— o gün doğruydu: esm.sh'in normal
+      çıktısı başka esm.sh adreslerinden parça ithal ediyor. Ama `?bundle`
+      seçeneği hepsini **tek dosyada** birleştiriyor; paket yöneticisi de
+      toplayıcı da gerekmiyor, tek bir indirme.
+
+      İki sorunu birden kapatıyor. (1) SRI: dinamik `import()` integrity
+      desteklemiyor, yani bugün esm.sh ne gönderirse doğrulanmadan çalışıyor;
+      aynı kaynaktan gelen dosyada bu soru yok. (2) **CDN tek arıza noktası** —
+      varsayım değil, bu depoda yaşandı: Leaflet gelmeyince keşfet ekranının
+      tamamı ölüyordu. Aynısı supabase-js'e olursa giriş, favori, paylaşım,
+      yorum ve fotoğraf hep birden kapanır.
+
+      `kimlik.js` artık **tek adres** biliyor: `app/lib/supabase-js.js`. O dosya
+      şu an CDN'e yönlendiren bir yer tutucu; betik gerçeğini üzerine yazıyor.
+      Yedek mantığı bilerek yok — "önce yereli dene, olmazsa CDN" hali her
+      yüklemede bir 404 üretir ve daha kötüsü, yerel dosya **bozukken** sessizce
+      CDN'e düşerdi; yani SRI'nin çözdüğü sorunu geri getirirdi.
+
+      İndirilen şey körü körüne yazılmıyor: boyut, HTML olmama, `createClient`
+      ve **içinde dış ithalat kalmamış olması** doğrulanmadan dosya yazılmıyor.
+      `csp_uret.py` de duruma bakıyor — yer tutucu durdukça `esm.sh` CSP'de
+      kalmak zorunda, gerçeği indirilince CSP kendiliğinden daralıyor. İkisinin
+      ayrışması `test.py`'de hata.
 - [x] `isletme.html`'in mükerrer Supabase istemcileri kaldırıldı (`Kimlik.istemci()`)
 - [x] Koordinatlar 5 basamağa indi — İstanbul 414 → 400 KB gzip
 - [x] **İstanbul dosyası 1.733 → 1.325 KB ham, 396 → 322 KB gzip** (`veri_bicim.py`).

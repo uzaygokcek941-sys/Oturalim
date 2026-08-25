@@ -66,6 +66,20 @@ KAYNAK = {
 # Kendi alan adinda Supabase barindiriyorsan buraya ekle.
 EK_KAYNAK = []
 
+KUTUPHANE = os.path.join(KOK, "app", "lib", "supabase-js.js")
+
+
+def kutuphane_yerel_mi():
+    """supabase-js gercekten yerelde mi, yoksa hala CDN'e yonlendiren yer
+    tutucu mu (kutuphane_al.py). CSP bunu biliyor: yer tutucu oldugu surece
+    esm.sh script-src ve connect-src'de KALMAK ZORUNDA -- cikarsaydik giris
+    sessizce kirilirdi. Gercegi indirilince CSP kendiliginden daraliyor."""
+    try:
+        govde = io.open(KUTUPHANE, encoding="utf-8").read()
+    except Exception:
+        return False
+    return "esm.sh" not in govde
+
 
 def satir_ici_karmalar():
     """app/*.html icindeki satir ici script bloklarinin sha256 karmalari."""
@@ -84,6 +98,10 @@ def satir_ici_karmalar():
     return sorted(set(karmalar))
 
 
+def cdn_esm():
+    return [] if kutuphane_yerel_mi() else [KAYNAK["esm"]]
+
+
 def csp():
     k = KAYNAK
     ek = " ".join(EK_KAYNAK)
@@ -97,7 +115,8 @@ def csp():
         # form-action: veri sizdirmanin en ucuz yolu, enjekte edilmis bir
         # <form>'u disari gondermek.
         ("form-action", "'self'"),
-        ("script-src", " ".join(["'self'", k["unpkg"], k["esm"]] + satir_ici_karmalar())),
+        ("script-src", " ".join(["'self'", k["unpkg"]] + cdn_esm() +
+                                satir_ici_karmalar())),
         ("style-src", " ".join(["'self'", "'unsafe-inline'", k["fontcss"], k["unpkg"]])),
         ("font-src", " ".join(["'self'", k["font"]])),
         # blob: -- resimHazirla() tuvalden uretilen onizlemeyi boyle veriyor.
@@ -109,7 +128,7 @@ def csp():
         # kaynak; resim icin de saymanin ek riski yok.
         ("img-src", " ".join(["'self'", "data:", "blob:", k["supabase"],
                               k["commons"], k["dosem"], k["unpkg"]])),
-        ("connect-src", " ".join(["'self'", k["supabase"], k["supaws"], k["esm"]])),
+        ("connect-src", " ".join(["'self'", k["supabase"], k["supaws"]] + cdn_esm())),
     ]
     metin = "; ".join(a + " " + b for a, b in yonergeler)
     return (metin + " " + ek).strip() if ek else metin

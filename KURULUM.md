@@ -175,6 +175,30 @@ sahiplenmeWhatsapp: "905XXXXXXXXX",   // faturasız, ayrı bir hat
 Boş kaldığı sürece işletme sayfası normal çalışır, yalnız **"Bu işletme benim"**
 düğmesi gizli kalır. Kişisel hattını yazma — numara işletmelere görünüyor.
 
+## supabase-js'i yerele al (bir kez, 1 dakika)
+
+```bash
+python kutuphane_al.py
+python csp_uret.py          # esm.sh CSP'den düşüyor
+git add app/lib/supabase-js.js vercel.json && git commit -m "chore: supabase-js yerele alindi"
+```
+
+Şu an `app/lib/supabase-js.js` bir **yer tutucu**: CDN'e yönlendiriyor.
+Betik esm.sh'ten paketlenmiş (tek dosya) sürümü indirip üzerine yazıyor.
+
+**Neden gerekli.** Leaflet `integrity` ile geliyor, supabase-js gelemiyor —
+dinamik `import()` bunu desteklemiyor. Yani şu an esm.sh ne gönderirse
+doğrulanmadan çalışıyor. İkincisi daha somut: CDN gelmezse giriş, favori,
+paylaşım, yorum ve fotoğraf **hep birden** kapanır. Bu bir varsayım değil,
+bu projede Leaflet ile yaşandı — keşfet ekranının tamamı ölmüştü.
+
+**İndirilen şey körü körüne yazılmıyor:** boyut, HTML olmadığı,
+`createClient` verdiği ve **içinde dış ithalat kalmadığı** doğrulanıyor.
+Biri tutmazsa dosya yazılmıyor ve var olan dosyaya dokunulmuyor.
+
+Çalıştırmazsan site normal çalışır — yalnız kütüphane CDN'den gelmeye
+devam eder.
+
 ## Site haritası — YAPILDI (oturalim.vercel.app)
 
 `sitemap.xml` mutlak adres istiyor, o yüzden depoda hazır durmuyor —

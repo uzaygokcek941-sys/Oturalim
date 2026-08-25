@@ -309,6 +309,28 @@ def kendini_kontrol_et():
                 # girisli hal de sinanabiliyor.
                 def yonlendir(r):
                     u = r.request.url
+                    # supabase-js KONTROLU ONCE: kutuphane artik yerel bir
+                    # adresten (app/lib/supabase-js.js) geliyor, yani
+                    # TABAN ile basliyor. Sira ters olsaydi taklit modul
+                    # hic devreye girmez, gercek dosya CDN'e yonlenir ve
+                    # o istek kesilirdi -- girisli halin 15 ekrani sessizce
+                    # sinanmamis olurdu.
+                    if "supabase-js" in u:
+                        # Kutuphane artik YEREL bir adresten geliyor
+                        # (app/lib/supabase-js.js). Iki hal de burada
+                        # kuruluyor ve ikisi de kutuphanenin yerelde olup
+                        # olmadigindan BAGIMSIZ:
+                        #   sahte_modul=True  -> girisli hal sinaniyor
+                        #   sahte_modul=False -> "kutuphane gelmedi" hali
+                        # Ikincisi onemli: kutuphane yerele alininca o hal
+                        # kendiliginden imkansizlasiyordu ve zarif dusus
+                        # yollari (giris.html'in "acilamiyor" kutusu, katki
+                        # formunun kapali kalmasi) SINANMAMIS kalirdi.
+                        if sahte_modul:
+                            return r.fulfill(status=200, body=SAHTE_MODUL,
+                                             headers={"content-type": "text/javascript",
+                                                      "access-control-allow-origin": "*"})
+                        return r.abort()
                     if u.startswith(TABAN):
                         return r.continue_()
                     if sahte_modul and "supabase-js" in u:
@@ -368,8 +390,19 @@ def kendini_kontrol_et():
             # kontrol gurultuye bogulup okunmaz olurdu.
             tel = t.new_page(viewport={"width": 390, "height": 844},
                              is_mobile=True, has_touch=True)
-            tel.route("**://*/**", lambda r: (r.continue_()
-                      if r.request.url.startswith(TABAN) else r.abort()))
+            # Kutuphane TAKLITLE karsilaniyor: mobil olcum, uygulamanin
+            # gercek kullanicidaki hali uzerinde yapilmali -- yani kutuphane
+            # CALISIRKEN. Onceden supabase-js hic gelmiyordu ve katki formu
+            # hic acilmiyordu; formun select'i bu yuzden 23 px'te kalmis ve
+            # aylarca olculmemisti. Olcumun, kutuphanenin yerele alinip
+            # alinmadigina gore degismemesi de sart.
+            tel.route("**://*/**", lambda r: (
+                r.fulfill(status=200, body=SAHTE_MODUL,
+                          headers={"content-type": "text/javascript",
+                                   "access-control-allow-origin": "*"})
+                if "supabase-js" in r.request.url
+                else (r.continue_() if r.request.url.startswith(TABAN) else r.abort())))
+            tel.add_init_script(GIRIS_TAKLIT)
             for yolu in ("/index.html", "/kesfet.html?il=34", "/paylas.html",
                          "/giris.html", "/isletme.html?il=34&id=node/8223784325"):
                 tel.goto(TABAN + yolu, wait_until="domcontentloaded", timeout=20000)
@@ -378,6 +411,13 @@ def kendini_kontrol_et():
                     'button, input:not([type=hidden]), select, textarea,'
                     + ' [role=tab], a.dugme, a.cip')]
                   .filter(e => e.getClientRects().length > 0)
+                  /* Gorsel olarak gizlenmis girdi (.gizli) dokunma hedefi
+                     DEGIL: yanindaki <label class="dugme"> hedef ve o 44 px.
+                     WCAG 2.5.8 bu duruma acik istisna koyuyor -- ayni isi
+                     yapan, olcuyu tutturan baska bir denetim varsa kucugu
+                     muaf. Dosya secme girdisi tam olarak bu desen. */
+                  .filter(e => !(e.classList.contains('gizli') &&
+                                 document.querySelector('label[for="' + e.id + '"]')))
                   .map(e => { const r = e.getBoundingClientRect();
                     return { ad: e.tagName.toLowerCase() + '.'
                                  + String(e.className || '').split(' ')[0],

@@ -77,6 +77,13 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   .katki{border-top:1px solid var(--cizgi);margin-top:var(--a4);padding-top:var(--a4)}
   .katki p{margin:0 0 var(--a3)}
   .katki-satir{display:flex;flex-wrap:wrap;gap:var(--a2)}
+  /* 44 px: dokunma hedefi. Onceden hicbir olcu yoktu ve select tarayici
+     varsayilaninda 23 px kaliyordu -- WCAG 2.5.8'in istedigi 24'un ALTINDA.
+     Bu form supabase-js gelmeden acilmadigi icin testlerde hic olculmemisti;
+     kutuphane yerele alininca form her kosumda aciliyor ve olcu ortaya cikti.
+     Butce kaydiricisinda da ayni sey yasanmisti (22 px). */
+  .katki-satir select,
+  .katki-satir input{min-height:44px}
   .katki-satir select{flex:0 0 11rem}
   .katki-satir input{flex:1 1 13rem;min-width:0}
   .katki-not{font-size:.88rem;color:var(--soluk);margin-top:var(--a2)}

@@ -35,7 +35,7 @@ VERI = os.path.join(KOK, "app", "veri")
 BETIKLER = ["app_veri.py", "etkinlik_cek.py", "fiyat_analiz.py", "menu_cikar.py",
             "turkiye_cek.py", "foto_cek.py",
             "menu_ocr.py", "menu_pdf_tara.py", "saha.py", "sahiplen.py",
-            "site_haritasi.py", "csp_uret.py", "veri_bicim.py"]
+            "site_haritasi.py", "csp_uret.py", "veri_bicim.py", "kutuphane_al.py"]
 
 # Turkiye siniri, genis pay. Disina dusen koordinat cekimde bir sey
 # kaymis demektir; haritada Atlantik'te bir nokta olarak gorunur.
@@ -439,6 +439,27 @@ def yayin_basliklari_mi():
     # olurdu.
     if 'json.loads(io.open(AYAR' not in oku("sunucu.py"):
         s.append("sunucu.py guvenlik basliklarini vercel.json'dan okumuyor")
+
+    # supabase-js hala YER TUTUCU mu. Sessiz kalinmiyor ama HATA da degil:
+    # bu bir kurulum adimi (python kutuphane_al.py), bozuk bir sey degil.
+    # CSP'nin esm.sh tasiyip tasimadigi da ayni gercege bagli; ikisi
+    # ayrisirsa GERCEK bir hata var: yerel dosya duruyorken CSP hala
+    # CDN'e izin veriyorsa daralma yapilmamis, ya da tersi olursa giris
+    # kirilmis demektir.
+    try:
+        lib = oku("app", "lib", "supabase-js.js")
+    except Exception:
+        s.append("app/lib/supabase-js.js yok; kimlik.js onu ithal ediyor")
+        return s
+    yer_tutucu = "esm.sh" in lib
+    csp = next((h["value"] for grup in v.get("headers", [])
+                if grup.get("source") == "/(.*)"
+                for h in grup.get("headers", [])
+                if h.get("key") == "Content-Security-Policy"), "")
+    if yer_tutucu != ("esm.sh" in csp):
+        s.append("CSP ile kutuphane ayrisiyor: kutuphane %s, CSP'de esm.sh %s"
+                 % ("yer tutucu" if yer_tutucu else "yerel",
+                    "var" if "esm.sh" in csp else "yok"))
     return s
 
 

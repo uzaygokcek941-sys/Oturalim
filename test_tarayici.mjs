@@ -259,9 +259,11 @@ kosu("kimlik.js (veri katmani, sahte Supabase)", () => {
   /* "await" ARANMIYOR: import() bir Promise.race icinde de durabiliyor
      (zaman asimi eklendiginde tam olarak bu oldu ve kalip kacti). Aranan
      sey CAGRININ KENDISI. */
-  const duzenli = kaynak.replace(/import\("https:\/\/esm\.sh[^"]*"\)/,
+  /* Adres artik YEREL: app/lib/supabase-js.js (kutuphane_al.py o dosyanin
+     uzerine gercek paketlenmis surumu yaziyor). Kalip ona gore. */
+  const duzenli = kaynak.replace(/import\("\.\/lib\/supabase-js\.js"\)/,
                                  'import("' + sahteModul + '")');
-  if (duzenli === kaynak) return ["kimlik.js icindeki esm.sh import'u bulunamadi"];
+  if (duzenli === kaynak) return ["kimlik.js icindeki supabase-js import'u bulunamadi"];
 
   const yol = path.join(os.tmpdir(), "kimlik-kontrol-" + process.pid + ".mjs");
   fs.writeFileSync(yol, duzenli);
