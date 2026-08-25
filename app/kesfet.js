@@ -724,6 +724,12 @@ function panelAc(){
     history.pushState({ panel: 1 }, "", location.href);
     panelGecmiste = true;
   }
+  /* Panel HANGI GORUNUMUN uzerinde aciliyor: haritada perde hafif,
+     listede koyu. Bilgi dialog'un KENDI ustunde duruyor cunku modal
+     bir dialog'un ::backdrop'u ust katmanda; ata elemanin durumundan
+     secilemiyor. */
+  const gv = el("#govde");
+  d.dataset.uzerinde = (gv && gv.dataset.gorunum) || "liste";
   d.showModal();
 }
 
@@ -910,13 +916,23 @@ function ac(id){
   el("#d-paylas").href = "paylas.html?mekan=" + encodeURIComponent(m.ad) +
                          "&il=" + encodeURIComponent(el("#il").value) +
                          "&mekanId=" + encodeURIComponent(m.id);
+  /* BUTCE DE GIDIYOR. Mekan sayfasi butceyi ?butce= ile okuyor; buradan
+     gecirilmezse kullanicinin ana ekranda yazdigi rakam ucuncu ekranda
+     kayboluyordu -- kombin "En ucuz ogun" diyordu, menu listesi kac
+     kalemin butceye girdigini hic yazmiyordu. */
   el("#d-sayfa").href = "isletme.html?il=" + encodeURIComponent(el("#il").value) +
-                        "&id=" + encodeURIComponent(m.id);
+                        "&id=" + encodeURIComponent(m.id) +
+                        (butce > 0 ? "&butce=" + butce : "");
   favoriDugmesiniTazele(m);
   panelAc();
 
   const i = isaretler.get(id);
-  if (i && haritaVar()){ harita.setView([m.lat, m.lon], Math.max(harita.getZoom(), 15)); i.openPopup(); }
+  /* Harita mekana gidiyor ama BALON ACILMIYOR: panel modal ve balonu
+     bulanik perdenin arkasinda birakiyordu. Ikisi de ayni uc bilgiyi
+     (ad, tur, butce durumu) yaziyor; ikinci kopya gorunmeyen bir
+     kopyaydi. Balon isaretcide duruyor -- panel kapaninca haritada
+     tiklayan kullanici onu goruyor. */
+  if (i && haritaVar()) harita.setView([m.lat, m.lon], Math.max(harita.getZoom(), 15));
 }
 
 /* ---------- veri yükleme ---------- */

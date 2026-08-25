@@ -253,7 +253,13 @@ GIRISLI = [
    ["47", "3 kişinin 5 fişinden"], ["kul-1"]),
   # Yorumlar: yazarli ve YAZARSIZ olan birlikte cizilmeli. Profilini
   # kapatanin yorumu GORUNUR, adi gorunmez -- yorum mekana ait bir bilgi.
-  ("isletme.html/yorumlar", "/isletme.html?il=34&id=node/8223784325", None,
+  # YORUMLAR ARTIK SEKME ARDINDA. Sekme cubugu gelmeden once bu satir
+  # dugmesiz kosuyordu; sekmelerden sonra yorumlar display:none oldu ve
+  # kontrol "'4,0' ekranda yok" diye patladi -- yani sekmelerin icerigi
+  # gizledigini ilk soyleyen sey bu kontrol oldu. Dugme tiklanarak
+  # sekmenin icerigi GERCEKTEN aciyor oldugu da sinaniyor.
+  ("isletme.html/yorumlar", "/isletme.html?il=34&id=node/8223784325",
+   '.sekme-cubuk [data-sekme="yorum"]',
    ["Yorumlar", "Deneme Kisi", "28 · Öğretmen", "Sessiz ve ucuz",
     "Bir kullanıcı", "4,0"], ["kul-1"]),
   ("profil.html", "/profil.html?k=deneme_kisi", None,
@@ -268,7 +274,12 @@ GIRISLI = [
    ["Mekan fotoğrafları", "Foto Kafe"], ["kul-1"]),
   # Galeri: atifli commons fotografi ATFIYLA cizilmeli, ATIFSIZ olan
   # HIC cizilmemeli -- atifsiz gostermek lisansi ihlal eder.
-  ("isletme.html/galeri", "/isletme.html?il=34&id=node/8223784325", None,
+  # GALERI DE SEKME ARDINDA (Fotograflar). Sekme cubugu gelince galeri
+  # ve fotograf ekleme formu display:none oldu ve bu satir dort ayri
+  # eksikle patladi -- sekmelerin neyi gizledigini soyleyen ikinci
+  # kontrol bu oldu.
+  ("isletme.html/galeri", "/isletme.html?il=34&id=node/8223784325",
+   '.sekme-cubuk [data-sekme="foto"]',
    # "İŞLETMEDEN" BUYUK harfle: rozetin CSS'inde text-transform:uppercase
    # var ve innerText donusmus metni veriyor. Kaynakta kucuk harfle
    # yaziyor -- kaynaga bakip burayi "duzeltmek" kontrolu bozar.
@@ -763,7 +774,12 @@ def kendini_kontrol_et():
                     # tiklamak onu KAPATIYORDU. Ilk yazimda tam bu oldu ve
                     # kontrol "payda butceyle degisiyor" diye bagirdi --
                     # dogru bagirdi, sebebi kendi kusuruydu.
-                    cip = kon.locator('.canim-cip:text-is("%s")' % kategori)
+                    # SECICI data-tur UZERINDEN, gorunen metin uzerinden
+                    # DEGIL. Cip artik ikon + metin tasiyor ve
+                    # ":text-is" dis dugmeye degil ic <span>'e esliyor --
+                    # kontrol 30 sn bekleyip zaman asimina dustu.
+                    # data-tur zaten kodun kendi anahtari.
+                    cip = kon.locator('.canim-cip[data-tur="%s"]' % kategori)
                     if cip.get_attribute("aria-pressed") != "true":
                         cip.click()
                 kon.click("#yakinimdakiler")
@@ -867,17 +883,30 @@ def kendini_kontrol_et():
                 sorunlar.append("supabase-js yokken katki formu yine de aciliyor")
             sf.close()
 
-            # 1f) Gorunmeyen sahne icin kare uretilmemeli.
+            # 1f) ANA EKRANDA SUREKLI CIZIM YOK.
             #
-            # Kaydirinca gozlemci animasyonu durduruyordu, ama
-            # visibilitychange KOSULSUZ baslat() cagiriyordu: baska sekmeye
-            # gecip geri donunce, sahne hala ekran disindayken animasyon tam
-            # hizda yeniden basliyor ve bir daha durmuyordu (gozlemci ancak
-            # kesisim DEGISINCE tetikleniyor). Olculdu: 600 ms'de 36 kare.
-            # Telefonda bu dogrudan pil.
+            # ONCE NE OLCULUYORDU: kahramanda bir canvas "gece sokagi"
+            # vardi ve kontrol dort hali olcuyordu -- ekrandayken kare
+            # uretiyor mu, ekran disindayken duruyor mu, sekmeden donunce
+            # ne oluyor. Sebebi olculmus bir kusurdu: visibilitychange
+            # KOSULSUZ baslat() cagiriyordu ve sahne ekran disindayken
+            # tam hizda yeniden basliyordu (600 ms'de 36 kare -- telefonda
+            # dogrudan pil).
             #
-            # Dort halin dordu de olculuyor. Yalniz "0 kare" aramak yanlis
-            # gecerdi: animasyonu tamamen kapatmak da o kontrolu yesil yapar.
+            # SIMDI NE OLCULUYOR: o katman KALDIRILDI. Marka maketlerinin
+            # hepsi acik temali, beyaz kartli; koyu sokak katmani acik
+            # temada buyuk butce rakamini okunmaz yapiyordu. Katman gidince
+            # eski kontrol "hic kare uretilmiyor" diye HAKLI olarak bagirdi.
+            #
+            # Kontrol SILINMIYOR, TERSINE CEVRILIYOR: ana ekranda artik
+            # surekli donen bir cizim dongusu OLMAMALI. Silinseydi, yarin
+            # geri gelen bir rAF dongusu -- ekran disinda da donen turden --
+            # hicbir yerde goze carpmazdi.
+            #
+            # Bir kereye mahsus kareler serbest: giris animasyonlari
+            # (data-giris) ve tarayicinin kendi kaydirma isi rAF
+            # kullanabiliyor. Olculen sey SURMESI: sayfa durulduktan
+            # sonra iki ayri pencerede de kare akmaya devam ediyor mu.
             sf, _ = sayfa_ac("/index.html", """(() => { window.__kare = 0;
                 const a = window.requestAnimationFrame;
                 window.requestAnimationFrame = function(f){
@@ -901,22 +930,31 @@ def kendini_kontrol_et():
                 sf.evaluate(gizle, False)
                 sf.wait_for_timeout(300)
 
-            if kare() == 0:
-                sorunlar.append("sahne ekrandayken hic kare uretilmiyor")
+            # Giris animasyonlari bitene kadar bekle, sonra olc.
+            sf.wait_for_timeout(2500)
+            # ESIK 0 DEGIL: tarayici kaydirma/odak isi icin tek tuk kare
+            # isteyebiliyor. Aranan sey SUREKLI donen bir dongu -- 600
+            # ms'de 60 Hz'de ~36 kare eder; 5 kare onun cok altinda.
+            SURUYOR = 5
+            n = kare()
+            if n > SURUYOR:
+                sorunlar.append(
+                    "ana ekran duruyorken hala cizim yapiyor (600 ms'de %d kare)" % n)
             sekmeden_don()
-            if kare() == 0:
-                sorunlar.append("sahne ekrandayken sekmeden donunce baslamiyor")
+            n = kare()
+            if n > SURUYOR:
+                sorunlar.append(
+                    "ana ekran sekmeden donunce cizime basliyor (600 ms'de %d kare)" % n)
             sf.evaluate("scrollTo(0, 3000)")
-            sf.wait_for_timeout(500)
-            if kare() != 0:
-                sorunlar.append("sahne ekran disindayken kare uretiliyor")
-            sekmeden_don()
-            if kare() != 0:
-                sorunlar.append("sahne ekran disinda, sekmeden donunce yeniden basliyor")
-            sf.evaluate("scrollTo(0, 0)")
-            sf.wait_for_timeout(500)
-            if kare() == 0:
-                sorunlar.append("sahne geri kaydirilinca yeniden baslamiyor")
+            sf.wait_for_timeout(800)
+            n = kare()
+            if n > SURUYOR:
+                sorunlar.append(
+                    "ana ekran ekran disindayken cizim yapiyor (600 ms'de %d kare)" % n)
+            # Katman gercekten gitmis mi: bir canvas geri gelirse yukaridaki
+            # sayimlar onu ancak SURDUGUNDE yakalar.
+            if sf.evaluate("() => document.querySelectorAll('.kahraman canvas').length"):
+                sorunlar.append("ana ekran kahramaninda canvas geri gelmis")
             sf.close()
 
             # 1g) GIRIS YAPILMIS hal. Bu kosum takimi butun dis

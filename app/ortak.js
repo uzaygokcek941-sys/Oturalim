@@ -1154,7 +1154,23 @@ function dayanakCumlesi(d){
    neden sarı olduğunu söylemiyor.
    ============================================================ */
 
-const GUVEN_ADI = { yesil:"doğrulanmış", sari:"dolaylı", kirmizi:"fiyat yok" };
+const GUVEN_ADI = { yesil:"doğrulanmış", sari:"dolaylı", kirmizi:"fiyat yok",
+                    /* MENÜSÜ FİYATLI AMA ÖĞÜN FİYATI ÇIKMIYOR. Ayrı bir ad,
+                       çünkü "fiyat yok" o mekanda YALAN: menüde 1.340 kalemin
+                       fiyatı yazıyor (291 menülü mekanın 128'i bu halde).
+                       Renk kırmızı kalıyor -- bir öğünün kaça geldiğini hâlâ
+                       bilmiyoruz -- değişen yalnız yanlış olan cümle. */
+                    menu:"öğün fiyatı yok" };
+
+/* Menüde fiyatı yazan kalem var mı. yemekFiyati()'nin sorusundan FARKLI:
+   o "bir öğün kaça gelir" diye soruyor, bu "ekranda rakam görünecek mi". */
+function menudeFiyatVar(m){
+  const mn = m && m.menu;
+  if (!mn || !mn.length) return 0;
+  let n = 0;
+  for (const k of mn) if (k && k.f != null) n++;
+  return n;
+}
 
 /* Rakamla yazılmış bir sayıya 3. tekil iyelik eki: 9 -> "9'u".
 
@@ -1245,6 +1261,13 @@ function fiyatGuveni(m, harita, ozet, oy, bugun){
   const f = yemekFiyati(m, bugun);
   if (f == null){
     const s = seviye(m, bugun);
+    /* Menüsünde fiyat varsa "fiyat yok" DENMİYOR: aynı ekranda kalemlerin
+       fiyatı listeleniyor ve rozet o listeyle çelişirdi. */
+    const kalem = menudeFiyatVar(m);
+    if (kalem)
+      return { sinif:"kirmizi", ad:GUVEN_ADI.menu,
+               neden: "menüde " + sayi(kalem) + " kalemin fiyatı var, " +
+                      "ama bir öğünün kaça geldiği çıkmıyor" };
     return { sinif:"kirmizi", ad:GUVEN_ADI.kirmizi,
              neden: s ? "türünden tahmin: " + s.ad : "fiyat bilgisi yok" };
   }
@@ -1670,6 +1693,15 @@ function kendiniKontrolEt(){
                     kat:{ "Kebap": { n:2, med:300 } }, tarih:"2025-11" };
   const _yok    = { id:"g3", ad:"Fiyatsiz", tur:"Restoran" };
   const _tahmin = { id:"g4", ad:"Tahminli", tur:"Fast food" };
+  /* Menusu FIYATLI ama ogun fiyati cikmayan mekan: 291 menulu mekanin
+     128'i (%44) boyle. Burada yalniz icecek kategorisi var, yani
+     anaKategoriler() bos donuyor ve yemekFiyati() null. Kalemlerin
+     fiyati ise ekranda YAZIYOR. */
+  const _menulu = { id:"g5", ad:"Sadece Icecek", tur:"Kafe",
+                    kat:{ "Bira": { n:3, med:230 } }, tarih:"2026-08",
+                    menu:[ {a:"EFES 33", f:230, k:"Bira"},
+                           {a:"EFES 50", f:250, k:"Bira"},
+                           {a:"SU",      f:30,  k:"Bira"} ] };
   const GH = zincirHaritasi([_kendi, _eski], g14);
   const kontroller = [
     ["acikMi 24/7",             acikMi("24/7", g14),               true],
@@ -2152,6 +2184,26 @@ function kendiniKontrolEt(){
       fiyatGuveni(_tahmin, GH, null, null, g14).sinif,                  "kirmizi"],
     ["guven tur tahmini gerekcede yaziyor",
       /türünden tahmin/.test(fiyatGuveni(_tahmin, GH, null, null, g14).neden), true],
+    /* MENUSU FIYATLI OLANA "FIYAT YOK" DENMIYOR. Ayni ekranda menu
+       listesi duruyor; rozet o listeyle celisemez. Renk kirmizi kaliyor:
+       bir ogunun kaca geldigi hala bilinmiyor. */
+    ["menulu mekan yine kirmizi",
+      fiyatGuveni(_menulu, GH, null, null, g14).sinif,                  "kirmizi"],
+    ["menulu mekana 'fiyat yok' DENMIYOR",
+      /fiyat yok/.test(fiyatGuveni(_menulu, GH, null, null, g14).ad),      false],
+    ["menulu mekanin rozeti ogun fiyatindan bahsediyor",
+      fiyatGuveni(_menulu, GH, null, null, g14).ad,             "öğün fiyatı yok"],
+    ["menulu mekanin gerekcesi kalem sayisini yaziyor",
+      /menüde 3 kalemin fiyatı var/.test(
+        fiyatGuveni(_menulu, GH, null, null, g14).neden),                   true],
+    /* Menusu HIC OLMAYAN mekan eski cumleyi almaya devam ediyor:
+       orada "fiyat yok" dogru. */
+    ["menusuz mekan hala 'fiyat yok' diyor",
+      fiyatGuveni(_yok, GH, null, null, g14).ad,                      "fiyat yok"],
+    ["menudeFiyatVar fiyatsiz kalemi saymiyor",
+      menudeFiyatVar({ menu:[{a:"X"}, {a:"Y", f:10}] }),                        1],
+    ["menudeFiyatVar menusuz mekanda sifir",
+      menudeFiyatVar(_yok),                                                    0],
     /* FIS YESILE CIKARIYOR: menusu hic olmayan bir mekan uc fisle
        yesil oluyor. Urunun tezi bu -- skor katki geldikce buyuyor. */
     ["guven fis yesile cikariyor",

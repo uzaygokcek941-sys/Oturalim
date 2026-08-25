@@ -8,84 +8,30 @@
    stil.css'ten SONRA yüklenir. Tokenlar oradan gelir.
    ============================================================ */
 
-/* ---------- 1. Sokak: ışık izi alanı ---------- */
-/* Sokak HER ZAMAN gece. Acik temada da boyle: kavram, aydinlik bir
-   dukkandan karanlik sokaga bakmak. Bej zemine neon izi dusurmek filmin
-   de urunun de mantigina aykiri olurdu. Cerceve ICI temayi izler. */
-.sahne{
-  --zemin:#0f172a;   --zemin-2:#16213b;   --zemin-3:#1e2b47;
-  --metin:#f8fafc;   --metin-2:#94a3b8;   --metin-3:#94a3b8;
-  --cizgi:#24314f;   --cizgi-2:#33425f;
-  --vurgu:#ff7a00;   --vurgu-koyu:#e06a00; --vurgu-los:#3a2408;
-  --vurgu-metin:#1a0e00;
-  --neon-sari:#ffb74d; --neon-sari-los:rgba(255,183,77,.14);
-  --neon-yesil:#00bfa6;
-  --asfalt:#070c17;  --grain:.035;
-  color:var(--metin);
+/* ---------- 1. Kahraman kartı ---------- */
+/* SOKAK KALDIRILDI. Bu blok eskiden koyu bir "gece sokağı" kuruyordu:
+   .sahne tema tokenlarını zorla koyuya çeviriyor, canvas ışık izleri
+   çiziyor, .cerceve dükkân vitrini gibi bir kasa açıyordu.
 
-  position:relative;
-  min-height:100svh;
-  display:flex;
-  align-items:center;
-  background:var(--asfalt);
-  overflow:hidden;
-  isolation:isolate;
-}
+   Marka kılavuzunun ekran maketlerinin hepsi AÇIK ve kartlı. Ölçüldü:
+   koyu katman açık temada büyük bütçe rakamını okunmaz yapıyordu
+   (lacivert rakam, lacivert zemin). Kavram güzeldi ama maketlerin
+   dili değildi.
 
-/* Işık izleri canvas'ta çiziliyor — CSS ile ikna edici bir smear kurulamıyor,
-   çünkü izin uzunluğu hıza bağlı olarak KARE KARE değişmeli. */
-.sahne > .sokak{
-  position:absolute; inset:0;
-  width:100%; height:100%;
-  z-index:0;
-  pointer-events:none;
-}
+   Geriye kalan: giriş animasyonları (aşağıda) -- onlar temadan
+   bağımsız ve maketle çelişmiyor. */
+.kahraman{ position:relative }
 
-/* Islak asfalt: dar açılı speküler şerit. Geniş yumuşak gradyan değil —
-   asfaltta neon yansıması keskin ve dardır. */
-.sahne::before{
-  content:""; position:absolute; inset:auto 0 0 0; height:38%;
-  z-index:0; pointer-events:none;
-  background:
-    linear-gradient(to top,
-      color-mix(in oklab,var(--neon-sari) 9%,transparent) 0%,
-      transparent 42%),
-    linear-gradient(to top, rgba(0,0,0,.55), transparent 60%);
-  mask-image:linear-gradient(to top,#000 0%,transparent 100%);
-}
-
-/* Grain: 35 mm + el kamerası. Tek bir SVG turbulence, tekrarlanıyor. */
-.sahne::after{
-  content:""; position:absolute; inset:0; z-index:2;
-  pointer-events:none; opacity:var(--grain);
-  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/></filter><rect width='140' height='140' filter='url(%23g)'/></svg>");
-  mix-blend-mode:overlay;
-}
-
-/* ---------- 2. Çerçeve: vitrin kasası ---------- */
-/* Merkeze konmuyor. Ortalanırsa "kart" olarak okunur ve sayfanın tek fikri
-   (dışarısı / içerisi ayrımı) ölür. */
-.cerceve{
+/* Maketteki beyaz kart: yuvarlak, yumuşak gölgeli, ortalanmış. */
+.cep-kart{
   position:relative; z-index:1;
-  margin-left:auto;
-  margin-right:clamp(16px,6vw,90px);
-  max-width:min(680px,92vw);
-  padding:clamp(28px,4.5vw,56px);
-  background:color-mix(in oklab,var(--zemin) 88%,transparent);
-  border:var(--cerceve-kalinlik) solid var(--zemin-3);
-  box-shadow:
-    inset 0 0 0 1px color-mix(in oklab,var(--neon-sari) 22%,transparent),
-    0 40px 90px -30px rgba(0,0,0,.8);
-  backdrop-filter:blur(3px);
-}
-
-/* Kasanın üst kenarında tabela ışığı — dükkânın kendi neonu */
-.cerceve::before{
-  content:""; position:absolute;
-  left:calc(var(--cerceve-kalinlik) * -1); right:calc(var(--cerceve-kalinlik) * -1);
-  top:calc(var(--cerceve-kalinlik) * -1); height:2px;
-  background:linear-gradient(90deg,transparent,var(--neon-sari),transparent);
-  opacity:.65;
+  margin-inline:auto;
+  max-width:min(560px,100%);
+  padding:clamp(24px,5vw,40px);
+  background:var(--yuzey);
+  border:1px solid var(--cizgi);
+  border-radius:var(--r-b);
+  box-shadow:var(--golge-3);
 }
 
 /* ---------- 3. Girişler ---------- */
@@ -167,35 +113,7 @@
 }
 
 /* ---------- 5. Neon ---------- */
-/* Sayilar cercevenin disinda, sokakta duruyor: cerceve karari tasir,
-   sayilar kaniti. Ikisi ayni kutuda olursa cerceve 1200 px'lik dar bir
-   sutuna donusuyor ve "aciklik" okumasi kayboluyor. */
-.sahne .sayilar{
-  position:relative; z-index:1;
-  margin-top:clamp(28px,5vw,56px);
-  border-top:1px solid color-mix(in oklab,var(--neon-sari) 18%,transparent);
-  padding-top:clamp(18px,2.5vw,28px);
-}
-.sahne .sayilar b{ color:var(--vurgu) }
 
-/* Yedek yol: cercevenin disinda, sokakta duran yan kapi. Gorunur ama
-   birincil eylemle yarismaz -- storyboard "baslik + tek birincil eylem"
-   diyor, sehir secimi konum reddedilirse devreye giren yol. */
-.sahne .secim.yedek{
-  position:relative; z-index:1;
-  margin-top:clamp(20px,3vw,34px);
-  margin-left:auto;
-  margin-right:clamp(16px,6vw,90px);
-  max-width:min(680px,92vw);
-  padding:clamp(16px,2vw,22px);
-  border-left:2px solid color-mix(in oklab,var(--neon-yesil) 45%,transparent);
-  background:color-mix(in oklab,var(--zemin) 55%,transparent);
-  backdrop-filter:blur(2px);
-}
-.sahne .secim.yedek legend{ color:var(--metin-2) }
-@media (max-width:720px){
-  .sahne .secim.yedek{ margin-inline:clamp(12px,4vw,24px); max-width:none }
-}
 
 /* neon yalniz ISIK olarak kullaniliyor (canvas, kenar parlamasi);
    METIN rengi olarak degil -- palet uc renkte kaliyor. */
@@ -217,14 +135,12 @@
   .odaklanir:hover > *,.odaklanir:focus-within > *{ filter:none; opacity:1 }
   .odaklanir > :hover,.odaklanir > :focus-visible{ transform:none }
   .titrer{ animation:none }
-  .sahne::after{ opacity:calc(var(--grain) * .5) }
 }
 
 /* Dar ekran: çerçeve kaçıklığı anlamını yitiriyor, ortaya alınıyor ama
    kenar payı korunuyor — kutu hâlâ "içerisi", kenar hâlâ "dışarısı". */
 @media (max-width:720px){
-  .cerceve{ margin-inline:clamp(12px,4vw,24px); max-width:none }
-  .sahne{ min-height:88svh }
+  .cep-kart{ margin-inline:clamp(12px,4vw,24px); max-width:none }
 }
 
 

@@ -26,38 +26,56 @@
               metin guvenli olani asil token.
    ---------- */
 :root{
-  /* Gece Mavisi tabanli koyu palet (marka: #0F172A). Saf siyah yok:
-     OLED'de leke yapiyor, harita dosemesiyle de siniri kayboluyor. */
-  --zemin:#0f172a;          --zemin-2:#16213b;      --zemin-3:#1e2b47;
-  --yuzey:#16213b;          --yuzey-us:#24314f;
-  --metin:#f8fafc;          --metin-2:#94a3b8;      --metin-3:#94a3b8;
-  --cizgi:#24314f;          --cizgi-2:#33425f;
+  /* ---------- AÇIK TEMA VARSAYILAN ----------
+     Marka kılavuzunun ekran maketlerinin hepsi AÇIK: beyaz kart, yumuşak
+     gölge, lacivert yazı. Önceden koyu tema varsayılandı ve uygulama
+     maketlere hiç benzemiyordu. Koyu tema kaldırılmadı -- kullanıcının
+     seçimi olarak duruyor, yalnız artık varsayılan değil.
 
-  --marka:#ff7a00;                                 /* sabit: marka turuncusu */
-  --vurgu:#ff7a00;          --vurgu-koyu:#e06a00;   --vurgu-los:#3a2408;
-  --vurgu-metin:#1a0e00;                           /* turuncu uzerine 7,26:1 */
-  --yesil:#00bfa6;          --yesil-los:#0a2e2a;    /* Okyanus */
-  --kirmizi:#ff5a5f;                               /* Mercan */
-  /* eskimis fiyat serit rengi: uyari ama hata degil */
-  --sari:#ffb74d;                                  /* Gun Batimi */
+     Nötr renkler kılavuzun kendi listesi: Beyaz #FFFFFF, Açık Gri
+     #F8FAFC, Gri #E2E8F0, Koyu Gri #64748B, Gece Mavisi #0F172A. */
+  --zemin:#ffffff;          --zemin-2:#f8fafc;      --zemin-3:#e2e8f0;
+  --yuzey:#ffffff;          --yuzey-us:#f8fafc;
+  --metin:#0f172a;          --metin-2:#64748b;      --metin-3:#64748b;
+  --cizgi:#e2e8f0;          --cizgi-2:#cbd5e1;
 
-  /* Bütçe bantları — hem renk hem metin taşır (renk körlüğü uyumu) */
-  --bant-ucuz:#00bfa6;      --bant-orta:#ffb74d;    --bant-tuz:#ff5a5f;
+  /* --marka  : her iki temada AYNI. Düğme zemini, logo, grafik.
+     --vurgu  : METİN rengi. Açık zeminde #FF7A00 yalnız 2,61:1 veriyor,
+                o yüzden metin için koyulaştırılmış tonu kullanılıyor.
+     --vurgu-metin : marka turuncusunun ÜZERİNE yazılan mürekkep (7,26:1).
+
+     Kılavuzun maketlerinde turuncu düğmenin üstünde BEYAZ yazı var ve
+     ölçüldüğünde 2,61:1 çıkıyor. Renk değil MÜREKKEP değiştirildi. */
+  --marka:#ff7a00;
+  --vurgu:#c2410c;          --vurgu-koyu:#9a3412;   --vurgu-los:#fff1e3;
+  --vurgu-metin:#1a0e00;
+
+  /* Okyanus (#00BFA6) maketlerde BİRİNCİL EYLEM düğmesinin zemini
+     ("Yakınımda Bul"). Maketteki beyaz yazı ölçüldü: 2,33:1 -- turuncu
+     düğmeyle aynı hata. Yine mürekkep değişti: lacivert 7,65:1.
+     --teal iki temada da AYNI, tıpkı --marka gibi. */
+  --teal:#00bfa6;           --teal-metin:#0f172a;
+
+  --yesil:#00796b;          --yesil-los:#e3f5f2;
+  --kirmizi:#c1121f;        --sari:#a15c00;
+  --bant-ucuz:#00796b;      --bant-orta:#a15c00;    --bant-tuz:#c1121f;
 
   /* Ölçü: 4 tabanlı */
   --a1:4px;  --a2:8px;  --a3:12px; --a4:16px; --a5:24px;
   --a6:32px; --a7:48px; --a8:64px; --a9:96px;
 
-  /* Marka "yuvarlak ve dost canlisi" diyor; kose yaricapi 6 -> 12.
-     Insan yapimi sitelerde olculdu: TEK bir radius degeri yeterli,
-     dort ayri deger birbirinden ayirt edilemiyordu. */
-  --r-s:10px; --r:12px; --r-b:16px; --r-tam:999px;
+  /* KÖŞE YARIÇAPI MAKETTEN. Kılavuz "yuvarlak, dost canlısı" diyor ve
+     maketlerdeki kartlar belirgin biçimde yuvarlak; eski değerler
+     (10/12/16) o dili vermiyordu. Düğmeler tam hap (--r-tam). */
+  --r-s:14px; --r:18px; --r-b:24px; --r-tam:999px;
 
-  /* Olculdu: iki referans sitede de golge SIFIR. Derinlik golgeyle degil
-     kenarla ve zemin farkiyla kuruluyor. */
-  --golge-1:none;
-  --golge-2:none;
-  --golge-3:0 24px 60px -20px rgba(0,0,0,.7);
+  /* GÖLGE GERİ GELDİ. Önceki not "iki referans sitede de gölge sıfır"
+     diyordu; marka maketleri o referanslar değil ve orada beyaz kartlar
+     yumuşak gölgeyle zeminden ayrılıyor. Açık temada gölge olmadan
+     beyaz kart beyaz zeminde kayboluyor. */
+  --golge-1:0 1px 2px rgba(15,23,42,.06);
+  --golge-2:0 4px 16px -4px rgba(15,23,42,.10);
+  --golge-3:0 18px 48px -16px rgba(15,23,42,.18);
 
   --hiz:170ms; --hiz-yavas:320ms;
   --egri:cubic-bezier(.16,1,.3,1);
@@ -65,67 +83,67 @@
   --olcu:1180px;
   --ust-yukseklik:60px;
 
-  /* Sinematik katman. Renkler marka paletine cekildi: eskiden
-     Chungking Express'in sari-yesili vardi, artik Gun Batimi ve
-     Okyanus. Mekanizma ayni, renk markadan geliyor. */
-  --neon-sari:#ffb74d;   --neon-sari-los:rgba(255,183,77,.14);
-  --neon-yesil:#00bfa6;  --neon-yesil-los:rgba(0,191,166,.12);
-  --asfalt:#070c17;                     /* cerceve disi: sokak */
+  /* Sinematik katman -- koyu temanın sokak dokusu. Açık temada
+     neredeyse görünmez kalacak şekilde yumuşatıldı. */
+  --neon-sari:#a15c00;   --neon-sari-los:rgba(161,92,0,.10);
+  --neon-yesil:#00796b;  --neon-yesil-los:rgba(0,121,107,.08);
+  --asfalt:#e2e8f0;      --grain:.02;
   --cerceve-kalinlik:clamp(10px,2.2vw,22px);
-  --grain:.035;
 
-  /* Marka kilavuzu "Montserrat Rounded" diyor; O CUT GOOGLE FONTS'TA YOK
-     (ticari/ozel bir kesim). En yakin gercek eslesme Montserrat'in
-     kendisi -- ayni harf iskeleti, yuvarlatilmamis uclar. Rounded
-     kesimini satin alirsan yerele koyup burayi degistir; o zaman
-     fonts.googleapis.com CSP'den de dusebilir. */
+  /* Marka kılavuzu "Montserrat Rounded" diyor; O CUT GOOGLE FONTS'TA YOK
+     (ticari/özel bir kesim). En yakın gerçek eşleşme Montserrat'ın
+     kendisi -- aynı harf iskeleti, yuvarlatılmamış uçlar. Rounded
+     kesimini satın alırsan yerele koyup burayı değiştir; o zaman
+     fonts.googleapis.com CSP'den de düşebilir. */
   --font-baslik:"Montserrat",ui-sans-serif,system-ui,"Segoe UI",Roboto,sans-serif;
   --font-govde:"Montserrat",ui-sans-serif,system-ui,"Segoe UI",Roboto,sans-serif;
-  color-scheme:dark;
+  color-scheme:light;
 }
 
-/* ACIK TEMA IKI YERDE: sistem tercihi ve elle secim. Degerler AYNI
+/* KOYU TEMA IKI YERDE: sistem tercihi ve elle secim. Degerler AYNI
    olmak zorunda; test.py ikisini karsilastiriyor (ayrisirlarsa
    kullanicinin elle sectigi tema sistemden farkli gorunurdu). */
-@media (prefers-color-scheme:light){
-  :root:not([data-tema="koyu"]){
-    --zemin:#ffffff;        --zemin-2:#f8fafc;      --zemin-3:#e2e8f0;
-    --yuzey:#ffffff;        --yuzey-us:#f8fafc;
-    --metin:#0f172a;        --metin-2:#64748b;      --metin-3:#64748b;
-    --cizgi:#e2e8f0;        --cizgi-2:#cbd5e1;
+@media (prefers-color-scheme:dark){
+  :root:not([data-tema="acik"]){
+    --zemin:#0f172a;        --zemin-2:#16213b;      --zemin-3:#1e2b47;
+    --yuzey:#16213b;        --yuzey-us:#24314f;
+    --metin:#f8fafc;        --metin-2:#94a3b8;      --metin-3:#94a3b8;
+    --cizgi:#24314f;        --cizgi-2:#33425f;
     --marka:#ff7a00;
-    --vurgu:#c2410c;        --vurgu-koyu:#9a3412;   --vurgu-los:#fff1e3;
+    --vurgu:#ff7a00;        --vurgu-koyu:#e06a00;   --vurgu-los:#3a2408;
     --vurgu-metin:#1a0e00;
-    --yesil:#00796b;        --yesil-los:#e3f5f2;
-    --kirmizi:#c1121f;      --sari:#a15c00;
-    --bant-ucuz:#00796b;    --bant-orta:#a15c00;    --bant-tuz:#c1121f;
-    --neon-sari:#a15c00;   --neon-sari-los:rgba(161,92,0,.10);
-    --neon-yesil:#00796b;  --neon-yesil-los:rgba(0,121,107,.08);
-    --asfalt:#e2e8f0;      --grain:.02;
-    --golge-1:none;
-    --golge-2:none;
-    --golge-3:0 24px 60px -20px rgba(15,23,42,.28);
-    color-scheme:light;
+    --teal:#00bfa6;         --teal-metin:#0f172a;
+    --yesil:#00bfa6;        --yesil-los:#0a2e2a;
+    --kirmizi:#ff5a5f;      --sari:#ffb74d;
+    --bant-ucuz:#00bfa6;    --bant-orta:#ffb74d;    --bant-tuz:#ff5a5f;
+    --neon-sari:#ffb74d;   --neon-sari-los:rgba(255,183,77,.14);
+    --neon-yesil:#00bfa6;  --neon-yesil-los:rgba(0,191,166,.12);
+    --asfalt:#070c17;      --grain:.035;
+    --golge-1:0 1px 2px rgba(0,0,0,.30);
+    --golge-2:0 6px 20px -6px rgba(0,0,0,.45);
+    --golge-3:0 24px 60px -20px rgba(0,0,0,.70);
+    color-scheme:dark;
   }
 }
-:root[data-tema="acik"]{
-    --zemin:#ffffff;        --zemin-2:#f8fafc;      --zemin-3:#e2e8f0;
-    --yuzey:#ffffff;        --yuzey-us:#f8fafc;
-    --metin:#0f172a;        --metin-2:#64748b;      --metin-3:#64748b;
-    --cizgi:#e2e8f0;        --cizgi-2:#cbd5e1;
+:root[data-tema="koyu"]{
+    --zemin:#0f172a;        --zemin-2:#16213b;      --zemin-3:#1e2b47;
+    --yuzey:#16213b;        --yuzey-us:#24314f;
+    --metin:#f8fafc;        --metin-2:#94a3b8;      --metin-3:#94a3b8;
+    --cizgi:#24314f;        --cizgi-2:#33425f;
     --marka:#ff7a00;
-    --vurgu:#c2410c;        --vurgu-koyu:#9a3412;   --vurgu-los:#fff1e3;
+    --vurgu:#ff7a00;        --vurgu-koyu:#e06a00;   --vurgu-los:#3a2408;
     --vurgu-metin:#1a0e00;
-    --yesil:#00796b;        --yesil-los:#e3f5f2;
-    --kirmizi:#c1121f;      --sari:#a15c00;
-    --bant-ucuz:#00796b;    --bant-orta:#a15c00;    --bant-tuz:#c1121f;
-    --neon-sari:#a15c00;   --neon-sari-los:rgba(161,92,0,.10);
-    --neon-yesil:#00796b;  --neon-yesil-los:rgba(0,121,107,.08);
-    --asfalt:#e2e8f0;      --grain:.02;
-    --golge-1:none;
-    --golge-2:none;
-    --golge-3:0 24px 60px -20px rgba(15,23,42,.28);
-  color-scheme:light;
+    --teal:#00bfa6;         --teal-metin:#0f172a;
+    --yesil:#00bfa6;        --yesil-los:#0a2e2a;
+    --kirmizi:#ff5a5f;      --sari:#ffb74d;
+    --bant-ucuz:#00bfa6;    --bant-orta:#ffb74d;    --bant-tuz:#ff5a5f;
+    --neon-sari:#ffb74d;   --neon-sari-los:rgba(255,183,77,.14);
+    --neon-yesil:#00bfa6;  --neon-yesil-los:rgba(0,191,166,.12);
+    --asfalt:#070c17;      --grain:.035;
+    --golge-1:0 1px 2px rgba(0,0,0,.30);
+    --golge-2:0 6px 20px -6px rgba(0,0,0,.45);
+    --golge-3:0 24px 60px -20px rgba(0,0,0,.70);
+    color-scheme:dark;
 }
 
 /* ---------- 2. Taban ---------- */

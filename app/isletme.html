@@ -12,7 +12,8 @@
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#0f172a">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="marka.svg" type="image/svg+xml">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="ikon/ikon-192.png">
@@ -201,6 +202,64 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
      margin-top:var(--a3);padding-left:var(--a3);
      border-left:2px solid var(--cizgi-2)}
 
+  /* SEKMELER -- maketteki bicim: yatay serit, etkin olan turuncu yazi
+     ve turuncu alt cizgi. Dokunma hedefi 44 px (WCAG 2.5.8). */
+  .sekme-cubuk{
+    display:flex; gap:var(--a5); margin-top:var(--a5);
+    border-bottom:1px solid var(--cizgi); overflow-x:auto;
+    scrollbar-width:none;
+  }
+  .sekme-cubuk::-webkit-scrollbar{ display:none }
+  .sekme-cubuk button{
+    flex:0 0 auto; min-height:44px; padding:0 2px var(--a2);
+    background:none; border:0; border-bottom:3px solid transparent;
+    color:var(--metin-2); font-size:1rem; font-weight:600;
+    white-space:nowrap; transition:var(--hiz) var(--egri);
+  }
+  .sekme-cubuk button:hover{ color:var(--metin) }
+  .sekme-cubuk button[aria-selected="true"]{
+    color:var(--vurgu); border-bottom-color:var(--marka);
+  }
+  /* Gorunurluk SEKMEYE gore. Bolumler kendi "hidden" durumlarini
+     korumaya devam ediyor: bir bolum icerigi yoksa zaten gizli ve
+     sekme onu geri getirmiyor. */
+  #govde[data-sekme="menu"]  [data-grup]:not([data-grup="menu"]),
+  #govde[data-sekme="yorum"] [data-grup]:not([data-grup="yorum"]),
+  #govde[data-sekme="foto"]  [data-grup]:not([data-grup="foto"]),
+  #govde[data-sekme="bilgi"] [data-grup]:not([data-grup="bilgi"]){
+    display:none !important;
+  }
+
+  .sekme-bos{margin-top:var(--a5);color:var(--soluk);font-size:.95rem}
+
+  /* MENU LISTESI -- maketteki satir duzeni: ad solda, fiyat sagda.
+     Fotograf YOK: veride kalemlerin fotograf alani hic bulunmuyor. */
+  .menu-liste{margin-top:var(--a5)}
+  .menu-liste h2{margin:0 0 var(--a2)}
+  .menu-not{margin:0 0 var(--a4);color:var(--metin-2);font-size:.92rem}
+  .menu-liste ul{list-style:none;margin:0;padding:0}
+  .menu-liste li{
+    display:flex; align-items:baseline; gap:var(--a4);
+    padding:var(--a3) 0; border-bottom:1px solid var(--cizgi);
+  }
+  .menu-liste li:last-child{border-bottom:0}
+  /* Ad SARIYOR, kirpilmiyor: kalemlerin %16'sinin adi 34 harften uzun ve
+     kirpmak kullanicinin ne aldigini gizlemek olurdu. */
+  .menu-ad{flex:1 1 auto; min-width:0; overflow-wrap:anywhere}
+  .menu-kat{display:block;margin-top:2px;color:var(--metin-2);font-size:.8rem}
+  /* Fiyat sutunu HIZALI: tabular-nums olmadan rakamlarin genisligi
+     degisiyor ve sag kenar titriyor. */
+  .menu-fiyat{
+    flex:0 0 auto; font-weight:700; font-variant-numeric:tabular-nums;
+    white-space:nowrap;
+  }
+  .menu-fiyat.yok{font-weight:500;color:var(--metin-2)}
+  /* Butce ustundeki kalem SOLUYOR ama SILINMIYOR: menude duruyor,
+     kullanici gormeye devam etmeli. Renk tek basina bilgi tasimasin
+     diye satirin baslik ozniteliginde de yaziyor. */
+  .menu-liste li.asiyor .menu-ad,
+  .menu-liste li.asiyor .menu-fiyat{color:var(--metin-2)}
+  .menu-hepsi{margin-top:var(--a4)}
   .sahiplen{display:inline-block;margin-top:var(--a4)}
   .kaynak{font-size:.85rem;color:var(--soluk);margin-top:var(--a5);
           border-top:1px solid var(--cizgi);padding-top:var(--a3)}
@@ -208,12 +267,24 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
 </head>
 <body>
 
+<!-- Basligin .kap sarmalayicisi EKSIKTI ve bu sayfa 12 sayfanin
+     tek istisnasiydi: marka ile menu bitisik yaziliyordu
+     ("CebimdeKesfet Hakkinda"), logo hic yoktu. Koyu temada goze
+     carpmiyordu; acik temaya gecince ilk bakista goruldu. -->
 <header class="ust">
-  <a class="marka" href="index.html">Cebimde</a>
-  <nav><a href="kesfet.html">Keşfet</a> <a href="hakkinda.html">Hakkında</a></nav>
+  <div class="kap">
+    <a class="marka" href="index.html" aria-label="Cebimde ana sayfa">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="mg" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#ffa03a"/><stop offset="1" stop-color="#f4690a"/></linearGradient></defs><g transform="rotate(-14 26 11)"><rect x="13" y="3.2" width="26" height="7.2" rx="2.2" fill="#00bfa6"/><rect x="11" y="6.6" width="28" height="7.2" rx="2.2" fill="#ffb74d"/></g><path d="M32 8c-9.6 0-17.4 7.5-17.4 16.8 0 8.8 5.9 15.1 12.9 23.8 1.9 2.4 4.5 5.6 4.5 5.6s2.6-3.2 4.5-5.6c7-8.7 12.9-15 12.9-23.8C49.4 15.5 41.6 8 32 8Z" fill="url(#mg)"/><circle cx="32" cy="25.4" r="9.1" fill="#fff"/><g stroke="#f4690a" stroke-width="1.75" stroke-linecap="round"><path d="M27.5 20.1v3.3M29.4 20.1v3.3M31.3 20.1v3.3"/><path d="M29.4 23.4v7.2"/><path d="M35.9 20.1v4.4" stroke-width="3.3"/><path d="M35.9 24.2v6.4"/></g></svg>
+      <span>Ceb<em>imde</em></span>
+    </a>
+    <nav class="menu" aria-label="Ana menü">
+      <a href="kesfet.html">Keşfet</a>
+      <a href="hakkinda.html" class="gizle-kucuk">Hakkında</a>
+    </nav>
+  </div>
 </header>
 
-<main class="kap" id="govde" hidden>
+<main class="kap" id="govde" data-sekme="menu" hidden>
   <div class="kunye">
     <h1 id="ad"></h1>
     <span class="tur" id="tur"></span>
@@ -227,7 +298,7 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
   <!-- Sosyal fiyat dogrulama: tek dokunus. Kutu YALNIZ ekranda gosterilecek
        bir rakam varken aciliyor -- olmayan bir fiyat icin "hala gecerli mi"
        diye sormak anlamsiz olurdu. -->
-  <section class="oy" id="oyKutu" hidden>
+  <section class="oy" id="oyKutu" hidden data-grup="menu">
     <p id="oyOzet"></p>
     <div class="oy-dugmeler">
       <button type="button" class="dugme ikincil" id="oyEvet">Hâlâ böyle</button>
@@ -237,24 +308,46 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
   </section>
   <p id="sayac" class="soluk" hidden></p>
 
+  <!-- SEKMELER. Maketteki duzen: ad -> sekmeler -> icerik. Bolumler
+       yerlerinde duruyor; sekme yalnizca hangi grubun gorunecegini
+       soyluyor (main[data-sekme]). DOM yeniden kurulmadi, cunku
+       bolumlerin kimliklerini sorgulayan onlarca JS satiri var. -->
+  <p class="sekme-bos" id="sekmeBos" hidden></p>
+  <div class="sekme-cubuk" role="tablist" aria-label="Mekan bilgileri">
+    <button role="tab" type="button" data-sekme="menu"  aria-selected="true">Menü</button>
+    <button role="tab" type="button" data-sekme="yorum" aria-selected="false">Yorumlar</button>
+    <button role="tab" type="button" data-sekme="foto"  aria-selected="false">Fotoğraflar</button>
+    <button role="tab" type="button" data-sekme="bilgi" aria-selected="false">Bilgi</button>
+  </div>
+
   <!-- Fotograflar. Uc kaynak: dogrulanmis isletme sahibi, kullanici ve
        Wikimedia Commons. Commons ATIFSIZ gosterilmiyor -- lisansi ihlal
        ederdi. Google Maps vb. BURAYA GIRMIYOR: o fotograflar
        yazarlarinin telifinde ve platforma lisansli, yayimlama hakkimiz
        yok (CEBIMDE.md "Yapilmayacaklar"). -->
-  <section class="galeri" id="galeri" hidden>
+  <section class="galeri" id="galeri" hidden data-grup="foto">
     <div class="galeri-serit" id="galeriSerit"></div>
   </section>
 
-  <dl class="bilgi" id="bilgi"></dl>
+  <dl class="bilgi" id="bilgi" data-grup="bilgi"></dl>
   <!-- Fiyatin kac olcumden geldigi. Bilgi listesinde yalniz kisa etiket
        var ("56 subede ayni menu"); NEDEN onemli oldugu burada yaziyor. -->
-  <p class="dayanak" id="dayanak" hidden></p>
+  <p class="dayanak" id="dayanak" data-grup="menu" hidden></p>
   <!-- Cebimde kombini: menude YAZAN iki kalemle "bu butceyle ne yenir".
        Kurulamiyorsa hic cikmiyor. -->
-  <p class="kombin" id="kombin" hidden></p>
+  <p class="kombin" id="kombin" data-grup="menu" hidden></p>
 
-  <section class="fis" id="fis" hidden>
+  <!-- MENU LISTESI. Maketteki "Menuleri Gor" ekrani. Bu bolum sayfada
+       HIC YOKTU: 7.335 fiyatli kalem veride duruyor ama ekranda
+       gorunmuyordu. Fotograf yok cunku veride yok (bkz. betik). -->
+  <section class="menu-liste" id="menuListe" data-grup="menu" hidden>
+    <h2>Menü</h2>
+    <p class="menu-not" id="menuNot"></p>
+    <ul id="menuSatirlar"></ul>
+    <button type="button" class="dugme ikincil menu-hepsi" id="menuHepsi" hidden></button>
+  </section>
+
+  <section class="fis" id="fis" hidden data-grup="menu">
     <h2>Buraya gidenler ne ödemiş</h2>
     <p id="fisOzet"></p>
     <a class="dugme ikincil" id="fisEkle" href="paylas.html">Ödediğini ekle</a>
@@ -267,7 +360,7 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
        %0,81 ve 500 m'de en az uc fiyatli komsusu olan mekan %4,16 --
        uc ornekten cikan bir medyana dayanip fiyat iddiasi kurmak,
        uydurma seviyeden farksiz olurdu. Gosterilen sey KAPSAM. -->
-  <section class="civar" id="civar" hidden>
+  <section class="civar" id="civar" hidden data-grup="bilgi">
     <h2 id="civarBaslik">Bu civarda</h2>
     <ul class="civar-sayilar" id="civarSayilar"></ul>
     <ul class="civar-tur" id="civarTur"></ul>
@@ -279,7 +372,7 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
        okunabilirlik, burada aranan sey ICINDE INSAN OLMAMASI. Bir kafenin
        salonunu ceken kullanici orada oturan insanlari da ceker; onlar
        fotograflanmayi kabul etmedi. -->
-  <section class="mfoto" id="mekanFoto" data-giris="perde" hidden>
+  <section class="mfoto" id="mekanFoto" data-giris="perde" hidden data-grup="foto">
     <form class="katki" id="mfForm">
       <p><strong>Buranın fotoğrafı var mı?</strong> Bahçesini, salonunu ya da
         cephesini çek. Kontrol edildikten sonra sayfada görünür.</p>
@@ -308,7 +401,7 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
        Gösterilen ortalamaya GİRMİYOR: o hesap fiyat_analiz.py'de, Python'da
        yapılıyor; aynı kuralı tarayıcıda ikinci kez yazmak iki dilde iki
        doğru demekti. -->
-  <section class="mkatki" id="menuKatki" data-giris="perde" hidden>
+  <section class="mkatki" id="menuKatki" data-giris="perde" hidden data-grup="menu">
     <h2>Kullanıcıların eklediği fiyatlar</h2>
     <p class="katki-not" id="mkNot0"></p>
     <div id="mkListe"></div>
@@ -344,7 +437,7 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
   <!-- Yorumlar FİYATTAN AYRI duruyor. Fiş bir ÖLÇÜM taşıyor (850 ₺,
        3 kişi), yorum bir KANI. İkisini karıştırmak ortalamanın içine
        kanı katmak olurdu; yorumun puanı fiyat hesabına girmiyor. -->
-  <section class="yorumlar" id="yorumlar" data-giris="perde" hidden>
+  <section class="yorumlar" id="yorumlar" data-giris="perde" hidden data-grup="yorum">
     <div class="yorum-baslik">
       <h2>Yorumlar</h2>
       <span id="yorumPuan"></span>
@@ -369,7 +462,7 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
     </form>
   </section>
 
-  <section class="eksik" id="eksik" data-giris="perde">
+  <section class="eksik" id="eksik" data-giris="perde" data-grup="bilgi">
     <h2>Bu sayfada eksik olanlar</h2>
     <p id="eksikGiris"></p>
     <ul id="eksikListe"></ul>
@@ -576,6 +669,8 @@ function goster(m, ilAd){
     kmbKutu.hidden = true;
   }
 
+  menuListesi(m, _b);
+
   const eksik = eksikleriBul(m);
   const giris = document.getElementById("eksikGiris");
   const liste = document.getElementById("eksikListe");
@@ -611,6 +706,7 @@ function goster(m, ilAd){
   fisKatmani(ID, m.ad, IL);
   civarKatmani(m);
   oyKatmani(m, IL);
+  sekmeleriKur();
   yorumKatmani(ID, m.ad, IL);
   menuKatkiKatmani(ID, m.ad, IL);
   galeriKatmani(ID, m.ad, IL);
@@ -1311,6 +1407,156 @@ function guvenTazele(m, ozet, oy){
   kutu.innerHTML = guvenRozeti(g) +
     (g && g.neden ? ' <span class="guven-neden">' + kacir(g.neden) + "</span>" : "");
   kutu.hidden = false;
+}
+
+/* ---------- menu listesi ----------
+   Kalemler FIYATA GORE ARTAN siralaniyor: uygulamanin sorusu "burada ne
+   yenir" degil "bu parayla ne yenir", ve ucuzdan pahaliya sira o soruyu
+   ilk satirda cevapliyor. Fiyatsiz kalem en sona gidiyor -- rakami
+   olmayan bir satir listeyi bolmemeli.
+
+   Ilk 12 kalem aciliyor: mekan basina ortanca 34 kalem var (en cok 50)
+   ve 50 satirlik bir liste sayfanin altindaki fis, civar ve katki
+   bolumlerini ekranin cok asagisina itiyordu. */
+const MENU_ILK = 12;
+
+function menuSatiri(k, butce){
+  const asiyor = butce > 0 && k.f != null && k.f > butce;
+  const fiyat = k.f != null ? tl(k.f) : "fiyat yok";
+  return '<li class="' + (asiyor ? "asiyor" : "") + '"' +
+    (asiyor ? ' title="' + kacir(tl(butce)) + " bütçenin üstünde" + '"' : "") +
+    '><span class="menu-ad">' + kacir(k.a || "") +
+    (k.k ? '<span class="menu-kat">' + kacir(k.k) + "</span>" : "") +
+    '</span><span class="menu-fiyat' + (k.f == null ? " yok" : "") + '">' +
+    kacir(fiyat) + "</span></li>";
+}
+
+function menuListesi(m, butce){
+  const bol = document.getElementById("menuListe");
+  const mn  = (m.menu || []).slice();
+  if (!mn.length){ bol.hidden = true; return; }
+
+  /* Fiyatsiz kalem en sona. Number.MAX_VALUE yerine ayri dal:
+     karsilastirmayi rakama cevirmek fiyatsiz kalemi "cok pahali"
+     yapardi ve butce sayimina da oyle girerdi. */
+  mn.sort((a, b) => {
+    if (a.f == null && b.f == null) return 0;
+    if (a.f == null) return 1;
+    if (b.f == null) return -1;
+    return a.f - b.f;
+  });
+
+  /* Butce cumlesi SAYIYA dayaniyor, tahmine degil: kac kalemin fiyati
+     bu butcenin altinda, o yaziliyor. */
+  const fiyatli = mn.filter(k => k.f != null).length;
+  const not = document.getElementById("menuNot");
+  const parca = [sayi(mn.length) + " kalem"];
+  if (fiyatli < mn.length) parca.push(sayi(fiyatli) + " tanesinin fiyatı yazıyor");
+  if (butce > 0){
+    const girer = mn.filter(k => k.f != null && k.f <= butce).length;
+    parca.push(tl(butce) + " ile " + sayi(girer) + " kalem alınabiliyor");
+  }
+  const yas = fiyatYasEtiketi(m);
+  if (yas) parca.push(yas.ad);
+  not.textContent = parca.join(" · ") + ".";
+
+  const satirlar = document.getElementById("menuSatirlar");
+  const dugme = document.getElementById("menuHepsi");
+  let acik = false;
+  function yaz(){
+    const gosterilen = acik ? mn : mn.slice(0, MENU_ILK);
+    satirlar.innerHTML = gosterilen.map(k => menuSatiri(k, butce)).join("");
+    if (mn.length <= MENU_ILK){ dugme.hidden = true; return; }
+    /* Kalan sayi DUGMEDE yaziyor: "hepsini goster" tek basina kac
+       satirin gizlendigini soylemiyor. */
+    dugme.hidden = false;
+    dugme.textContent = acik
+      ? "İlk " + sayi(MENU_ILK) + " kalemi göster"
+      : "Kalan " + sayi(mn.length - MENU_ILK) + " kalemi göster";
+    dugme.setAttribute("aria-expanded", String(acik));
+  }
+  dugme.onclick = () => { acik = !acik; yaz(); };
+  yaz();
+  bol.hidden = false;
+}
+
+/* ---------- sekmeler ----------
+   Marka maketindeki mekan ekraninin duzeni: ad -> sekmeler -> icerik.
+
+   BOLUMLER YERINDE DURUYOR, gorunurlugu CSS sekmeye gore kesiyor
+   (#govde[data-sekme]). DOM'u yeniden kurmak, bolumlerin kimliklerini
+   sorgulayan onlarca satiri bozardi.
+
+   BOS SEKME SESSIZ KALMIYOR. Bir grubun butun bolumleri gizliyse
+   (mekanin yorumu yok, fotografi yok) sekmeye basan kullanici bos bir
+   ekran gorurdu ve "yuklenmedi mi" diye dusunurdu. Sekme degisince
+   sayiliyor ve gerekce yaziliyor. */
+const SEKME_BOS = {
+  menu:  "Bu mekanın menüsü henüz yok. Menüyü görüyorsan bir kalemini yazabilirsin.",
+  yorum: "Bu mekana henüz yorum yazılmamış.",
+  foto:  "Bu mekanın fotoğrafı henüz yok.",
+  bilgi: "Bu mekan hakkında gösterilecek ek bilgi yok."
+};
+
+function sekmeyiSec(ad){
+  const govde = document.getElementById("govde");
+  if (!govde) return;
+  govde.dataset.sekme = ad;
+  document.querySelectorAll('.sekme-cubuk [role="tab"]').forEach(d => {
+    const secili = d.dataset.sekme === ad;
+    d.setAttribute("aria-selected", String(secili));
+    d.tabIndex = secili ? 0 : -1;
+  });
+  /* Gruptaki bolumlerden GORUNUR olan var mi. `hidden` yetmiyor:
+     bolum icerigi bosken de DOM'da duruyor. */
+  const dolu = [...document.querySelectorAll('[data-grup="' + ad + '"]')]
+    .some(b => !b.hidden);
+  const bos = document.getElementById("sekmeBos");
+  if (bos){
+    bos.textContent = dolu ? "" : (SEKME_BOS[ad] || "");
+    bos.hidden = dolu;
+  }
+}
+
+function sekmeleriKur(){
+  const cubuk = document.querySelector(".sekme-cubuk");
+  if (!cubuk) return;
+  /* BOLUMLER SONRADAN ACILIYOR. Fis, civar, yorum ve fotograf ag'dan
+     geliyor; menu kombini de goster()'in ilerleyen satirlarinda
+     yaziliyor. Ilk yazimda "bos sekme" satiri bir kez, kurulum aninda
+     hesaplaniyordu ve MENU sekmesi doluyken bile "menusu yok" diyordu
+     -- ekranda hem o cumle hem de kombin kutusu yan yana duruyordu.
+
+     Gozlemci `hidden` degisimini izliyor ve satiri tazeliyor. */
+  const govde = document.getElementById("govde");
+  if (govde && window.MutationObserver){
+    new MutationObserver(kayitlar => {
+      /* KENDI YAZDIGIMIZ DEGISIKLIK SAYILMIYOR. sekmeyiSec() bos-sekme
+         satirinin `hidden` degerini yaziyor; o satir da #govde'nin
+         icinde. Ilk yazimda gozlemci kendi ciktisini gorup tekrar
+         tetikliyordu ve sayfa SONSUZ DONGUYE giriyordu -- ekran
+         goruntusu 30 sn'de zaman asimina dustu, kontrol boyle yakaladi. */
+      if (kayitlar.every(k => k.target.id === "sekmeBos")) return;
+      sekmeyiSec(govde.dataset.sekme || "menu");
+    }).observe(govde, { attributes:true, attributeFilter:["hidden"],
+                        subtree:true });
+  }
+  cubuk.addEventListener("click", e => {
+    const d = e.target.closest("[role=tab]");
+    if (d) sekmeyiSec(d.dataset.sekme);
+  });
+  /* Ok tuslariyla gezinme: ARIA sekme deseninin sart kosdugu davranis.
+     Sekmeye Tab ile gelen kullanici oklarla digerlerine gecebilmeli. */
+  cubuk.addEventListener("keydown", e => {
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    const hepsi = [...cubuk.querySelectorAll("[role=tab]")];
+    const su = hepsi.findIndex(d => d.getAttribute("aria-selected") === "true");
+    const yeni = (su + (e.key === "ArrowRight" ? 1 : hepsi.length - 1)) % hepsi.length;
+    e.preventDefault();
+    sekmeyiSec(hepsi[yeni].dataset.sekme);
+    hepsi[yeni].focus();
+  });
+  sekmeyiSec("menu");
 }
 
 /* ---------- sosyal fiyat dogrulama ----------

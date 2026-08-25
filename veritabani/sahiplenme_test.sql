@@ -413,4 +413,8 @@ begin
 end $$;
 reset role;
 
-\echo '=== 21 kontrolun hepsi gecti ==='
+-- Bitis satiri KENDI ADINI soyluyor. Adsiz haliyle ("=== 21
+-- kontrolun hepsi gecti ===") test.py'nin aradigi metin baska bir
+-- dosyanin bitis satirinin icinde de geciyordu ve bu dosya bastan
+-- sona patlasa bile kontrol yesil kaliyordu.
+\echo '=== sahiplenme: 21 kontrolun hepsi gecti ==='

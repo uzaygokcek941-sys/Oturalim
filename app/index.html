@@ -13,7 +13,8 @@
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#0f172a">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="marka.svg" type="image/svg+xml">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="ikon/ikon-192.png">
@@ -43,7 +44,8 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
     background:radial-gradient(60% 60% at 22% 20%,color-mix(in srgb,var(--vurgu) 22%,transparent),transparent 70%);
     filter:blur(30px);pointer-events:none;
   }
-  .kahraman h1{max-width:30ch}
+  .kahraman-bas{ max-width:min(560px,100%); margin:0 auto var(--a6) }
+  .kahraman h1{max-width:22ch}
   .kahraman h1 em{font-style:normal;color:var(--vurgu)}
   .kahraman .giris{margin-top:var(--a4);font-size:20px;max-width:52ch}
 
@@ -51,52 +53,118 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
      Bütçe önce, kategori sonra, konum en son. Kutu formun kendisi:
      "Bugün cebimde ₺300" tek bir cümle gibi okunsun. */
   .cep{ margin-top:var(--a5) }
-  .cep-ust{ display:flex; gap:var(--a4); align-items:flex-end; flex-wrap:wrap }
-  .cep-tutar{ display:block; flex:0 0 auto }
+  /* Marka maketindeki "Butceni Gir" ekrani: ORTALANMIS, kucuk etiket,
+     cok buyuk rakam, altinda turuncu kaydirici. */
+  .cep-ust{ text-align:center }
+  .cep-tutar{ display:block }
   .cep-etiket{
-    display:block; font-size:13px; font-weight:700; letter-spacing:.12em;
-    text-transform:uppercase; color:var(--metin-3); margin-bottom:var(--a2);
+    display:block; font-size:14px; font-weight:600; letter-spacing:.02em;
+    color:var(--metin-2); margin-bottom:var(--a1);
   }
   .cep-alan{
-    display:flex; align-items:center; gap:var(--a2);
-    background:var(--zemin-3); border:1px solid var(--cizgi-2);
-    border-radius:var(--r); padding:0 var(--a4); min-height:60px;
+    display:inline-flex; align-items:baseline; gap:2px; justify-content:center;
   }
-  .cep-alan:focus-within{ border-color:var(--vurgu) }
   .cep-simge{
-    font-family:var(--font-baslik); font-size:26px; font-weight:600;
-    color:var(--vurgu); line-height:1;
+    font-family:var(--font-baslik); font-size:clamp(30px,7vw,44px);
+    font-weight:700; color:var(--metin); line-height:1;
   }
+  /* Rakam maketteki gibi cok buyuk ve LACIVERT -- turuncu degil: makette
+     de rakam lacivert, turuncu olan kaydirici. */
   #butce-girdi{
-    width:5ch; min-width:0; background:none; border:0; color:var(--metin);
-    font-family:var(--font-baslik); font-size:32px; font-weight:600;
-    letter-spacing:-.02em; font-variant-numeric:tabular-nums; padding:0;
+    width:4ch; min-width:0; background:none; border:0; color:var(--metin);
+    font-family:var(--font-baslik); font-size:clamp(44px,11vw,68px);
+    font-weight:700; letter-spacing:-.03em; font-variant-numeric:tabular-nums;
+    padding:0; text-align:left; line-height:1.05;
   }
-  #butce-girdi:focus{ outline:none }
-  #butce-girdi::placeholder{ color:var(--metin-3); opacity:.55 }
-  .cep-not{ margin-top:var(--a2); font-size:13px; color:var(--metin-3) }
+  #butce-girdi:focus{ outline:2px solid var(--vurgu); outline-offset:6px;
+    border-radius:var(--r-s) }
+  #butce-girdi::placeholder{ color:var(--cizgi-2) }
+  /* "Farketmez": rakam yerine kelime. Soluk bir yer tutucu rakam,
+     olmayan bir butceyi varmis gibi gosteriyordu. */
+  .cep-alan.farketmez .cep-simge{ display:none }
+  .cep-alan.farketmez #butce-girdi{
+    width:9ch; font-size:clamp(24px,6vw,34px); color:var(--metin-2);
+    text-align:center;
+  }
+  .cep-alan.farketmez #butce-girdi::placeholder{ color:var(--metin-2); opacity:1 }
 
-  /* Çipler: dokunma hedefi en az 44 px (WCAG 2.5.8 asgarisi 24 px;
-     parmakla basılan bir şerit için 44 doğru sayı). */
-  .butceler{ display:flex; gap:var(--a2); flex-wrap:wrap; flex:1 1 200px }
-  .butce-cip,.canim-cip{
-    min-height:44px; padding:0 var(--a4); border-radius:var(--r-tam);
-    border:1px solid var(--cizgi-2); background:var(--zemin-3);
-    color:var(--metin-2); font-weight:600; font-size:15px;
-    display:inline-flex; align-items:center; justify-content:center;
-    transition:var(--hiz) var(--egri); font-variant-numeric:tabular-nums;
+  /* KAYDIRICI. Dolu tarafi marka turuncusu, bos tarafi gri, tutamak
+     beyaz + turuncu halka -- makette birebir boyle. Yukseklik 28px:
+     WCAG 2.5.8 dokunma hedefi (tutamak 26px ve serit onu tasiyor). */
+  .cep-kaydirici{
+    -webkit-appearance:none; appearance:none;
+    width:100%; margin-top:var(--a4); height:28px; background:none;
+    cursor:pointer;
   }
-  .butce-cip:hover,.canim-cip:hover{ border-color:var(--vurgu); color:var(--metin) }
-  .butce-cip[aria-pressed="true"],.canim-cip[aria-pressed="true"]{
-    background:var(--marka); border-color:var(--marka); color:var(--vurgu-metin);
+  .cep-kaydirici::-webkit-slider-runnable-track{
+    height:8px; border-radius:var(--r-tam);
+    background:linear-gradient(90deg,var(--marka) var(--dolu,0%),
+                               var(--zemin-3) var(--dolu,0%));
   }
-  .canim{ border:0; margin-top:var(--a5) }
+  .cep-kaydirici::-moz-range-track{
+    height:8px; border-radius:var(--r-tam); background:var(--zemin-3);
+  }
+  .cep-kaydirici::-moz-range-progress{
+    height:8px; border-radius:var(--r-tam); background:var(--marka);
+  }
+  .cep-kaydirici::-webkit-slider-thumb{
+    -webkit-appearance:none; appearance:none;
+    width:26px; height:26px; margin-top:-9px; border-radius:var(--r-tam);
+    background:#fff; border:3px solid var(--marka); box-shadow:var(--golge-2);
+  }
+  .cep-kaydirici::-moz-range-thumb{
+    width:26px; height:26px; border-radius:var(--r-tam);
+    background:#fff; border:3px solid var(--marka); box-shadow:var(--golge-2);
+  }
+  .cep-kaydirici:focus-visible{ outline:2px solid var(--vurgu); outline-offset:4px;
+    border-radius:var(--r-tam) }
+  .cep-not{ margin-top:var(--a3); font-size:13px; color:var(--metin-3);
+    text-align:center }
+
+  /* KATEGORILER: makette YUVARLAK RENKLI IKONLAR, altinda kucuk etiket.
+     Metin cipi degil.
+
+     GLIF LACIVERT, BEYAZ DEGIL. Makette beyaz; olculdu ve WCAG 1.4.11'in
+     3:1 grafik esigini hicbiri gecmiyor (beyaz/teal 2,33 - beyaz/turuncu
+     2,61 - beyaz/sari 1,72). Ucuncu kez ayni karar: rengi degil
+     murekkebi degistir. Lacivert glif 5,9-10,4 arasi veriyor. */
+  .canim{ border:0; margin-top:var(--a6) }
   .canim legend{
-    font-size:13px; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
-    color:var(--metin-3); margin-bottom:var(--a3); padding:0; display:block;
+    font-size:14px; font-weight:600; color:var(--metin-2);
+    margin-bottom:var(--a3); padding:0; display:block; text-align:center;
   }
-  .canim-cipler{ display:flex; gap:var(--a2); flex-wrap:wrap }
-  .cep .dugme.buyuk{ margin-top:var(--a5); width:100% }
+  .canim-cipler{
+    display:grid; grid-template-columns:repeat(6,1fr); gap:var(--a2);
+  }
+  @media (max-width:560px){ .canim-cipler{ grid-template-columns:repeat(3,1fr) } }
+  .canim-cip{
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+    background:none; border:0; padding:var(--a1) 0; color:var(--metin-2);
+    font-size:12px; font-weight:600; line-height:1.2; text-align:center;
+    transition:var(--hiz) var(--egri);
+  }
+  .canim-cip i{
+    width:56px; height:56px; border-radius:var(--r-tam);
+    display:grid; place-items:center; background:var(--daire,var(--zemin-3));
+    color:var(--metin); transition:var(--hiz) var(--egri);
+    box-shadow:var(--golge-1);
+  }
+  .canim-cip svg{ width:26px; height:26px }
+  .canim-cip:hover i{ transform:translateY(-2px); box-shadow:var(--golge-2) }
+  /* Secili hal RENKLE DEGIL cerceveyle isaretleniyor: daire zaten renkli
+     ve rengi koyulastirmak "secili" ile "secili degil"i ayirt ettirmiyor. */
+  .canim-cip[aria-pressed="true"] i{
+    box-shadow:0 0 0 3px var(--zemin), 0 0 0 6px var(--metin);
+  }
+  .canim-cip[aria-pressed="true"]{ color:var(--metin) }
+
+  /* Birincil eylem: makette OKYANUS (teal) hap dugme. */
+  .cep .dugme.buyuk{ margin-top:var(--a6); width:100%; border-radius:var(--r-tam) }
+  .dugme.birincil{
+    background:var(--teal); border-color:var(--teal); color:var(--teal-metin);
+    box-shadow:var(--golge-2);
+  }
+  .dugme.birincil:hover{ background:var(--teal); filter:brightness(.95) }
 
   /* Bütçenin ne kadarının ÖLÇÜLDÜĞÜ. Vurgulu değil, okunur: bu satır
      bir rozet değil bir itiraf -- 35.852 mekanın 163'ünde ölçüm var. */
@@ -136,9 +204,8 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
   /* Dar ekran: tutar kutusu ve hazır çipler alt alta. 320 px'te yan yana
      dururlarsa çipler 24 px'in altına iniyor (ölçüldü). */
   @media (max-width:520px){
-    .cep-ust{ display:block }
-    .butceler{ margin-top:var(--a3) }
-    .butce-cip,.canim-cip{ flex:1 1 auto; padding:0 var(--a3) }
+    .canim-cip i{ width:50px; height:50px }
+    .canim-cip svg{ width:23px; height:23px }
   }
 
   /* ---- türler ---- */
@@ -231,32 +298,54 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
 <main id="ana">
 
   <!-- kahraman -->
-  <section class="kahraman sahne">
-    <canvas class="sokak" aria-hidden="true"></canvas>
+  <!-- SOKAK/VITRIN KATMANI KALDIRILDI. Onceki tasarim kahramani koyu
+       bir "gece sokagi" olarak kuruyordu ve .sahne tema tokenlarini
+       ZORLA koyuya ceviriyordu. Marka kilavuzunun ekran maketlerinin
+       hepsi acik: beyaz kart, yumusak golge, lacivert yazi. Olculdu --
+       koyu katman acik temada buyuk butce rakamini okunmaz yapiyordu
+       (lacivert rakam, lacivert zemin). -->
+  <section class="kahraman">
     <div class="kap">
-      <div class="cerceve" data-giris="odak">
-      <h1>Cebinde ne varsa, <em>masanda</em> o var.</h1>
-      <p class="giris">
-        Bütçeni yaz, canının ne çektiğini söyle — yakınında nereye
-        gidilebileceğini göstereyim. Üyelik yok, reklam yok, ücret yok.
-      </p>
+      <!-- Baslik ve giris KARTIN DISINDA. Makette kartin ici yalniz
+           karar ekrani: "Butcem" -> rakam -> kaydirici -> kategoriler ->
+           dugme. Basligi da iceri koymak, maketteki tek isli ekrani
+           bes satirlik bir metnin arkasina itiyordu. -->
+      <div class="kahraman-bas" data-giris="odak">
+        <h1>Cebinde ne varsa, <em>masanda</em> o var.</h1>
+        <p class="giris">
+          Bütçeni yaz, canının ne çektiğini söyle — yakınında nereye
+          gidilebileceğini göstereyim. Üyelik yok, reklam yok, ücret yok.
+        </p>
+      </div>
+
+      <div class="cep-kart">
 
       <!-- Ana karar burada: once BUTCE, sonra kategori, sonra konum.
            Butce ciplerinin rakamlari ve kategori listesi ortak.js'te
            (BUTCE_SECENEK, CANIM); burada elle yazilmis tek bir sayi ya da
            tur adi yok. -->
       <form class="cep" id="cep">
+        <!-- BUTCE: buyuk rakam + kaydirici. Marka kilavuzunun "Butceni Gir"
+             ekraninin duzeni birebir: ustte kucuk "Butcem" etiketi, altinda
+             cok buyuk lacivert rakam, altinda turuncu kaydirici.
+
+             RAKAM AYNI ZAMANDA YAZI ALANI: makette yalniz kaydirici var ama
+             kaydiricinin ustu 1.000 TL'de bitiyor ve elle 1.500 yazmak
+             isteyen kullanicinin baska yolu kalmiyordu. Ikisi de AYNI
+             degeri gosteriyor. -->
         <div class="cep-ust">
           <label class="cep-tutar" for="butce-girdi">
-            <span class="cep-etiket">Bugün cebimde</span>
+            <span class="cep-etiket">Bütçem</span>
             <span class="cep-alan">
               <span class="cep-simge" aria-hidden="true">₺</span>
               <input id="butce-girdi" type="text" inputmode="numeric"
                      autocomplete="off" enterkeyhint="search"
-                     aria-describedby="butce-not" placeholder="300">
+                     aria-describedby="butce-not" placeholder="Farketmez">
             </span>
           </label>
-          <div class="butceler" role="group" aria-label="Hazır bütçeler" id="butceler"></div>
+          <input class="cep-kaydirici" id="butce-kaydirici" type="range"
+                 min="0" max="1000" step="25" value="0"
+                 aria-label="Bütçe kaydırıcısı">
         </div>
         <p class="cep-not" id="butce-not">
           Kişi başı. Boş bırakırsan bütçeye hiç bakmam.
@@ -267,9 +356,9 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
           <div class="canim-cipler" role="group" id="canim"></div>
         </fieldset>
 
-        <button class="dugme buyuk" type="submit" id="yakinimdakiler">
+        <button class="dugme buyuk birincil" type="submit" id="yakinimdakiler">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-5.686 7-11a7 7 0 1 0-14 0c0 5.314 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg>
-          Yakınımda bul
+          Yakınımda Bul
         </button>
         <p class="not" id="konum-durum">Konumun yalnız tarayıcında kullanılır, hiçbir yere gönderilmez.</p>
         <div id="oneri-kutu" hidden>
@@ -282,7 +371,7 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
           <div id="etkinlikler"></div>
         </div>
       </form>
-      </div><!-- /cerceve: karar burada biter, yedek yol disarida -->
+      </div><!-- /cep-kart: karar burada biter, yedek yol disarida -->
 
       <!-- Yedek yol. Butce ve kategori YUKARIDA secildi; burasi yalniz
            konum alinamadiginda devreye giren sehir kapisi. Onceden butce
@@ -567,26 +656,58 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /* Bütçe çipleri BUTCE_SECENEK'ten, kategori çipleri CANIM'dan çiziliyor:
      rakamlar ve tür adları bu sayfada ikinci kez tanımlanmıyor. */
-  const butceGirdi = el("#butce-girdi"), butceKutu = el("#butceler");
-  butceKutu.innerHTML = BUTCE_SECENEK.map(b =>
-    '<button type="button" class="butce-cip" data-butce="' + b +
-    '" aria-pressed="false">' + kacir(tl(b)) + "</button>").join("");
+  const butceGirdi = el("#butce-girdi"), kaydirici = el("#butce-kaydirici");
 
-  el("#canim").innerHTML = CANIM.map(k =>
+  /* Kategori dairelerinin renkleri ve glifleri. Renkler MARKA
+     PALETINDEN sirayla (Okyanus, Mercan, Cebimde turuncusu, Gun
+     Batimi) -- makette de dort renk bu sirada donuyor. Renk kategoriye
+     SABIT bagli: her acilista ayni kategori ayni renkte olsun, yoksa
+     renk bir isaret olmaktan cikar. */
+  const CANIM_RENK = ["#00bfa6", "#ff5a5f", "#ff7a00", "#ffb74d",
+                      "#00bfa6", "#ff5a5f"];
+  const CANIM_GLIF = {
+    "Kafe":      '<path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><path d="M6 2v3M10 2v3M14 2v3"/>',
+    "Restoran":  '<path d="M3 2v7a3 3 0 0 0 3 3v10M6 2v7M9 2v7a3 3 0 0 1-3 3"/><path d="M17 2c-1.7 1.3-2.5 3.4-2.5 6 0 2 .8 3.4 2.5 4v10"/>',
+    "Fast food": '<path d="M3 11h18a9 9 0 0 0-18 0Z"/><path d="M4 15h16"/><path d="M5 19h14"/>',
+    "İçki":      '<path d="M5 4h14l-7 8Z"/><path d="M12 12v8M8 20h8"/>',
+    "Dondurma":  '<path d="M8 11a4 4 0 0 1 8 0"/><path d="M7.5 11h9L12 21Z"/><path d="M9 7a3 3 0 0 1 6 0"/>',
+    "Gezilecek": '<path d="M4 20V8l8-4 8 4v12"/><path d="M9 20v-6h6v6"/>'
+  };
+
+  el("#canim").innerHTML = CANIM.map((k, i) =>
     '<button type="button" class="canim-cip" data-tur="' +
-    kacir(k.tur.join("|")) + '" aria-pressed="false">' +
-    kacir(k.ad) + "</button>").join("");
+    kacir(k.tur.join("|")) + '" aria-pressed="false"' +
+    ' style="--daire:' + CANIM_RENK[i % CANIM_RENK.length] + '">' +
+    '<i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" ' +
+    'stroke="currentColor" stroke-width="1.9" stroke-linecap="round" ' +
+    'stroke-linejoin="round">' + (CANIM_GLIF[k.ad] || "") + "</svg></i>" +
+    "<span>" + kacir(k.ad) + "</span></button>").join("");
 
   /* Çipler ile yazı alanı TEK durumu gösteriyor. Ayrı durursa kullanıcı
      ₺400 çipine basıp kutuda ₺250 görür ve hangisinin geçerli olduğunu
      bilemez. */
   const BUTCE_NOT = el("#butce-not").textContent;
+
+  /* Kaydirici ile yazi alani TEK degeri gosteriyor. Kaydiricinin ustu
+     1.000 TL'de bitiyor; daha buyugunu elle yazan kullanicida kaydirici
+     sona dayaniyor ama RAKAM dogru kaliyor -- kaydirici degeri asagi
+     cekmiyor, yoksa yazdigi sayi altindan degisirdi. */
   function cipleriYaz(){
-    document.querySelectorAll(".butce-cip").forEach(c =>
-      c.setAttribute("aria-pressed", String(+c.dataset.butce === butce)));
+    const ust = +kaydirici.max;
+    kaydirici.value = String(Math.min(butce, ust));
+    /* Webkit'te dolu tarafi ayri bir sozde-oge olarak boyanamiyor;
+       gradyan duragi degiskenle suruluyor. */
+    kaydirici.style.setProperty("--dolu",
+      (100 * Math.min(butce, ust) / ust).toFixed(1) + "%");
   }
+  /* SIFIR HALI "FARKETMEZ" DIYE OKUNUYOR. Onceden alan bosaliyordu ve
+     ekranda soluk bir yer tutucu ("300") kaliyordu -- yani ekran bir
+     butce varmis gibi duruyor, aslinda yok. Sifir gecerli bir secim
+     (butceOku'nun "farketmez" degeri) ve oyle yaziliyor. */
+  const cepAlan = el(".cep-alan");
   function butceYaz(){
     butceGirdi.value = butce ? String(butce) : "";
+    cepAlan.classList.toggle("farketmez", !butce);
     cipleriYaz(); notYaz();
   }
   /* Anlaşılmayan girdi SESSİZCE SİLİNMİYOR. İlk yazımda "9000" yazan
@@ -602,20 +723,24 @@ document.addEventListener("DOMContentLoaded", () => {
       : BUTCE_NOT;
   }
 
-  butceKutu.addEventListener("click", e => {
-    const b = e.target.closest(".butce-cip");
-    if (!b) return;
-    /* Basılı çipe tekrar basmak seçimi KALDIRIYOR: "farketmez" için ayrı
-       bir çip koymak beş kutuluk satırı altıya çıkarırdı ve dar ekranda
-       hepsi 24 px'in altına inerdi (WCAG 2.5.8). */
-    butce = (+b.dataset.butce === butce) ? 0 : +b.dataset.butce;
-    butceYaz(); butceSakla();
+  /* Kaydirici SIFIRDAN basliyor: sol uc "farketmez". Ayri bir
+     "farketmez" dugmesi koymak, maketin tek kaydiricili duzenini
+     bozardi -- ve sifir zaten butceOku()'nun "farketmez" degeri. */
+  kaydirici.addEventListener("input", () => {
+    butce = +kaydirici.value;
+    butceGirdi.value = butce ? String(butce) : "";
+    cepAlan.classList.toggle("farketmez", !butce);
+    kaydirici.style.setProperty("--dolu",
+      (100 * butce / +kaydirici.max).toFixed(1) + "%");
+    notYaz();
   });
+  kaydirici.addEventListener("change", butceSakla);
 
   /* Elle yazılan bütçe: çözülemeyen girdi "farketmez"e düşüyor,
      sessizce bir sayıya yuvarlanmıyor (bkz. butceOku). */
   butceGirdi.addEventListener("input", () => {
     butce = butceOku(butceGirdi.value);
+    cepAlan.classList.toggle("farketmez", !butceGirdi.value.trim());
     /* butceYaz() DEGIL: alanin degerini yazarken kullanicinin imlecini
        kaydirir ve yazdigi rakami altindan degistirir. Yalniz cipler ve
        aciklama tazeleniyor. */

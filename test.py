@@ -611,9 +611,17 @@ def palet_okunur_mu():
         m = re.search(r"--%s:\s*(#[0-9a-fA-F]{6})" % re.escape(ad), blok)
         return m.group(1) if m else None
 
-    koyu = css[css.index(":root{"):css.index("@media (prefers-color-scheme:light)")]
-    acik = css[css.index(':root[data-tema="acik"]{'):]
-    acik = acik[:acik.index("}")]
+    # BLOKLAR SECICIYE GORE BULUNUYOR, dosya sirasina gore degil. Ilk
+    # yazimda "koyu = :root{ ile @media arasi" diye okunuyordu ve acik
+    # tema varsayilan yapilinca kontrol sessizce YANLIS blogu koyu
+    # sanardi -- yani iki temanin da kontrastini olcuyor gorunup birini
+    # iki kez olcerdi.
+    def blok_al(secici):
+        i = css.index(secici) + len(secici)
+        return css[i:css.index("\n}", i)]
+
+    acik = blok_al(":root{")
+    koyu = blok_al(':root[data-tema="koyu"]{')
 
     # (blok adi, blok, zemin, metin ciftleri)
     for ad, blok in (("koyu", koyu), ("acik", acik)):
@@ -647,15 +655,37 @@ def palet_okunur_mu():
         s.append("--marka iki temada farkli: %s / %s"
                  % (belirtec(koyu, "marka"), belirtec(acik, "marka")))
 
-    # Iki ACIK TEMA blogu (sistem tercihi + elle secim) ayni degerleri
+    # Iki KOYU TEMA blogu (sistem tercihi + elle secim) ayni degerleri
     # tasimali; ayrisirlarsa elle secilen tema sistemden farkli gorunur.
-    sistem = css[css.index("@media (prefers-color-scheme:light)"):
-                 css.index(':root[data-tema="acik"]{')]
+    # (Acik tema artik varsayilan ve tek yerde: :root)
+    sistem = css[css.index("@media (prefers-color-scheme:dark)"):
+                 css.index(':root[data-tema="koyu"]{')]
     ayikla = lambda b: sorted(re.findall(r"(--[\w-]+):\s*([^;]+);", b))
-    a1, a2 = ayikla(sistem), ayikla(acik)
+    a1, a2 = ayikla(sistem), ayikla(koyu)
     if a1 != a2:
         fark = set(a1) ^ set(a2)
-        s.append("iki acik tema blogu ayrisiyor: %s" % sorted(fark)[:4])
+        s.append("iki koyu tema blogu ayrisiyor: %s" % sorted(fark)[:4])
+
+    # ACIK TEMA VARSAYILAN OLMALI: marka kilavuzunun ekran maketlerinin
+    # hepsi acik. :root koyu renklere donerse uygulama maketlerden yine
+    # ayrilir ve bunu hicbir sey soylemez.
+    if belirtec(acik, "zemin") != "#ffffff":
+        s.append("varsayilan tema acik degil: :root --zemin %s"
+                 % belirtec(acik, "zemin"))
+
+    # BIRINCIL EYLEM DUGMESI (Okyanus) uzerindeki murekkep okunmali.
+    # Maketteki beyaz yazi 2,33:1 -- turuncu dugmeyle ayni hata.
+    for ad, blok in (("acik", acik), ("koyu", koyu)):
+        t, tm = belirtec(blok, "teal"), belirtec(blok, "teal-metin")
+        if not (t and tm):
+            s.append("%s tema: --teal/--teal-metin yok" % ad); continue
+        o = _kontrast(tm, t)
+        if o < 4.5:
+            s.append("%s tema: teal dugme yazisi (%s) zemininde (%s) %.2f:1"
+                     % (ad, tm, t, o))
+    if belirtec(acik, "teal") != belirtec(koyu, "teal"):
+        s.append("--teal iki temada farkli: %s / %s"
+                 % (belirtec(acik, "teal"), belirtec(koyu, "teal")))
 
     # Eski paletten kalan sabit renk olmamali.
     ESKI = ("f08a3c", "15110e", "1d1815", "272019", "f4efe7", "a2957f",
@@ -982,9 +1012,13 @@ def ana_ekran_butce_mi():
     kes = _js_yorumsuz(okun("kesfet.js"))
 
     # --- ekran butceyi soruyor mu
+    # Marka maketindeki "Butceni Gir" ekrani: buyuk rakam + KAYDIRICI.
+    # Onceden hazir butce CIPLERI vardi; makette cip yok, kaydirici var.
+    # Yazi alani duruyor cunku kaydiricinin ustu 1.000 TL'de bitiyor ve
+    # daha buyugunu yazmak isteyenin baska yolu kalmiyordu.
     for parca, ne in (('id="cep"', "butce formu"),
                       ('id="butce-girdi"', "butce yazi alani"),
-                      ('id="butceler"', "hazir butce cipleri"),
+                      ('id="butce-kaydirici"', "butce kaydiricisi"),
                       ('id="canim"', "kategori cipleri"),
                       ('id="butce-ozet"', "olcum/tahmin satiri")):
         if parca not in ham:
@@ -995,8 +1029,16 @@ def ana_ekran_butce_mi():
         s.append("ortak.js: BUTCE_SECENEK yok")
     if "const CANIM" not in ortak:
         s.append("ortak.js: CANIM (kategori listesi) yok")
-    if "BUTCE_SECENEK.map" not in ix:
-        s.append("index.html: butce cipleri BUTCE_SECENEK'ten cizilmiyor")
+    # Kaydiricinin sinirlari ISARETLEMEDE duruyor (min/max/step) ve
+    # sifirdan basliyor: sol uc "farketmez", yani butceOku()'nun sifir
+    # degeri. Ayri bir "farketmez" dugmesi maketin tek kaydiricili
+    # duzenini bozardi.
+    m = re.search(r'id="butce-kaydirici"[^>]*min="(\d+)"[^>]*max="(\d+)"', ham)
+    if not m:
+        s.append("index.html: kaydiricinin min/max degerleri yok")
+    elif int(m.group(1)) != 0:
+        s.append("index.html: kaydirici sifirdan baslamiyor (%s); "
+                 "farketmez hali kayboldu" % m.group(1))
     if "CANIM.map" not in ix:
         s.append("index.html: kategori cipleri CANIM'dan cizilmiyor")
     # Cipler elle yazilmis olmasin: sabit data-butce="150" gibi bir satir,
@@ -1044,6 +1086,33 @@ def ana_ekran_butce_mi():
     for anahtar in re.findall(r'localStorage\.(?:get|set)Item\("([^"]+)"', ix):
         if not anahtar.startswith("cebimde."):
             s.append("index.html: localStorage anahtari marka onekli degil: %s" % anahtar)
+
+    # --- BUTCE UCUNCU EKRANDA DA DURMALI
+    # Olculdu: kesfette ?butce=300 ile gezip bir mekan acinca panelin
+    # "Isletme sayfasi" baglantisi
+    #     isletme.html?il=34&id=node%2F9730253703
+    # veriyordu -- butce yok. Mekan sayfasi butceyi ?butce= ile okuyor,
+    # yani kullanicinin bir kere yazdigi rakam ucuncu ekranda kayboluyor
+    # ve kombin "En ucuz ogun" diyor, menu listesi kac kalemin butceye
+    # girdigini hic yazmiyordu.
+    kes = _js_yorumsuz(io.open(os.path.join(KOK, "app", "kesfet.js"),
+                               encoding="utf-8").read())
+    sayfa = re.search(r'el\("#d-sayfa"\)\.href\s*=(.*?);', kes, re.S)
+    if not sayfa:
+        s.append("kesfet.js: #d-sayfa adresi okunamadi")
+    elif "butce" not in sayfa.group(1):
+        s.append("kesfet.js: mekan sayfasina butce tasinmiyor")
+
+    # Mekan sayfasi da onu OKUMALI; iki uc birbirini tutmali.
+    isl = _js_yorumsuz(io.open(os.path.join(KOK, "app", "isletme.html"),
+                               encoding="utf-8").read())
+    # 'get("butce")' TEK BASINA YETMIYOR: sayfada ikinci bir okuma daha
+    # var (butceBandi -> sayac). Sabotaj kombin/menu dalini butceOku("")
+    # yapip kontrolu gecti. Aranan sey ADRESTEKI degerin butceOku()'ya
+    # GIRMESI.
+    if not re.search(r'butceOku\(\s*new URLSearchParams\(location\.search\)'
+                     r'\.get\("butce"\)\s*\)', isl):
+        s.append("isletme.html: adresteki butceyi okumuyor")
     return s
 
 
@@ -1286,6 +1355,170 @@ def esik_iki_tarafta_ayni_mi():
     if "function oyKarari(oy){" not in ortak:
         s.append("ortak.js: oyKarari() yok")
     return s
+
+
+def menu_listesi_mi():
+    """Mekan sayfasi MENUYU GOSTERIYOR ve rozet menuyle celismiyor.
+
+    IKI AYRI KUSUR, ikisi de olculdu.
+
+    (1) MENU EKRANDA HIC YOKTU. 291 mekanin menusunde 7.335 fiyatli
+        kalem duruyor; mekan sayfasi bunlarin hicbirini basmiyordu.
+        Ekranda kombin ("en ucuz ogun") ve fis ozeti vardi, menu yoktu --
+        "Menu" sekmesine basan kullanici menuyu goremiyordu.
+
+    (2) ROZET MENUYLE CELISIYORDU. Menusunde fiyat yazan 291 mekanin
+        128'i (%44) "FIYAT YOK" rozeti aliyordu. Rozet dogru bir sey
+        soyluyor (yemekFiyati() bir OGUNUN kaca geldigini cikaramiyor:
+        84 mekanda ana urun kalemi ikiden az, 27'sinde hic kategori yok,
+        16'sinda butun kategoriler icecek) ama CUMLESI yanlisti: 42
+        kalemin fiyati ekranda yaziyorken "fiyat yok" demek.
+
+    TASARIM KARARLARI DA BURADA KILITLENIYOR, cunku hepsi bir olcume
+    dayaniyor ve olcum kaybolursa karar keyfi gorunur:
+
+      fotograf yok      -> 7.335 kalemin sifirinda fotograf alani var
+      gruplama yok      -> kategori kapsami mekan basina ortanca %47
+      fiyata gore sirali-> uygulamanin sorusu "bu parayla ne yenir"
+      ad kirpilmiyor    -> kalemlerin %16'sinin adi 34 harften uzun
+      liste katlaniyor  -> mekan basina ortanca 34 kalem, en cok 50
+    """
+    s = []
+    okun = lambda *y: io.open(os.path.join(KOK, *y), encoding="utf-8").read()
+    ham = okun("app", "isletme.html")
+    isl = _js_yorumsuz(ham)
+    ortak = _js_yorumsuz(okun("app", "ortak.js"))
+
+    # --- (1) menu listesi ---
+    if 'id="menuListe"' not in ham:
+        s.append("isletme.html: menu listesi bolumu yok")
+    # Etiketin TAMAMINA bakiliyor: ilk yazim yalniz id'den ONCEKI 160
+    # harfi tariyordu ve data-grup id'den SONRA yazildigi icin, dogru
+    # isaretlemeye "bagli degil" dedi.
+    etiket = re.search(r"<section[^>]*id=\"menuListe\"[^>]*>", ham)
+    if not etiket:
+        s.append("isletme.html: menuListe etiketi okunamadi")
+    elif 'data-grup="menu"' not in etiket.group(0):
+        s.append("isletme.html: menu listesi Menu sekmesine bagli degil")
+    if "function menuListesi(" not in isl:
+        s.append("isletme.html: menuListesi() yok")
+    if "menuListesi(" not in isl.split("function menuListesi(")[0]:
+        s.append("isletme.html: menuListesi() hic cagrilmiyor")
+
+    m = re.search(r"function menuListesi\(m, butce\)\{(.*?)\n\}", isl, re.S)
+    if not m:
+        s.append("isletme.html: menuListesi() govdesi okunamadi")
+    else:
+        g = m.group(1)
+        # Fiyata gore siralama: listenin ilk satiri "bu parayla ne
+        # alinir" sorusunu cevaplamali.
+        # "sort(" YETMIYOR: sabotaj `mn.sort(` yerine `[].sort(` yazdi ve
+        # kontrol gecti -- liste siralanmadan basiliyordu. Siralanan sey
+        # LISTENIN KENDISI olmali.
+        if "mn.sort(" not in g:
+            s.append("menuListesi: kalemler siralanmiyor")
+        # Fiyatsiz kalem SONA. MAX_VALUE ile sayiya cevirmek onu "cok
+        # pahali" yapar ve butce sayimina da oyle girerdi.
+        if "MAX_VALUE" in g or "Infinity" in g:
+            s.append("menuListesi: fiyatsiz kalem sayiya cevriliyor")
+        if "a.f == null" not in g or "b.f == null" not in g:
+            s.append("menuListesi: fiyatsiz kalem icin ayri dal yok")
+        # Butce varsa SAYI yaziliyor, tahmin degil.
+        if "butce > 0" not in g:
+            s.append("menuListesi: butceyi hic okumuyor")
+        if "k.f <= butce" not in g:
+            s.append("menuListesi: butceye giren kalemi saymiyor")
+        # Katlama: 50 satirlik liste sayfanin altini ekranin cok
+        # asagisina itiyordu.
+        # "MENU_ILK" YETMIYOR: esik dugme metninde de geciyor, yani
+        # kirpma satiri silindiginde bile kontrol geciyordu. Aranan sey
+        # KIRPMANIN KENDISI.
+        if "slice(0, MENU_ILK)" not in g:
+            s.append("menuListesi: uzun menu katlanmiyor")
+    if "const MENU_ILK" not in isl:
+        s.append("isletme.html: MENU_ILK esigi yok")
+
+    # UYDURMA GORSEL YOK. Makette kalemlerin yaninda fotograf var ama
+    # veride yok; bos gri kare ya da uydurma gorsel koymak bilgi
+    # tasimayan (ya da yalan) bir sey basmak olurdu.
+    ms = re.search(r"function menuSatiri\(k, butce\)\{(.*?)\n\}", isl, re.S)
+    if not ms:
+        s.append("isletme.html: menuSatiri() govdesi okunamadi")
+    elif "<img" in ms.group(1):
+        s.append("menuSatiri: kalem satirina gorsel konmus (veride fotograf yok)")
+
+    # Ad KACIRILIYOR: kalem adlari kazimadan geliyor.
+    if ms and "kacir(k.a" not in ms.group(1):
+        s.append("menuSatiri: kalem adi kacirilmiyor (XSS)")
+
+    # --- (2) rozet celiskisi ---
+    if "function menudeFiyatVar(" not in ortak:
+        s.append("ortak.js: menudeFiyatVar() yok")
+    gv = re.search(r"function fiyatGuveni\(.*?\n\}", ortak, re.S)
+    if not gv:
+        s.append("ortak.js: fiyatGuveni() govdesi okunamadi")
+    else:
+        if "menudeFiyatVar(" not in gv.group(0):
+            s.append("fiyatGuveni: menude fiyat olup olmadigina bakmiyor")
+        if "GUVEN_ADI.menu" not in gv.group(0):
+            s.append("fiyatGuveni: menulu mekan icin ayri ad kullanmiyor")
+    if 'menu:"öğün fiyatı yok"' not in ortak.replace(" ", "").replace("\n", "") \
+       and 'menu:"öğün fiyatı yok"' not in ortak:
+        s.append("ortak.js: GUVEN_ADI.menu cumlesi degismis")
+
+    return s   # kayit() LISTE bekliyor: `s or True` bos listede
+               # True donuyordu, kayit onu BASARISIZ sayiyordu.
+
+
+def harita_karti_mi():
+    """Haritada acilan panel HARITAYI GOSTERIYOR ve tek kopya bilgi basiyor.
+
+    MAKET: "Haritada Kesfet" ekraninda beyaz kart altta duruyor, ustunde
+    harita ve isaretciler NET.
+
+    (1) PERDE HARITAYI YUTUYORDU. Olculdu (gercek Leaflet, 390x844):
+        panel 554 px (ekranin %66'si), ustunde 290 px harita KALIYOR --
+        ama rgba(0,0,0,.66) + blur(3px) ardinda, yani isaretciler
+        secilmiyor. Perde LISTE gorunumunde dogru (arkada rakip bir
+        metin listesi var); harita gorunumunde arkadaki sey cevabin
+        parcasi. Modal kaliyor -- odak tuzagi ve Esc onunla geliyor.
+
+    (2) BALON PANELLE BIRLIKTE ACILIYORDU. Olculdu:
+            dialog acik   : True
+            leaflet popup : {'metin': '#saltbae\\nKafe\\nhesapli...', 'gorunur': True}
+        Balonun tasidigi uc bilgi (ad, tur, butce durumu) panelin
+        basliginda zaten yaziyor ve panel modal: balon perdenin
+        ardinda kaliyordu. Balonun KENDISI duruyor (isaretciye tiklayan
+        kullanicinin tek bilgi kaynagi o); kaldirilan sey ac()'in balonu
+        DA acmasi.
+    """
+    s = []
+    okun = lambda *y: io.open(os.path.join(KOK, *y), encoding="utf-8").read()
+    ham = okun("app", "kesfet.html")
+    kes = _js_yorumsuz(okun("app", "kesfet.js"))
+
+    # (1) Hafif perde kurali VE onu tetikleyen durum, ikisi birden.
+    if 'dialog#detay[data-uzerinde="harita"]::backdrop' not in ham:
+        s.append("kesfet.html: harita gorunumu icin hafif perde kurali yok")
+    else:
+        kural = ham.split('dialog#detay[data-uzerinde="harita"]::backdrop')[1][:200]
+        if "backdrop-filter:none" not in kural.replace(" ", ""):
+            s.append("kesfet.html: harita perdesinde bulaniklik hala acik")
+    if "dataset.uzerinde" not in kes:
+        s.append("kesfet.js: panel hangi gorunumun uzerinde acildigini yazmiyor")
+
+    # (2) Panel acilirken balon acilmamali. openPopup() ac() govdesinde
+    #     olmamali; bindPopup ise DURMALI.
+    if "bindPopup(" not in kes:
+        s.append("kesfet.js: isaretcinin balonu kaldirilmis (haritada tek bilgi kaynagi)")
+    m = re.search(r"function ac\(id\)\{(.*?)\n\}", kes, re.S)
+    if not m:
+        s.append("kesfet.js: ac() govdesi okunamadi")
+    elif "openPopup(" in m.group(1):
+        s.append("kesfet.js: panel acilirken balon da aciliyor (perdenin ardinda kaliyor)")
+
+    return s   # kayit() LISTE bekliyor: `s or True` bos listede
+               # True donuyordu, kayit onu BASARISIZ sayiyordu.
 
 
 def kombin_mi():
@@ -1600,12 +1833,19 @@ def sql_kontrolleri():
     # HER test dosyasinin SONUNA kadar gittigini dogrula. Tek bir imza
     # aramak yetmez: iki dosya var ve biri yarida kesilse otekinin bitis
     # satiri kontrolu yine yesil yapardi.
-    eksik = [ad for ad, imza in (("sahiplenme", "20 kontrolun hepsi gecti"),
-                                 ("sayac", "sayac: 11 kontrolun hepsi gecti"),
-                                 ("yorum", "yorum: 20 kontrolun hepsi gecti"),
-                                 ("menu katkisi", "menu katkisi: 12 kontrolun hepsi gecti"),
-                                 ("mekan fotografi", "mekan fotografi: 12 kontrolun hepsi gecti"),
-                                 ("akran", "akran_test: 11 adimin hepsi gecti"))
+    # HER IMZA DOSYA ADIYLA BASLIYOR. Onceden sahiplenme imzasi adsizdi
+    # ("20 kontrolun hepsi gecti") ve yorum dosyasinin bitis satirinin
+    # ICINDE geciyordu -- sahiplenme kosumu bastan sona patlasa bile bu
+    # kontrol yesil kalirdi. Sayilar da elle guncelleniyor: bir dosyaya
+    # adim eklenince imza da buyumeli, yoksa yarim kosum fark edilmez.
+    eksik = [ad for ad, imza in
+             (("sahiplenme", "sahiplenme: 21 kontrolun hepsi gecti"),
+              ("sayac", "sayac: 16 kontrolun hepsi gecti"),
+              ("yorum", "yorum: 20 kontrolun hepsi gecti"),
+              ("menu katkisi", "menu katkisi: 12 kontrolun hepsi gecti"),
+              ("mekan fotografi", "mekan fotografi: 12 kontrolun hepsi gecti"),
+              ("akran", "akran_test: 12 adimin hepsi gecti"),
+              ("fiyat oyu", "fiyat_oyu_test: 14 adimin hepsi gecti"))
              if imza not in cikti]
     if eksik:
         return kayit("SQL davranisi (gercek Postgres)",
@@ -1647,6 +1887,8 @@ def main():
     kayit("degismez: guven skoru renk disinda da okunuyor", guven_skoru_mu())
     kayit("degismez: k-anonimlik esigi sunucuda da var", esik_iki_tarafta_ayni_mi())
     kayit("degismez: kombin mekanin kendi menusunden", kombin_mi())
+    kayit("degismez: mekan sayfasi menuyu gosteriyor", menu_listesi_mi())
+    kayit("degismez: harita karti maketteki gibi", harita_karti_mi())
     kayit("degismez: seviye onayli katkiyi sayiyor", seviye_mi())
     kayit("degismez: butce talebi ifsa etmiyor", butce_talebi_mi())
     kayit("degismez: kurulum dosyalari depoda", kurulum_dosyalari_izleniyor_mu())
