@@ -379,8 +379,10 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 13 4 4L19 7"/></svg>
               <span><strong id="d-toplam">35.852</strong> mekanın konumu, türü, açılış saati — OpenStreetMap'ten, açık lisanslı.</span></li>
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 13 4 4L19 7"/></svg>
-              <span><strong id="d-kalem">7.141</strong> menü kalemi, <strong id="d-fiyatli">291</strong> mekandan — işletmelerin kendi sitelerinden.
-              Bunların hepsi fiyat olarak gösterilmiyor: tek kaleme dayanan ya da bayatlamış menüden sayı çıkarmıyoruz.</span></li>
+              <span><strong id="d-kalem">7.141</strong> menü kalemi, <strong id="d-fiyatli">291</strong> mekandan — işletmelerin kendi sitelerinden.</span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 13 4 4L19 7"/></svg>
+              <span>Ama o 291 mekan <strong id="d-marka">93</strong> işletme: aynı zincirin şubeleri tek bir menüyü paylaşıyor.
+              Fiyatın kaç ölçümden geldiğini mekan sayfasında yazıyoruz.</span></li>
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 13 4 4L19 7"/></svg>
               <span>Bahçe, wi-fi, telefon ve adres bilgisi olan mekanlar için ayrı filtre.</span></li>
           </ul>
@@ -500,6 +502,7 @@ document.addEventListener("DOMContentLoaded", () => {
     el("#d-toplam").textContent  = sayi(v.toplam);
     el("#d-kalem").textContent   = sayi(v.kalem);
     el("#d-fiyatli").textContent = sayi(v.fiyatliMekan);
+    el("#d-marka").textContent   = sayi(v.fiyatliMarka);
 
     el("#turler").innerHTML = v.turler.map(t =>
       '<a class="tur-kart" href="kesfet.html?tur=' + encodeURIComponent(t[0]) + '">' +
@@ -560,7 +563,7 @@ document.addEventListener("DOMContentLoaded", () => {
      satırı açıkça yazıyor. Bütçeyi süzgeç gibi gösteren bir ekran,
      %0,45'lik ölçümü %100 gibi sunardı. Sınıflandırma ortak.js'te
      (butceDurumu / butceOzeti / butceCumlesi). */
-  let butce = 0, canim = new Set();
+  let butce = 0, canim = new Set(), zincir = null;
 
   /* Bütçe çipleri BUTCE_SECENEK'ten, kategori çipleri CANIM'dan çiziliyor:
      rakamlar ve tür adları bu sayfada ikinci kez tanımlanmıyor. */
@@ -700,6 +703,10 @@ document.addEventListener("DOMContentLoaded", () => {
         /* Once YAKINLIK, sonra KATEGORI. Ikisi de listeyi gercekten
            kesiyor: tur her mekanda var (%100 kapsama), yani kategori
            cipi butcenin aksine somut bir suzgec. */
+        /* Zincir haritasi ILIN TAMAMINDAN, civardan degil: "56 subede
+           ayni menu" iddiasi ilin tamamina ait bir sayidir ve 3 km'lik
+           bir cemberden bakan hesap onu 2 gosterirdi. */
+        zincir = zincirHaritasi(v.mekanlar);
         const civar = v.mekanlar.filter(m => uzaklikKm(m.lon, m.lat, lat, lon) < YAKIN_KM);
         const konu  = turSet.size ? civar.filter(m => turUyar(turSet, m.tur)) : civar;
 
@@ -789,6 +796,12 @@ document.addEventListener("DOMContentLoaded", () => {
          olculdugunu anlayamaz. */
       if (x.d && x.d.kesin){
         neden.push(x.d.ad);
+        /* Fiyat zincir menusunden geliyorsa kart bunu SOYLUYOR. Olculdu:
+           fiyati gosterilen 163 mekan yalniz 53 farkli isletme, 94'u tek
+           bir zincirin subesi ve subeler arasi fiyat farki yok. Bunu
+           yazmayan bir kart, tek kazimayi bu subenin olcumu gibi sunar. */
+        const dy = fiyatDayanagi(x.m, zincir);
+        if (dy && dy.sinif === "zincir") neden.push(dy.ad);
         /* Rakamin kendisi de yaziliyor: "bütçene giriyor" tek basina bir
            iddia, "menü ortalama ₺240" o iddianin dayanagi. Ayri ayri
            ekleniyor -- birlestirilmis hali sv yoksa "menü " diye bos bir

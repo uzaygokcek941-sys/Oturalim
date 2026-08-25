@@ -1037,6 +1037,89 @@ const CANIM = [
   { ad:"Gezilecek", tur:["grup:eglence"] }
 ];
 
+/* ============================================================
+   FİYATIN DAYANAĞI: bu rakam kaç ölçümden geliyor?
+
+   ÖLÇÜLDÜ, ve sonuç ürünü değiştirdi. Menü fiyatı gösterilebilen 163
+   mekan sayıldığında altından şu çıktı:
+
+     163 mekan  ->  53 FARKLI İŞLETME
+     94 tanesi Domino's şubesi (%58), 10 tanesi Papa John's
+
+   Yani ekranda "163 mekanda ölçülmüş fiyat var" yazarken aslında iki
+   pizza zinciri listenin %64'ünü dolduruyor. Daha kötüsü: aynı ilde
+   çok şubesi olan 113 mekanın HİÇBİRİNDE şubeler arası fiyat farkı
+   yok -- yani menü bir kez kazınmış ve 56 ayrı ölçümmüş gibi
+   gösteriliyor.
+
+   BU, TEK FİŞİ MEKANIN FİYATI SAYMAKLA AYNI HATA. Depoda o hata
+   FIS_ESIK ile kapatıldı ("tek fiş bir kişinin o günkü seçimidir,
+   mekanın fiyatı değil"). Aynı gerekçe burada da geçerli: tek kazıma
+   56 şubenin ölçümü değildir. Bu blok rakamı KALDIRMIYOR -- rakam
+   gerçek -- ama neye dayandığını söylüyor.
+
+   YAŞ EKSENİ BUGÜN BOŞ. Yol haritasındaki üç renkli güven skoru için
+   önce fiyat yaşına bakıldı: menüsü olan 264 mekanın 264'ü de 0-2
+   aylık. Yani yaşa dayalı bir skor bugün herkesi yeşile boyar ve
+   hiçbir şey söylemez. Kalem sayısı da işe yaramadı: "15+ kalem"
+   bandındaki 120 mekan yalnız 17 farklı ad ve çoğu Domino's. Gerçekten
+   AYRIŞAN tek eksen bu: fiyat bu mekanın kendi menüsünden mi geliyor
+   (50 mekan, %31) yoksa şubelerle paylaşılan bir zincir menüsünden mi
+   (113 mekan, %69).
+   ============================================================ */
+
+/* Aynı ilde bu kadar şube aynı fiyatı taşıyorsa "zincir menüsü". */
+const ZINCIR_ESIK = 2;
+
+/* Ad normalleştirme. kesfet.js'teki sade() KULLANILMIYOR: o arama için
+   yazıldı ve Türkçe harfleri de düşürüyor ("Çınar" -> "cinar"). Arama
+   için doğru, burada tehlikeli -- iki AYRI işletmeyi aynı zincir sayıp
+   birinin fiyatına "12 şubede aynı" yazdırabilir. Burada az eşleştirmek
+   çok eşleştirmekten iyi. */
+function _adAnahtari(ad){
+  return String(ad || "").trim().replace(/\s+/g, " ").toLocaleLowerCase("tr");
+}
+
+/* "ad + fiyat" -> kaç mekan. Fiyat da anahtarda: aynı adı taşıyan ama
+   AYRI AYRI kazınmış (dolayısıyla farklı fiyatlı) iki yer, iki ayrı
+   ölçümdür ve öyle sayılmalı. */
+function zincirHaritasi(mekanlar, bugun){
+  const h = new Map();
+  for (const m of (mekanlar || [])){
+    const f = yemekFiyati(m, bugun);
+    if (f == null) continue;
+    const a = _adAnahtari(m.ad) + " " + f;
+    h.set(a, (h.get(a) || 0) + 1);
+  }
+  return h;
+}
+
+/* Bu mekanın fiyatı neye dayanıyor.
+
+   Harita YOKSA null dönüyor, "kendi menüsü" DEĞİL: il listesini
+   yüklememiş bir ekran şube sayısını bilemez ve bilmediği şeyi
+   "kendine ait" diye sunmamalı. */
+function fiyatDayanagi(m, harita, bugun){
+  const f = yemekFiyati(m, bugun);
+  if (f == null || !harita) return null;
+  const n = harita.get(_adAnahtari(m.ad) + " " + f) || 0;
+  if (n < ZINCIR_ESIK)
+    return { sinif:"kendi", sube:1, ad:"kendi menüsünden" };
+  return { sinif:"zincir", sube:n, ad: sayi(n) + " şubede aynı menü" };
+}
+
+/* Mekan sayfasındaki tam cümle. Kart yalnız etiketi gösteriyor; burada
+   NEDEN önemli olduğu da yazıyor, çünkü kullanıcı fiyata bakıp yola
+   çıkacak. */
+function dayanakCumlesi(d){
+  if (!d) return "";
+  if (d.sinif === "kendi")
+    return "Bu fiyat bu işletmenin kendi yayımladığı menüden derlendi.";
+  return "Bu fiyat, aynı ilde " + sayi(d.sube) + " şubesi listelenen bir " +
+         "zincirin menüsünden geliyor — tek bir menüden. Şubeler farklı " +
+         "fiyatlandırma yapabiliyor, o yüzden bu rakam şubeye özel değil.";
+}
+
 /* ---------- kohort ölçümü ----------
    Çerezsiz ve sunucusuz: yalnız localStorage, yalnız bu cihaz.
    Hangi günlerde açıldığı tutuluyor; D1/D7/D30 buradan hesaplanıyor. */
@@ -1126,6 +1209,24 @@ function kendiniKontrolEt(){
     { id:"yok",     tur:"Restoran" }
   ];
   const BO = butceOzeti(BUTCE_LISTE, 200);
+
+  /* --- fiyatin dayanagi icin sahte il ---
+     Ucu ayni adli ve AYNI fiyatli (zincir), biri ayni adli ama FARKLI
+     fiyatli (ayri kazima), biri tek. Ayni ad + farkli fiyat ayni
+     zincir sayilmamali: iki ayri olcum var demektir.
+
+     Kalemler IKI tane: YEMEK_ASGARI_KALEM esigi tek kalemli fixture'i
+     olcumsuz sayar ve harita bos cikardi. */
+  const _kat = f => ({ "Pizza": { n:2, med:f } });
+  const ZIL = [
+    { id:"z1", ad:"Domino's",  tur:"Fast food", kat:_kat(528) },
+    { id:"z2", ad:"domino's",  tur:"Fast food", kat:_kat(528) },   /* buyuk/kucuk harf */
+    { id:"z3", ad:" Domino's ", tur:"Fast food", kat:_kat(528) },  /* bosluk */
+    { id:"z4", ad:"Domino's",  tur:"Fast food", kat:_kat(610) },   /* AYRI kazima */
+    { id:"z5", ad:"Cozy Etiler", tur:"Restoran", kat:_kat(400) },
+    { id:"z6", ad:"Fiyatsiz",  tur:"Restoran" }
+  ];
+  const ZH = zincirHaritasi(ZIL);
   const kontroller = [
     ["acikMi 24/7",             acikMi("24/7", g14),               true],
     ["acikMi gunduz",           acikMi("Mo-Su 09:00-23:00", g14),  true],
@@ -1550,6 +1651,36 @@ function kendiniKontrolEt(){
     ["butce cumle dokumsuz sus",  butceCumlesi(null, 200),                 null],
     ["butce cumle bos liste",
       butceCumlesi(butceOzeti([], 200), 200),                              null],
+
+    /* --- fiyatin dayanagi: kac olcumden geliyor ---
+       Olculdu: fiyati gosterilen 163 mekan yalniz 53 FARKLI isletme ve
+       94'u Domino's subesi. Ayni ilde cok subeli 113 mekanin hicbirinde
+       subeler arasi fiyat farki yok -- yani tek kazima 56 olcum gibi
+       gosteriliyordu. Tek fisi mekanin fiyati saymakla ayni hata. */
+    ["dayanak zincir sayiyor",   fiyatDayanagi(ZIL[0], ZH).sube,               3],
+    ["dayanak zincir sinifi",    fiyatDayanagi(ZIL[0], ZH).sinif,       "zincir"],
+    /* Buyuk/kucuk harf ve bosluk ayni zinciri bolmemeli. */
+    ["dayanak harf/bosluk birlesir", fiyatDayanagi(ZIL[2], ZH).sube,           3],
+    /* AYNI ad ama FARKLI fiyat = ayri kazima = ayri olcum. */
+    ["dayanak farkli fiyat ayrisir", fiyatDayanagi(ZIL[3], ZH).sube,           1],
+    ["dayanak farkli fiyat kendi",   fiyatDayanagi(ZIL[3], ZH).sinif, "kendi"],
+    ["dayanak tek mekan",        fiyatDayanagi(ZIL[4], ZH).sinif,        "kendi"],
+    ["dayanak fiyatsiz mekan",   fiyatDayanagi(ZIL[5], ZH),                 null],
+    /* Harita YOKSA "kendi menusu" DENMEZ: il listesini yuklememis bir
+       ekran sube sayisini bilemez ve bilmedigini iddiaya cevirmemeli. */
+    ["dayanak haritasiz sus",    fiyatDayanagi(ZIL[0], null),               null],
+    ["dayanak bos il",           zincirHaritasi([]).size,                      0],
+    ["dayanak fiyatsiz haritaya girmez", ZH.size,                             3],
+    /* Ekrandaki cumle: zincir halinde SUBE SAYISI ve uyari gecmeli. */
+    ["dayanak cumlesi zinciri anlatiyor",
+      /3 şubesi listelenen bir zincirin menüsünden/.test(
+        dayanakCumlesi(fiyatDayanagi(ZIL[0], ZH))),                        true],
+    ["dayanak cumlesi subeye ozel degil diyor",
+      /şubeye özel değil/.test(dayanakCumlesi(fiyatDayanagi(ZIL[0], ZH))), true],
+    ["dayanak cumlesi kendi menusu",
+      /kendi yayımladığı menüden/.test(
+        dayanakCumlesi(fiyatDayanagi(ZIL[4], ZH))),                        true],
+    ["dayanak cumlesi bos girdi",  dayanakCumlesi(null),                     ""],
 
     /* --- ana ekranin kategorileri ---
        Ciplerin turleri veride GERCEKTEN var olmali; yanlis yazilmis tek

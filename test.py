@@ -130,6 +130,11 @@ def veri_tutarli_mi():
         yiyecek_mi = None
 
     toplam = kalem = fiyatli = 0
+    # Menulu MEKAN sayisi ile ISLETME sayisi ayri seyler ve fark buyuk:
+    # olculdu, 291 menulu mekan yalniz 93 farkli ad -- Domino's tek basina
+    # 94 sube, Kahve Dunyasi 73. Ana sayfa ikisini de yaziyor; ikisi
+    # ayrisirsa sayfa "291 mekan = 291 olcum" izlenimi verir.
+    markalar = set()
     for kod in dosyalar:
         d = veri_bicim.coz(json.loads(oku("app", "veri", kod + ".json")))
         for m in d.get("mekanlar", []):
@@ -137,6 +142,8 @@ def veri_tutarli_mi():
             kalem += len(m.get("menu") or [])
             if m.get("min") is not None:
                 fiyatli += 1
+            if m.get("menu"):
+                markalar.add(" ".join((m.get("ad") or "").split()).lower())
             # Ciktida gorunur cop kalmasin. Ucu de kullaniciya AYNEN
             # gosteriliyordu: cozulmemis HTML varligi ("6&#8217;li
             # Macaron"), bas/son bosluklu ad, ve telefon alanina yazilmis
@@ -198,7 +205,8 @@ def veri_tutarli_mi():
             break
 
     v = json.loads(oku("app", "vitrin.json"))
-    for anahtar, gercek in (("toplam", toplam), ("kalem", kalem), ("fiyatliMekan", fiyatli)):
+    for anahtar, gercek in (("toplam", toplam), ("kalem", kalem),
+                            ("fiyatliMekan", fiyatli), ("fiyatliMarka", len(markalar))):
         if v.get(anahtar) != gercek:
             s.append("vitrin.json %s=%s ama veride %s — vitrin_uret.py calistir"
                      % (anahtar, v.get(anahtar), gercek))
@@ -217,7 +225,8 @@ def veri_tutarli_mi():
 
     # Anasayfadaki SABIT yedekler: JS kapaliyken gorunen sayi bunlar.
     ana = oku("app", "index.html")
-    for kimlik, gercek in (("d-toplam", toplam), ("d-kalem", kalem), ("d-fiyatli", fiyatli)):
+    for kimlik, gercek in (("d-toplam", toplam), ("d-kalem", kalem),
+                           ("d-fiyatli", fiyatli), ("d-marka", len(markalar))):
         m = re.search(r'id="%s">([\d.]+)' % kimlik, ana)
         if m and m.group(1).replace(".", "") != str(gercek):
             s.append("index.html %s yedegi %s, gercek %s" % (kimlik, m.group(1), gercek))
@@ -1038,6 +1047,92 @@ def ana_ekran_butce_mi():
     return s
 
 
+def fiyat_dayanagi_mi():
+    """Fiyat KAC OLCUMDEN geldigini soyluyor mu.
+
+    OLCULDU ve sonuc urunu degistirdi: menu fiyati gosterilebilen 163
+    mekan yalniz 53 FARKLI ISLETME. 94'u Domino's subesi (%58), 10'u
+    Papa John's -- iki pizza zinciri listenin %64'u. Ayni ilde cok
+    subeli 113 mekanin HICBIRINDE subeler arasi fiyat farki yok, yani
+    menu bir kez kazinmis ve 56 ayri olcum gibi gosteriliyordu.
+
+    Bu, TEK FISI MEKANIN FIYATI SAYMAKLA ayni hata; depoda o hata
+    FIS_ESIK ile kapatildi. Kural burada da ayni: rakam kaldirilmiyor
+    ama neye dayandigi yaziliyor.
+
+    UC EKRAN AYNI KAPIDAN GECMELI. Kart, mekan sayfasi ve ana ekranin
+    oneri karti ayni fiyati gosteriyor; biri dayanagi yazip otekiler
+    susarsa kullanici hangisine bakarsa ona inanir.
+
+    ZINCIR HARITASI IL BASINA BIR KEZ kurulmali: kart basina hesaplanirsa
+    2.300 kartlik listede 2.300 kez butun il taranir.
+    """
+    s = []
+    okun = lambda ad: io.open(os.path.join(KOK, "app", ad), encoding="utf-8").read()
+    ortak = _js_yorumsuz(okun("ortak.js"))
+    kes = _js_yorumsuz(okun("kesfet.js"))
+    ix = _js_yorumsuz(okun("index.html"))
+    isl = _js_yorumsuz(okun("isletme.html"))
+
+    for f in ("zincirHaritasi", "fiyatDayanagi", "dayanakCumlesi"):
+        if ("function %s(" % f) not in ortak:
+            s.append("ortak.js: %s() yok" % f)
+    if "const ZINCIR_ESIK" not in ortak:
+        s.append("ortak.js: ZINCIR_ESIK yok")
+
+    # Uc ekran da dayanagi SORMALI.
+    for ad, govde in (("kesfet.js", kes), ("index.html", ix), ("isletme.html", isl)):
+        if "fiyatDayanagi(" not in govde:
+            s.append("%s: fiyatin dayanagini hic sormuyor" % ad)
+        if "zincirHaritasi(" not in govde:
+            s.append("%s: zincir haritasini kurmuyor" % ad)
+
+    # Harita IL BASINA bir kez: kart/satir cizen fonksiyonun icinde
+    # kurulursa liste boyunca tekrar tekrar hesaplanir.
+    for ad, govde, kalip in (
+            ("kesfet.js", kes, r"function kartHTML\(m\)\{(.*?)\n\}"),
+            ("index.html", ix, r"const kart = x => \{(.*?)\n    \};")):
+        m = re.search(kalip, govde, re.S)
+        if m and "zincirHaritasi(" in m.group(1):
+            s.append("%s: zincir haritasi kart basina kuruluyor" % ad)
+
+    # Mekan sayfasi TAM CUMLEYI basmali; kisa etiket tek basina
+    # "56 subede ayni menu" der ama NEDEN onemli oldugunu soylemez.
+    if "dayanakCumlesi(" not in isl:
+        s.append("isletme.html: dayanak cumlesi basilmiyor")
+    if 'id="dayanak"' not in okun("isletme.html"):
+        s.append("isletme.html: #dayanak satiri yok")
+
+    # Detay paneli de tam cumleyi vermeli: karar orada veriliyor.
+    if "dayanakCumlesi(" not in kes:
+        s.append("kesfet.js: detay paneli dayanak cumlesini basmiyor")
+
+    # Ad normallestirmesi sade() OLMAMALI: sade() Turkce harfleri
+    # dusuruyor ve iki AYRI isletmeyi ayni zincir sayabilir.
+    m = re.search(r"function _adAnahtari\(ad\)\{(.*?)\n\}", ortak, re.S)
+    if not m:
+        s.append("ortak.js: _adAnahtari() yok")
+    elif "sade(" in m.group(1):
+        s.append("ortak.js: ad anahtari sade() kullaniyor; ayri isletmeler birlesebilir")
+
+    # Fiyat anahtarda olmali: ayni adli ama AYRI kazinmis iki yer iki
+    # ayri olcumdur ve tek olcum sayilmamali.
+    m = re.search(r"function zincirHaritasi\(mekanlar, bugun\)\{(.*?)\n\}", ortak, re.S)
+    if not m:
+        s.append("ortak.js: zincirHaritasi() govdesi okunamadi")
+    elif "_adAnahtari(m.ad) + \" \" + f" not in m.group(1):
+        s.append("ortak.js: zincir anahtarinda fiyat yok; ayri kazimalar birlesir")
+
+    # Ana sayfa ISLETME sayisini da yazmali: "291 mekan" tek basina
+    # arkasindaki 93 kazimayi gizliyor.
+    if 'id="d-marka"' not in okun("index.html"):
+        s.append("index.html: menulu mekanlarin kac ISLETME oldugu yazmiyor")
+    v = json.loads(okun("vitrin.json"))
+    if "fiyatliMarka" not in v:
+        s.append("vitrin.json: fiyatliMarka yok — vitrin_uret.py calistir")
+    return s
+
+
 def sayfa_kontrolleri():
     """Sayfalari GERCEK tarayicida acar (test_sayfa.py).
 
@@ -1137,6 +1232,7 @@ def main():
     kayit("degismez: PWA ve Play parcalari", pwa_tutarli_mi())
     kayit("degismez: marka paleti okunur", palet_okunur_mu())
     kayit("degismez: ana ekran butceyi olcum diye satmiyor", ana_ekran_butce_mi())
+    kayit("degismez: fiyat kac olcumden geldigini soyluyor", fiyat_dayanagi_mi())
     kayit("degismez: kurulum dosyalari depoda", kurulum_dosyalari_izleniyor_mu())
     kayit("degismez: donus adresi ve gunun tarihi", adres_ve_tarih_mi())
     kayit("degismez: sir sizmamis", sirlar_sizmis_mi())

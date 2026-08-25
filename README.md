@@ -17,6 +17,7 @@ iki kafe, aynı kahve, iki kat fark olabiliyor. Uygulamanın tek işi:
 
 - Bütçeyle başlayan ana ekran: *"Bugün cebimde ₺300"* → kategori → yakınımda bul
 - Bütçenin ne kadarının **ölçüm**, ne kadarının **tahmin** olduğu ekranda yazıyor
+- Fiyatın kaç ölçümden geldiği yazıyor: zincir menüsünden gelen rakam "3 şubede aynı menü" diye işaretleniyor
 - Harita + liste, 81 ilin tamamı
 - Bütçe kaydırıcısı — mekanın ana ürün ortalamasına göre süzme
 - Ucuz / orta / pahalı bandı — kendi türündeki mekanlara göre, kanıt varsa

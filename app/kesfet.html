@@ -141,6 +141,12 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
   .kart .tutar.eski{color:var(--metin-3)}
   .kart .tutar .eski-not{font-size:11px;color:var(--sari);margin-left:4px;
     font-weight:700;letter-spacing:.02em}
+  /* Zincir menusunden gelen fiyat. Olculdu: fiyati gosterilen 163 mekan
+     yalniz 53 farkli isletme; 94'u Domino's subesi. Isaret ROZET DEGIL,
+     rakamin kendisinin isareti -- "eski" ile ayni gerekce: kartta zaten
+     uc rozet var. */
+  .kart .tutar .zincir-not{font-size:11px;color:var(--metin-3);margin-left:4px;
+    font-weight:700;letter-spacing:.02em}
   .kart .meta{display:flex;gap:var(--a2);flex-wrap:wrap;align-items:center;margin-top:var(--a2)}
   .kart .meta > span{font-size:13px;color:var(--metin-3)}
 
@@ -276,6 +282,9 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
      kac aylik bir sayiya baktigini gormeli. Bir yildan eskisi zaten
      gosterilmiyor (ortak.js FIYAT_SON_AY). */
   .uyari.eski{border-left-color:var(--sari);color:var(--metin-2)}
+  /* Zincir menusu: rakam dogru ama SUBEYE OZEL DEGIL. Sari degil notr
+     bir serit -- bu bir uyari degil, bir kaynak aciklamasi. */
+  .uyari.zincir{border-left-color:var(--cizgi-2);color:var(--metin-2)}
   @media (max-width:620px){
     dialog#detay{
       max-width:none;width:100%;margin:0 0 auto;position:fixed;bottom:0;top:auto;

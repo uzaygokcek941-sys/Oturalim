@@ -639,6 +639,89 @@ def kendini_kontrol_et():
                     sorunlar.append("Konum alinamayinca sehir secici acilmiyor")
             sf.close()
 
+            # 1c1) ZINCIR MENUSUNDEN GELEN FIYAT ISARETLENIYOR MU,
+            #      ve isaret IL DEGISINCE TAZELENIYOR MU.
+            #
+            # Olculdu: menu fiyati gosterilebilen 163 mekan yalniz 53
+            # FARKLI ISLETME; 94'u Domino's subesi. Ayni ilde cok subeli
+            # 113 mekanin hicbirinde subeler arasi fiyat farki yok --
+            # yani tek kazima 56 ayri olcum gibi listeleniyordu.
+            #
+            # Buradaki sessiz kusur SAYININ KENDISI: zincir haritasi il
+            # basina bir kez kuruluyor ve il degisiminde yenilenmezse
+            # ekranda Ankara listesi + Istanbul sayilari kalir. Kart
+            # yine cizilir, yine "zincir" yazar, yalniz SAYI yanlis
+            # olur -- hicbir sey de bagirmaz.
+            sf, _ = sayfa_ac("/kesfet.html?il=34&bayrak=menu")
+            sf.wait_for_timeout(2600)
+            isaretli = sf.eval_on_selector_all(".kart .tutar .zincir-not", "n => n.length")
+            tutarli = sf.eval_on_selector_all(".kart .tutar", "n => n.length")
+            if not tutarli:
+                sorunlar.append("kesfet: 'fiyati olan' suzgeci hic kart vermedi")
+            elif not isaretli:
+                sorunlar.append("kesfet: 34'te hicbir fiyat zincir diye isaretlenmemis "
+                                "(%d kartin hepsi kendi menusu mu?)" % tutarli)
+
+            # Detay paneli TAM CUMLEYI vermeli: karar orada veriliyor.
+            if isaretli:
+                sf.click(".kart:has(.zincir-not) >> nth=0")
+                sf.wait_for_timeout(900)
+                uy = sf.inner_text("#d-govde")
+                if "şubesi listelenen bir zincirin menüsünden" not in uy:
+                    sorunlar.append("kesfet detay: zincir fiyatinin dayanagi yazmiyor")
+                if "şubeye özel değil" not in uy:
+                    sorunlar.append("kesfet detay: 'subeye ozel degil' uyarisi yok")
+                sf.keyboard.press("Escape")
+                sf.wait_for_timeout(300)
+
+            # HARITA IL DEGISINCE YENIDEN KURULMALI.
+            #
+            # Ikinci il olarak IZMIR seciliyor, Ankara DEGIL: olculdu,
+            # Ankara'nin 6 fiyatli mekaninin hicbiri zincir degil, yani
+            # orada "isaret yok" DOGRU sonuc ve kontrol bozuk kodda da
+            # gecerdi -- bos listeyi bos listeyle karsilastirmak hicbir
+            # sey olcmez. Izmir'de 12 fiyatli mekanin 10'u zincir.
+            #
+            # Boylece iki ayri kusur da yakalaniyor:
+            #   harita hic kurulmuyorsa      -> Izmir'de isaret cikmaz
+            #   bir kez kurulup birakildiysa -> Istanbul haritasi Izmir
+            #                                   adlarini tanimaz, yine cikmaz
+            sf.select_option("#il", "35")
+            sf.wait_for_timeout(2600)
+            izmirTutar = sf.eval_on_selector_all(".kart .tutar", "n => n.length")
+            basliklar = sf.eval_on_selector_all(
+                ".kart .tutar .zincir-not",
+                "n => n.map(x => x.closest('.tutar').getAttribute('title') || '')")
+            if not izmirTutar:
+                sorunlar.append("kesfet: il 35'e gecince hic fiyatli kart kalmadi")
+            elif not basliklar:
+                sorunlar.append("kesfet: 35'te %d fiyatli kartin hicbiri isaretli degil"
+                                % izmirTutar)
+            else:
+                # DEGISMEZ: bir subenin sayisi, O ANDA YUKLU ILDEKI fiyatli
+                # mekan sayisini ASAMAZ. Ayni ilde 12 fiyatli mekan varken
+                # "56 subede ayni menu" demek, sayinin baska bir ilden
+                # kaldigini soyler.
+                #
+                # ILK YAZIMDA "35'te hic isaret var mi" diye bakiyordu ve
+                # SABOTAJ KACTI: harita bir kez kurulup birakilinca Izmir'in
+                # Domino's subeleri Istanbul haritasinda ZATEN vardi, yani
+                # isaret cikiyordu -- yalniz sayi 56 idi, 3 degil. Kusur
+                # "isaret yok" degil "sayi yanlis"ti; kontrol de artik
+                # SAYIYA bakiyor.
+                import re as _re
+                for b in basliklar:
+                    e = _re.search(r"([\d.]+) şubede", b)
+                    if not e:
+                        continue
+                    n = int(e.group(1).replace(".", ""))
+                    if n > izmirTutar:
+                        sorunlar.append(
+                            "kesfet: 35'te '%d şubede' yaziyor ama ilde %d fiyatli mekan "
+                            "var — zincir haritasi eski ilden kalmis" % (n, izmirTutar))
+                        break
+            sf.close()
+
             # 1c2) BUTCE GIRISLI ANA EKRAN: rakam, ne kadarinin
             #      OLCULDUGUNU soylemeden ekrana cikmamali.
             #

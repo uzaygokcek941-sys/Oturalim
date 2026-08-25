@@ -1368,6 +1368,100 @@ Kullanıcı türü kendi seçtiyse "aynı türden üç tane önerme" çeşitlend
 - **Bütçe hâlâ sunucuya gitmiyor.** Yalnız `localStorage`; akran sorgusu
   bir *tavan* gönderiyor, kişiyi değil.
 
+## 2026-08-25 — Fiyat kaç ölçümden geliyor? (163 mekan = 53 işletme)
+
+Yol haritasındaki **fiyat güven skoru** için önce hangi sinyallerin
+gerçekten değiştiğine bakıldı. İki aday da çöktü, üçüncüsü ürünü
+değiştirdi.
+
+### Yaş ekseni boş, kalem ekseni yanıltıcı
+
+**Yaş:** menüsü olan **264 mekanın 264'ü de 0-2 aylık.** Yaşa dayalı bir
+skor bugün herkesi yeşile boyar ve hiçbir şey söylemez.
+
+**Kalem sayısı:** dağılım 2-4 → 19, 5-14 → 24, 15+ → 120 görünüyordu ve
+"15+ kalemden çıkan ortalama sağlamdır" demek mantıklıydı. Ama o 120
+mekan yalnız **17 farklı ad** taşıyor.
+
+### Asıl ölçüm
+
+| | |
+|---|---|
+| Menü fiyatı gösterilebilen mekan | **163** |
+| Bu 163 mekan kaç işletme | **53** |
+| Domino's şubesi | **94** (%58) |
+| Papa John's | **10** |
+| Aynı ilde çok şubeli mekan | **113** (%69) |
+| Bu 113'ün kaçında şubeler farklı fiyatlı | **0** |
+
+Yani menü **bir kez** kazınmış ve **56 ayrı ölçümmüş gibi**
+gösteriliyordu. Bu, tek fişi mekanın fiyatı saymakla aynı hata — depoda
+o hata `FIS_ESIK` ile kapatılmıştı ("tek fiş bir kişinin o günkü
+seçimidir, mekanın fiyatı değil"). Aynı gerekçe burada da geçerli.
+
+Gerçekten **ayrışan** tek eksen buydu: fiyat bu mekanın kendi menüsünden
+mi geliyor (**50 mekan, %31**) yoksa şubelerle paylaşılan bir zincir
+menüsünden mi (**113 mekan, %69**).
+
+### Ne yapıldı
+
+Rakam **kaldırılmadı** — rakam gerçek. Neye dayandığı yazıldı:
+
+- **Kartta** rakamın kendisi işaretleniyor (`~243 ₺ zincir`) — rozet
+  değil, "eski" işaretiyle aynı gerekçe: kartta zaten üç rozet var ve
+  dördüncüsü asıl bilgiyi boğar.
+- **Detay panelinde ve mekan sayfasında** tam cümle: *"Bu fiyat, aynı
+  ilde 3 şubesi listelenen bir zincirin menüsünden geliyor — tek bir
+  menüden. Şubeler farklı fiyatlandırma yapabiliyor, o yüzden bu rakam
+  şubeye özel değil."*
+- **Ana sayfada** kalibrasyon satırı: *"o 291 mekan 93 işletme."*
+
+Ölçüldü: İstanbul'da "fiyatı olan" süzgeci **102 kart** veriyor ve
+bunların **76'sı (%75)** zincir menüsünden.
+
+"Kendi menüsünden" halinde **susuluyor**: her mekan sayfasına "bu fiyat
+kendi menüsünden" yazmak, hiçbir şey söylemeyen bir satırı 35.852 kez
+basmak olurdu. Satır yalnız kullanıcının bilmediğinde yanılacağı hâlde
+çıkıyor.
+
+### Ad eşleştirmesinde `sade()` kullanılmadı
+
+`kesfet.js`'teki `sade()` arama için yazıldı ve Türkçe harfleri de
+düşürüyor (`Çınar` → `cinar`). Arama için doğru, burada tehlikeli: iki
+**ayrı** işletmeyi aynı zincir sayıp birinin fiyatına "12 şubede aynı"
+yazdırabilir. Burada az eşleştirmek çok eşleştirmekten iyi.
+
+Anahtarda **fiyat da var**: aynı adı taşıyan ama ayrı ayrı kazınmış
+(dolayısıyla farklı fiyatlı) iki yer, iki ayrı ölçümdür.
+
+### Yol boyunca: `vitrin_uret.py` çoktan kırılmıştı
+
+İşletme sayısını üretmek için `vitrin_uret.py` çalıştırıldığında betik
+`KeyError: 'iller'` ile durdu — **benim değişikliğimden önce de.** Sebep:
+`index.json` bir il dosyası değil ama `veri_bicim.coz()`'den geçiriliyordu
+ve `coz()` tanımadığı biçimi **sessizce boş bir il** olarak döndürüyordu.
+
+Yani `vitrin.json` bir süredir üretilemiyordu ve bunu hiçbir şey
+söylemiyordu — üstelik `test.py` hata verdiğinde "`vitrin_uret.py`
+çalıştır" diye yol gösteriyor, yani çöken bir komuta yönlendiriyordu.
+
+`coz()` artık tanımadığı biçimde **hata veriyor** (`kodla()` zaten
+bilinmeyen alanda hata veriyordu; ikisi simetrik oldu). `coz()`'ü çağıran
+diğer dört betik zaten dosya adını rakamla süzüyor, etkilenmiyorlar.
+
+### Doğrulama
+
+`ortak.js` öz kontrolleri **229 → 243**; `test.py`'ye "fiyat kaç ölçümden
+geldiğini söylüyor" grubu eklendi. Altı sabotajın altısı da yakalandı —
+aralarında "zincir haritası kart başına kuruluyor" (2.300 kartlık listede
+2.300 kez ili taramak) ve "anahtardan fiyat çıktı" (ayrı kazımalar
+birleşir) var.
+
+Sabotaj koşumu ilk yazımda **kendi hatası yüzünden hiç ölçmemişti**: aynı
+süreçte `importlib.reload` ile denendiğinde stdlib'in kendi `test` paketi
+araya girdi ve kontrol çalışmadan `AttributeError` verdi. Her tur artık
+ayrı bir süreçte koşuyor.
+
 ## Yapılmayacaklar
 
 | Yapma | Neden |

@@ -106,6 +106,21 @@ def coz(d):
     bir depo calismaya devam ediyor."""
     if "mekanlar" in d:
         return d
+    # TANINMAYAN BICIM SESSIZCE BOS DONMEZ. Onceki hali "sutun" da yoksa
+    # {"il": None, "mekanlar": []} donuyordu; yani il dosyasi olmayan bir
+    # sozluk (ornegin index.json) hicbir sey soylemeden BOS bir ile
+    # cevriliyordu.
+    #
+    # Bu gercekten oldu: vitrin_uret.py index.json'i bu fonksiyondan
+    # geciriyordu ve "iller" anahtari sessizce dusuyordu. Betik
+    # KeyError ile duruyordu -- yani vitrin.json'u kimse
+    # uretemiyordu, ustelik test.py "vitrin_uret.py calistir" diye
+    # yol gosteriyordu. kodla() bilinmeyen alanda zaten hata veriyor;
+    # coz() de simetrik olsun.
+    if "sutun" not in d:
+        raise ValueError(
+            "il dosyasi bicimi degil: ne 'mekanlar' ne 'sutun' var (anahtarlar: %s)"
+            % ", ".join(sorted(d)[:6]))
     sutun = d.get("sutun") or {}
     n = len(sutun.get("id") or [])
     mekanlar = []

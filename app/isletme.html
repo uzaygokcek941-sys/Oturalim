@@ -176,6 +176,14 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
      diyor, isaretlemezsek o cumle yalan olur. */
   .bilgi dd .kaynak-katki{font-size:.72rem;letter-spacing:.06em;
      text-transform:uppercase;color:var(--soluk);margin-left:.5rem}
+  /* Fiyatin kac olcumden geldigi. "kullanicidan" isaretiyle ayni bicim:
+     ikisi de rakamin KAYNAGINI soyluyor, ikisi de rakamin kendisi kadar
+     one cikmamali. */
+  .bilgi dd .kaynak-zincir{font-size:.72rem;letter-spacing:.06em;
+     text-transform:uppercase;color:var(--soluk);margin-left:.5rem}
+  .dayanak{font-size:.85rem;color:var(--soluk);line-height:1.55;
+     margin-top:var(--a3);padding-left:var(--a3);
+     border-left:2px solid var(--cizgi-2)}
 
   .sahiplen{display:inline-block;margin-top:var(--a4)}
   .kaynak{font-size:.85rem;color:var(--soluk);margin-top:var(--a5);
@@ -207,6 +215,9 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
   </section>
 
   <dl class="bilgi" id="bilgi"></dl>
+  <!-- Fiyatin kac olcumden geldigi. Bilgi listesinde yalniz kisa etiket
+       var ("56 subede ayni menu"); NEDEN onemli oldugu burada yaziyor. -->
+  <p class="dayanak" id="dayanak" hidden></p>
 
   <section class="fis" id="fis" hidden>
     <h2>Buraya gidenler ne ödemiş</h2>
@@ -449,7 +460,7 @@ function goster(m, ilAd){
   document.getElementById("nerede").textContent =
     [m.adres, ilAd].filter(Boolean).join(" · ");
 
-  const sv = seviye(m);
+  const sv = seviye(m), dy = fiyatDayanagi(m, zincir);
   /* Sema yoksa https varsayiliyor. "javascript:..." gibi bir deger http ile
      baslamadigi icin "https://javascript:..." olur ve zararsiz kalir --
      kacir() ayrica tirnak kaciriyor. */
@@ -477,8 +488,17 @@ function goster(m, ilAd){
        katkisindan da gelebiliyor. */
     ...sosyalListe(m).map(x => [x.ad, x.bag, "sosyal"]),
     /* yalniz OLCULEN fiyat gosterilir. Mutfaktan tahmin edilen "hesapli",
-       asagidaki "fiyat bilgisi yok" satiriyla ayni sayfada celisiyordu. */
-    ["Fiyat",   sv && sv.olculdu ? kacir(sv.ad) : "", null],
+       asagidaki "fiyat bilgisi yok" satiriyla ayni sayfada celisiyordu.
+
+       RAKAMIN YANINDA NEYE DAYANDIGI: olculdu, fiyati gosterilen 163
+       mekan yalniz 53 farkli isletme ve 94'u tek bir zincirin subesi.
+       Ayni ilde cok subeli 113 mekanin hicbirinde subeler arasi fiyat
+       farki yok -- yani tek kazima 56 olcum gibi duruyordu. Tek fisi
+       mekanin fiyati saymakla ayni hata (FIS_ESIK). */
+    ["Fiyat",   sv && sv.olculdu
+      ? kacir(sv.ad) + (dy && dy.sinif === "zincir"
+          ? ' <span class="kaynak-zincir">' + kacir(dy.ad) + "</span>" : "")
+      : "", null],
     ["Bahçe",   m.bahce ? "var" : "",        null],
     ["Wi-Fi",   m.wifi  ? "var" : "",        null]
   ].filter(s => s[1]);
@@ -487,6 +507,19 @@ function goster(m, ilAd){
     (s[2] && m._katki && m._katki.has(s[2])
       ? '<span class="kaynak-katki">kullanıcıdan</span>' : "") +
     "</dd></div>").join("");
+
+  /* Zincir menusunden gelen fiyatta tam cumle. "Kendi menusunden"
+     halinde SUSULUYOR: her mekan sayfasina "bu fiyat kendi menusunden"
+     yazmak, hicbir sey soylemeyen bir satiri 35.852 kez basmak olurdu.
+     Satir yalniz kullanicinin bilmediginde YANILACAGI halde cikiyor. */
+  const dSatir = document.getElementById("dayanak");
+  if (dy && dy.sinif === "zincir"){
+    dSatir.textContent = dayanakCumlesi(dy);
+    dSatir.hidden = false;
+  } else {
+    dSatir.textContent = "";
+    dSatir.hidden = true;
+  }
 
   const eksik = eksikleriBul(m);
   const giris = document.getElementById("eksikGiris");
@@ -757,6 +790,10 @@ if (!ID || !IL || IL === "00"){
       /* Ilin tamami civar kutusu icin duruyor: mekanin cevresinde ne
          oldugunu bilmenin baska yolu yok, koordinatlar yalniz burada. */
       ilMekanlari = d.mekanlar || [];
+      /* Zincir haritasi il listesinden cikiyor: fiyatin kac subede AYNI
+         oldugunu bilmenin baska yolu yok. Il yuklenmeden hesaplanamaz,
+         o yuzden burada. */
+      zincir = zincirHaritasi(ilMekanlari);
       goster(m, d.il);
     })
     .catch(() => { document.getElementById("hata").hidden = false; });
@@ -1226,6 +1263,7 @@ async function fisKatmani(mekanId, mekanAd, ilKod){
    cunku veride yok (35.852 mekanda 49 tane, %0,14).
    ============================================================ */
 let ilMekanlari = [];
+let zincir = null;
 
 async function civarKatmani(m){
   const o = civarOzeti(m, ilMekanlari);

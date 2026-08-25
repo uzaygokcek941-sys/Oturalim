@@ -11,10 +11,23 @@ def yukle(yol):
     with open(yol, encoding="utf-8") as f:
         return veri_bicim.coz(json.load(f))
 
-ix = yukle(os.path.join(KOK, "index.json"))
+# index.json BIR IL DOSYASI DEGIL: il listesi tasiyor, mekan degil. yukle()
+# onu veri_bicim.coz()'den gecirir ve "iller" anahtari dusurdu -- betik
+# KeyError ile duruyordu, yani vitrin.json UZUN SUREDIR uretilemiyordu ve
+# bunu hicbir sey soylemiyordu (test.py yalniz "calistir" diyor).
+# coz() artik taninmayan bicimde hata veriyor; burasi da dogru dosyayi
+# dogru sekilde okuyor.
+with open(os.path.join(KOK, "index.json"), encoding="utf-8") as f:
+    ix = json.load(f)
 il_ad = {i["kod"]: i["ad"] for i in ix["iller"]}
 
 toplam = fiyatli = kalem = 0
+# Menusu olan mekan sayisi ile ISLETME sayisi ayri seyler. Olculdu: 291
+# menulu mekan yalniz 93 farkli ad; Domino's tek basina 94 sube, Kahve
+# Dunyasi 73. Yani "291 mekanin menusu var" cumlesi, arkasinda 93 kazima
+# oldugunu saklıyor. Sayi burada uretiliyor cunku bu bir AD sayimi --
+# fiyat kurali (ortak.js yemekFiyati) Python'a kopyalanmiyor.
+markalar = set()
 tur_say, ornekler = {}, []
 
 # Klasordeki her JSON il dosyasi degil: fiyat_olcut.json gibi yan ciktilar
@@ -29,6 +42,7 @@ for kod in sorted(d["kod"] for d in ix["iller"]):
         if not m.get("menu"):
             continue
         fiyatli += 1
+        markalar.add(" ".join(m["ad"].split()).lower())
         kalem += len(m["menu"])
         ornekler.append({
             "il": kod, "ilAd": il_ad.get(kod, kod), "ad": m["ad"], "tur": m["tur"],
@@ -74,6 +88,7 @@ cikti = {
     "toplam": toplam,
     "il": len(ix["iller"]),
     "fiyatliMekan": fiyatli,
+    "fiyatliMarka": len(markalar),
     "kalem": kalem,
     "turler": sorted(tur_say.items(), key=lambda a: -a[1]),
     "vitrin": vitrin,
@@ -83,7 +98,8 @@ with open(yol, "w", encoding="utf-8") as f:
     json.dump(cikti, f, ensure_ascii=False, separators=(",", ":"))
 
 print("yazildi:", yol)
-print("toplam %d mekan / %d il / fiyatli %d / kalem %d" % (toplam, cikti["il"], fiyatli, kalem))
+print("toplam %d mekan / %d il / fiyatli %d (%d isletme) / kalem %d"
+      % (toplam, cikti["il"], fiyatli, len(markalar), kalem))
 print("turler:", cikti["turler"])
 print("vitrin aday havuzu: %d mekan (eleme ve siralama tarayicida)" % len(vitrin))
 

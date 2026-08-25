@@ -29,6 +29,7 @@ const TR_SADE = { "ç":"c","ğ":"g","ı":"i","ö":"o","ş":"s","ü":"u",
 const sade = s => (s || "").replace(/[çğıöşüâîûÇĞİIÖŞÜÂÎÛ]/g, c => TR_SADE[c]).toLowerCase();
 
 /* ---------- durum ---------- */
+let zincir = null;
 let mekanlar = [],
     turler   = new Set(P.getAll("tur").filter(Boolean)),
     bayraklar= new Set(P.getAll("bayrak").filter(Boolean)),
@@ -134,7 +135,8 @@ function ilAdi(){
 /* ---------- çizim ---------- */
 function kartHTML(m){
   const a = acikMi(m.saat), b = bant(m, butce), o = paylasimOzet(m.id),
-        sv = seviye(m), mb = mekanBandi(m, cizimIl), yas = fiyatYasEtiketi(m);
+        sv = seviye(m), mb = mekanBandi(m, cizimIl), yas = fiyatYasEtiketi(m),
+        dy = fiyatDayanagi(m, zincir);
   /* Mesafe cetveli icin 0-1 arasi deger, GORUNEN listeye gore olceklenir.
      Sabit tavan (5 km) ise yaramiyor: sehir merkezinde ilk 120 mekan
      700 m icinde kaliyor, butun centikler ayni uzunlukta cikiyordu.
@@ -151,12 +153,27 @@ function kartHTML(m){
        zaten uc rozet var ve dordunculeri asil bilgiyi bogar. */
     (yemekFiyati(m) != null
       ? '<span class="tutar' + (yas && yas.eski ? " eski" : "") + '"' +
-        (yas ? ' title="' + kacir(yas.ad + " tarihinde derlendi") + '"' : "") +
+        (yas || dy ? ' title="' + kacir(
+          [yas ? yas.ad + " tarihinde derlendi" : "",
+           dy && dy.sinif === "zincir" ? dy.ad : ""].filter(Boolean).join(" · ")) + '"' : "") +
         ">~" + tl(yemekFiyati(m)) +
         /* Isaret CSS ::after ile degil GERCEK METIN: ekran okuyucu
            uretilmis icerigi guvenilir bicimde okumuyor ve title
            oznitelik tek basina yeterli degil. */
-        (yas && yas.eski ? '<small class="eski-not">eski</small>' : "") +
+        /* Bosluk GERCEK METIN olarak duruyor: margin-left gorsel ayrimi
+           veriyor ama ekran okuyucu "243 ₺eski" diye tek parca okuyordu. */
+        (yas && yas.eski ? ' <small class="eski-not">eski</small>' : "") +
+        /* ZINCIR ISARETI. Olculdu: fiyati gosterilen 163 mekan yalniz 53
+           farkli isletme; 94'u Domino's subesi ve ayni ilde cok subeli
+           113 mekanin hicbirinde subeler arasi fiyat farki yok. Yani tek
+           kazima 56 ayri olcum gibi listeleniyordu.
+
+           ROZET DEGIL, RAKAMIN KENDISININ ISARETI -- "eski" ile ayni
+           gerekce: kartta zaten uc rozet var ve dorduncusu asil bilgiyi
+           bogar. Isaret GERCEK METIN, ::after degil: ekran okuyucu
+           uretilmis icerigi guvenilir okumuyor. */
+        (dy && dy.sinif === "zincir"
+          ? ' <small class="zincir-not">zincir</small>' : "") +
         "</span>" : "") +
     '</div><div class="meta"><span>' + kacir(m.tur) + "</span>" +
     (a === true  ? '<span class="rozet acik">açık</span>' : "") +
@@ -821,12 +838,20 @@ function ac(id){
         (yas.eski ? "⚠ " : "") + kacir(yas.ad) + " tarihinde derlendi" +
         (yas.eski ? " — güncelliğini yitirmiş olabilir." : ".") + "</p>"
       : "";
+    /* FIYAT KAC OLCUMDEN GELIYOR. Kartta yalnizca "zincir" isareti var;
+       panele acan kullanici karari burada veriyor, o yuzden tam cumle
+       burada. Olculdu: 163 fiyatli mekan 53 farkli isletme, 94'u tek bir
+       zincirin subesi ve subeler arasi fiyat farki YOK -- tek kazima 56
+       olcum gibi duruyordu. Cumle ortak.js'te (dayanakCumlesi). */
+    const dy = fiyatDayanagi(m, zincir);
+    const dayanakSatiri = dy && dy.sinif === "zincir"
+      ? '<p class="uyari zincir">' + kacir(dayanakCumlesi(dy)) + "</p>" : "";
     govde +=
       '<div class="d-menu-bas"><h3>Menü</h3><span>' + baslik + "</span></div>" +
       sirali.map(k =>
         '<div class="kalem' + (butce && k.f > butce ? " disi" : "") + '">' +
         "<span>" + kacir(k.a) + "</span><b>" + tl(k.f) + "</b></div>").join("") +
-      tarihSatiri +
+      tarihSatiri + dayanakSatiri +
       '<p class="uyari">İşletmenin kendi sitesinde yayımladığı fiyatlar. ' +
       "Ortalama hesap değildir, değişmiş olabilir.</p>";
   } else {
@@ -871,6 +896,11 @@ function ilYukle(kod, ilkAcilis){
        yerde -- ucuncu tuketici de ayni fonksiyonu cagiriyor. */
     const v = ilCoz(ham);
     mekanlar = v.mekanlar;
+    /* Zincir haritasi IL BASINA bir kez. Kart basina hesaplansa 2.300
+       kartlik listede 2.300 kez butun ili tarardi. Il degisince
+       yenilenmesi sart: Ankara listesiyle Istanbul haritasi, "56 subede
+       ayni menu" gibi yanlis bir sayi yazdirirdi. */
+    zincir = zincirHaritasi(mekanlar);
     olcutYukle();
     /* Fisler ile akran satiri AYNI ile ait: il degisince ikisi birden
        yenilenmezse ekranda Ankara listesi + Izmir akrani kalirdi. */
