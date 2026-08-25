@@ -87,17 +87,62 @@ begin
       if r.degisti <> 1 then raise exception 'BASARISIZ: 240 degisti % (1)', r.degisti; end if;
       if r.kisi    <> 3 then raise exception 'BASARISIZ: 240 kisi % (3)', r.kisi; end if;
     elsif r.fiyat = 480 then
-      -- 480'e YALNIZ bir kisi "degismis" demis. 240'in oylari buraya
+      -- 480'e YALNIZ bir kisi oy vermis. 240'in oylari buraya
       -- karismamali: karisirsa eski rakama verilen onay yeni rakami
-      -- dogrulamis olurdu.
+      -- dogrulamis olurdu. KISI SAYISI donuyor (arayuz "2 kisi daha"
+      -- cumlesini ondan kuruyor) ama DAGILIM donmuyor -- esik altinda
+      -- tek kisinin ne dedigi ifsa olurdu.
+      if r.kisi    <> 1 then raise exception 'BASARISIZ: 480 kisi % (1)', r.kisi; end if;
       if r.gecerli <> 0 then raise exception 'BASARISIZ: 480 gecerli % (0)', r.gecerli; end if;
-      if r.degisti <> 1 then raise exception 'BASARISIZ: 480 degisti % (1)', r.degisti; end if;
+      if r.degisti <> 0 then
+        raise exception 'BASARISIZ: esik alti dagilim sizdi (480 degisti %)', r.degisti;
+      end if;
     else
       raise exception 'BASARISIZ: beklenmeyen fiyat %', r.fiyat;
     end if;
   end loop;
   if n <> 2 then raise exception 'BASARISIZ: % satir dondu (2 bekleniyor)', n; end if;
   raise notice 'gecti: 240 -> 2 gecerli / 1 degisti, 480 ayri satir';
+end $$;
+
+\echo '--- 5b. ESIK SUNUCUDA: iki kisilik dagilim disari cikmiyor'
+-- BULGU. Esik once YALNIZ tarayicidaydi (ortak.js OY_ESIK / FIS_ESIK).
+-- anon anahtar tasarim geregi herkese acik, yani RPC'yi dogrudan
+-- cagiran biri ekranda gizlenen dagilimi okuyabilirdi. Gizlemeyi
+-- yalniz arayuze birakmak, k-anonimligi bir gorunum meselesine
+-- indirger. Ayni duzeltme mekan_fis_ozeti ve civar_fis_ozeti'nde de
+-- yapildi.
+reset role;
+insert into public.fiyat_oylari (kullanici, mekan_id, il, fiyat, gecerli) values
+  ('b1111111-1111-4111-8111-111111111111','node/2','34',300,true),
+  ('b2222222-2222-4222-8222-222222222222','node/2','34',300,false);
+set role anon;
+do $$
+declare r record;
+begin
+  select * into r from public.fiyat_oy_ozeti(array['node/2']);
+  if r.kisi <> 2 then raise exception 'BASARISIZ: kisi % (2)', r.kisi; end if;
+  if r.gecerli <> 0 or r.degisti <> 0 then
+    raise exception 'BASARISIZ: esik alti dagilim sizdi (% / %)', r.gecerli, r.degisti;
+  end if;
+  raise notice 'gecti: esik alti sayi var, dagilim yok';
+end $$;
+
+\echo '--- 5c. ESIK ASILINCA dagilim geliyor'
+-- Yalniz "gizliyor mu" diye bakmak yetmez: esigi 999 yapan bir
+-- degisiklik de 5b'yi gecirir ve ozelligi sessizce goturur.
+reset role;
+insert into public.fiyat_oylari (kullanici, mekan_id, il, fiyat, gecerli)
+  values ('b3333333-3333-4333-8333-333333333333','node/2','34',300,true);
+set role anon;
+do $$
+declare r record;
+begin
+  select * into r from public.fiyat_oy_ozeti(array['node/2']);
+  if r.kisi <> 3 then raise exception 'BASARISIZ: kisi % (3)', r.kisi; end if;
+  if r.gecerli <> 2 then raise exception 'BASARISIZ: gecerli % (2)', r.gecerli; end if;
+  if r.degisti <> 1 then raise exception 'BASARISIZ: degisti % (1)', r.degisti; end if;
+  raise notice 'gecti: uc kiside dagilim aciliyor';
 end $$;
 
 \echo '--- 6. BAYAT oy sayilmiyor (180 gun)'
@@ -147,6 +192,7 @@ begin
     raise exception 'BASARISIZ: test kendi listesini 500 kuramadi (%)', array_length(uzun, 1);
   end if;
   select count(*) into n from public.fiyat_oy_ozeti(uzun);
+  -- node/1'de iki fiyat (240, 480) var; node/2 listede degil.
   if n <> 2 then raise exception 'BASARISIZ: 500 elemanli listede % satir', n; end if;
   raise notice 'gecti: 500 eleman kabul ediliyor';
 end $$;
@@ -183,8 +229,9 @@ do $$
 declare n int;
 begin
   select count(*) into n from public.fiyat_oylari;
-  if n <> 2 then
-    raise exception 'BASARISIZ: b1 % satir goruyor (kendi 2 oyu bekleniyor)', n;
+  -- b1'in oylari: node/1@240, node/1@480, node/2@300.
+  if n <> 3 then
+    raise exception 'BASARISIZ: b1 % satir goruyor (kendi 3 oyu bekleniyor)', n;
   end if;
   select count(*) into n from public.fiyat_oylari
    where kullanici <> 'b1111111-1111-4111-8111-111111111111';
@@ -208,4 +255,4 @@ begin
 end $$;
 
 reset role;
-\echo '=== fiyat_oyu_test: 12 adimin hepsi gecti ==='
+\echo '=== fiyat_oyu_test: 14 adimin hepsi gecti ==='

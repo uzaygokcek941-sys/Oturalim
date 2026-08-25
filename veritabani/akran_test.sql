@@ -138,6 +138,24 @@ begin
   raise notice 'gecti: medyan 110, kisi basi';
 end $$;
 
+\echo '--- 7b. civar ozetinde de ESIK SUNUCUDA'
+-- 7. adim dort fisle kosuyor (esigin ustunde) ve esigi kaldiran bir
+-- degisiklik onu aynen gecerdi. Burada tek fisli bir civar
+-- sorgulaniyor: sayilar donmeli, TUTAR donmemeli.
+--
+-- Civar daha genis bir kume oldugu icin esigi gevsetmek cazip;
+-- gevsetilmiyor, cunku tek fisli bir civar da tek kisidir.
+do $$
+declare r record;
+begin
+  select * into r from public.civar_fis_ozeti(array['node/2']);
+  if r.fis <> 1 then raise exception 'BASARISIZ: civar fis % (1)', r.fis; end if;
+  if r.medyan is not null then
+    raise exception 'BASARISIZ: esik alti civar tutari sizdi (medyan %)', r.medyan;
+  end if;
+  raise notice 'gecti: tek fisli civar tutar vermiyor';
+end $$;
+
 \echo '--- 8. civar ozeti bos liste ve bilinmeyen mekan'
 do $$
 declare r record;
@@ -201,4 +219,4 @@ begin
 end $$;
 
 reset role;
-\echo '=== akran_test: 11 adimin hepsi gecti ==='
+\echo '=== akran_test: 12 adimin hepsi gecti ==='

@@ -285,8 +285,16 @@ as $$
   )
   select count(*)::int,
          count(distinct kullanici)::int,
-         round(percentile_cont(0.5) within group
-               (order by tutar / greatest(kisi, 1)))::numeric
+         -- K-ANONIMLIK ESIGI SUNUCUDA (3, ortak.js FIS_ESIK ile ayni).
+         -- Esigin altinda SAYILAR donuyor ama TUTAR donmuyor: arayuz
+         -- "2 tane daha gelince gorunecek" cumlesini sayidan kuruyor,
+         -- tutara ihtiyaci yok. Onceden esik YALNIZ tarayicidaydi ve
+         -- anon anahtar tasarim geregi herkese acik -- RPC'yi dogrudan
+         -- cagiran biri tek kisinin harcamasini okuyabiliyordu.
+         case when count(*) >= 3
+              then round(percentile_cont(0.5) within group
+                         (order by tutar / greatest(kisi, 1)))::numeric
+         end
   from son;
 $$;
 revoke all on function public.mekan_fis_ozeti(text) from public;

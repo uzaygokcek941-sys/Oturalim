@@ -1221,6 +1221,73 @@ def guven_skoru_mu():
     return s
 
 
+def esik_iki_tarafta_ayni_mi():
+    """k-anonimlik esigi TARAYICI ile SUNUCUDA ayni mi.
+
+    BULGU: esik once YALNIZ tarayicidaydi. ortak.js fisGoster() tutari
+    gizliyordu ama mekan_fis_ozeti(), civar_fis_ozeti() ve (ilk yazimda)
+    fiyat_oy_ozeti() rakami oldugu gibi donduruyordu. anon anahtar
+    TASARIM GEREGI herkese acik -- yani RPC'yi dogrudan cagiran biri
+    ekranda gizlenen sayiyi okuyabiliyordu. Gizlemeyi yalniz arayuze
+    birakmak, k-anonimligi bir gorunum meselesine indirger.
+
+    Esik artik uc SQL fonksiyonunda da var. Bu kontrol ikisinin
+    AYRISMASINI yakaliyor: tarayicidaki sayiyi 3'ten 5'e cikaran biri
+    sunucuyu 3'te birakirsa, arada kalan iki kayit icin sunucu hala
+    rakam veriyor demektir ve bunu hicbir sey soylemez.
+    """
+    s = []
+    okun = lambda *y: io.open(os.path.join(KOK, *y), encoding="utf-8").read()
+    ortak = _js_yorumsuz(okun("app", "ortak.js"))
+
+    def sabit(ad):
+        m = re.search(r"const %s\s*=\s*(\d+)" % ad, ortak)
+        return int(m.group(1)) if m else None
+
+    fis = sabit("FIS_ESIK")
+    oy = sabit("OY_ESIK")
+    if fis is None:
+        s.append("ortak.js: FIS_ESIK yok")
+    if oy is None:
+        s.append("ortak.js: OY_ESIK yok")
+
+    # SQL tarafi: her fonksiyonun icindeki esik.
+    hedefler = [
+        ("veritabani/sema.sql", "mekan_fis_ozeti", r"count\(\*\) >= (\d+)", fis),
+        ("veritabani/akran.sql", "civar_fis_ozeti", r"count\(\*\) >= (\d+)", fis),
+        ("veritabani/fiyat_oyu.sql", "fiyat_oy_ozeti",
+         r"count\(distinct o\.kullanici\) >= (\d+)", oy),
+    ]
+    for yol, fn, kalip, bekleyen in hedefler:
+        try:
+            govde = okun(*yol.split("/"))
+        except IOError:
+            s.append("%s yok" % yol)
+            continue
+        bulunan = set(re.findall(kalip, govde))
+        if not bulunan:
+            s.append("%s: %s() k-anonimlik esigi TASIMIYOR; "
+                     "RPC'yi dogrudan cagiran esik altini okuyabilir" % (yol, fn))
+            continue
+        if len(bulunan) > 1:
+            s.append("%s: %s() icinde birden cok esik (%s)"
+                     % (yol, fn, ", ".join(sorted(bulunan))))
+            continue
+        n = int(bulunan.pop())
+        if bekleyen is not None and n != bekleyen:
+            s.append("%s: %s() esigi %d ama ortak.js %d diyor — ayrismis"
+                     % (yol, fn, n, bekleyen))
+
+    # Tarayici tarafi hala yerinde mi: esik sunucuya tasindi diye
+    # istemcideki kontrol SILINMEMELI. Sunucu eski surumdeyse (kullanici
+    # SQL'i guncellemediyse) tek savunma o.
+    if "function fisGoster(o){" not in ortak:
+        s.append("ortak.js: fisGoster() yok — sunucu eski surumdeyken savunma kalmaz")
+    if "function oyKarari(oy){" not in ortak:
+        s.append("ortak.js: oyKarari() yok")
+    return s
+
+
 def sayfa_kontrolleri():
     """Sayfalari GERCEK tarayicida acar (test_sayfa.py).
 
@@ -1322,6 +1389,7 @@ def main():
     kayit("degismez: ana ekran butceyi olcum diye satmiyor", ana_ekran_butce_mi())
     kayit("degismez: fiyat kac olcumden geldigini soyluyor", fiyat_dayanagi_mi())
     kayit("degismez: guven skoru renk disinda da okunuyor", guven_skoru_mu())
+    kayit("degismez: k-anonimlik esigi sunucuda da var", esik_iki_tarafta_ayni_mi())
     kayit("degismez: kurulum dosyalari depoda", kurulum_dosyalari_izleniyor_mu())
     kayit("degismez: donus adresi ve gunun tarihi", adres_ve_tarih_mi())
     kayit("degismez: sir sizmamis", sirlar_sizmis_mi())

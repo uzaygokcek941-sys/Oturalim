@@ -119,8 +119,16 @@ begin
   return query
   select o.mekan_id,
          o.fiyat,
-         count(distinct o.kullanici) filter (where o.gecerli)::int,
-         count(distinct o.kullanici) filter (where not o.gecerli)::int,
+         -- ESIK SUNUCUDA (3, ortak.js OY_ESIK ile ayni). Esigin altinda
+         -- KISI SAYISI donuyor ama DAGILIM donmuyor: arayuz "1 kisi daha
+         -- soyleyince sonucu yazacagim" cumlesini sayidan kuruyor.
+         -- Dagilimi vermek, tek kisinin ne dedigini ifsa ederdi.
+         case when count(distinct o.kullanici) >= 3
+              then count(distinct o.kullanici) filter (where o.gecerli)::int
+              else 0 end,
+         case when count(distinct o.kullanici) >= 3
+              then count(distinct o.kullanici) filter (where not o.gecerli)::int
+              else 0 end,
          count(distinct o.kullanici)::int
     from public.fiyat_oylari o
    where p_mekan_idler is not null

@@ -183,6 +183,15 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
      text-transform:uppercase;color:var(--soluk);margin-left:.5rem}
   #guven{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;
      margin-top:var(--a2)}
+  .oy{margin-top:var(--a4);padding:var(--a4);border:1px solid var(--cizgi);
+      border-radius:var(--r);background:var(--zemin-2)}
+  .oy p{font-size:.95rem;line-height:1.55}
+  .oy-dugmeler{display:flex;gap:var(--a3);flex-wrap:wrap;margin-top:var(--a3)}
+  /* Dokunma hedefi 44 px: .dugme zaten min-height tasiyor, burada
+     yalniz dar ekranda yan yana sikismasinlar diye esit paylasiyorlar. */
+  .oy-dugmeler .dugme{flex:1 1 140px}
+  .oy-not{margin-top:var(--a3);font-size:.85rem;color:var(--soluk);min-height:1.2em}
+  .oy-not.kotu{color:var(--kirmizi)}
   .guven-neden{font-size:.85rem;color:var(--soluk)}
   .dayanak{font-size:.85rem;color:var(--soluk);line-height:1.55;
      margin-top:var(--a3);padding-left:var(--a3);
@@ -211,6 +220,17 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
        olculmus fiyat yok. Renk TEK BASINA bilgi tasimiyor -- yaninda
        metin ve gerekce var. -->
   <p id="guven" hidden></p>
+  <!-- Sosyal fiyat dogrulama: tek dokunus. Kutu YALNIZ ekranda gosterilecek
+       bir rakam varken aciliyor -- olmayan bir fiyat icin "hala gecerli mi"
+       diye sormak anlamsiz olurdu. -->
+  <section class="oy" id="oyKutu" hidden>
+    <p id="oyOzet"></p>
+    <div class="oy-dugmeler">
+      <button type="button" class="dugme ikincil" id="oyEvet">Hâlâ böyle</button>
+      <button type="button" class="dugme ikincil" id="oyHayir">Değişmiş</button>
+    </div>
+    <p class="oy-not" id="oyNot"></p>
+  </section>
   <p id="sayac" class="soluk" hidden></p>
 
   <!-- Fotograflar. Uc kaynak: dogrulanmis isletme sahibi, kullanici ve
@@ -568,6 +588,7 @@ function goster(m, ilAd){
   sayacCalistir(ID);
   fisKatmani(ID, m.ad, IL);
   civarKatmani(m);
+  oyKatmani(m, IL);
   yorumKatmani(ID, m.ad, IL);
   menuKatkiKatmani(ID, m.ad, IL);
   galeriKatmani(ID, m.ad, IL);
@@ -1253,14 +1274,86 @@ async function yorumKatmani(mekanId, mekanAd, ilKod){
    orada m yok. */
 let _guvenMekan = null;
 
-function guvenTazele(m, ozet){
+/* Fis ozeti ve oy ozeti AYRI ZAMANLARDA geliyor; ikisi de rozeti
+   etkiliyor. Son degerler saklanmasa, oy gelince fis unutulurdu (ya da
+   tersi) ve rozet iki agdan hangisi once dondugune gore degisirdi. */
+let _sonFisOzeti = null, _sonOyOzeti = null;
+
+function guvenTazele(m, ozet, oy){
   if (m) _guvenMekan = m;
+  if (ozet !== undefined) _sonFisOzeti = ozet;
+  if (oy !== undefined) _sonOyOzeti = oy;
   const kutu = document.getElementById("guven");
   if (!kutu || !_guvenMekan) return;
-  const g = fiyatGuveni(_guvenMekan, zincir, ozet);
+  const g = fiyatGuveni(_guvenMekan, zincir, _sonFisOzeti, _sonOyOzeti);
   kutu.innerHTML = guvenRozeti(g) +
     (g && g.neden ? ' <span class="guven-neden">' + kacir(g.neden) + "</span>" : "");
   kutu.hidden = false;
+}
+
+/* ---------- sosyal fiyat dogrulama ----------
+   "Bu fiyat hala gecerli mi" -- tek dokunus.
+
+   KUTU YALNIZ RAKAM VARKEN ACILIYOR: olmayan bir fiyat icin dogrulama
+   istemek, kullaniciya cevaplayamayacagi bir soru sormak olurdu.
+
+   OY EKRANDA GORULEN FIYATA VERILIYOR ve o rakam satira yaziliyor;
+   menu tazelenip fiyat degisirse eski oylar yeni rakami dogrulamis
+   sayilmiyor (sunucu da fiyata gore gruplu donuyor). */
+let _oyFiyat = null;
+
+async function oyKatmani(m, ilKod){
+  const kutu = document.getElementById("oyKutu");
+  if (!kutu) return;
+  const f = yemekFiyati(m);
+  if (f == null) return;                 /* gosterilecek rakam yok */
+  const K = window.Kimlik;
+  if (!K || !K.acik) return;             /* giris sistemi kapali */
+  _oyFiyat = f;
+
+  const ozet = document.getElementById("oyOzet");
+  const not = document.getElementById("oyNot");
+
+  async function tazele(){
+    let satirlar = null;
+    try { satirlar = await K.fiyatOyOzeti([m.id]); }
+    catch (e) { /* fiyat_oyu.sql kurulu degil: kutu hic cikmasin */ }
+    if (satirlar == null){ kutu.hidden = true; return; }
+    /* EKRANDA GOSTERILEN rakamin satiri seciliyor. Baska bir fiyata
+       verilmis oylar bu rakami dogrulamiyor. */
+    const o = satirlar.find(x => x.mekanId === m.id && x.fiyat === f) || null;
+    ozet.textContent = oyCumlesi(o);
+    kutu.hidden = false;
+    /* Rozet oyla birlikte degisiyor: uc kisi "degismis" derse rakam
+       kirmiziya donuyor. */
+    guvenTazele(null, _sonFisOzeti, o);
+    return o;
+  }
+
+  await tazele();
+
+  async function oyVer(gecerli){
+    if (!K.girisli){
+      location.href = "giris.html?donus=" + encodeURIComponent(location.href);
+      return;
+    }
+    const dugmeler = kutu.querySelectorAll("button");
+    dugmeler.forEach(d => { d.disabled = true; });
+    not.textContent = "Gönderiliyor…";
+    not.classList.remove("kotu");
+    try {
+      await K.fiyatOyuVer({ mekanId: m.id, il: ilKod, fiyat: _oyFiyat, gecerli });
+      not.textContent = "Teşekkürler, sayıldı.";
+      await tazele();
+    } catch (hata){
+      not.textContent = hata.message;
+      not.classList.add("kotu");
+      dugmeler.forEach(d => { d.disabled = false; });
+    }
+  }
+
+  document.getElementById("oyEvet").addEventListener("click", () => oyVer(true));
+  document.getElementById("oyHayir").addEventListener("click", () => oyVer(false));
 }
 
 async function fisKatmani(mekanId, mekanAd, ilKod){

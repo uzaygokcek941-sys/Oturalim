@@ -509,6 +509,55 @@ const Kimlik = {
                  medyan: o.medyan == null ? null : +o.medyan } : null;
   },
 
+  /* ---------- sosyal fiyat doğrulama ----------
+     "Bu fiyat hâlâ geçerli mi?" — tek dokunuş.
+
+     NEDEN VAR: menü fiyatı 35.852 mekanın 163'ünde var ve kazıma yolu
+     kapandı (CEBIMDE.md 2026-08-20). Fiş paylaşmak pahalı bir eylem
+     (tutar, kişi, tarih); bu ucuz olanı topluyor.
+
+     OY, OY VERİLEN FİYATA AİT. Kullanıcının gördüğü rakam satıra
+     yazılıyor: menü tazelenip fiyat değişirse eski oylar YENİ rakamı
+     doğrulamış sayılmıyor. Sunucu tarafı da aynı: fiyat_oy_ozeti()
+     fiyata göre gruplu dönüyor. */
+  async fiyatOyuVer(o){
+    if (!sb || !oturum) throw new Error("Doğrulamak için giriş yap.");
+    const { error } = await sb.from("fiyat_oylari").insert({
+      kullanici: oturum.user.id,
+      mekan_id: o.mekanId,
+      il: o.il || null,
+      fiyat: o.fiyat,
+      gecerli: !!o.gecerli
+    });
+    if (!error) return;
+    /* Tekil kısıt burada "bu fiyata zaten oy verdin" demek. hataMetni'nin
+       genel cümlesi kullanıcıya ne olduğunu anlatmazdı. */
+    const m = String(error.message || "").toLowerCase();
+    if (m.includes("unique") || m.includes("duplicate"))
+      throw new Error("Bu fiyata zaten oy verdin.");
+    throw new Error(hataMetni(error));
+  },
+
+  /* Mekanların oy özeti. Sayım SUNUCUDA çünkü "kaç KİŞİ" ile "kaç OY"
+     ayrı şeyler ve tarayıcı `kullanici` sütununu göremiyor (sema.sql).
+
+     Dönen şey mekan+fiyat kırılımlı; çağıran EKRANDA GÖSTERDİĞİ fiyata
+     ait satırı seçiyor. fiyat_oyu.sql kurulmamışsa çağrı hata döner ve
+     null'a düşüyor — çağıran bunu "özellik kapalı" diye okuyor. */
+  async fiyatOyOzeti(mekanIdler){
+    if (!sb || !mekanIdler || !mekanIdler.length) return null;
+    const { data, error } = await sb.rpc("fiyat_oy_ozeti",
+      { p_mekan_idler: mekanIdler });
+    if (error){ console.error("fiyat oyu:", error.message); return null; }
+    return (data || []).map(o => ({
+      mekanId: o.mekan_id,
+      fiyat: o.fiyat == null ? null : +o.fiyat,
+      gecerli: +o.gecerli || 0,
+      degisti: +o.degisti || 0,
+      kisi: +o.kisi || 0
+    }));
+  },
+
   /* ---------- ağ mekanikleri: bütçe akranları ve civar ----------
      İkisi de tarayıcıda hesaplanamıyor, çünkü ikisi de `kullanici`
      sütununa bakıyor ve o sütun anon'a kapalı (sema.sql "Sütun yetkisi").

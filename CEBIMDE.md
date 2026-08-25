@@ -1544,6 +1544,90 @@ ağlar kapalı), o yüzden harita kontrolü kaynak üzerinden yapılıyor ve
 olduğunu doğruluyor. Bir sınıf unutulursa o mekanların noktası renksiz
 çizilir ve haritada sessizce kaybolur.
 
+## 2026-08-25 — Sosyal fiyat doğrulama, ve bulunan bir k-anonimlik açığı
+
+Yol haritasının maddesi: **"bu fiyat hâlâ geçerli mi?"** — tek dokunuş.
+
+### Neden bu, neden şimdi
+
+Menü fiyatı gösterilebilen mekan sayısı **163** ve bu 163 mekan **53
+işletme**. Kazıma yolu kapandı (2026-08-20: üç ayrı ölçüm, sıfır kalem).
+Yani fiyat verisinin büyümesinin tek yolu kullanıcı.
+
+Fiş paylaşmak **pahalı** bir eylem: tutar, kişi sayısı, tarih. Bu katman
+**ucuz** olanı topluyor — kullanıcı ekranda gördüğü rakama "hâlâ böyle"
+ya da "değişmiş" diyor.
+
+### Oy, oy verilen fiyata ait
+
+Kullanıcının gördüğü rakam satıra yazılıyor. Menü tazelenip fiyat
+değişirse **eski oylar yeni rakamı doğrulamış sayılmıyor** — yoksa 240
+TL'ye verilen "hâlâ böyle" oyu, 480 TL'ye dönmüş bir menüyü doğrular hale
+gelirdi. Sunucu fiyata göre gruplu dönüyor, istemci gösterdiği rakamın
+satırını seçiyor. Tarayıcıda doğrulandı: başka bir fiyata verilmiş 9 oy,
+ekrandaki rakam için "ilk söyleyen sen ol" demeye devam ediyor.
+
+### Onay kuyruğu yok, eşik var
+
+Yorumda ön onay var çünkü orada hakaret riski var; burada gönderilen şey
+bir boolean. Kötüye kullanım biçimi farklı: **işletmenin kendi fiyatını
+"geçerli" diye oylaması.** Ona karşı savunma onay değil eşik — üç ayrı
+kullanıcı, sayımı sunucu yapıyor (kişi sayıyor, oy değil).
+
+Oy skoru değiştiriyor: eşik geçilip çoğunluk "hâlâ böyle" derse mekan
+**yeşil**, "değişmiş" derse **kırmızı** ve gerekçe yazılıyor.
+
+**Sınır bilerek burada:** "değişmiş" kararı rakamı ekrandan
+*kaldırmıyor*. Kaldırmak için bütçe süzgecinin de ağdan gelen bir cevabı
+beklemesi gerekirdi; süzgeç bugün saf ve eşzamanlı (statik veri üzerinde)
+ve onu ağa bağlamak listeyi her açılışta bekletirdi. Kullanıcı uyarıyı
+görüyor.
+
+---
+
+## Bulunan açık: k-anonimlik eşiği yalnız tarayıcıdaydı
+
+Kendi fonksiyonuma aynı deseni yazarken fark ettim.
+
+`ortak.js`'teki `fisGoster()` üç fişin altında tutarı **gizliyordu** — ama
+`mekan_fis_ozeti()` ve `civar_fis_ozeti()` rakamı olduğu gibi
+**döndürüyordu.** anon anahtar tasarım gereği herkese açık, yani RPC'yi
+doğrudan çağıran biri ekranda gizlenen sayıyı okuyabiliyordu: tek kişinin
+bir mekanda kişi başı ne ödediği.
+
+Gizlemeyi yalnız arayüze bırakmak, k-anonimliği bir **görünüm meselesine**
+indirger.
+
+### Ne yapıldı
+
+Eşik üç fonksiyonda da sunucuya taşındı:
+
+| Fonksiyon | Eşik altında dönen | Dönmeyen |
+|---|---|---|
+| `mekan_fis_ozeti` | fiş ve kişi sayısı | **tutar** |
+| `civar_fis_ozeti` | fiş, kişi, mekan sayısı | **tutar** |
+| `fiyat_oy_ozeti` | kişi sayısı | **dağılım** |
+
+Sayılar dönmeye devam ediyor çünkü arayüz *"2 tane daha gelince
+görünecek"* cümlesini onlardan kuruyor ve o cümle kimseyi ifşa etmiyor.
+
+**İstemci tarafındaki eşik silinmedi:** kullanıcı SQL'i güncellemediyse
+sunucu eski sürümde kalır ve tek savunma odur. `test.py` ikisinin
+ayrışmasını hata sayıyor — tarayıcıdaki sayıyı 5'e çıkarıp sunucuyu 3'te
+bırakan bir değişiklik, arada kalan iki kayıt için sessizce rakam
+verirdi.
+
+### Doğrulama
+
+Mevcut testler bu açığı **görmüyordu**: ikisi de eşiğin üstünde (üç ve
+dört fişle) koşuyordu, yani eşiği kaldıran bir değişiklik ikisini de
+aynen geçerdi. Her fonksiyona eşik altı bir adım eklendi ve üç sabotajın
+üçü de yakalandı (medyan 225, medyan 300, dağılım 1).
+
+`ortak.js` öz kontrolleri **262 → 279**; `test.py`'ye "k-anonimlik eşiği
+sunucuda da var" grubu eklendi (dört sabotaj); SQL takımı
+`fiyat_oyu_test.sql` ile 14 adım, `sahiplenme_test` 21, `akran_test` 12.
+
 ## Yapılmayacaklar
 
 | Yapma | Neden |

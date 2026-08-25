@@ -1156,7 +1156,55 @@ function dayanakCumlesi(d){
 
 const GUVEN_ADI = { yesil:"doğrulanmış", sari:"dolaylı", kirmizi:"fiyat yok" };
 
-function fiyatGuveni(m, harita, ozet, bugun){
+/* ---------- sosyal fiyat doğrulama ----------
+   "Bu fiyat hâlâ geçerli mi?" oylaması (veritabani/fiyat_oyu.sql).
+
+   EŞİK ÜÇ, FİŞ EŞİĞİYLE AYNI GEREKÇE: tek kişinin "değişmiş" demesi bir
+   kanı, üç ayrı kişininki bir sinyal. Sayım sunucuda (kişi sayıyor, oy
+   değil) çünkü tarayıcı aynı kişinin iki oyunu ayırt edemez.
+
+   OY EKRANDA GÖRÜLEN FİYATA AİT. Menü tazelenip rakam değişirse eski
+   oylar yeni rakamı doğrulamış sayılmıyor -- sunucu da fiyata göre
+   gruplu dönüyor, istemci de gösterdiği rakamın satırını seçiyor. */
+const OY_ESIK = 3;
+
+/* Oy özetinin okunabilir hali. Eşiğin altında SAYI VERİLMİYOR: iki
+   kişinin oyu bir mekanın fiyatı hakkında hüküm değil (k-anonimlik,
+   fiş eşiğiyle aynı desen) -- eşik yine katkı çağrısına dönüşüyor. */
+function oyCumlesi(oy){
+  if (!oy || !oy.kisi)
+    return "Bu fiyat hâlâ geçerli mi? İlk söyleyen sen ol.";
+  if (oy.kisi < OY_ESIK)
+    return sayi(OY_ESIK - oy.kisi) + " kişi daha söyleyince sonucu yazacağım.";
+  return oy.gecerli >= oy.degisti
+    ? sayi(oy.kisi) + " kişiden " + sayi(oy.gecerli) + "'i \"hâlâ böyle\" dedi."
+    : sayi(oy.kisi) + " kişiden " + sayi(oy.degisti) + "'i \"değişmiş\" dedi.";
+}
+
+/* Oy eşiği geçildi mi ve sonuç ne. null = hüküm yok. */
+function oyKarari(oy){
+  if (!oy || oy.kisi < OY_ESIK) return null;
+  return oy.gecerli >= oy.degisti ? "gecerli" : "degismis";
+}
+
+function fiyatGuveni(m, harita, ozet, oy, bugun){
+  /* OY EN GÜÇLÜ SİNYAL, çünkü ekranda YAZAN rakama veriliyor. Menü
+     kazıması işletmenin ilanı, fiş fiilen ödenen tutar; oy ise "bu
+     sayı bugün doğru mu" sorusunun doğrudan cevabı.
+
+     "Değişmiş" kararı rakamı EKRANDAN KALDIRMIYOR, KIRMIZIYA çeviriyor
+     ve gerekçeyi yazıyor. Kaldırmak için bütçe süzgecinin de ağdan
+     gelen bir cevabı beklemesi gerekirdi; süzgeç bugün saf ve eşzamanlı
+     (statik veri üzerinde) ve onu ağa bağlamak listeyi her açılışta
+     bekletirdi. Sınır bilerek burada: kullanıcı uyarıyı görüyor. */
+  const k = oyKarari(oy);
+  if (k === "degismis")
+    return { sinif:"kirmizi", ad:"fiyat değişmiş",
+             neden: sayi(oy.degisti) + " kişi \"değişmiş\" dedi" };
+  if (k === "gecerli")
+    return { sinif:"yesil", ad:GUVEN_ADI.yesil,
+             neden: sayi(oy.gecerli) + " kişi \"hâlâ böyle\" dedi" };
+
   /* Fiş katmanı önce: kullanıcıdan gelen fiyat, kazınmış menüden daha
      güçlü bir kanıt -- mekanın ilan ettiği değil, fiilen ödenen tutar. */
   if (fisGoster(ozet))
@@ -1776,42 +1824,42 @@ function kendiniKontrolEt(){
        (%0,32), kirmizi 35.689 (%99,55). Kirmizinin genisligi skorun
        kusuru degil verinin durumu; skorun isi tam olarak bunu soylemek. */
     ["guven kendi menusu yesil",
-      fiyatGuveni(_kendi, GH, null, g14).sinif,                     "yesil"],
+      fiyatGuveni(_kendi, GH, null, null, g14).sinif,                     "yesil"],
     ["guven kendi menusu gerekce",
-      /kendi menüsünden/.test(fiyatGuveni(_kendi, GH, null, g14).neden), true],
+      /kendi menüsünden/.test(fiyatGuveni(_kendi, GH, null, null, g14).neden), true],
     /* Zincir menusu SARI: rakam gercek ama subeye ozel degil. */
     ["guven zincir sari",
-      fiyatGuveni(ZIL[0], ZH, null, g14).sinif,                      "sari"],
+      fiyatGuveni(ZIL[0], ZH, null, null, g14).sinif,                      "sari"],
     ["guven zincir gerekcesi sube sayisi",
-      /3 şubede aynı menü/.test(fiyatGuveni(ZIL[0], ZH, null, g14).neden), true],
+      /3 şubede aynı menü/.test(fiyatGuveni(ZIL[0], ZH, null, null, g14).neden), true],
     /* Eskimis fiyat da SARI: rakam duruyor ama kesinligini kaybetti. */
     ["guven eski fiyat sari",
-      fiyatGuveni(_eski, GH, null, g14).sinif,                       "sari"],
+      fiyatGuveni(_eski, GH, null, null, g14).sinif,                       "sari"],
     ["guven eski gerekcesi",
-      /eskimiş/.test(fiyatGuveni(_eski, GH, null, g14).neden),        true],
+      /eskimiş/.test(fiyatGuveni(_eski, GH, null, null, g14).neden),        true],
     /* Olcum yoksa KIRMIZI -- tur tahmini rengi degistirmiyor, yalniz
        gerekceyi yaziyor. "hesapli gorunuyor" bir olcum degil. */
     ["guven olcumsuz kirmizi",
-      fiyatGuveni(_yok, GH, null, g14).sinif,                     "kirmizi"],
+      fiyatGuveni(_yok, GH, null, null, g14).sinif,                     "kirmizi"],
     ["guven tur tahmini yine kirmizi",
-      fiyatGuveni(_tahmin, GH, null, g14).sinif,                  "kirmizi"],
+      fiyatGuveni(_tahmin, GH, null, null, g14).sinif,                  "kirmizi"],
     ["guven tur tahmini gerekcede yaziyor",
-      /türünden tahmin/.test(fiyatGuveni(_tahmin, GH, null, g14).neden), true],
+      /türünden tahmin/.test(fiyatGuveni(_tahmin, GH, null, null, g14).neden), true],
     /* FIS YESILE CIKARIYOR: menusu hic olmayan bir mekan uc fisle
        yesil oluyor. Urunun tezi bu -- skor katki geldikce buyuyor. */
     ["guven fis yesile cikariyor",
-      fiyatGuveni(_yok, GH, {fis:3, medyan:300}, g14).sinif,        "yesil"],
+      fiyatGuveni(_yok, GH, {fis:3, medyan:300}, null, g14).sinif,        "yesil"],
     ["guven fis gerekcesi",
       /3 fişten doğrulandı/.test(
-        fiyatGuveni(_yok, GH, {fis:3, medyan:300}, g14).neden),      true],
+        fiyatGuveni(_yok, GH, {fis:3, medyan:300}, null, g14).neden),      true],
     /* ESIK ALTI FIS YESIL YAPMAZ: iki fis k-anonimlik esiginin altinda
        ve zaten rakam gostermiyor; rengi degistirmesi celiski olurdu. */
     ["guven esik alti fis yesil yapmaz",
-      fiyatGuveni(_yok, GH, {fis:2, medyan:300}, g14).sinif,      "kirmizi"],
+      fiyatGuveni(_yok, GH, {fis:2, medyan:300}, null, g14).sinif,      "kirmizi"],
     /* Harita YOKSA zincir bilinemez; skor yine calismali ama zincir
        oldugunu IDDIA ETMEMELI -- bilmedigi seyi sariya boyamasin. */
     ["guven haritasiz yine calisiyor",
-      fiyatGuveni(_kendi, null, null, g14).sinif,                  "yesil"],
+      fiyatGuveni(_kendi, null, null, null, g14).sinif,                  "yesil"],
     /* Rozet: renk TEK BASINA bilgi tasimamali. */
     /* GORUNEN metin araniyor, "dogrulanmis" gecen herhangi bir yer degil:
        ilk yazim /doğrulanmış/ diye bakiyordu ve title ozniteligi de ayni
@@ -1820,21 +1868,79 @@ function kendiniKontrolEt(){
        karistirilmisti). */
     ["guven rozeti GORUNEN metin tasiyor",
       /<span>doğrulanmış<\/span>/.test(
-        guvenRozeti(fiyatGuveni(_kendi, GH, null, g14))),            true],
+        guvenRozeti(fiyatGuveni(_kendi, GH, null, null, g14))),            true],
     ["guven rozeti gerekceyi title'a koyuyor",
       /title="[^"]*kendi menüsünden/.test(
-        guvenRozeti(fiyatGuveni(_kendi, GH, null, g14))),            true],
+        guvenRozeti(fiyatGuveni(_kendi, GH, null, null, g14))),            true],
     ["guven rozeti aria-label tasiyor",
       /aria-label="Fiyat güveni:/.test(
-        guvenRozeti(fiyatGuveni(_kendi, GH, null, g14))),            true],
+        guvenRozeti(fiyatGuveni(_kendi, GH, null, null, g14))),            true],
     /* Kisa hal yalniz noktayi basiyor ama aria-label yine tam. */
     ["guven rozeti kisa halde metin yok",
       /<span>doğrulanmış/.test(
-        guvenRozeti(fiyatGuveni(_kendi, GH, null, g14), true)),     false],
+        guvenRozeti(fiyatGuveni(_kendi, GH, null, null, g14), true)),     false],
     ["guven rozeti kisa halde de aria-label var",
       /aria-label="Fiyat güveni:/.test(
-        guvenRozeti(fiyatGuveni(_kendi, GH, null, g14), true)),      true],
+        guvenRozeti(fiyatGuveni(_kendi, GH, null, null, g14), true)),      true],
     ["guven rozeti bos girdi",  guvenRozeti(null),                     ""],
+
+    /* --- sosyal fiyat dogrulama: "bu fiyat hala gecerli mi" ---
+       Esik uc, fis esigiyle ayni gerekce: tek kisinin "degismis" demesi
+       bir kani, uc ayri kisininki bir sinyal. Esigin ALTINDA sayi
+       verilmiyor -- iki kisinin oyu bir mekanin fiyati hakkinda hukum
+       degil. */
+    ["oy yokken davet",
+      /İlk söyleyen sen ol/.test(oyCumlesi(null)),                     true],
+    ["oy sifirken davet",
+      /İlk söyleyen sen ol/.test(oyCumlesi({kisi:0})),                 true],
+    ["oy esik alti sayi vermiyor",
+      /kişiden/.test(oyCumlesi({kisi:2, gecerli:2, degisti:0})),      false],
+    ["oy esik alti kac kisi kaldigini soyluyor",
+      /1 kişi daha/.test(oyCumlesi({kisi:2, gecerli:2, degisti:0})),   true],
+    ["oy esikte sonucu yaziyor",
+      /3 kişiden 3'i "hâlâ böyle"/.test(
+        oyCumlesi({kisi:3, gecerli:3, degisti:0})),                    true],
+    ["oy cogunluk degismis derse onu yaziyor",
+      /4 kişiden 3'i "değişmiş"/.test(
+        oyCumlesi({kisi:4, gecerli:1, degisti:3})),                    true],
+    /* Karar: esik altinda HUKUM YOK. */
+    ["oy karari esik alti yok",  oyKarari({kisi:2, gecerli:2, degisti:0}), null],
+    ["oy karari yok girdi",      oyKarari(null),                       null],
+    ["oy karari gecerli",
+      oyKarari({kisi:3, gecerli:2, degisti:1}),                  "gecerli"],
+    ["oy karari degismis",
+      oyKarari({kisi:3, gecerli:1, degisti:2}),                 "degismis"],
+    /* Berabere GECERLI sayiliyor: "degismis" demek rakami kirmiziya
+       cevirmek, yani ekrandaki bilgiyi geri almak. Esit sinyalde
+       elimizdekini korumak, elimizdekini atmaktan iyi. */
+    ["oy karari berabere gecerli",
+      oyKarari({kisi:4, gecerli:2, degisti:2}),                  "gecerli"],
+
+    /* --- oy guven skorunu degistiriyor --- */
+    ["oy dogrulayinca YESIL",
+      fiyatGuveni(_yok, GH, null, {kisi:3, gecerli:3, degisti:0}, g14).sinif,
+                                                                    "yesil"],
+    ["oy dogrulayinca gerekce",
+      /3 kişi "hâlâ böyle" dedi/.test(
+        fiyatGuveni(_yok, GH, null, {kisi:3, gecerli:3, degisti:0}, g14).neden),
+                                                                       true],
+    /* "Degismis" karari, ZINCIR ya da KENDI menusu farketmeksizin
+       kirmiziya cekiyor: ekranda yazan rakama itiraz var. */
+    ["oy itiraz edince KIRMIZI",
+      fiyatGuveni(_kendi, GH, null, {kisi:3, gecerli:0, degisti:3}, g14).sinif,
+                                                                  "kirmizi"],
+    ["oy itiraz gerekcesi",
+      /3 kişi "değişmiş" dedi/.test(
+        fiyatGuveni(_kendi, GH, null, {kisi:3, gecerli:0, degisti:3}, g14).neden),
+                                                                       true],
+    /* Esik altindaki oy skoru DEGISTIRMEMELI: iki kisilik itiraz bir
+       mekanin fiyatini kirmiziya cekemez. */
+    ["oy esik alti skoru degistirmiyor",
+      fiyatGuveni(_kendi, GH, null, {kisi:2, gecerli:0, degisti:2}, g14).sinif,
+                                                                    "yesil"],
+    /* Oy yoksa eski davranis aynen duruyor. */
+    ["oysuz skor degismedi",
+      fiyatGuveni(ZIL[0], ZH, null, null, g14).sinif,                 "sari"],
 
     /* --- ana ekranin kategorileri ---
        Ciplerin turleri veride GERCEKTEN var olmali; yanlis yazilmis tek

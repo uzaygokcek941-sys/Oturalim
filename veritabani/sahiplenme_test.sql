@@ -271,6 +271,33 @@ begin
   if o.medyan <> 300 then raise exception 'BASARISIZ: medyan % , 300 olmaliydi', o.medyan; end if;
   raise notice 'gecti: % fis / % kisi / medyan %', o.fis, o.kisi, o.medyan;
 end $$;
+-- ESIK SUNUCUDA MI. Yukaridaki adim UC fisle kosuyor, yani esigin
+-- ustunde; esigi kaldiran bir degisiklik onu aynen gecerdi. Burada IKI
+-- fisli bir mekan sorgulaniyor: sayilar donmeli (arayuz "1 tane daha
+-- gelince gorunecek" cumlesini onlardan kuruyor) ama TUTAR donmemeli.
+--
+-- BULGU: esik once yalniz tarayicidaydi (ortak.js FIS_ESIK). anon
+-- anahtar tasarim geregi herkese acik, yani RPC'yi dogrudan cagiran
+-- biri ekranda gizlenen tutari okuyabiliyordu.
+reset role;
+insert into public.paylasimlar (kullanici, mekan_id, mekan_ad, il, tutar, kisi, tarih, durum)
+values ('11111111-1111-4111-8111-111111111111','node/esik','Esik Kafe','06',400,2,
+        current_date - 1,'onaylandi'),
+       ('22222222-2222-4222-8222-222222222222','node/esik','Esik Kafe','06',500,2,
+        current_date - 1,'onaylandi');
+set role anon;
+do $$
+declare o record;
+begin
+  select * into o from public.mekan_fis_ozeti('node/esik');
+  if o.fis <> 2 then raise exception 'BASARISIZ: fis % (2)', o.fis; end if;
+  if o.kisi <> 2 then raise exception 'BASARISIZ: kisi % (2)', o.kisi; end if;
+  if o.medyan is not null then
+    raise exception 'BASARISIZ: esik alti tutar sizdi (medyan %)', o.medyan;
+  end if;
+  raise notice 'gecti: esik alti sayi var, tutar yok';
+end $$;
+
 do $$
 declare o record;
 begin
@@ -386,4 +413,4 @@ begin
 end $$;
 reset role;
 
-\echo '=== 20 kontrolun hepsi gecti ==='
+\echo '=== 21 kontrolun hepsi gecti ==='

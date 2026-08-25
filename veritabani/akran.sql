@@ -109,8 +109,14 @@ begin
     select count(*)::int,
            count(distinct son.kullanici)::int,
            count(distinct son.mekan_id)::int,
-           round(percentile_cont(0.5) within group
-                 (order by son.tutar / greatest(son.kisi, 1)))::numeric
+           -- Esik BURADA DA sunucuda. Civar daha genis bir kume oldugu
+           -- icin esigi gevsetmek cazip; gevsetilmiyor, cunku tek fisli
+           -- bir civar da tek kisidir (isletme.html'deki yorumla ayni
+           -- gerekce, artik iki tarafta birden).
+           case when count(*) >= 3
+                then round(percentile_cont(0.5) within group
+                           (order by son.tutar / greatest(son.kisi, 1)))::numeric
+           end
     from son;
 end;
 $$;
