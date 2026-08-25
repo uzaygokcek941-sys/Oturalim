@@ -123,9 +123,20 @@ Günde 1. Telefonla çek, kurgu yok. Kapanış çağrısı: **"Uygulamada hepsi 
 ## İlerleme
 
 ### Bu 48 saat
-- [ ] `@oturalim` Instagram ve TikTok handle'ını al
-- [ ] Bio: *"Çankaya'da bütçene göre nereye gidilir. 724 mekan, gerçek fiyatlar."*
-- [ ] İlk 3 içeriği çek ve yayınla (1, 2, 11)
+- [ ] `@oturalim` Instagram ve TikTok handle'ını al *(hesap senin, kod tarafı yok)*
+- [x] Bio yazıldı — **eski taslak iki yerinden yanlıştı** ve düzeltildi:
+      ~~"Çankaya'da bütçene göre nereye gidilir. 724 mekan, gerçek fiyatlar."~~
+      724 → **35.852** (uygulama Çankaya'yı aştı, 81 il), ve *"gerçek fiyatlar"*
+      abartı: 35.852 mekanın **291'inde** menü fiyatı var (%0,81). Manşete
+      çıkarmak, gelen kullanıcının ilk açtığı on mekanda fiyat görmemesi
+      demekti — *yanlış fiyat, fiyat olmamasından kötü* kuralı vaat için de
+      geçerli. Yerine: **"Bütçene göre otur. 81 ilde 35.852 mekan. Fiyatı
+      gidenler yazıyor."** Son cümle katkı çağrısını bio'nun içine koyuyor.
+- [x] İlk 3 içeriğin çekim notu hazır (`icerik_ilk3.md`) — hook, gövde,
+      kapanış ve her rakam depodan **sayılarak**. 11 numaralı fikrin hook'u
+      büyütüldü: *"Ankara'daki bütün kafeleri listeledim"* 35.852 mekan
+      varken kendini küçültmekti.
+- [ ] Çekim ve yayın *(telefon senin)*
 
 ### Ürün — TAMAMLANDI (tarayıcıda doğrulandı)
 - [x] 81 il çekimi — **36.102 mekan** (eğlence dahil), hiçbir il eksik değil
