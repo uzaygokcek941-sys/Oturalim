@@ -730,7 +730,8 @@ if (!ID || !IL || IL === "00"){
 } else {
   fetch("veri/" + encodeURIComponent(IL) + ".json")
     .then(r => r.ok ? r.json() : Promise.reject(r.status))
-    .then(async d => {
+    .then(async ham => {
+      const d = ilCoz(ham);            /* sikistirilmis bicim: veri_bicim.py */
       const m = (d.mekanlar || []).find(x => x.id === ID);
       if (!m){ document.getElementById("hata").hidden = false; return; }
       /* Katkilar cizimden ONCE uygulaniyor: bilgi listesi, eksik paneli ve

@@ -36,6 +36,8 @@ import os
 import secrets
 import sys
 
+import veri_bicim   # il dosyasi bicimi tek yerde
+
 KUME_CSV = "sahiplenme_kume.csv"
 KART_CIKTI = "saha_kartlar.html"
 SQL_CIKTI = "saha_kodlar.sql"
@@ -73,7 +75,7 @@ def _guncel_kimlikler():
         if not _re.search(r"[\\/]\d\d\.json$", yol):
             continue
         with io.open(yol, encoding="utf-8") as f:
-            for m in json.load(f)["mekanlar"]:
+            for m in veri_bicim.coz(json.load(f))["mekanlar"]:
                 kimlik.add(m["id"])
     return kimlik
 

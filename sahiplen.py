@@ -23,6 +23,8 @@ bir ZIYARET listesidir -- dogrulama yerinde yapilir.
 """
 import csv, glob, io, json, math, os, collections
 
+import veri_bicim   # il dosyasi bicimi tek yerde
+
 VERI = "app/veri"
 CIKTI = "sahiplenme_hedef.csv"
 KUME_CIKTI = "sahiplenme_kume.csv"
@@ -101,7 +103,7 @@ def yukle():
         ad = os.path.basename(yol)
         if not ad[0].isdigit():
             continue
-        d = json.load(io.open(yol, encoding="utf-8"))
+        d = veri_bicim.coz(json.load(io.open(yol, encoding="utf-8")))
         il = d.get("il", "")
         for m in d.get("mekanlar", []):
             m["il"] = il

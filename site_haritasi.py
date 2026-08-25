@@ -24,6 +24,8 @@ import os
 import sys
 from xml.sax.saxutils import escape
 
+import veri_bicim   # il dosyasi bicimi tek yerde
+
 VERI = "app/veri"
 CIKTI = "app/sitemap.xml"
 ROBOTS = "app/robots.txt"
@@ -54,7 +56,7 @@ def mekanlar():
         ad = os.path.basename(yol)
         if not ad[0].isdigit():
             continue
-        d = json.load(io.open(yol, encoding="utf-8"))
+        d = veri_bicim.coz(json.load(io.open(yol, encoding="utf-8")))
         for m in d.get("mekanlar", []):
             yield ad[:2], m
 

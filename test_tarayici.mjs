@@ -189,7 +189,12 @@ kosu("vitrin ile veri ayni fiyati veriyor", () => {
   const kaynak = new Map();
   for (const y of fs.readdirSync("app/veri")){
     if (!/^\d\d\.json$/.test(y)) continue;
-    for (const m of JSON.parse(fs.readFileSync("app/veri/" + y, "utf8")).mekanlar)
+    /* Dosya sikistirilmis bicimde (veri_bicim.py). Cozucu TARAYICININ
+       kendi cozucusu -- ayni ctx'e yuklu ortak.js'ten cagriliyor. Yan
+       kazanc: ilCoz() boylece 81 ilin GERCEK dosyasinda kosuyor, elle
+       yazilmis bir ornekte degil. */
+    ctx.__d = JSON.parse(fs.readFileSync("app/veri/" + y, "utf8"));
+    for (const m of vm.runInContext("ilCoz(__d)", ctx).mekanlar)
       kaynak.set(m.id, m);
   }
   const hesapla = m => {

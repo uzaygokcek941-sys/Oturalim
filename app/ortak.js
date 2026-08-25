@@ -416,6 +416,53 @@ function fisGoster(o){
 }
 
 /* ============================================================
+   İL DOSYASI — sıkıştırılmış biçimi açar
+
+   Kural ve gerekçe `veri_bicim.py` başında yazılı; burası onun tarayıcı
+   tarafı. İki uçta iki kod var ama TEK biçim: Python tarafı 81 ilin
+   hepsinde kodla/çöz turunu yapıp eşitlik arıyor, buradaki öz kontrol de
+   aynı örneği açıyor.
+
+   Kısaca: her mekanda bulunan beş alan **sütun**, seyrek alanlar
+   **indeksli sözlük**. Ölçüldü (İstanbul): ham 1733 → 1325 KB, gzip
+   396 → 322 KB. İkisinin de düşmesi önemli — gzip indirmeyi, ham boyut
+   `JSON.parse` süresini belirliyor.
+
+   ESKİ BİÇİMİ DE OKUR: `mekanlar` anahtarı varsa dosya dönüştürülmemiş
+   demektir ve olduğu gibi dönüyor. Yarım kalmış bir dağıtımda uygulama
+   çalışmaya devam etsin diye.
+   ============================================================ */
+const VERI_YOGUN = ["id", "ad", "tur", "lat", "lon"];
+const VERI_ONEK  = { n: "node", w: "way", r: "relation" };
+
+function ilCoz(d){
+  if (!d || typeof d !== "object") return { il: null, mekanlar: [] };
+  if (d.mekanlar) return d;                     /* eski biçim */
+  const sutun = d.sutun || {}, kimlikler = sutun.id || [], mekanlar = [];
+  for (let i = 0; i < kimlikler.length; i++){
+    const m = {};
+    for (const k of VERI_YOGUN) m[k] = sutun[k] ? sutun[k][i] : undefined;
+    /* Önek geri açılıyor: dışarıya giden kimlik DEĞİŞMİYOR. O kimlik
+       veritabanında mekan_id olarak duruyor ve adres çubuğunda geziniyor;
+       kısaltılmış hali sızsaydı eski bağlantılar kırılırdı. */
+    const ham = String(m.id == null ? "" : m.id), bas = VERI_ONEK[ham[0]];
+    /* Rakam denetimi şart: "nazar" gibi bir değer kimlik sanılmasın. */
+    if (bas && ham.length > 1 && /^\d+$/.test(ham.slice(1)))
+      m.id = bas + "/" + ham.slice(1);
+    mekanlar.push(m);
+  }
+  const ek = d.ek || {};
+  for (const alan of Object.keys(ek)){
+    const kayitlar = ek[alan];
+    for (const indeks of Object.keys(kayitlar)){
+      const m = mekanlar[+indeks];
+      if (m) m[alan] = kayitlar[indeks];
+    }
+  }
+  return { il: d.il, mekanlar: mekanlar };
+}
+
+/* ============================================================
    CİVAR — "mahalle statüsü"
 
    NEDEN MAHALLE ADI YOK: veride yok. Ölçüldü — 35.852 mekanın 9.397'sinde
@@ -892,6 +939,15 @@ function kendiniKontrolEt(){
      bagli olmasin. */
   const T = "https://o.test/app/giris.html";
 
+  /* --- il dosyasi cozucusu icin sikistirilmis ornek (ELLE yazildi) --- */
+  const SIK = {
+    il: "Test",
+    sutun: { id:["n1","w2","r3"], ad:["A Kafe","B Bar","C Muze"],
+             tur:["Kafe","Bar","Muze"], lat:[39.9,40.0,41.0],
+             lon:[32.8,29.0,28.9] },
+    ek: { adres:{ "1":"Bagdat Caddesi 448" }, wifi:{ "1":1 } }
+  };
+
   /* --- civar kontrolu icin sahte il --- 39,9 enleminde 0,001 derece
      enlem ~110 m. "uzak" 663 m'de, yani 500 m disinda. */
   const BEN   = { id:"ben",  lat:39.900, lon:32.85, tur:"Kafe" },
@@ -1211,6 +1267,30 @@ function kendiniKontrolEt(){
     ["yildiz alti",             yildiz(6),                                    ""],
     ["yildiz metin",            yildiz("abc"),                                ""],
     ["donus yok",            guvenliDonus(null, T),                           null],
+
+    /* --- il dosyasi cozucusu ---
+       Python tarafi 81 ilin hepsinde kodla/coz turunu yapiyor
+       (veri_bicim.py); burada sinanan sey TARAYICI tarafinin ayni
+       nesneyi uretmesi. Sikistirilmis bicim SIK = ornegin kodlanmis
+       hali, elle yazildi -- uretici koddan uretilseydi ikisi birlikte
+       bozulur ve kontrol yine gecerdi. */
+    ["il coz mekan sayisi",   ilCoz(SIK).mekanlar.length,                       3],
+    ["il coz id oneki acildi", ilCoz(SIK).mekanlar.map(m => m.id).join(","),
+                                                  "node/1,way/2,relation/3"],
+    ["il coz yogun alan",     ilCoz(SIK).mekanlar[0].ad,                 "A Kafe"],
+    ["il coz seyrek alan",    ilCoz(SIK).mekanlar[1].adres,   "Bagdat Caddesi 448"],
+    ["il coz seyrek alan yoksa yok",
+                              "adres" in ilCoz(SIK).mekanlar[0],           false],
+    ["il coz il adi",         ilCoz(SIK).il,                             "Test"],
+    /* Eski bicim oldugu gibi okunmali: yarim kalmis bir dagitimda
+       uygulama calismaya devam etsin. */
+    ["il coz eski bicim",
+      ilCoz({ il:"X", mekanlar:[{id:"node/9"}] }).mekanlar[0].id,      "node/9"],
+    ["il coz bos",            ilCoz(null).mekanlar.length,                     0],
+    /* Rakamsiz kuyruk kimlik SANILMAMALI: "nazar" -> "node/azar" olurdu. */
+    ["il coz rakamsiz kuyruk",
+      ilCoz({ sutun:{ id:["nazar"], ad:["N"], tur:["K"], lat:[1], lon:[2] } })
+        .mekanlar[0].id,                                              "nazar"],
 
     /* --- fis esigi: k-anonimlik siniri ---
        Kural artik ortak.js'te. Onceden yalniz isletme.html'de vardi ve

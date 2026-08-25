@@ -514,7 +514,8 @@ document.addEventListener("DOMContentLoaded", () => {
     konumDurum.textContent = il.ad + " çevresine bakılıyor…";
     fetch("veri/" + il.kod + ".json")
       .then(r => r.ok ? r.json() : Promise.reject())
-      .then(v => {
+      .then(ham => {
+        const v = ilCoz(ham);          /* sikistirilmis bicim: veri_bicim.py */
         const aday = v.mekanlar
           .map(m => ({ m, uz: uzaklikKm(m.lon, m.lat, lat, lon) }))
           .filter(x => x.uz < 3)

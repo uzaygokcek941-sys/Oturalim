@@ -26,6 +26,8 @@ import shutil
 import subprocess
 import sys
 
+import veri_bicim   # il dosyasi bicimi tek yerde
+
 KOK = os.path.dirname(os.path.abspath(__file__))
 VERI = os.path.join(KOK, "app", "veri")
 
@@ -33,7 +35,7 @@ VERI = os.path.join(KOK, "app", "veri")
 BETIKLER = ["app_veri.py", "etkinlik_cek.py", "fiyat_analiz.py", "menu_cikar.py",
             "turkiye_cek.py", "foto_cek.py",
             "menu_ocr.py", "menu_pdf_tara.py", "saha.py", "sahiplen.py",
-            "site_haritasi.py", "csp_uret.py"]
+            "site_haritasi.py", "csp_uret.py", "veri_bicim.py"]
 
 # Turkiye siniri, genis pay. Disina dusen koordinat cekimde bir sey
 # kaymis demektir; haritada Atlantik'te bir nokta olarak gorunur.
@@ -128,7 +130,7 @@ def veri_tutarli_mi():
 
     toplam = kalem = fiyatli = 0
     for kod in dosyalar:
-        d = json.loads(oku("app", "veri", kod + ".json"))
+        d = veri_bicim.coz(json.loads(oku("app", "veri", kod + ".json")))
         for m in d.get("mekanlar", []):
             toplam += 1
             kalem += len(m.get("menu") or [])
@@ -175,7 +177,7 @@ def veri_tutarli_mi():
     # duzenlenirse kopyalar sessizce geri gelmesin.
     from math import radians, sin, cos, asin, sqrt
     for kod in dosyalar:
-        d = json.loads(oku("app", "veri", kod + ".json"))
+        d = veri_bicim.coz(json.loads(oku("app", "veri", kod + ".json")))
         ada = {}
         for m in d.get("mekanlar", []):
             ada.setdefault(m["ad"].strip().casefold(), []).append(m)

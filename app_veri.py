@@ -21,6 +21,8 @@ from collections import defaultdict
 
 from fiyat_analiz import TABAN, TAVAN, kategorile, sadelestir, yiyecek_mi
 
+import veri_bicim   # il dosyasi bicimi tek yerde
+
 IL_KODU = {
     "Adana": "01", "Adiyaman": "02", "Afyonkarahisar": "03", "Agri": "04",
     "Amasya": "05", "Ankara": "06", "Antalya": "07", "Artvin": "08",
@@ -715,9 +717,11 @@ def main():
             continue
         kayitlar.sort(key=lambda r: r["ad"].casefold())
         yol = f"app/veri/{kod}.json"
-        with open(yol, "w", encoding="utf-8") as f:
-            json.dump({"il": IL_ADI.get(il, il), "mekanlar": kayitlar},
-                      f, ensure_ascii=False, separators=(",", ":"))
+        # Bicim veri_bicim.py'de: yogun alanlar sutunlu, seyrek alanlar
+        # indeksli. Olculdu (Istanbul): ham 1733 -> 1325 KB, gzip 396 -> 322.
+        # Kodlayici bilinmeyen bir alan gorurse HATA veriyor -- yeni bir alan
+        # eklendiginde sessizce kaybolmasin diye.
+        veri_bicim.yaz(yol, IL_ADI.get(il, il), kayitlar)
         # Konumdan il bulmak icin merkez. Ortalama degil medyan: tek bir
         # yanlis etiketlenmis mekan merkezi denize kaydirmasin.
         enler = sorted(r["lat"] for r in kayitlar)

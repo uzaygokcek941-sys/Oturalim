@@ -836,7 +836,10 @@ function ilYukle(kod, ilkAcilis){
   fetch("veri/" + kod + ".json").then(r => {
     if (!r.ok) throw new Error("HTTP " + r.status);
     return r.json();
-  }).then(v => {
+  }).then(ham => {
+    /* ilCoz: dosya sikistirilmis bicimde (veri_bicim.py). Cozucu tek
+       yerde -- ucuncu tuketici de ayni fonksiyonu cagiriyor. */
+    const v = ilCoz(ham);
     mekanlar = v.mekanlar;
     olcutYukle();
     /* Fisler ile akran satiri AYNI ile ait: il degisince ikisi birden

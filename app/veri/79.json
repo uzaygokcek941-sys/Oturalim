@@ -1,1 +1,1 @@
-{"il":"Kilis","mekanlar":[{"id":"node/9729706392","ad":"Bekanlar","tur":"Restoran","lat":36.71664,"lon":37.11619},{"id":"way/1098564882","ad":"İnciraltı Kafe","tur":"Kafe","lat":36.73041,"lon":37.1019},{"id":"node/9729706379","ad":"Nezih Döner & Dürüm Evi","tur":"Fast food","lat":36.71671,"lon":37.11739}]}
+{"il":"Kilis","sutun":{"id":["n9729706392","w1098564882","n9729706379"],"ad":["Bekanlar","İnciraltı Kafe","Nezih Döner & Dürüm Evi"],"tur":["Restoran","Kafe","Fast food"],"lat":[36.71664,36.73041,36.71671],"lon":[37.11619,37.1019,37.11739]},"ek":{}}

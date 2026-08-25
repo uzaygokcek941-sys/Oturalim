@@ -582,12 +582,24 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
       yer `kimlik.js`. Gerçek çözüm: sürüm sabit, esm.sh'e güveniliyor.
 - [x] `isletme.html`'in mükerrer Supabase istemcileri kaldırıldı (`Kimlik.istemci()`)
 - [x] Koordinatlar 5 basamağa indi — İstanbul 414 → 400 KB gzip
-- [ ] **İstanbul dosyası hâlâ 1,7 MB ham / 406 KB gzip.** Ölçüldü: geri kalan
-      ağırlığın tamamı keşfet ekranının gerçekten kullandığı alanlar. Menü/kategori
-      ayrı dosyaya alınamıyor (bütçe süzgeci çizimden önce onlara bakıyor);
-      hafif dosya + tam dosya ayrımı ana huniyi (anasayfa → keşfet) kötüleştiriyor,
-      çünkü ikisi aynı önbelleği paylaşıyor. Gerçek çözüm coğrafi bölmeleme, o da
-      veri düzenini ve iki tüketiciyi birden değiştirir.
+- [x] **İstanbul dosyası 1.733 → 1.325 KB ham, 396 → 322 KB gzip** (`veri_bicim.py`).
+      Ağırlığın bir kısmı veri değil **tekrar**dı: 12.095 nesnenin her biri
+      `id`/`ad`/`tur`/`lat`/`lon` anahtarlarını yeniden yazıyordu — ölçüldü,
+      yalnız anahtar adları 451 KB, yani ham dosyanın **%25'i**. Yeni biçim
+      yoğun alanları **sütun**, seyrek alanları **indeksli sözlük** yapıyor.
+      Hepsini sütuna koymak dosyayı BÜYÜTÜYORDU (ölçüldü: 2.000 KB) çünkü
+      sütunlar `null` ile doluyordu. 81 ilin toplamı 4.583 → 3.363 KB (**−%27**).
+
+      Ham boyutun da düşmesi ayrıca önemli: gzip indirmeyi, ham boyut
+      `JSON.parse` süresini belirliyor — sadece gzip'i iyileştiren bir biçim
+      telefonda indirmeyi kısaltıp ayrıştırmayı uzatırdı.
+
+      **Gerçek çözüm hâlâ coğrafi bölmeleme** ve bu onun yerine geçmiyor:
+      bölmeleme kullanıcının *baktığı* bölgeyi indirir, bu biçim bütün ili
+      indirmeye devam ediyor. Farkı maliyeti: bölmeleme veri düzenini ve iki
+      tüketiciyi değiştiriyor, bu değişiklik tek bir çözücü fonksiyona
+      bakıyor ve çözülen nesne eskisiyle **birebir aynı** — kanıt, 81 ilin
+      hepsinde koşan kodla/çöz turu.
 - [x] Kontroller CI'da koşuyor (`python test.py` · GitHub Actions, her itmede)
 - [x] `kacir()` tek tırnağı da kaçırıyor; paylaşım/katkı günlük gönderim sınırı kondu
 - [x] "Ucuz / orta / pahalı" bandı kuruldu (yukarıda). Bugün 163 mekanın

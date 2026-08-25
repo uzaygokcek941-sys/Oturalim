@@ -3,11 +3,13 @@
 Kaynak app/veri/*.json; uydurma sayi yok, hepsi sayilarak bulunuyor."""
 import json, glob, os, statistics
 
+import veri_bicim   # il dosyasi bicimi tek yerde
+
 KOK = os.path.join(os.path.dirname(os.path.abspath(__file__)), "app", "veri")
 
 def yukle(yol):
     with open(yol, encoding="utf-8") as f:
-        return json.load(f)
+        return veri_bicim.coz(json.load(f))
 
 ix = yukle(os.path.join(KOK, "index.json"))
 il_ad = {i["kod"]: i["ad"] for i in ix["iller"]}

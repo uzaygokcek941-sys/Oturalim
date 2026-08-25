@@ -60,6 +60,8 @@ OVERPASS = "https://overpass-api.de/api/interpreter"
 from turkiye_cek import AMENITY as YEME_AMENITY
 from eglence_cek import AMENITY as EGLENCE_AMENITY, LEISURE, TOURISM
 
+import veri_bicim   # il dosyasi bicimi tek yerde
+
 # Yalniz FOTOGRAF ETIKETI tasiyan mekanlar. Uc etiketin uclu de ayri
 # sorgu satiri; Overpass'ta "su etiketlerden herhangi biri" diye tek
 # satirda yazilamiyor.
@@ -162,7 +164,7 @@ def bizdeki_mekanlar():
         if ad in ("index.json", "etkinlik.json", "vitrin.json", "fiyat_olcut.json"):
             continue
         with open(yol, encoding="utf-8") as f:
-            d = json.load(f)
+            d = veri_bicim.coz(json.load(f))
         for m in d.get("mekanlar", []):
             kimlik[m["id"]] = ad[:-5]        # il kodu
     return kimlik
