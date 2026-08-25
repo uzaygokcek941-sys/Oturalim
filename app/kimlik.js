@@ -451,6 +451,22 @@ const Kimlik = {
      yazar, sonra birakir ve sahip OLDUGUNA dair kayit kalmazdi.
      Islem sunucuda (sahipligi_birak): bir UPDATE politikasi yalniz son
      hali denetler, hangi sutunun degistigini denetlemez. */
+  /* Bir mekanin goruntulenme sayilari. isletme.html bunu dogrudan RPC
+     ile cagiriyordu; isletmem.html de ayni sayiya bakiyor ve iki yerde
+     iki ayri cagri, alan adlarinin ayrismasi demekti. Cagri tek yerde.
+
+     `mekan_goruldu` BURADA YOK ve olmamali: o SAYIYI ARTIRIYOR. Sahibin
+     kendi panelini acmasi, kendi sayfasinin goruntulenmesini sismesin --
+     "sayfani 47 kisi gordu" cumlesinin butun degeri dogru olmasinda. */
+  async mekanSayaci(mekanId){
+    if (!sb) return null;
+    const { data, error } = await sb.rpc("mekan_sayaci", { p_mekan_id: mekanId });
+    if (error){ console.error("sayac:", error.message); return null; }
+    const o = Array.isArray(data) ? data[0] : data;
+    return o ? { bugun: +o.bugun || 0, son30: +o.son30 || 0,
+                 toplam: +o.toplam || 0, ilkGun: o.ilk_gun || null } : null;
+  },
+
   async sahiplikBirak(id){
     if (!sb || !oturum) throw new Error("Giriş yapılmamış.");
     const { error } = await sb.rpc("sahipligi_birak", { p_id: id });

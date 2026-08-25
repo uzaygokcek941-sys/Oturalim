@@ -1063,6 +1063,88 @@ bozulsa bile test geçiyordu. Ayırt edici konuldu ("Tekrar dene" düğmesi).
 
 ---
 
+## 2026-08-25 — İşletme sahibi için ayrı giriş ve panel
+
+`isletme-giris.html` (ayrı kapı) ve `isletmem.html` (panel).
+
+### Ayrı parola sistemi YAPILMADI, bilerek
+
+İstenen "ayrı bir login" idi. Ayrı bir **sayfa** yapıldı, ayrı bir
+**kimlik deposu** yapılmadı. Gerekçe:
+
+Sahiplik, hangi formdan girdiğinle değil **elden verilen fiziksel kodla**
+kanıtlanıyor (`sahiplenme.sql`). Sahip hesabı olup kodu olmayan hiçbir şeye
+sahip değil; müşteri hesabı olup kodu olan mekanın sahibi. Yani hesap türü
+yetkiyi taşımıyor — kod taşıyor. İkinci bir kimlik deposu (ikinci parola,
+ikinci sıfırlama akışı, ikinci oturum) kimin neyi yapabildiği konusunda
+**hiçbir şeyi değiştirmez**, yalnız saldırı yüzeyini büyütürdü. Üstelik
+bir kişi hem müşteri hem işletme sahibi olabiliyor.
+
+Değişen şey **kapı ve iş masası**: sahibin sorduğu soru müşteriden
+bambaşka — "sayfamı kaç kişi gördü, neyim eksik, telefonu nasıl
+düzeltirim". İkisini tek ekranda toplamak ikisine de yarım cevap vermekti.
+
+### Yeni SQL yazılmadı
+
+Veri katmanı zaten hazırdı: `sahipliklerim`, `mekan_sayaci`, `katkiGonder`
+(sahibin katkısı `sahip_katkisi_onayli` tetikleyicisiyle sıraya girmeden
+yayına çıkıyor), `mekan_puani`, `mekan_fis_ozeti`. Güvenlik de kanıtlı —
+`sahiplenme_test.sql` 8. adımı: *"sahibi olmadığı mekana ONAYLI katkı
+yazamaz."* Panel bunun üstünde duruyor ve yalnız arayüzü sürüyor.
+`kimlik.js`'e tek ekleme oldu: `mekanSayaci`, çünkü `isletme.html` o RPC'yi
+doğrudan çağırıyordu ve iki yerde iki çağrı alan adlarının ayrışması
+demekti.
+
+**`mekan_goruldu` panelde çağrılmıyor** ve bu bir tercih: o fonksiyon
+sayacı **artırıyor**. Sahibin kendi panelini açması, kendi sayfasının
+görüntülenmesini şişirmemeli — "sayfanı 47 kişi gördü" cümlesinin bütün
+değeri doğru olmasında.
+
+### Panelde ne var
+
+Mekan başına: görüntülenme (son 30 gün · bugün), yorum ortalaması, fiş
+medyanı, eksik bilgi listesi, dört alanı düzeltme formu, sayfaya bağlantı
+ve sahipliği bırakma. Altta kodla ikinci bir işletme ekleme.
+
+Eşikler **gevşetilmedi**: fiş medyanı yine `fisGoster()`'e, yorum
+ortalaması `YORUM_ESIK`'e soruyor. Sahibi olman k-anonimlik eşiğini
+kaldırmıyor — fişi yazan kişi senin müşterin. Sıfır da gösterilmiyor:
+"0 kişi baktı" hem cesaret kırıcı hem de "sayaç çalışmıyor" ile ayırt
+edilemez.
+
+Doğrulama `ortak.js`'ten (`katkiSorunu`, `KATKI_ALAN`): işletme sayfası,
+yönetim ekranı ve panel aynı kuralı kullanıyor. Alan listesi
+**türetiliyor**, kopyalanmıyor.
+
+### Kart → hesap → mekan, tek akışta
+
+Kod alanı giriş formunun **içinde**. "Önce üye ol, sonra mekanı bul, sonra
+kodu gir" üç adım demekti ve saha kartının dönüşünü tam orada
+kaybederdik. E-posta doğrulaması açıkken oturum hemen açılmıyor — o halde
+kod kullanılamıyor ve kullanıcıya bu **söyleniyor**, yoksa "kodu girdim
+ama olmadı" diye geri döner.
+
+### hesabim.html kısaldı
+
+"İşletmelerim" sekmesi aynı listeyi ikinci kez çiziyordu. Artık bir sayı
+ve bir kapı veriyor; liste ve bırakma düğmesi panelde. *Aynı kural tek
+yerde dursun* — bu depoda iki yerde tutulan bir kuralın ayrışması daha
+önce yaşandı.
+
+### Ölçüm
+
+`test_sayfa.py` 14 → **16 sayfa**, 15 → **16 girişli ekran**. İki yeni
+sayfa mobil dokunma hedefi ölçümüne de girdi — orada taklit modül servis
+edildiği için panel **gerçekten çiziliyor**; kütüphanesiz bir ölçümde
+panel giriş sayfasına yönlenir ve form hiç ölçülmezdi.
+
+Üç sabotaj denendi, üçü de yakalandı. Kendi testimde yine aynı tuzağa
+düştüm: beklenti olarak `isletmem.html` yazmıştım ama o bir `href`,
+`inner_text`'te geçmiyor — görünen metne çevrildi. (Galeri atfında ve
+"gerçekten ödenen" kutusunda da aynısı olmuştu.)
+
+---
+
 ## Yapılmayacaklar
 
 | Yapma | Neden |

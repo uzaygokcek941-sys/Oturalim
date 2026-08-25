@@ -533,63 +533,34 @@ async function katkilariCiz(){
    verdigini gorebilmeli. Gormedigi bir yetki, farkinda olmadan tasidigi
    bir sorumluluktur. */
 async function isletmeleriCiz(){
+  /* BU EKRAN ARTIK LISTE CIZMIYOR. Sahiplik yonetimi isletmem.html'de:
+     orada sayfanin kac kisi tarafindan gorunduğu, neyin eksik oldugu ve
+     bilgileri duzeltme formu birlikte duruyor. Ayni listeyi iki yerde
+     cizmek, "aynı kural tek yerde dursun" kuralının ihlaliydi -- birinde
+     durum etiketini degistirip otekini unutmak bu depoda daha once oldu.
+
+     Sekme YINE DE duruyor: sahiplendigi mekan olan kullanici burada
+     "nereye gidecegim" sorusunun cevabini bulsun. Bos bir sekme yerine
+     bir sayi ve bir kapi. */
   const yuva = el("#bolum-isletmeler");
   yuva.innerHTML = '<p class="bos"><strong>Yükleniyor…</strong></p>';
-  const liste = await Kimlik.sahipliklerim();
+  let liste = [];
+  try { liste = await Kimlik.sahipliklerim(); } catch (e) {}
+  const aktif = liste.filter(o => o.durum === "aktif").length;
 
-  if (!liste.length){
-    yuva.innerHTML =
-      '<p class="bos">' +
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg>' +
-      "<strong>Sahiplendiğin işletme yok</strong>" +
-      "İşletmenin kapısına bıraktığımız kartta bir kod var. O kodu " +
-      "işletmenin sayfasında girersen sayfa senin olur: eklediğin saat, " +
-      "telefon, adres ve site bilgisi sıraya girmeden yayına çıkar." +
-      '<a class="dugme" style="margin-top:var(--a4)" href="kesfet.html">Mekanlara git</a></p>';
-    return;
-  }
-
-  yuva.innerHTML = liste.map(o => {
-    /* Uc hal, uc AYRI cumle. "aktif degil" demek yetmiyordu: yoneticinin
-       geri almasi ile kendi birakmasi kullanici icin ayni sey degil --
-       biri "bir sorun var", oteki "ben biraktim". */
-    const aktif = o.durum === "aktif";
-    const iptal = !aktif;
-    const sayfa = o.il && o.mekan_id
-      ? "isletme.html?il=" + encodeURIComponent(o.il) + "&id=" + encodeURIComponent(o.mekan_id)
-      : null;
-    return '<div class="liste-satir">' +
-      '<div class="bilgi"><h3>' +
-        (sayfa ? '<a href="' + kacir(sayfa) + '">' + kacir(o.mekan_ad) + "</a>"
-               : kacir(o.mekan_ad)) + "</h3>" +
-      '<div class="alt"><span>' + tarihTR(o.dogrulandi) + " tarihinde doğrulandı</span>" +
-        /* Rozet siniflari DURUM_ETIKET ile ayni kural: "acik" yesil,
-           "kapali" soluk. Yeni sinif uydurmak, tasarim sisteminde iki
-           ayri dogru olmasi demekti. */
-        '<span class="rozet ' + (aktif ? "acik" : "kapali") + '">' +
-        (aktif ? "doğrulanmış"
-               : o.durum === "birakildi" ? "bıraktın" : "iptal edildi") +
-        "</span></div></div>" +
-      '<div class="islem">' +
-      (iptal ? "" :
-        '<button class="sil" type="button" data-birak="' + o.id +
-        '" aria-label="Sahipliği bırak">' +
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button>') +
-      "</div></div>";
-  }).join("") +
-  '<p class="bos" style="text-align:left;padding-top:var(--a3)">' +
-  "Doğrulanmış işletmede eklediğin <strong>saat, telefon, adres ve site</strong> " +
-  "bilgisi sıraya girmeden yayına çıkar. Fiyat bunun dışında: fiyat paylaşımı " +
-  "herkes için aynı kontrolden geçer.</p>";
-
-  yuva.querySelectorAll("[data-birak]").forEach(b =>
-    b.addEventListener("click", async () => {
-      if (!confirm("Bu işletmenin sahipliğini bırakıyorsun. Emin misin?")) return;
-      b.disabled = true;
-      try { await Kimlik.sahiplikBirak(Number(b.dataset.birak));
-            await isletmeleriCiz(); uyar("iyi", "Sahiplik bırakıldı."); }
-      catch (e){ uyar("hata", e.message); b.disabled = false; }
-    }));
+  yuva.innerHTML =
+    '<p class="bos">' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg>' +
+    (aktif
+      ? "<strong>" + sayi(aktif) + " doğrulanmış işletmen var</strong>" +
+        "Sayfanı kaç kişi gördü, neyin eksik ve bilgileri nasıl " +
+        "güncellersin — hepsi işletme panelinde."
+      : "<strong>Sahiplendiğin işletme yok</strong>" +
+        "İşletmenin kapısına bıraktığımız kartta bir kod var. O kodu " +
+        "işletme panelinde girersen sayfa senin olur: eklediğin saat, " +
+        "telefon, adres ve site bilgisi sıraya girmeden yayına çıkar.") +
+    '<a class="dugme" style="margin-top:var(--a4)" href="isletmem.html">' +
+    (aktif ? "İşletme paneline git" : "İşletme paneli") + "</a></p>";
 }
 
 /* ---------- sekmeler ---------- */

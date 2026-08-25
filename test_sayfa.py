@@ -189,8 +189,21 @@ GIRISLI = [
   ("hesabim.html/katkilar",   "/hesabim.html", '[data-bolum="katkilar"]',
    ["Katki Kafe", "0312 000 00 00", "Menü katkılarım", "Menu Kafe", "Latte"],
    ["Yükleniyor", "kul-1"]),
+  # Bu sekme artik liste CIZMIYOR: sahiplik yonetimi isletmem.html'de.
+  # Ayni listeyi iki yerde cizmek "ayni kural tek yerde dursun"un
+  # ihlaliydi. Sekme yine de duruyor ve bir SAYI + bir KAPI veriyor;
+  # bos bir sekme kullaniciyi nereye gidecegini bilmeden birakirdi.
   ("hesabim.html/isletmeler", "/hesabim.html", '[data-bolum="isletmeler"]',
-   ["Sahip Kafe", "doğrulanmış"], ["Yükleniyor", "kul-1"]),
+   # GORUNUR metin araniyor: 'isletmem.html' bir href ve inner_text'te
+   # gecmiyor. (Ayni tuzak galeri atifinda ve odenen kutusunda da cikti.)
+   ["doğrulanmış işletmen var", "İşletme paneline git"],
+   ["Yükleniyor", "kul-1", "Sahipliği bırak"]),
+  # Isletme paneli: sahibin panele bakma sebebi SAYILAR. Uc kaynaktan
+  # uc sayi -- goruntulenme (47), yorum ortalamasi, fis medyani (300) --
+  # ve duzeltme formu. Hepsi taklit veriden geliyor, sabit metin degil.
+  ("isletmem.html", "/isletmem.html", None,
+   ["Sahip Kafe", "47", "300", "Kaydet", "Sahipliği bırak"],
+   ["Yükleniyor", "kul-1"]),
   ("hesabim.html/yorumlar",   "/hesabim.html", '[data-bolum="yorumlar"]',
    ["Yorum Kafe", "onay bekliyor"], ["Yükleniyor", "kul-1"]),
   # Profil alanlari MEVCUT degerlerle dolmali: bos bir form kaydetmek
@@ -240,7 +253,11 @@ SAYFALAR = ["/index.html", "/kesfet.html", "/kesfet.html?il=34&tur=Kafe&butce=30
             # Profil: hem gecerli hem OLMAYAN kullanici adi. Ikincisi
             # "bulunamadi" ekranini cizmeli, catmamali.
             "/profil.html?k=deneme_kisi", "/profil.html?k=yok_boyle_biri",
-            "/profil.html"]
+            "/profil.html",
+            # Isletme sahibinin iki ekrani. isletmem.html girissiz halde
+            # isletme-giris.html'e yonlendiriyor; bu listede aranan sey
+            # "JS hatasi firlatmasin" ve o yonlendirme de hatasiz olmali.
+            "/isletme-giris.html", "/isletmem.html"]
 
 
 def _tarayici_yolu():
@@ -415,8 +432,15 @@ def kendini_kontrol_et():
                 if "supabase-js" in r.request.url
                 else (r.continue_() if r.request.url.startswith(TABAN) else r.abort())))
             tel.add_init_script(GIRIS_TAKLIT)
+            # Isletme sahibinin iki ekrani da BURADA olmali: ikisi de form
+            # ve formlarin olcusu tam bu kontrolun yakaladigi sey (katki
+            # formunun select'i 23 px kalmisti). Bu baglam taklit modulu
+            # servis ettigi icin panel gercekten CIZILIYOR -- kutuphanesiz
+            # bir olcumde panel giris sayfasina yonlenir ve form hic
+            # olculmezdi.
             for yolu in ("/index.html", "/kesfet.html?il=34", "/paylas.html",
-                         "/giris.html", "/isletme.html?il=34&id=node/8223784325"):
+                         "/giris.html", "/isletme.html?il=34&id=node/8223784325",
+                         "/isletme-giris.html", "/isletmem.html"):
                 tel.goto(TABAN + yolu, wait_until="domcontentloaded", timeout=20000)
                 tel.wait_for_timeout(2200)
                 kucuk = tel.evaluate("""() => [...document.querySelectorAll(
@@ -692,14 +716,14 @@ def kendini_kontrol_et():
             # sahibin katkisi INCELENMEDEN onaylaniyor, yani silme kalsaydi
             # biri mekani sahiplenip incelenmemis bilgi yazar, sonra birakir
             # ve sahip OLDUGUNA dair hicbir kayit kalmazdi.
-            sf, _ = sayfa_ac("/hesabim.html", GIRIS_TAKLIT, sahte_modul=True)
-            sf.wait_for_timeout(1000)
-            d = sf.query_selector('[data-bolum="isletmeler"]')
-            if d:
-                d.click(); sf.wait_for_timeout(800)
-            b2 = sf.query_selector("#bolum-isletmeler [data-birak]")
+            # Dugme artik ISLETME PANELINDE (isletmem.html): sahiplik
+            # yonetimi oraya tasindi. Sinanan DAVRANIS ayni ve asil
+            # onemli olan o -- hangi sayfada durdugu degil.
+            sf, _ = sayfa_ac("/isletmem.html", GIRIS_TAKLIT, sahte_modul=True)
+            sf.wait_for_timeout(2000)
+            b2 = sf.query_selector("[data-birak]")
             if not b2:
-                sorunlar.append("hesabim.html: sahipligi birak dugmesi yok")
+                sorunlar.append("isletmem.html: sahipligi birak dugmesi yok")
             else:
                 sf.once("dialog", lambda dg: dg.accept())
                 b2.click()
