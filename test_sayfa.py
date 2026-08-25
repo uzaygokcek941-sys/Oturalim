@@ -191,6 +191,29 @@ window.__SAHTE_VERI = {
         olusturuldu: "2026-08-22T12:00:00Z" },
       { id: 2, urun: null, fiyat: null, foto: "kul-1/1.jpg",
         olusturuldu: "2026-08-21T12:00:00Z" }], error: null }),
+    /* TOPLULUK AKISI. Uc satir, uc ayri hal:
+         1) yorum + ACIK profil   -> ad ve avatar gorunuyor
+         2) yorum + KAPALI profil -> yorum duruyor, ad "Bir kullanici"
+         3) menu katkisi          -> ADSIZ (sunucu yazar sutunlarini
+                                     bilerek null donduruyor)
+       Fis ve fiyat oyu taklitte de YOK: sunucu onlari hic dondurmuyor
+       ve arayuzun "gelirse ne yapacagi" diye bir hali olmamali. */
+    topluluk_akisi: () => ({ data: [
+      { tur: "yorum", id: 1, mekan_id: "node/1", mekan_ad: "Akis Kafe",
+        il: "34", puan: 5, metin: "Akista gorunen yorum",
+        urun: null, fiyat: null, foto: null,
+        olusturuldu: "2026-08-24T10:00:00Z",
+        yazar_adi: "deneme_kisi", yazar_ad: "Deneme Kisi", yazar_avatar: null },
+      { tur: "yorum", id: 2, mekan_id: "node/2", mekan_ad: "Gizli Yazar Kafe",
+        il: "34", puan: 4, metin: "Adsiz gorunen yorum",
+        urun: null, fiyat: null, foto: null,
+        olusturuldu: "2026-08-23T10:00:00Z",
+        yazar_adi: null, yazar_ad: null, yazar_avatar: null },
+      { tur: "menu", id: 3, mekan_id: "node/3", mekan_ad: "Akis Menu",
+        il: "34", puan: null, metin: null,
+        urun: "Latte", fiyat: 145, foto: "kul-1/1.jpg",
+        olusturuldu: "2026-08-22T10:00:00Z",
+        yazar_adi: null, yazar_ad: null, yazar_avatar: null }], error: null }),
     il_puanlari: () => ({ data: [], error: null }),
     /* Birakma SILMIYOR, durumu degistiriyor -- taklit de oyle davranmali,
        yoksa arayuz kontrolu gercekte olmayan bir davranisi dogrular. */
@@ -293,6 +316,15 @@ GIRISLI = [
   # kaynakli, o yuzden "işletmeden" bekleniyor.
   ("isletme.html/kapak", "/isletme.html?il=34&id=node/8223784325", None,
    ["işletmeden"], ["kul-1"]),
+  # TOPLULUK AKISI. Uc sey birden olculuyor:
+  #   - acik profilin ADI gorunuyor
+  #   - KAPALI profilin yorumu duruyor ama adi "Bir kullanici"
+  #   - menu katkisi kalemi ve fiyatiyla cikiyor, ADSIZ
+  # "Yukleniyor" hala ekrandaysa akis hic cizilmemis demektir.
+  ("topluluk.html", "/topluluk.html", None,
+   ["Akis Kafe", "Deneme Kisi", "Akista gorunen yorum",
+    "Gizli Yazar Kafe", "Bir kullanıcı", "Akis Menu", "Latte", "145"],
+   ["Yükleniyor", "kul-1", "Henüz onaylanmış bir katkı yok"]),
   # Isletme sayfasi: kalem ve fotograf ayri ayri cizilmeli.
   ("isletme.html/menu", "/isletme.html?il=34&id=node/8223784325", None,
    ["Kullanıcıların eklediği fiyatlar", "Latte", "Menüyü görüyor musun"],
@@ -302,7 +334,7 @@ GIRISLI = [
 SAYFALAR = ["/index.html", "/kesfet.html", "/kesfet.html?il=34&tur=Kafe&butce=300",
             "/isletme.html?il=34&id=node/8223784325", "/isletme.html?il=34&id=yok",
             "/paylas.html", "/giris.html", "/hesabim.html", "/yonetim.html",
-            "/hakkinda.html", "/gizlilik.html",
+            "/hakkinda.html", "/gizlilik.html", "/topluluk.html",
             # Profil: hem gecerli hem OLMAYAN kullanici adi. Ikincisi
             # "bulunamadi" ekranini cizmeli, catmamali.
             "/profil.html?k=deneme_kisi", "/profil.html?k=yok_boyle_biri",

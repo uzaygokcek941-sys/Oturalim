@@ -34,6 +34,10 @@ ROBOTS = "app/robots.txt"
 SAYFALAR = [
     ("index.html",    "1.0",  "daily"),
     ("kesfet.html",   "0.9",  "daily"),
+    # Topluluk akisi: profil sayfasindan FARKLI olarak noindex DEGIL.
+    # Profilde kisisel bilgi (yas, meslek, fotograf) var; akista yalniz
+    # zaten yayinda olan katkilar duruyor. Icerigi her gun degisiyor.
+    ("topluluk.html", "0.7",  "daily"),
     ("hakkinda.html", "0.5",  "monthly"),
     ("paylas.html",   "0.5",  "monthly"),
     ("gizlilik.html", "0.3",  "yearly"),

@@ -922,6 +922,20 @@ const Kimlik = {
     return data || [];
   },
 
+  /* Topluluk akışı: son onaylı katkılar, tek listede.
+     YORUM yazarıyla, MENÜ KATKISI adsız. Fiş ve fiyat oyu HİÇ YOK --
+     gerekçe veritabani/topluluk.sql'in başında yazılı (fiş bir ödeme
+     kaydı; fiyat oyu ise tek tek kimseye görünmüyor, yalnız eşik üstü
+     toplam olarak veriliyor). Sınır sunucuda: buradan ne istenirse
+     istensin 60'ı geçmiyor. */
+  async toplulukAkisi(once, adet){
+    if (!sb) return [];
+    const { data, error } = await sb.rpc("topluluk_akisi",
+      { p_once: once || null, p_limit: adet || 30 });
+    if (error){ console.error("topluluk:", error.message); return []; }
+    return data || [];
+  },
+
   /* Bir kullanıcının onaylı yorumları (profil sayfası).
      FİŞLERİ listeleyen karşılığı YOK ve olmayacak: onlar kanı değil
      ödeme kaydı. Gerekçe veritabani/yorum.sql'de profil_yorumlari'nın

@@ -36,7 +36,7 @@ BETIKLER = ["app_veri.py", "etkinlik_cek.py", "fiyat_analiz.py", "menu_cikar.py"
             "turkiye_cek.py", "foto_cek.py",
             "menu_ocr.py", "menu_pdf_tara.py", "saha.py", "sahiplen.py",
             "site_haritasi.py", "csp_uret.py", "veri_bicim.py", "kutuphane_al.py",
-            "ikon_uret.py", "sw_uret.py", "assetlinks_uret.py"]
+            "ikon_uret.py", "sw_uret.py", "assetlinks_uret.py", "og_uret.py"]
 
 # Turkiye siniri, genis pay. Disina dusen koordinat cekimde bir sey
 # kaymis demektir; haritada Atlantik'te bir nokta olarak gorunur.
@@ -1521,6 +1521,81 @@ def harita_karti_mi():
                # True donuyordu, kayit onu BASARISIZ sayiyordu.
 
 
+def yazi_tipi_tutarli_mi():
+    """Sayfanin INDIRDIGI yazi tipi, CSS'in ISTEDIGI yazi tipi olmali.
+
+    OLCULDU (gercek tarayici, index.html):
+        istenen adres : ...family=Fraunces...&family=Karla...
+        h1 kullaniyor : Montserrat, ui-sans-serif, system-ui, ...
+        yuklenen yuz  : []              <-- HICBIRI
+
+    stil.css marka kilavuzuna gecirilirken --font-baslik/--font-govde
+    Montserrat oldu; sayfalardaki <link> Fraunces + Karla'da kaldi.
+    Sonuc: uygulama iki yazi tipini agdan cekiyor, hicbirini
+    kullanmiyor ve gercekte SISTEMIN varsayilan sans'iyla ciziliyordu.
+    Iki maliyet birden -- her sayfada bosa inen, cizimi bekleten bir
+    stil dosyasi ve marka yazi tipinin hicbir yerde gorunmemesi.
+
+    Bu sessiz bir kusurdu: sayfa acilir, "calisiyor" gorunur. Ancak
+    tarayicida hangi yuzun YUKLENDIGINE bakinca ortaya cikti.
+
+    Paylasim karti (og_uret.py) da ayni aileyi kullanmali: kart baska
+    bir yazi tipiyle cikarsa onizleme uygulamaya benzemez.
+    """
+    s = []
+    stil = oku("app", "stil.css")
+
+    # CSS'in ISTEDIGI aileler: token'larin BASINDAKI tirnakli ad.
+    istenen = set()
+    for token in ("--font-baslik", "--font-govde"):
+        m = re.search(re.escape(token) + r'\s*:\s*"([^"]+)"', stil)
+        if not m:
+            s.append("stil.css: %s tanimli degil ya da tirnakli ad ile baslamiyor"
+                     % token)
+        else:
+            istenen.add(m.group(1))
+    if not istenen:
+        return s
+
+    for y in sorted(glob.glob(os.path.join(KOK, "app", "*.html"))):
+        ad = os.path.basename(y)
+        govde = io.open(y, encoding="utf-8").read()
+        baglar = re.findall(r'href="(https://fonts\.googleapis\.com/[^"]+)"', govde)
+        if ad == "cevrimdisi.html":
+            # TEK ISTISNA ve gerekcesi sayfanin kendi basinda yazili:
+            # cevrimdisi sayfasi ag YOKKEN aciliyor. Oraya bir Google
+            # Fonts baglantisi koymak, tanimi geregi gelmeyecek bir
+            # istek eklemek olurdu. Kontrol bunu ADIYLA muaf tutuyor --
+            # sessizce atlamiyor, cunku baska bir sayfa ayni sekilde
+            # unutulursa yakalanmali.
+            if baglar:
+                s.append("cevrimdisi.html: ag YOKKEN acilan sayfa yazi tipi "
+                         "indirmeye calisiyor")
+            continue
+        if not baglar:
+            # Yazi tipi indirmeyen sayfa: yalniz sistem yazi tipiyle
+            # cizilir. Sayfalarin geri kalani indiriyorsa, indirmeyen
+            # unutulmus demektir.
+            s.append("%s: yazi tipi hic yuklenmiyor" % ad)
+            continue
+        alinan = set()
+        for b in baglar:
+            alinan |= set(re.findall(r"family=([A-Za-z0-9+]+)", b))
+        alinan = {a.replace("+", " ") for a in alinan}
+        if alinan != istenen:
+            s.append("%s: indirilen %s, CSS'in istedigi %s"
+                     % (ad, sorted(alinan) or "-", sorted(istenen)))
+
+    # Paylasim karti ayni aileyi kullanmali.
+    og = oku("og_uret.py")
+    for aile in istenen:
+        if "family=" + aile.replace(" ", "+") not in og and \
+           "family=" + aile not in og:
+            s.append("og_uret.py: paylasim karti %s kullanmiyor" % aile)
+
+    return s
+
+
 def kombin_mi():
     """Cebimde kombini: "bu butceyle burada ne yenir".
 
@@ -1845,7 +1920,8 @@ def sql_kontrolleri():
               ("menu katkisi", "menu katkisi: 12 kontrolun hepsi gecti"),
               ("mekan fotografi", "mekan fotografi: 12 kontrolun hepsi gecti"),
               ("akran", "akran_test: 12 adimin hepsi gecti"),
-              ("fiyat oyu", "fiyat_oyu_test: 14 adimin hepsi gecti"))
+              ("fiyat oyu", "fiyat_oyu_test: 14 adimin hepsi gecti"),
+              ("topluluk", "topluluk_test: 11 adimin hepsi gecti"))
              if imza not in cikti]
     if eksik:
         return kayit("SQL davranisi (gercek Postgres)",
@@ -1882,6 +1958,8 @@ def main():
     kayit("degismez: yayin yapilandirmasi", yayin_basliklari_mi())
     kayit("degismez: PWA ve Play parcalari", pwa_tutarli_mi())
     kayit("degismez: marka paleti okunur", palet_okunur_mu())
+    kayit("degismez: yazi tipi indirilen ile kullanilan ayni",
+          yazi_tipi_tutarli_mi())
     kayit("degismez: ana ekran butceyi olcum diye satmiyor", ana_ekran_butce_mi())
     kayit("degismez: fiyat kac olcumden geldigini soyluyor", fiyat_dayanagi_mi())
     kayit("degismez: guven skoru renk disinda da okunuyor", guven_skoru_mu())
