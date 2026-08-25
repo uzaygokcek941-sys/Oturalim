@@ -96,6 +96,12 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
     background:var(--vurgu);box-shadow:var(--golge-1);
   }
 
+  /* akran satiri: arac cubugunun bir parcasi, kart degil. Rozet gibi
+     durmasi yanlis olurdu -- bu bir olcum, bir rozet degil. */
+  .akran{flex:1 1 100%;margin:0;font-size:13px;line-height:1.5;
+    color:var(--metin-2);padding:2px 2px 0}
+  .akran b{color:var(--metin);font-weight:650}
+
   /* ---- gövde: liste + harita ---- */
   .govde{
     display:grid;grid-template-columns:minmax(340px,440px) 1fr;
@@ -245,6 +251,10 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   .odenen-bas b{font-family:var(--font-baslik);font-size:20px;font-weight:600;
     color:var(--metin);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
   .odenen p{font-size:13px;color:var(--metin-2);line-height:1.55;margin-top:var(--a2)}
+  /* Esik altindaki hal: ayni kutu ama IDDIASIZ. Yesil cerceve "olculdu"
+     diyor; burada olculmus bir sey yok, kac fis kaldigi var. */
+  .odenen.az{border-color:var(--cizgi);background:var(--zemin-2)}
+  .odenen.az p{margin-top:0}
   /* Harita yerine gecen kutu: Leaflet gelmediginde. Ayni alani kapliyor
      ki yerlesim kaymasin. */
   .harita-yok{height:100%;min-height:200px;display:flex;flex-direction:column;
@@ -349,9 +359,18 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
         <button class="cip" data-bayrak="wifi" aria-pressed="false">Wi-Fi</button>
         <button class="cip" data-bayrak="acik" aria-pressed="false">Şu an açık</button>
         <button class="cip" data-bayrak="menu" aria-pressed="false">Fiyatı olan</button>
+        <!-- "Fisi olan" ile "Fiyati olan" AYNI SEY DEGIL: biri isletmenin
+             ilan ettigi menu fiyati, oteki gidenlerin fiilen odedigi
+             tutar. Ikisini tek cipte toplamak, kullanicinin
+             dogrulayamadigi bir karisim uretirdi. -->
+        <button class="cip" data-bayrak="fis" aria-pressed="false">Fişi olan</button>
         <button class="cip sifirla" id="sifirla" hidden>Filtreleri temizle</button>
       </div>
     </div>
+
+    <!-- Butce akranlari. Butce girilmeden hic gorunmuyor: bos bir
+         "0 kisi" satiri hem yer kapliyor hem cesaret kiriyor. -->
+    <p class="akran" id="akran" hidden></p>
   </div>
 </div>
 

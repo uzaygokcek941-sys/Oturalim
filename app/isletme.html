@@ -56,6 +56,22 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   .fis h2{margin:0 0 var(--a2)}
   .fis p{margin:0 0 var(--a3)}
 
+  /* civar: fisin kardesi ama sorusu farkli -- fis "burasi kaca oturur",
+     civar "buranin etrafinda ne var". Ayni cerceve, ayri kutu. */
+  .civar{border-top:1px solid var(--cizgi);padding-top:var(--a4);margin-top:var(--a4)}
+  .civar h2{margin:0 0 var(--a2)}
+  .civar p{margin:0 0 var(--a3)}
+  .civar-sayilar{display:flex;flex-wrap:wrap;gap:var(--a3) var(--a5);
+                 margin:0 0 var(--a3);padding:0;list-style:none}
+  .civar-sayilar div{display:flex;flex-direction:column;gap:2px}
+  .civar-sayilar b{font-size:1.35rem;font-weight:650;line-height:1.1}
+  .civar-sayilar span{font-size:.85rem;color:var(--soluk)}
+  .civar-tur{display:flex;flex-wrap:wrap;gap:var(--a2);margin:0 0 var(--a3);
+             padding:0;list-style:none}
+  .civar-tur li{font-size:.86rem;color:var(--soluk);
+                border:1px solid var(--cizgi);border-radius:99px;
+                padding:2px var(--a3)}
+
   /* katki formu: eksik listesinin ALTINDA duruyor, cunku okuyan kisi neyin
      eksik oldugunu tam o an gormus oluyor. Ayri sayfaya tasimak arayi aciyor. */
   .katki{border-top:1px solid var(--cizgi);margin-top:var(--a4);padding-top:var(--a4)}
@@ -184,6 +200,21 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
     <h2>Buraya gidenler ne ödemiş</h2>
     <p id="fisOzet"></p>
     <a class="dugme ikincil" id="fisEkle" href="paylas.html">Ödediğini ekle</a>
+  </section>
+
+  <!-- Bu civar. MAHALLE ADI YOK cunku veride yok: 35.852 mekanin
+       yalniz 49'unun adresinden mahalle adi ayristirilabiliyor (%0,14).
+       Yaricap olculebilir bir sey, mahalle adi ise uydurma olurdu.
+       "Cevresine gore pahali" da DEMIYORUZ: menu fiyati bilinen mekan
+       %0,81 ve 500 m'de en az uc fiyatli komsusu olan mekan %4,16 --
+       uc ornekten cikan bir medyana dayanip fiyat iddiasi kurmak,
+       uydurma seviyeden farksiz olurdu. Gosterilen sey KAPSAM. -->
+  <section class="civar" id="civar" hidden>
+    <h2 id="civarBaslik">Bu civarda</h2>
+    <ul class="civar-sayilar" id="civarSayilar"></ul>
+    <ul class="civar-tur" id="civarTur"></ul>
+    <p id="civarNot"></p>
+    <a class="dugme ikincil" id="civarBag" href="kesfet.html">Çevresini haritada gör</a>
   </section>
 
   <!-- Mekan fotografi ekleme. Menu fotografindan AYRI: orada aranan sey
@@ -474,6 +505,7 @@ function goster(m, ilAd){
   document.getElementById("govde").hidden = false;
   sayacCalistir(ID);
   fisKatmani(ID, m.ad, IL);
+  civarKatmani(m);
   yorumKatmani(ID, m.ad, IL);
   menuKatkiKatmani(ID, m.ad, IL);
   galeriKatmani(ID, m.ad, IL);
@@ -705,6 +737,9 @@ if (!ID || !IL || IL === "00"){
          katki formu ayni m nesnesini okuyor. Sonradan yamamak, sayfanin bir
          yerinde "telefon yok" derken otekinde telefon gostermek demekti. */
       await katkilariUygula(m);
+      /* Ilin tamami civar kutusu icin duruyor: mekanin cevresinde ne
+         oldugunu bilmenin baska yolu yok, koordinatlar yalniz burada. */
+      ilMekanlari = d.mekanlar || [];
       goster(m, d.il);
     })
     .catch(() => { document.getElementById("hata").hidden = false; });
@@ -714,31 +749,13 @@ if (!ID || !IL || IL === "00"){
    Fiyatin kaynagi menu degil, GIDEN INSAN. Menu fiyati bir kalemin fiyati;
    fis "3 kisi gittik, 850 verdik" diyor -- kullanicinin sordugu soru bu.
 
-   ESIK KURALI: ortalama ancak 3 fisten sonra gosteriliyor. Iki sebep:
-   (1) tek fis bir kisinin o gunku secimidir, mekanin fiyati degil;
-   (2) k-anonimlik -- tek fis, tanidigi biri tarafindan kisiye baglanabilir.
-   Esigin altinda sayi gizlenip KAC FIS KALDIGI soyleniyor; boylece esik
-   kendisi katki cagrisina donusuyor. */
-const FIS_ESIK = 3;
+   ESIK KURALI VE CUMLE KURULUSU ARTIK ORTAK.JS'TE (FIS_ESIK, fisOzeti).
+   Burada tanimliyken kesfet ekrani esikten habersizdi ve TEK FISTEN
+   "kisi basi ~X TL" basiyordu -- yani bu sayfanin gizledigi seyi oteki
+   sayfa yayimliyordu. Ayni kural iki yerde yasayamaz.
 
-/* Saf: fis OZETI -> gosterilecek cumle. Ayri duruyor cunku esik mantigi
-   sessizce bozulursa ya kisiyi ifsa ederiz ya da katki cagrisi kaybolur.
-
-   Girdi artik satir listesi degil, sunucudan gelen ozet: {fis, kisi, medyan}.
-   Onceden satirlar cekiliyor ve KISI SAYISI icin `kullanici` sutunu
-   okunuyordu -- yani her ziyaretci butun uuid'leri goruyordu (bkz.
-   sema.sql "Sutun yetkisi"). Sayim sunucuda; esik karari burada kaldi. */
-function fisOzeti(o){
-  const n = (o && o.fis) || 0;
-  if (!n)
-    return "Buranın fiyatını kimse yazmamış. Gittiysen ödediğini yaz — " +
-           "bir sonraki kişi kazık yemeden gitsin.";
-  if (n < FIS_ESIK)
-    return "Şu ana kadar " + sayi(n) + " fiş var. " +
-           (FIS_ESIK - n) + " tane daha gelince ortalama burada görünecek.";
-  return "Kişi başı ~" + tl(o.medyan) + " · " +
-         (o.kisi ? sayi(o.kisi) + " kişinin " : "") + sayi(n) + " fişinden.";
-}
+   Ozet SUNUCUDAN geliyor: {fis, kisi, medyan}. Kisi sayimi orada, cunku
+   `kullanici` sutunu tarayiciya kapali (sema.sql "Sutun yetkisi"). */
 
 /* ============================================================
    Fotograflar
@@ -1176,6 +1193,73 @@ async function fisKatmani(mekanId, mekanAd, ilKod){
   } catch (e) { /* ag yok, tablo yok: davet yine gorunsun */ }
 
   ozet.textContent = fisOzeti(o);
+  bol.hidden = false;
+}
+
+/* ============================================================
+   Bu civar — "mahalle statusu"
+
+   Fis katmani "burasi kaca oturur" diyor; bu kutu bir ust soruyu
+   cevapliyor: "buranin etrafinda ne var". Ag mekanigi olmasinin sebebi
+   ikinci yarisi -- civardaki mekanlarin kacinin fiyati BILINMIYOR,
+   ekranda yaziyor ve katki cagrisi tam oraya dusuyor. Genel bir
+   "katkida bulun" cagrisi degil, kullanicinin o an baktigi sokak.
+
+   Yaricap ve gerekceler ortak.js civarOzeti()'nde. Mahalle ADI yok
+   cunku veride yok (35.852 mekanda 49 tane, %0,14).
+   ============================================================ */
+let ilMekanlari = [];
+
+async function civarKatmani(m){
+  const o = civarOzeti(m, ilMekanlari);
+  if (!o) return;                       /* tenha yer: uydurulacak bir sey yok */
+
+  const bol   = document.getElementById("civar");
+  const metre = o.yaricap >= 1000 ? (o.yaricap / 1000) + " km" : o.yaricap + " m";
+  document.getElementById("civarBaslik").textContent =
+    "Bu civarda — " + metre + " çevresi";
+
+  /* Fis ozeti: cografya istemcide, toplam sunucuda (akran.sql).
+     akran.sql kurulu degilse null doner ve kutu fissiz cizilir. */
+  let cf = null;
+  if (o.idler.length){
+    try {
+      await Kimlik.hazir;
+      cf = await Kimlik.civarFisOzeti(o.idler);
+    } catch (e) { /* ag yok, fonksiyon yok: kutunun geri kalani yine dogru */ }
+  }
+
+  const kutular = [
+    ["<b>" + sayi(o.yakin) + "</b><span>mekan</span>"],
+    ["<b>" + sayi(o.fiyatli) + "</b><span>fiyatı biliniyor</span>"]
+  ];
+  /* Fis sayisi esigi gecmeden tutar yazilmiyor -- kural fisGoster()'de,
+     mekanin kendi kutusuyla ayni. Civar daha genis bir kume oldugu icin
+     esigi gevsetmek cazip; gevsetilmiyor, cunku esik k-anonimlik icin
+     ve tek fisli bir civar da tek kisidir. */
+  if (fisGoster(cf))
+    kutular.push(["<b>" + tl(cf.medyan) + "</b><span>kişi başı, " +
+                  sayi(cf.fis) + " fişten</span>"]);
+
+  document.getElementById("civarSayilar").innerHTML =
+    kutular.map(k => "<div>" + k[0] + "</div>").join("");
+
+  document.getElementById("civarTur").innerHTML =
+    o.turler.map(t => "<li>" + kacir(t[0]) + " · " + sayi(t[1]) + "</li>").join("");
+
+  /* Katki cagrisi SAYIYLA: "fiyat ekle" demek soyut, "bu civarda 31
+     mekanin fiyati yok" degil. Hepsi biliniyorsa cagri yapilmiyor --
+     olmayan bir eksigi istemek guveni goturur. */
+  const eksik = o.yakin - o.fiyatli;
+  document.getElementById("civarNot").textContent = eksik > 0
+    ? "Bu civardaki " + sayi(eksik) + " mekanın fiyatı bilinmiyor. " +
+      "Birine gittiysen ödediğini yaz — çevrende oturan herkes görsün."
+    : "Bu civardaki mekanların hepsinin fiyatı biliniyor.";
+
+  document.getElementById("civarBag").href =
+    "kesfet.html?il=" + encodeURIComponent(IL) +
+    "&mekan=" + encodeURIComponent(m.id);
+
   bol.hidden = false;
 }
 

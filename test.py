@@ -33,7 +33,7 @@ VERI = os.path.join(KOK, "app", "veri")
 BETIKLER = ["app_veri.py", "etkinlik_cek.py", "fiyat_analiz.py", "menu_cikar.py",
             "turkiye_cek.py", "foto_cek.py",
             "menu_ocr.py", "menu_pdf_tara.py", "saha.py", "sahiplen.py",
-            "site_haritasi.py"]
+            "site_haritasi.py", "csp_uret.py"]
 
 # Turkiye siniri, genis pay. Disina dusen koordinat cekimde bir sey
 # kaymis demektir; haritada Atlantik'te bir nokta olarak gorunur.
@@ -289,6 +289,29 @@ def sema_tutarli_mi():
     if "create trigger profil_yonetici_koru" not in sema:
         s.append("sema.sql: profil_yonetici_koru tetikleyicisi yok")
 
+    # Butce akrani: EKRANDA YAZAN SURE ile SORGUNUN BAKTIGI SURE ayni
+    # olmali. ortak.js "son 6 ayda" diyor, akran.sql 180 gunden bakiyor.
+    # Ayrisirlarsa kullaniciya yanlis bir zaman araligi soylenir ve
+    # hicbir sey patlamaz -- tam olarak sessizce yanlis olan tur.
+    akran = oku("veritabani", "akran.sql")
+    ortak_js = oku("app", "ortak.js")
+    gunler = set(re.findall(r"current_date - interval '(\d+) days'", akran))
+    if gunler != {"180"}:
+        s.append("akran.sql: pencere %s gun; ortak.js 'son 6 ayda' diyor"
+                 % (", ".join(sorted(gunler)) or "yok"))
+    if "AKRAN_GUN = 180" not in ortak_js:
+        s.append("ortak.js: AKRAN_GUN 180 degil, akran.sql ile ayrisiyor")
+    if "son 6 ayda" not in ortak_js:
+        s.append("ortak.js: akran cumlesinde sure yazmiyor")
+    # Fis esigi TEK YERDE olmali. isletme.html'de ikinci bir tanim vardi
+    # ve kesfet ekrani ondan habersizdi: tek fisten tutar yayimlaniyordu.
+    for dosya in ("isletme.html", "kesfet.js"):
+        if re.search(r"^\s*const FIS_ESIK\s*=", oku("app", dosya), re.M):
+            s.append("app/%s: FIS_ESIK ikinci kez tanimlaniyor "
+                     "(kural ortak.js'te durmali)" % dosya)
+    if "const FIS_ESIK = 3;" not in ortak_js:
+        s.append("ortak.js: FIS_ESIK tanimi yok")
+
     # Sayac: dogrudan yazma yolunun kapali kaldigi.
     sayac = oku("veritabani", "sayac.sql")
     if "revoke all on table public.goruntulenme from anon" not in sayac:
@@ -380,9 +403,16 @@ def yayin_basliklari_mi():
     Sessizce bozulabilecek turden: gecersiz JSON'da Vercel yapilandirmayi
     yok sayip yayina devam eder, yani baslik kaybi hicbir yerde patlamaz.
 
-    CSP BILEREK YOK: Supabase adresi kuruluma gore degisiyor
-    (yapilandirma.js), yani depoda sabit bir CSP yazmak baska bir Supabase
-    projesiyle kuran kisinin girisini sessizce kirardi.
+    CSP ARTIK VAR. Onceden bilerek yoktu ve gerekcesi suydu: Supabase
+    adresi kuruluma gore degisiyor (yapilandirma.js gitignore'da), yani
+    depoda sabit bir adres yazmak baska bir projeyle kuran kisinin
+    girisini sessizce kirardi. Cozum joker: `https://*.supabase.co`.
+
+    KARMALAR ESKIYEBILIR ve eskimesi SESSIZ: satir ici bir <script>
+    degistiginde karma tutmaz, tarayici o blogu calistirmaz ve sayfa
+    hatasiz gorunur. O yuzden burada guncellik de denetleniyor
+    (csp_uret.py kontrol) ve ayrica test_sayfa.py butun sayfalari
+    GERCEK CSP altinda aciyor (sunucu.py basligi vercel.json'dan okuyor).
     """
     s = []
     try:
@@ -394,9 +424,19 @@ def yayin_basliklari_mi():
     basliklar = {b.get("key") for grup in v.get("headers", [])
                  for b in grup.get("headers", [])}
     for gerekli in ("X-Content-Type-Options", "Referrer-Policy",
-                    "X-Frame-Options", "Permissions-Policy"):
+                    "X-Frame-Options", "Permissions-Policy",
+                    "Content-Security-Policy"):
         if gerekli not in basliklar:
             s.append("vercel.json: %s basligi yok" % gerekli)
+    y = subprocess.run([sys.executable, "csp_uret.py", "kontrol"], cwd=KOK,
+                       capture_output=True, text=True)
+    if y.returncode != 0:
+        s.append((y.stdout + y.stderr).strip()[-200:])
+    # Yerel sunucu ile yayin AYNI basligi vermeli; ayrisirlarsa CSP
+    # tarayicida hic sinanmamis olur ve ilk kanit yayindaki kirik sayfa
+    # olurdu.
+    if 'json.loads(io.open(AYAR' not in oku("sunucu.py"):
+        s.append("sunucu.py guvenlik basliklarini vercel.json'dan okumuyor")
     return s
 
 
@@ -620,7 +660,8 @@ def sql_kontrolleri():
                                  ("sayac", "sayac: 11 kontrolun hepsi gecti"),
                                  ("yorum", "yorum: 20 kontrolun hepsi gecti"),
                                  ("menu katkisi", "menu katkisi: 12 kontrolun hepsi gecti"),
-                                 ("mekan fotografi", "mekan fotografi: 12 kontrolun hepsi gecti"))
+                                 ("mekan fotografi", "mekan fotografi: 12 kontrolun hepsi gecti"),
+                                 ("akran", "akran_test: 11 adimin hepsi gecti"))
              if imza not in cikti]
     if eksik:
         return kayit("SQL davranisi (gercek Postgres)",

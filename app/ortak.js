@@ -374,6 +374,158 @@ function basHarf(ad){
   return t[0].toLocaleUpperCase("tr");
 }
 
+/* ============================================================
+   FİŞ EŞİĞİ — ağın atomu ve k-anonimlik sınırı
+
+   Ortalama ancak 3 fişten sonra gösteriliyor. İki sebep:
+   (1) tek fiş bir kişinin o günkü seçimidir, mekanın fiyatı değil;
+   (2) k-anonimlik — tek fiş, tanıdığı biri tarafından kişiye bağlanabilir.
+   Eşiğin altında TUTAR SIZMIYOR, kaç fiş kaldığı söyleniyor; böylece eşik
+   kendisi katkı çağrısına dönüşüyor.
+
+   BURADA DURUYOR ÇÜNKÜ İKİ EKRAN DA KULLANIYOR. Önce yalnız
+   isletme.html'de tanımlıydı ve keşfet ekranı eşikten habersizdi:
+   kart rozeti ("kişi başı ~X ₺") ve detay panelindeki "Gerçekten ödenen"
+   kutusu TEK FİŞTEN çiziliyordu -- üstelik panel "1 kişinin
+   paylaşımından" diye bunu açıkça yazıyordu. Yani işletme sayfasının
+   gizlediği şeyi keşfet ekranı yayımlıyordu. Aynı kural iki yerde
+   yaşayamaz; kural burada, gösterim çağıranda.
+   ============================================================ */
+const FIS_ESIK = 3;
+
+/* Saf: fiş ÖZETİ -> gösterilecek cümle.
+   Girdi {fis, kisi, medyan}. `kisi` yoksa uydurulmuyor -- keşfet ekranı
+   onu bilemiyor (kimlik sütunu kapalı), işletme sayfası sunucudan alıyor. */
+function fisOzeti(o){
+  const n = (o && o.fis) || 0;
+  if (!n)
+    return "Buranın fiyatını kimse yazmamış. Gittiysen ödediğini yaz — " +
+           "bir sonraki kişi kazık yemeden gitsin.";
+  if (n < FIS_ESIK)
+    return "Şu ana kadar " + sayi(n) + " fiş var. " +
+           (FIS_ESIK - n) + " tane daha gelince ortalama burada görünecek.";
+  return "Kişi başı ~" + tl(o.medyan) + " · " +
+         ((o && o.kisi) ? sayi(o.kisi) + " kişinin " : "") + sayi(n) + " fişinden.";
+}
+
+/* Tutar gösterilebilir mi. Tek yerde dursun: rozet, kutu ve süzgeç
+   üçü de buna soruyor. medyan null ise sayı yok demektir -- fiş sayısı
+   eşiği geçse bile uydurulmuyor. */
+function fisGoster(o){
+  return !!(o && o.fis >= FIS_ESIK && o.medyan != null);
+}
+
+/* ============================================================
+   CİVAR — "mahalle statüsü"
+
+   NEDEN MAHALLE ADI YOK: veride yok. Ölçüldü — 35.852 mekanın 9.397'sinde
+   adres alanı var ama içinde ayrıştırılabilir bir mahalle adı geçen
+   YALNIZ 49 tane (%0,14). Mahalle adını dışarıdan bir coğrafi çözücüyle
+   uydurmak, bu depoda kapalı olan bir kapı. Bu yüzden "mahalle" yerine
+   ÖLÇÜLEBİLİR bir şey kullanılıyor: yarıçap.
+
+   NEDEN 500 m: yürüme mesafesi ve veri buna elveriyor. Ölçüldü (500 m
+   yarıçapta komşu sayısı medyanı): Ankara 13, İstanbul 40, İzmir 19,
+   Aksaray 4. Hiç komşusu olmayan mekan oranı Ankara %4, İstanbul %1,
+   İzmir %8, Aksaray %20 -- yani çoğu sayfada dolu bir cevap çıkıyor.
+
+   NEDEN "ÇEVRESİNE GÖRE PAHALI" DEMİYORUZ: diyemiyoruz. Menü fiyatı
+   bilinen mekan 35.852'de 291 (%0,81); 500 m içinde en az 3 fiyatlı
+   komşusu olan mekan yalnız %4,16. Üç örnekten çıkan bir medyana dayanıp
+   "burası çevresine göre pahalı" demek, uydurma seviyeden farksız olurdu.
+   Gösterilen şey KAPSAM: kaç mekan var, kaçının fiyatı biliniyor. Ağ
+   büyüdükçe fiş medyanı bu kutunun içinde kendiliğinden beliriyor.
+   ============================================================ */
+const CIVAR_YARICAP = 500;   /* metre */
+const CIVAR_EN_AZ   = 3;     /* altında "civar" diye bir şey yok */
+const CIVAR_EN_COK  = 500;   /* sunucunun kabul ettiği liste uzunluğu */
+
+/* İki nokta arası kaba metre. Eşdeğer dikdörtgen yaklaşımı: birkaç yüz
+   metrede haversine ile farkı milimetrik, hesabı çok daha ucuz --
+   ve bu fonksiyon bir il dosyasındaki 12 bin mekan için koşuyor. */
+function mesafeM(a, b){
+  const k = Math.cos(a.lat * Math.PI / 180);
+  const dx = (b.lon - a.lon) * k * 111320;
+  const dy = (b.lat - a.lat) * 110540;
+  return Math.hypot(dx, dy);
+}
+
+/* Bir mekanın çevresi. `hepsi` ilin tamamı (statik JSON), mekanın kendisi
+   listeye GİRMİYOR: kutu bir karşılaştırma, kendini kendiyle kıyaslamaz.
+
+   YARIÇAP DARALTILABİLİR, LİSTE KIRPILMAZ. Sunucu 500'den uzun mekan
+   listesini reddediyor (akran.sql). Listeyi sessizce kırpmak, ekranda
+   yazan "500 m çevresinde" ifadesini yalan yapardı -- İstanbul'un yoğun
+   caddelerinde 500 m'de 600 mekan olabiliyor. Onun yerine yarıçap 100'er
+   metre daraltılıyor ve DARALTILMIŞ yarıçap dönüyor; ekranda o yazıyor. */
+function civarOzeti(m, hepsi, yaricap){
+  if (!m || typeof m.lat !== "number" || typeof m.lon !== "number") return null;
+  if (!Array.isArray(hepsi) || !hepsi.length) return null;
+
+  const tavan = yaricap || CIVAR_YARICAP;
+  const olculu = [];
+  for (const o of hepsi){
+    if (o === m || (o && o.id === m.id)) continue;
+    if (!o || typeof o.lat !== "number" || typeof o.lon !== "number") continue;
+    const d = mesafeM(m, o);
+    if (d <= tavan) olculu.push([d, o]);
+  }
+
+  let r = tavan, yakin = olculu;
+  while (yakin.length > CIVAR_EN_COK && r > 100){
+    r -= 100;
+    yakin = olculu.filter(x => x[0] <= r);
+  }
+  /* Aynı koordinata yığılmış mekanlar yüzünden 100 m'de bile sığmıyorsa
+     fiş sorulmuyor. Sayım yine doğru; yalnız o satır susuyor. */
+  const sorulabilir = yakin.length <= CIVAR_EN_COK;
+  if (yakin.length < CIVAR_EN_AZ) return null;
+
+  const say = new Map();
+  let fiyatli = 0;
+  for (const [, o] of yakin){
+    if (o.tur) say.set(o.tur, (say.get(o.tur) || 0) + 1);
+    if (yemekFiyati(o) != null) fiyatli++;
+  }
+  return {
+    yaricap: r,
+    yakin: yakin.length,
+    fiyatli: fiyatli,
+    /* En kalabalık üç tür. Hepsini yazmak 20 satırlık bir liste demekti
+       ve soruyu ("burada ne var") cevaplamıyordu. */
+    turler: [...say.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "tr"))
+              .slice(0, 3),
+    idler: sorulabilir ? yakin.map(x => x[1].id).filter(Boolean) : []
+  };
+}
+
+/* ============================================================
+   BÜTÇE AKRANLARI
+
+   "Benim bütçemdeki insanlar nereye gidiyor." Fiş katmanının bir üstü:
+   orada soru tek bir mekan hakkında, burada bütçe hakkında.
+
+   NEDEN SUNUCUDAN GELİYOR: "kaç KİŞİ" ile "kaç FİŞ" ayrı şeyler ve fark
+   bu özelliğin bütün anlamı -- üç fişi olan tek kişi bir akran topluluğu
+   değil. Tarayıcı bunu ayırt edemiyor, çünkü `kullanici` sütunu ona
+   kapalı (sema.sql). Sayım akran.sql'de.
+
+   AKRAN_GUN, akran.sql'deki pencereyle AYNI OLMAK ZORUNDA: aşağıdaki
+   cümle "son 6 ayda" diyor, sorgu 180 günden bakıyor. İkisi ayrışırsa
+   ekranda yazan süre yalan olur -- test.py ikisini karşılaştırıyor. */
+const AKRAN_GUN = 180;
+
+function akranCumlesi(o, butce){
+  if (!o || !(butce > 0)) return null;
+  /* Sıfır bir başarısızlık değil, davet: eşiğin kendisi katkı çağrısına
+     dönüşüyor (fiş eşiğiyle aynı desen). */
+  if (!o.akran)
+    return "Kişi başı " + tl(butce) + " altında henüz fiş yok. " +
+           "Bu bütçeyle bir yere gittiysen ilk yazan sen ol.";
+  return sayi(o.akran) + " kişi son 6 ayda " + sayi(o.mekan) +
+         " mekanda kişi başı " + tl(butce) + " altında ödedi.";
+}
+
 /* Puan yıldızı. Metin olarak da okunabilsin diye aria-label veriliyor:
    ekran okuyucuya "4,5 yıldız" demek, beş ayrı yıldız karakteri
    okutmaktan iyi. */
@@ -739,6 +891,28 @@ function kendiniKontrolEt(){
   /* Sabit taban: kontrol sonucu sayfanin nerede servis edildigine
      bagli olmasin. */
   const T = "https://o.test/app/giris.html";
+
+  /* --- civar kontrolu icin sahte il --- 39,9 enleminde 0,001 derece
+     enlem ~110 m. "uzak" 663 m'de, yani 500 m disinda. */
+  const BEN   = { id:"ben",  lat:39.900, lon:32.85, tur:"Kafe" },
+        CIVAR = [BEN,
+          { id:"a",    lat:39.901, lon:32.85, tur:"Kafe" },
+          { id:"b",    lat:39.904, lon:32.85, tur:"Restoran",
+            kat:{ "Pizza": { n:2, med:440 } } },          /* tek FIYATLI komsu */
+          { id:"c",    lat:39.900, lon:32.85, tur:"Bar"  },  /* ayni koordinat */
+          { id:"d",    lat:39.9005,lon:32.85, tur:"Kafe" },
+          { id:"uzak", lat:39.906, lon:32.85, tur:"Kafe" }];
+  const C = civarOzeti(BEN, CIVAR);
+
+  /* Yaricap DARALMA yolu: 500 m icine 600 mekan sigdirilirsa sunucunun
+     500'luk siniri asilir. Liste kirpilmiyor, yaricap kuculuyor ve
+     kuculen yaricap DONUYOR -- ekranda yazan sayi dogru kalsin diye. */
+  const KALABALIK = [];
+  for (let i = 0; i < 600; i++)
+    /* ilk 300'u 90 m icinde, kalani 450 m civarinda */
+    KALABALIK.push({ id:"k"+i, tur:"Kafe",
+                     lat: 39.9 + (i < 300 ? 0.0008 : 0.0040), lon: 32.85 });
+  const K = civarOzeti(BEN, KALABALIK);
   const kontroller = [
     ["acikMi 24/7",             acikMi("24/7", g14),               true],
     ["acikMi gunduz",           acikMi("Mo-Su 09:00-23:00", g14),  true],
@@ -1037,6 +1211,61 @@ function kendiniKontrolEt(){
     ["yildiz alti",             yildiz(6),                                    ""],
     ["yildiz metin",            yildiz("abc"),                                ""],
     ["donus yok",            guvenliDonus(null, T),                           null],
+
+    /* --- fis esigi: k-anonimlik siniri ---
+       Kural artik ortak.js'te. Onceden yalniz isletme.html'de vardi ve
+       kesfet ekrani TEK FISTEN tutar basiyordu. */
+    ["fis yok -> davet",       /kimse yazmamış/.test(fisOzeti(null)),        true],
+    ["fis 0 -> davet",         /kimse yazmamış/.test(fisOzeti({fis:0})),     true],
+    ["fis 1 -> 2 tane daha",   /2 tane daha/.test(fisOzeti({fis:1,medyan:300})), true],
+    ["fis 2 -> tutar sizmiyor", /₺/.test(fisOzeti({fis:2,medyan:300})),      false],
+    ["fis 3 -> medyan cikiyor", /300/.test(fisOzeti({fis:3,medyan:300})),    true],
+    ["fis kisi sayisi yazilir",
+      /2 kişinin 4 fişinden/.test(fisOzeti({fis:4,medyan:300,kisi:2})),      true],
+    ["fis kisi yoksa uydurmuyor",
+      /kişinin/.test(fisOzeti({fis:4,medyan:300})),                          false],
+    ["fisGoster esik alti",    fisGoster({fis:2,medyan:300}),                false],
+    ["fisGoster esikte",       fisGoster({fis:3,medyan:300}),                true],
+    /* Fis sayisi esigi gecse bile medyan yoksa gosterilecek sey yok. */
+    ["fisGoster medyansiz",    fisGoster({fis:9,medyan:null}),               false],
+    ["fisGoster bos",          fisGoster(null),                             false],
+
+    /* --- butce akranlari --- */
+    ["akran butcesiz sus",     akranCumlesi({akran:5,mekan:2}, 0),           null],
+    ["akran ozetsiz sus",      akranCumlesi(null, 300),                      null],
+    ["akran sifir -> davet",
+      /ilk yazan sen ol/.test(akranCumlesi({akran:0,fis:0,mekan:0}, 300)),   true],
+    ["akran sayisi cumlede",
+      /37 kişi son 6 ayda 12 mekanda/.test(
+        akranCumlesi({akran:37, fis:80, mekan:12}, 300)),                    true],
+
+    /* --- civar (mahalle statusu) ---
+       lat +0.001 ~ 110 m, +0.004 ~ 442 m, +0.006 ~ 663 m (39,9 enleminde). */
+    ["mesafe 0.001 derece enlem ~110 m",
+      Math.round(mesafeM({lat:39.9,lon:32.85}, {lat:39.901,lon:32.85})),     111],
+    ["mesafe ayni nokta",
+      Math.round(mesafeM({lat:39.9,lon:32.85}, {lat:39.9,lon:32.85})),         0],
+    ["civar yakin sayisi",     C.yakin,                                        4],
+    ["civar yaricapi",         C.yaricap,                                    500],
+    /* 663 m'deki mekan disarida kalmali: yarim kalan bir "civar" tanimi
+       kutudaki butun sayilari kaydirir. */
+    ["civar uzaktakini almaz", C.idler.includes("uzak"),                   false],
+    ["civar kendini saymaz",   C.idler.includes("ben"),                    false],
+    /* Fiyati bilinen komsu sayisi: kutunun katki cagrisi buna dayaniyor. */
+    ["civar fiyatli komsu",    C.fiyatli,                                      1],
+    ["civar tur dagilimi",     C.turler[0][0] + ":" + C.turler[0][1],   "Kafe:2"],
+    ["civar tenha yer yok",
+      civarOzeti({id:"tek",lat:10,lon:10}, [{id:"a",lat:20,lon:20,tur:"Kafe"}]), null],
+    ["civar koordinatsiz mekan",
+      civarOzeti({id:"x"}, [{id:"a",lat:20,lon:20,tur:"Kafe"}]),            null],
+    /* Kalabalik civar: 600 mekan 500 m'ye sigiyor ama sunucu 500 kabul
+       ediyor. Yaricap 100'er metre daraliyor. */
+    ["kalabalik yaricap daraldi",  K.yaricap < 500,                        true],
+    ["kalabalik liste kirpilmadi", K.idler.length === K.yakin,             true],
+    ["kalabalik sunucu sinirinda", K.idler.length <= 500,                  true],
+    /* Daralan yaricap EKRANDA yaziyor; sayim da o yaricapa ait olmali.
+       300 mekan 90 m'de, digerleri 442 m'de -> 400 m'de 300 kalir. */
+    ["kalabalik sayim yaricapla tutarli", K.yakin,                          300],
 
     /* bugun: YEREL gun. Gece 01:30'da (UTC hala dun) bugunu vermeli. */
     ["bugun gece yarisindan sonra",

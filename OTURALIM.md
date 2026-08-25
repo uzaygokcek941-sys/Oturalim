@@ -362,10 +362,19 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
       kullanılıyor, eşiği geçmezse cevap susuyordu. Artık en özel ölçüt
       ancak kanıt barını geçerse kazanıyor; geçmezse ülkeye düşülüyor.
 
-**Üründe — ağ mekanikleri (fiş katmanı commit'inde sayılmıştı, hiçbiri başlamadı):**
-- [ ] Bütçe akranları
+**Üründe — ağ mekanikleri (fiş katmanı commit'inde sayılmıştı):**
+- [x] Bütçe akranları — keşfet ekranında bütçe girilince şerit:
+      *"37 kişi son 6 ayda 12 mekanda kişi başı 300 ₺ altında ödedi."*
+      Sayım sunucuda (`akran.sql → butce_akranlari`), çünkü **"kaç kişi" ile
+      "kaç fiş" ayrı şeyler** ve fark özelliğin bütün anlamı — üç fişi olan
+      tek kişi bir akran topluluğu değil. Tarayıcı bunu ayırt edemiyor:
+      `kullanici` sütunu ona kapalı. Sıfır çıkarsa şerit davete dönüyor.
+      Yanına `Fişi olan` süzgeci kondu; ölçütü rozet ve panelle **aynı**.
 - [x] Bayat fiyat hatırlatması — veri artık tarih taşıyor, uyarı ekranda
-- [ ] Mahalle statüsü
+- [x] Mahalle statüsü — işletme sayfasında **Bu civar** kutusu: 500 m'de kaç
+      mekan, hangi türler, kaçının fiyatı biliniyor, civarın fiş medyanı.
+      Katkı çağrısı soyut değil sayıyla: *"bu civardaki 55 mekanın fiyatı
+      bilinmiyor"*.
 
 **Üründe — dijitalleşmemiş işletme planı:**
 - [x] Faz 1 — eksik bilgi katkı hattı (`katki.sql`, form, onay, takip)
@@ -393,11 +402,24 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
       başlıkların durduğunu denetliyor — geçersiz JSON'da Vercel
       yapılandırmayı **sessizce yok sayar**, yani başlık kaybı hiçbir yerde
       patlamaz.
-- [ ] **CSP bilerek yok.** Supabase adresi kuruluma göre değişiyor
-      (`yapilandirma.js`); depoda sabit bir CSP yazmak, başka bir Supabase
-      projesiyle kuran kişinin girişini sessizce kırardı. Tek bir kurulum
-      sabitlendiğinde eklenmeli: `fonts.googleapis.com`, `fonts.gstatic.com`,
-      `unpkg.com`, `esm.sh` ve o kurulumun `*.supabase.co` adresi.
+- [x] **CSP kondu** (`csp_uret.py` → `vercel.json`). Eskiden bilerek yoktu;
+      gerekçe "Supabase adresi kuruluma göre değişiyor" idi. Çözüm joker:
+      `https://*.supabase.co`, yani depodaki başlık hiçbir kuruluma bağlı
+      değil. `script-src`'de **`'unsafe-inline'` yok** — 30 satır içi
+      `<script>` bloğu sha256 karmasıyla geçiyor (12 tekil karma; blokların
+      çoğu tema önyükleyicisi ve sayfalar arasında ortak). Satır içi olay
+      işleyici sıfır olduğu için bu mümkündü — ölçüldü.
+      `style-src`'de `'unsafe-inline'` **kaldı** ve kalmalı: kartlara satır
+      içi `style="--uzak:0.42"` yazılıyor, stil özniteliği karmayla geçmiyor.
+
+      **Eskimesi sessiz olurdu:** bir `<script>` içinde tek boşluk değişince
+      karma tutmaz, tarayıcı o bloğu çalıştırmaz ve sayfa *hatasız görünür*.
+      İki kapı kondu, ikisi de sabote edilip denendi:
+      `csp_uret.py kontrol` (dosya güncel mi) ve `sunucu.py` artık
+      `vercel.json`'daki başlıkları **yerelde de gönderiyor** — yani
+      `test_sayfa.py`'nin 14 sayfası gerçek CSP altında açılıyor ve konsol
+      ihlalleri toplanıyor. Engellenen script hata fırlatmadığı için bu
+      ikincisi şarttı.
 
 **Gerçek tarayıcıda açınca bulunanlar (`test_sayfa.py`):**
 - [x] Leaflet CDN'den gelmeyince keşfet ekranının **tamamı** ölüyordu
@@ -813,6 +835,89 @@ tam olarak bu.
 Yerine duran üç kaynak: **doğrulanmış işletme sahibi** (en temiz — hak
 kendisinde), **kullanıcı**, **Wikimedia Commons** (atıflı). Kafeler için
 sayfaları dolduracak olan ilk ikisi; Commons bir ek, ana kaynak değil.
+
+---
+
+## 2026-08-25 — Ağ mekanikleri: bütçe akranları ve civar
+
+Fiş katmanı tek bir mekanın sorusunu cevaplıyordu ("burası kaça oturur").
+Kalan iki mekanik bir üst soruyu soruyor: **"benim bütçemdeki insanlar
+nereye gidiyor"** ve **"buranın etrafında ne var"**.
+
+### Önce bulunan hata: eşik keşfet ekranında hiç yoktu
+
+`FIS_ESIK = 3` yalnız `isletme.html`'de tanımlıydı ve keşfet ekranı ondan
+habersizdi. Sonuç, **tek bir kişinin tek fişinin** mekanın fiyatı diye
+yayımlanmasıydı:
+
+- kart rozeti: `kişi başı ~240 ₺`
+- detay paneli: `Gerçekten ödenen 240 ₺ · 1 kişinin paylaşımından`
+
+İkincisi durumu açıkça yazıyordu bile. Eşiğin iki gerekçesi de çiğneniyordu:
+tek fiş bir kişinin o günkü seçimidir, mekanın fiyatı değil; ve tek fiş,
+tanıdığı biri tarafından kişiye bağlanabilir (k-anonimlik). Yani işletme
+sayfasının gizlediği şeyi keşfet ekranı yayımlıyordu.
+
+Kural `ortak.js`'e alındı (`FIS_ESIK`, `fisOzeti`, `fisGoster`) ve üç yerde
+—kart rozeti, detay paneli, `Fişi olan` süzgeci— aynı fonksiyona soruluyor.
+`test.py` artık `FIS_ESIK`'in ikinci bir tanımını **hata sayıyor**.
+
+### Bütçe akranları
+
+Sayım sunucuda (`akran.sql → butce_akranlari`) çünkü *"kaç kişi"* ile
+*"kaç fiş"* farkı bu özelliğin bütün anlamı: üç fişi olan tek kişi bir
+akran topluluğu değil. Tarayıcı ayırt edemiyor — `kullanici` sütunu ona
+kapalı (`sema.sql`). Pencere 180 gün; ekranda "son 6 ayda" yazıyor ve
+`test.py` ikisinin ayrışmasını denetliyor.
+
+### Mahalle statüsü → "Bu civar"
+
+**Mahalle adı yok, çünkü veride yok.** Ölçüldü: 35.852 mekanın 9.397'sinde
+adres alanı var ama içinde ayrıştırılabilir mahalle adı geçen **49 tane
+(%0,14)**. Dışarıdan bir coğrafi çözücüyle uydurmak bu depoda kapalı bir
+kapı. Yerine ölçülebilir bir şey kondu: yarıçap.
+
+**Neden 500 m** — ölçüldü, 500 m'deki komşu sayısı medyanı: Ankara 13,
+İstanbul 40, İzmir 19, Aksaray 4. Hiç komşusu olmayan mekan oranı sırasıyla
+%4, %1, %8, %20.
+
+**"Çevresine göre pahalı" DEMİYORUZ, çünkü diyemeyiz.** Menü fiyatı bilinen
+mekan 35.852'de **291 (%0,81)**; 500 m içinde en az üç fiyatlı komşusu olan
+mekan yalnız **%4,16**. Üç örnekten çıkan bir medyana dayanıp fiyat iddiası
+kurmak, uydurma seviyeden farksız olurdu. Gösterilen şey **kapsam**: kaç
+mekan var, kaçının fiyatı biliniyor — ve katkı çağrısı tam oraya düşüyor.
+Fiş medyanı ağ büyüdükçe kutunun içinde kendiliğinden beliriyor.
+
+**Coğrafya istemcide, toplam sunucuda:** `paylasimlar` tablosunda koordinat
+yok, `mekan_id` var; koordinatlar uygulamanın statik JSON'unda. Bu yüzden
+"hangi mekanlar yakın" kararını tarayıcı, "o mekanlarda kaç fiş / kaç kişi"
+toplamını sunucu veriyor (`civar_fis_ozeti`). Koordinatı veritabanına
+kopyalamak aynı gerçeği iki yerde tutmak olurdu.
+
+**Liste kırpılmıyor, yarıçap daralıyor.** Sunucu 500'den uzun mekan
+listesini reddediyor (sessizce kırpmıyor — kırpsaydı ekranda yazan
+"500 m çevresi" yalan olurdu). İstanbul'un yoğun caddelerinde 500 m'de 600
+mekan olabiliyor; orada yarıçap 100'er metre daralıyor ve **daraltılmış
+yarıçap ekranda yazıyor**.
+
+### Ölçülen ve doğrulanan
+
+- SQL: **11 yeni davranış kontrolü** gerçek Postgres 16'da (toplam 86).
+  Altı sabotaj denendi, altısı da yakalandı. Biri **ilk yazımda kaçtı**:
+  `civar_fis_ozeti`'nin onay süzgecini hiçbir adım sınamıyordu, yani
+  kuyrukta bekleyen — hiç okunmamış — bir fiş civar medyanına girebilirdi.
+  Test düzeltildi (7. adıma onaysız bir mekan konuldu).
+- `ortak.js` öz kontrolü **148 → 177**. Altı sabotaj, altısı yakalandı.
+- Tarayıcı: eşik **iki yönlü** sınanıyor — 2 fişte rozet/kutu çıkmamalı,
+  3 fişte çıkmalı. Yalnız birine bakmak, özelliği tamamen silen bir
+  değişiklikten de geçerdi.
+- Civar kutusu gerçek bir İstanbul mekanıyla sınanıyor
+  (`node/5284691026`, 500 m'de 56 mekan); sayı **veriden** geliyor, sabit
+  bir metin aranmıyor.
+- Kendi testimde bir hata: "Gerçekten ödenen" metnini arıyordum ama
+  `.odenen-bas span` üzerinde `text-transform:uppercase` var ve
+  `inner_text` onu uyguluyor — kutu tam ekrandayken bile eşleşmiyordu.
+  Kontrol DOM'a bağlandı. (Aynı tuzak galeri atıfında da yaşanmıştı.)
 
 ---
 

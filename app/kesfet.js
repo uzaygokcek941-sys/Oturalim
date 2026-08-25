@@ -83,6 +83,11 @@ function suzulmus(){
        dort yerde ayni olsun. Menuyu gormek isteyen mekan sayfasindan
        kalem listesine bakabiliyor. */
     if (bayraklar.has("menu")  && yemekFiyati(m) == null) return false;
+    /* "Fisi olan": ESIGI GECEN fis. Cip fis vaat edip esik yuzunden
+       rakamsiz kart vermesin -- "Fiyati olan" cipinde tam bu hata
+       yasandi (367 mekan donuyordu, 203'unun kartinda fiyat yoktu).
+       Olcut cip, rozet ve detay panelinde AYNI: fisGoster(). */
+    if (bayraklar.has("fis") && !fisGoster(paylasimOzet(m.id))) return false;
     if (bayraklar.has("acik")  && acikMi(m.saat) !== true) return false;
     /* Bütçe süzgeci yalnız fiyatı bilinenleri eler. Fiyatı olmayan mekanı
        elemiyoruz: "bilinmiyor" ile "pahalı" aynı şey değil, listeden
@@ -162,7 +167,10 @@ function kartHTML(m){
     (m.bahce ? '<span class="rozet">bahçe</span>' : "") +
     (m.wifi  ? '<span class="rozet">wi-fi</span>' : "") +
     (konum ? '<span class="rozet mesafe">' + mesafeYaz(uzaklik(m)) + "</span>" : "") +
-    (o ? '<span class="rozet vurgulu">kişi başı ~' + tl(o.medyan) + "</span>" : "") +
+    /* ESIK: fisGoster() olmadan burasi TEK FISTEN tutar basiyordu --
+       isletme sayfasinin k-anonimlik icin gizledigi seyi bu ekran
+       yayimliyordu. Kural ortak.js'te, karar tek yerde. */
+    (fisGoster(o) ? '<span class="rozet vurgulu">kişi başı ~' + tl(o.medyan) + "</span>" : "") +
     "</div></button>";
 }
 
@@ -304,6 +312,43 @@ async function paylasimlariYukle(il){
   });
 }
 
+/* ---------- butce akranlari ----------
+   "Benim butcemdeki insanlar nereye gidiyor." Fis katmani tek bir mekani
+   anlatiyor; bu satir butcenin kendisini anlatiyor.
+
+   NEDEN SUNUCUYA SORULUYOR: "kac KISI" ile "kac FIS" ayri seyler ve fark
+   bu ozelligin butun anlami -- uc fisi olan tek kisi bir akran toplulugu
+   degil. Tarayici bunu ayirt edemez, cunku `kullanici` sutunu ona kapali
+   (sema.sql). Sayim akran.sql'de.
+
+   ISTEK BASINA BIR CAGRI DEGIL: kaydirici surukleyince "input" saniyede
+   onlarca kez tetikleniyor. Cagri yalniz "change" ile, yani parmak
+   kalkinca gidiyor; ustelik son cevap disindaki cevaplar ATILIYOR --
+   yavas donen eski bir istek yeni butcenin sayisini ezmesin. */
+let akranSayac = 0;
+
+async function akranYaz(){
+  const kutu = el("#akran");
+  if (!kutu) return;
+  if (!butce){ kutu.hidden = true; kutu.textContent = ""; return; }
+
+  const benim = ++akranSayac;
+  const K = window.Kimlik;
+  if (!K || !K.acik){ kutu.hidden = true; return; }
+
+  let o = null;
+  try {
+    await K.hazir;
+    o = await K.butceAkranlari(el("#il").value, butce);
+  } catch (e) { /* akran.sql kurulu degil ya da ag yok: satir hic cikmasin */ }
+
+  if (benim !== akranSayac) return;         /* gecikmis cevap: at */
+  const c = akranCumlesi(o, butce);
+  if (!c){ kutu.hidden = true; kutu.textContent = ""; return; }
+  kutu.textContent = c;
+  kutu.hidden = false;
+}
+
 /* Medyan kisi basi tutar. Ortalama degil: tek bir asiri kayit
    ortalamayi kaydirir, medyan kaydirmaz. */
 /* Ürün kategorisi ölçütü: "Ankara'da latte kaç TL olmalı".
@@ -396,13 +441,19 @@ function mekanBandi(m, ilAd, bugun){
                     medyan: ortak.medyan };
 }
 
+/* Cikti sekli ORTAK.JS ile ayni: {fis, medyan}. Onceden `adet` deniyordu
+   ve bu ekran esikten habersiz oldugu icin sorun cikmiyordu -- esik
+   uygulanir uygulanmaz iki sekil arasinda cevirmek gerekti. `kisi`
+   (tekil katkici) BURADA YOK ve uydurulmuyor: `kullanici` sutunu
+   tarayiciya kapali (sema.sql), yani bu ekran ayni kisinin iki fisini
+   ayirt edemez. fisOzeti() kisi yoksa o kismi hic yazmiyor. */
 function paylasimOzet(mekanId){
   const l = paylasimHaritasi.get(mekanId);
   if (!l || !l.length) return null;
   const kisiBasi = l.map(p => Number(p.tutar) / Math.max(1, p.kisi)).sort((a,b) => a - b);
   const orta = Math.floor(kisiBasi.length / 2);
   const medyan = kisiBasi.length % 2 ? kisiBasi[orta] : (kisiBasi[orta-1] + kisiBasi[orta]) / 2;
-  return { adet: l.length, medyan: Math.round(medyan), sonTarih: l[0].tarih };
+  return { fis: l.length, medyan: Math.round(medyan), sonTarih: l[0].tarih };
 }
 
 /* ?test=1 ile medyan hesabini dogrula: tek asiri kayit ortalamayi kaydirir,
@@ -529,8 +580,15 @@ function paylasimKontrol(){
                             {tutar:900,kisi:1,tarih:"1"}]).medyan, 200],
     ["kisi bolme",     kur([{tutar:900, kisi:3, tarih:"1"}]).medyan, 300],
     ["kisi sifir",     kur([{tutar:120, kisi:0, tarih:"1"}]).medyan, 120],
-    ["adet sayimi",    kur([{tutar:100,kisi:1,tarih:"1"},{tutar:200,kisi:1,tarih:"1"}]).adet, 2],
-    ["kayit yok",      (paylasimHaritasi = new Map(), paylasimOzet("yok")), null]
+    ["fis sayimi",     kur([{tutar:100,kisi:1,tarih:"1"},{tutar:200,kisi:1,tarih:"1"}]).fis, 2],
+    ["kayit yok",      (paylasimHaritasi = new Map(), paylasimOzet("yok")), null],
+    /* Esik BU EKRANDA da gecerli. Ayri satir olarak duruyor cunku
+       eksikligi tam olarak burada aylarca gorunmedi. */
+    ["iki fis rozet basmaz",
+      fisGoster(kur([{tutar:100,kisi:1,tarih:"1"},{tutar:200,kisi:1,tarih:"1"}])), false],
+    ["uc fis rozet basar",
+      fisGoster(kur([{tutar:100,kisi:1,tarih:"1"},{tutar:200,kisi:1,tarih:"1"},
+                     {tutar:300,kisi:1,tarih:"1"}])), true]
   ];
   paylasimHaritasi = yedek;
   const hata = T.filter(t => JSON.stringify(t[1]) !== JSON.stringify(t[2]))
@@ -647,16 +705,23 @@ function ac(id){
 
   /* Kullanici paylasimi menuden AYRI gosteriliyor: biri isletmenin ilan
      ettigi liste fiyati, digeri insanlarin fiilen odedigi tutar. */
+  /* ESIK BURADA DA UYGULANIYOR. Onceden tek fisten "Gercekten odenen
+     240 TL" kutusu ciziliyordu ve altina "1 kisinin paylasimindan" diye
+     de YAZIYORDU -- yani bir kisinin o gunku hesabi mekanin fiyati diye
+     yayimlaniyordu. Esigin altinda tutar yerine KAC FIS KALDIGI
+     yaziliyor; cumle ortak.js'te, isletme sayfasiyla ayni. */
   const o = paylasimOzet(m.id);
-  if (o){
+  if (fisGoster(o)){
     govde +=
       '<div class="odenen">' +
       '<div class="odenen-bas"><span>Gerçekten ödenen</span>' +
       '<b>' + tl(o.medyan) + "</b></div>" +
-      '<p>Kişi başı medyan tutar. ' + sayi(o.adet) +
-      (o.adet === 1 ? " kişinin paylaşımından" : " paylaşımdan") +
-      " hesaplandı; son bilgi " + new Date(o.sonTarih).toLocaleDateString("tr-TR",
+      '<p>Kişi başı medyan tutar. ' + sayi(o.fis) +
+      " paylaşımdan hesaplandı; son bilgi " +
+      new Date(o.sonTarih).toLocaleDateString("tr-TR",
         { day:"numeric", month:"long", year:"numeric" }) + ".</p></div>";
+  } else if (o){
+    govde += '<div class="odenen az"><p>' + kacir(fisOzeti(o)) + "</p></div>";
   }
 
   /* Ürün kırılımı: 40 kalemlik listeyi taramak yerine "çay kaç, kebap kaç"
@@ -774,7 +839,9 @@ function ilYukle(kod, ilkAcilis){
   }).then(v => {
     mekanlar = v.mekanlar;
     olcutYukle();
-    paylasimlariYukle(kod).then(() => ciz(false));
+    /* Fisler ile akran satiri AYNI ile ait: il degisince ikisi birden
+       yenilenmezse ekranda Ankara listesi + Izmir akrani kalirdi. */
+    paylasimlariYukle(kod).then(() => { ciz(false); akranYaz(); });
     limit = SAYFA;
     secili = null;
     ciz(true);
@@ -872,7 +939,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   el("#butce").addEventListener("input", e => { butce = +e.target.value; butceYaz(); });
-  el("#butce").addEventListener("change", () => { limit = SAYFA; ciz(false); });
+  el("#butce").addEventListener("change", () => { limit = SAYFA; ciz(false); akranYaz(); });
 
   el("#cipler").addEventListener("click", e => {
     const b = e.target.closest(".cip[data-tur],.cip[data-bayrak]");
@@ -893,6 +960,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll(".cip[data-tur],.cip[data-bayrak]")
       .forEach(b => b.setAttribute("aria-pressed", "false"));
     butceYaz();
+    akranYaz();
     ciz(true);
   });
 

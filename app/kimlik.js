@@ -483,6 +483,37 @@ const Kimlik = {
                  medyan: o.medyan == null ? null : +o.medyan } : null;
   },
 
+  /* ---------- ağ mekanikleri: bütçe akranları ve civar ----------
+     İkisi de tarayıcıda hesaplanamıyor, çünkü ikisi de `kullanici`
+     sütununa bakıyor ve o sütun anon'a kapalı (sema.sql "Sütun yetkisi").
+     Tarayıcı aynı kişinin iki fişini tek kişi sayamaz — sayabilseydi
+     zaten kişiyi izleyebiliyor olurdu. Sayım sunucuda (akran.sql).
+
+     akran.sql çalıştırılmamışsa çağrı hata döner; sayfa çökmesin diye
+     null'a düşüyor — çağıran bunu "özellik kapalı" diye okuyor. */
+  async butceAkranlari(il, tavan){
+    if (!sb || !(tavan > 0)) return null;
+    const { data, error } = await sb.rpc("butce_akranlari",
+      { p_il: il || null, p_tavan: tavan });
+    if (error){ console.error("akran:", error.message); return null; }
+    const o = Array.isArray(data) ? data[0] : data;
+    return o ? { akran: +o.akran || 0, fis: +o.fis || 0, mekan: +o.mekan || 0 } : null;
+  },
+
+  /* Civarın fiş özeti. Hangi mekanların civar olduğuna İSTEMCİ karar
+     veriyor (koordinat statik JSON'da), toplamı sunucu veriyor.
+     Liste 500'ü aşarsa sunucu hata veriyor, sessizce kırpmıyor:
+     ekranda yazan yarıçapın doğru olması buna bağlı. */
+  async civarFisOzeti(mekanIdler){
+    if (!sb || !mekanIdler || !mekanIdler.length) return null;
+    const { data, error } = await sb.rpc("civar_fis_ozeti",
+      { p_mekan_idler: mekanIdler });
+    if (error){ console.error("civar:", error.message); return null; }
+    const o = Array.isArray(data) ? data[0] : data;
+    return o ? { fis: +o.fis || 0, kisi: +o.kisi || 0, mekan: +o.mekan || 0,
+                 medyan: o.medyan == null ? null : +o.medyan } : null;
+  },
+
   /* ---------- profil (genişletilmiş) ----------
      Alanların hepsi isteğe bağlı; profil.sql'in başındaki kural bu.
      Tablo dışarıya KAPALI kalıyor: herkese açık okuma tek bir

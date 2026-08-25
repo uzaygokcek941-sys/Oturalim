@@ -108,6 +108,12 @@ window.__SAHTE_VERI = {
                                        ilk_gun: "2026-06-01" }], error: null }),
     mekan_goruldu:   () => ({ data: null, error: null }),
     mekan_fis_ozeti: () => ({ data: [{ fis: 5, kisi: 3, medyan: 300 }], error: null }),
+    /* Civar ve akran: sayilar BILEREK ayirt edilebilir (kesfet ve isletme
+       ekranlarindaki oteki sayilara benzemiyor), boylece kutunun gercekten
+       bu cagridan cizildigi gorulebiliyor. */
+    civar_fis_ozeti: () => ({ data: [{ fis: 7, kisi: 4, mekan: 3, medyan: 265 }],
+                              error: null }),
+    butce_akranlari: () => ({ data: [{ akran: 37, fis: 80, mekan: 12 }], error: null }),
     profil_getir: () => ({ data: [{ kullanici_adi: "deneme_kisi", ad: "Deneme Kisi",
       dogum_yili: 1998, meslek: "Öğretmen", kisilik: "Sessiz köşe severim",
       avatar: null, katildi: "2026-03-01T10:00:00Z" }], error: null }),
@@ -278,10 +284,23 @@ def kendini_kontrol_et():
                 print("ATLANDI: tarayici yok (%s)" % str(e).split("\n")[0][:60])
                 return None
 
+            # CSP ihlalleri. AYRI toplaniyor cunku ENGELLENEN BIR SCRIPT
+            # HATA FIRLATMIYOR: tarayici blogu sessizce calistirmiyor ve
+            # sayfa "hatasiz" gorunuyor. Yerel sunucu artik vercel.json'daki
+            # basligi gonderdigi icin (sunucu.py), yanlis bir karma tam
+            # burada yakalaniyor -- yayinda degil.
+            csp_ihlal = []
+
+            def konsol(yolu, ileti):
+                m = ileti.text or ""
+                if "Content Security Policy" in m or "Refused to" in m:
+                    csp_ihlal.append("%s: %s" % (yolu, m[:150]))
+
             def sayfa_ac(yolu, taklit=None, sahte_modul=False):
                 sf = t.new_page()
                 hata = []
                 sf.on("pageerror", lambda e: hata.append(str(e)[:120]))
+                sf.on("console", lambda i: konsol(yolu, i))
                 if taklit:
                     sf.add_init_script(taklit)
                 # Dis baglantilarin hepsi kapali: kontrol ag'a bagli olmasin
@@ -771,6 +790,111 @@ def kendini_kontrol_et():
                                 "(kutu metni %d karakter)" % len(yedek))
             sf.close()
 
+            # 2z) FIS ESIGI KESFET EKRANINDA DA GECERLI.
+            #
+            # Bu kontrol, bulunmus bir hatanin uzerine yazildi: esik
+            # (FIS_ESIK=3) yalniz isletme.html'de tanimliydi ve kesfet
+            # ekrani ondan habersizdi. Sonuc, TEK BIR kisinin tek fisinin
+            # kart rozetinde "kisi basi ~240 TL" diye yayimlanmasiydi --
+            # ustelik detay paneli altina "1 kisinin paylasimindan" diye
+            # de yaziyordu. Esigin iki sebebi de cignenmis oluyordu:
+            # bir kisinin o gunku secimi mekanin fiyati sayiliyordu ve
+            # o kisi, tanidigi biri tarafindan fise baglanabiliyordu.
+            #
+            # Iki yonlu sinaniyor: esigin ALTI sizdirmamali, USTU
+            # gostermeli. Yalniz birine bakmak, ozelligi tamamen silen bir
+            # degisiklikten de gecerdi.
+            def fisli_taklit(adet):
+                satir = ('{ id:%d, mekan_id:"node/5284691026", mekan_ad:"Fis Kafe", '
+                         'il:"34", tutar:%d, kisi:2, tarih:"2026-08-2%d", '
+                         'durum:"onaylandi" }')
+                return ("window.__SAHTE_VERI = { oturum:null, tablolar:{ paylasimlar:[" +
+                        ",".join(satir % (i + 1, 480 + i * 20, i) for i in range(adet)) +
+                        "] }, rpc:{} };")
+
+            for adet, beklenen in ((2, False), (3, True)):
+                sf, _ = sayfa_ac("/kesfet.html?il=34&q=aksi%20lounge",
+                                 fisli_taklit(adet), sahte_modul=True)
+                sf.wait_for_timeout(1500)
+                var = sf.eval_on_selector_all(
+                    ".kart .rozet.vurgulu",
+                    "n => n.some(x => /kişi başı/.test(x.textContent))")
+                if var is not beklenen:
+                    sorunlar.append(
+                        "kesfet: %d fisle kart rozeti %s (beklenen %s) -- "
+                        "esik ya sizdiriyor ya da hic gostermiyor"
+                        % (adet, "var" if var else "yok",
+                           "var" if beklenen else "yok"))
+                # Detay paneli de ayni esige uymali: rozet duzeltilip panel
+                # unutulabilirdi (iki ayri yerde iki ayri cizim).
+                k = sf.query_selector('.kart[data-id="node/5284691026"]')
+                if k:
+                    k.click(); sf.wait_for_timeout(700)
+                    # DOM'A bakiliyor, METNE degil: kutunun basligindaki
+                    # span'de text-transform:uppercase var ve inner_text
+                    # onu UYGULUYOR -- "Gerçekten ödenen" arayan bir
+                    # kontrol, kutu tam ekrandayken bile hic eslesmiyordu.
+                    # (Ayni tuzak bu depoda daha once galeri atifinda cikti.)
+                    sizdi = sf.eval_on_selector_all(
+                        "#d-govde .odenen",
+                        "n => n.some(x => !x.classList.contains('az'))")
+                    if sizdi is not beklenen:
+                        sorunlar.append(
+                            "kesfet detay: %d fisle 'gercekten odenen' kutusu %s"
+                            % (adet, "cikiyor" if sizdi else "cikmiyor"))
+                    panel = sf.inner_text("#d-govde") or ""
+                    if not beklenen and "fiş var" not in panel:
+                        sorunlar.append("kesfet detay: esik altinda kac fis "
+                                        "kaldigi yazmiyor (katki cagrisi kayip)")
+                    if beklenen and "250" not in panel:
+                        sorunlar.append("kesfet detay: medyan (250) yazmiyor")
+                sf.close()
+
+            # 2y) Butce akranlari serit halinde gorunmeli -- ve butce
+            # girilmeden GORUNMEMELI. Bos bir "0 kisi" satiri hem yer
+            # kapliyor hem cesaret kiriyor.
+            sf, _ = sayfa_ac("/kesfet.html?il=34", GIRIS_TAKLIT, sahte_modul=True)
+            sf.wait_for_timeout(1500)
+            if sf.eval_on_selector("#akran", "n => !n.hidden"):
+                sorunlar.append("kesfet: butce girilmeden akran seridi gorunuyor")
+            sf.close()
+
+            sf, _ = sayfa_ac("/kesfet.html?il=34&butce=300", GIRIS_TAKLIT,
+                             sahte_modul=True)
+            sf.wait_for_timeout(1800)
+            serit = (sf.inner_text("#akran") or "").strip()
+            # Sayilar taklitten geliyor (37 kisi / 12 mekan): sabit bir
+            # cumle degil, GELEN VERI ciziliyor mu ona bakiliyor.
+            if "37" not in serit or "12" not in serit:
+                sorunlar.append("kesfet: akran seridi verideki sayilari "
+                                "yazmiyor ('%s')" % serit[:80])
+            sf.close()
+
+            # 2x) Civar kutusu ("mahalle statusu"). Gercek bir Istanbul
+            # mekani secildi: node/5284691026, 500 m cevresinde 56 mekan.
+            # Sayi VERIDEN geliyor, yazili degil -- sabit bir metin aramak
+            # hesabin dogru oldugunu gostermezdi.
+            sf, _ = sayfa_ac("/isletme.html?il=34&id=node%2F5284691026",
+                             GIRIS_TAKLIT, sahte_modul=True)
+            sf.wait_for_timeout(1800)
+            if sf.eval_on_selector("#civar", "n => n.hidden"):
+                sorunlar.append("isletme: civar kutusu 56 komsulu mekanda cikmiyor")
+            else:
+                civar = sf.inner_text("#civar") or ""
+                if "56" not in civar:
+                    sorunlar.append("isletme: civar mekan sayisi yanlis "
+                                    "(56 bekleniyordu) -- '%s'" % civar[:100])
+                if "500 m" not in civar:
+                    sorunlar.append("isletme: civar yaricapi yazmiyor")
+                # Fis medyani taklitten (265) geliyor ve esigi geciyor (7 fis).
+                if "265" not in civar:
+                    sorunlar.append("isletme: civar fis medyani cizilmiyor")
+                # Katki cagrisi SAYIYLA olmali: "fiyat ekle" soyut, "bu
+                # civarda 55 mekanin fiyati yok" degil.
+                if "fiyatı bilinmiyor" not in civar:
+                    sorunlar.append("isletme: civar katki cagrisi sayisiz")
+            sf.close()
+
             # 3) Harita VARKEN normal yol izlenmeli: erken donus olmamali.
             sf, hata = sayfa_ac("/kesfet.html?il=06", LEAFLET_TAKLIT)
             cagri = set(sf.evaluate("window.__cagri || []"))
@@ -786,12 +910,17 @@ def kendini_kontrol_et():
             sf.close()
             t.close()
 
+        if csp_ihlal:
+            # Tekille: ayni ihlal her sayfada tekrar ediyor olabilir.
+            for x in sorted(set(csp_ihlal))[:8]:
+                sorunlar.append("CSP ihlali -- " + x)
+
         if sorunlar:
             for x in sorunlar:
                 print("  HATA: " + x)
             return False
-        print("kontrol gecti: %d sayfa JS hatasiz, %d girisli ekran cizildi, "
-              "kesfet haritali ve haritasiz calisiyor"
+        print("kontrol gecti: %d sayfa JS hatasiz (gercek CSP altinda), "
+              "%d girisli ekran cizildi, kesfet haritali ve haritasiz calisiyor"
               % (len(SAYFALAR), len(GIRISLI)))
         return True
     finally:

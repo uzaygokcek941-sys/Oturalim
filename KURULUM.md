@@ -28,7 +28,7 @@ Toplam süre: ~15 dakika. Ücret yok, kart istenmiyor.
    `Sema kuruldu: 3 tablo, RLS acik, 11 politika`
    Hata verirse dosyayı baştan yapıştırıp tekrar çalıştır — dosya
    tekrar çalıştırılabilir yazıldı, bozulmaz.
-5. Aynı yöntemle şu üç dosyayı da **bu sırayla** çalıştır (hepsi
+5. Aynı yöntemle şu dosyaları da **bu sırayla** çalıştır (hepsi
    `sema.sql`'e bağlı, `sahiplenme.sql` ayrıca `katki.sql`'e bağlı):
 
    | Dosya | Ne açar | Çalıştırmazsan |
@@ -40,6 +40,7 @@ Toplam süre: ~15 dakika. Ücret yok, kart istenmiyor.
    | `veritabani/yorum.sql` | Mekan yorumları ve puanlar | Yorum bölümü hiç görünmez |
    | `veritabani/menu_katki.sql` | Menü/ürün paylaşımı (fotoğraflı) | Menü ekleme bölümü hiç görünmez |
    | `veritabani/mekan_foto.sql` | Mekan fotoğrafları | Fotoğraf şeridi hiç görünmez |
+   | `veritabani/akran.sql` | Bütçe akranları ve civar özeti | Keşfette akran şeridi, işletme sayfasında civar fişi görünmez |
 
    Hiçbiri kurulmadığında sayfa normal çalışır; yalnız o bölümler
    sessizce gizli kalır. Beklenen çıktılar:
@@ -52,6 +53,7 @@ Toplam süre: ~15 dakika. Ücret yok, kart istenmiyor.
    Yorum kuruldu: RLS acik, 5 politika, kimlik sutunu kapali
    Menu katkisi kuruldu: RLS acik, 5 politika, kimlik sutunu kapali
    Mekan fotografi kuruldu: RLS acik, 5 politika, atif zorunlu
+   Akran kuruldu: iki fonksiyon, 10 arguman adi tarandi
    ```
 
    > `profil.sql` **`yorum.sql`'den önce** çalıştırılmalı: yorumlar yazarın
