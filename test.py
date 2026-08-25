@@ -1506,6 +1506,20 @@ def harita_karti_mi():
             s.append("kesfet.html: harita perdesinde bulaniklik hala acik")
     if "dataset.uzerinde" not in kes:
         s.append("kesfet.js: panel hangi gorunumun uzerinde acildigini yazmiyor")
+    # KART HARITAYI KAPATMAMALI. Olculdu: harita alani 295-792 px,
+    # panel 290 px'ten basliyor ve 554 px yuksekliginde -- yani alanin
+    # tamamini ortuyordu.
+    if 'dialog#detay[data-uzerinde="harita"]{ max-height' not in ham:
+        s.append("kesfet.html: harita gorunumunde panelin boyu sinirsiz "
+                 "(haritanin tamamini ortuyor)")
+
+    # HARITA EKRANA SIGMALI. Olculdu: .govde 497 px iken #harita 2194 px
+    # cikiyordu -- ekranin 4,4 kati. Sebep grid satirinin ortulu `auto`
+    # olmasi; cocugun height:100% degeri cozulemiyordu.
+    if "grid-template-rows:minmax(0,1fr)" not in re.sub(r"\s+", "", ham):
+        s.append("kesfet.html: .govde satiri belirli degil (harita tasar)")
+    if "min-height:0" not in ham.split("#harita{")[1][:120]:
+        s.append("kesfet.html: #harita grid icinde kucuIemiyor (min-height:0 yok)")
 
     # (2) Panel acilirken balon acilmamali. openPopup() ac() govdesinde
     #     olmamali; bindPopup ise DURMALI.

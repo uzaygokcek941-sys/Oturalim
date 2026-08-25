@@ -2054,3 +2054,139 @@ mekan.**
 `menu_ocr.py` ileride işe yarar: Çankaya'da menü fotoğrafı çekilirse fiyatları
 elle yazmak yerine fotoğrafı okutabilirsin — ama çıktı gözle doğrulanmadan
 kaydedilmez.
+
+---
+
+## 2026-08-25 — Marka maketleri uygulandı: açık tema, sekmeler, menü, topluluk
+
+Marka kılavuzunun beş ekran maketi (`Bütçeni Gir`, `Haritada Keşfet`,
+`Menüleri Gör`, `Topluluğa Katıl` ve açılış) uygulamaya geçirildi. Görünüm
+işi olarak başladı; her adımda maketle uygulamanın **ayrıldığı yer ölçüldü**
+ve ayrılan yerlerin bir kısmı gerçek kusur çıktı.
+
+### Uygulama kendi yazı tipini hiç yüklemiyormuş
+
+Ölçüm (gerçek tarayıcı, `index.html`):
+
+```
+istenen adres : ...family=Fraunces...&family=Karla...
+h1 kullanıyor : Montserrat, ui-sans-serif, system-ui, ...
+yüklenen yüz  : []              <-- HİÇBİRİ
+```
+
+`stil.css` marka kılavuzuna geçirilirken `--font-baslik` ve `--font-govde`
+**Montserrat** oldu; 13 sayfanın `<link>` satırı **Fraunces + Karla**'da
+kaldı. Yani uygulama iki yazı tipini ağdan çekiyor, hiçbirini kullanmıyor ve
+gerçekte **sistemin varsayılan sans'ıyla** çiziliyordu. İki maliyet birden:
+her sayfada boşa inen ve çizimi bekleten bir stil dosyası, ve marka yazı
+tipinin hiçbir yerde görünmemesi.
+
+Sayfa açılıyor, "çalışıyor" görünüyordu. Ancak tarayıcıda **hangi yüzün
+yüklendiğine** bakınca ortaya çıktı. Yeni kontrol grubu tam bunu ölçüyor:
+indirilen aile ile CSS'in istediği aile aynı mı. Tek istisna
+`cevrimdisi.html` ve **adıyla** muaf: o sayfa ağ yokken açılıyor.
+
+### Paylaşım kartı hâlâ "Oturalım" diyordu
+
+`app/og.png` elle yapılmıştı ve iki kez birden eskimişti: eski marka adını
+ve **36.102 mekan** yazısını taşıyordu (veri: 35.852). Her paylaşılan
+bağlantının önizlemesinde eski ad duruyordu.
+
+İkisi de aynı sebepten: kartın kaynağı yoktu. `og_uret.py` yazıldı — kart bir
+tarayıcıda, `app/stil.css` yüklü halde çiziliyor; sayı veriden okunuyor ve
+PNG'nin içine damgalanıyor (`tEXt "cebimde-mekan"`), `test.py` damgayı
+veriyle karşılaştırıyor.
+
+Yazı tipi karta **gömülü** giriyor. İlk denemede `<link>` ile çekildi ve ağı
+kapalı makinede kart **sessizce** yedek yazı tipiyle çıktı — "çalıştı"
+görünüyordu. Artık yüz yüklenmezse üretim duruyor.
+
+### Mekan sayfasında menü hiç yokmuş
+
+291 mekanın menüsünde **7.335 fiyatlı kalem** duruyor ve ekranda hiçbiri
+görünmüyordu. "Menü" sekmesine basan kullanıcı menüyü göremiyordu. Liste
+eklendi; her tasarım kararı bir ölçüme dayanıyor:
+
+| Karar | Ölçüm |
+|---|---|
+| fotoğraf yok | 7.335 kalemin **sıfırında** fotoğraf alanı var |
+| gruplama yok | kategori kapsamı mekan başına ortanca **%47** |
+| fiyata göre sıralı | uygulamanın sorusu "bu parayla ne yenir" |
+| ad kırpılmıyor | kalemlerin **%16**'sının adı 34 harften uzun |
+| ilk 12 açık | mekan başına ortanca 34 kalem, en çok 50 |
+
+### Rozet menüyle çelişiyordu
+
+Menüsünde fiyat yazan 291 mekanın **128'i (%44)** "FİYAT YOK" rozeti
+alıyordu — o 128 mekanın menüsünde toplam **1.340 fiyatlı kalem** var.
+Rozet doğru bir şey söylüyordu (bir **öğünün** kaça geldiği çıkmıyor: 84
+mekanda ana ürün kalemi ikiden az, 27'sinde hiç kategori yok, 16'sında bütün
+kategoriler içecek) ama **cümlesi yanlıştı**. Renk kırmızı kaldı, cümle
+"öğün fiyatı yok" oldu, gerekçe kalem sayısını yazıyor.
+
+### Bütçe üçüncü ekranda kayboluyordu
+
+Keşfette `?butce=300` ile gezip mekan açınca panelin bağlantısı
+`isletme.html?il=34&id=...` veriyordu — bütçe yok. Kullanıcının bir kere
+yazdığı rakam üçüncü ekranda düşüyordu; kombin "En ucuz öğün" diyordu, menü
+listesi kaç kalemin bütçeye girdiğini susuyordu.
+
+### Harita ekranın 4,4 katıydı
+
+Ölçüm (390×844, harita görünümü):
+
+```
+.govde  yüksekliği :  497 px   (doğru)
+#harita yüksekliği : 2194 px   <-- ekranın 4,4 katı
+```
+
+`.govde` bir grid ve satırı örtülü `auto`; çocuğun `height:100%` değeri
+belirsiz bir satıra göre çözülemiyor. Kullanıcıda sonuç: harita görünümüne
+geçen kişi ekranın dört katı uzunlukta bir harita içinde kayıyordu.
+`grid-template-rows:minmax(0,1fr)` ile satır belirli hale geldi.
+
+Ayrıca panel haritanın **tamamını** örtüyordu (harita alanı 295–792 px,
+panel 290 px'ten başlayıp 554 px) ve arkasındaki perde `rgba(0,0,0,.66)` +
+`blur(3px)` idi. Maketteki ekranda kart altta duruyor, harita net. Perde
+hafifledi ve panel harita görünümünde kısaldı; modal kaldı (odak tuzağı,
+Esc). İşaretçinin Leaflet balonu da panelle **birlikte** açılıyordu — üç
+bilgisi panelin başlığında zaten yazıyor ve perdenin ardında kalıyordu.
+
+### Maketteki iki şey bilerek yapılmadı
+
+`Topluluğa Katıl` ekranının merkezindeki kart **"Ahmet R. — Latte hâlâ
+₺145"** diyor. Bu bir **fiyat oyu** ve o tablonun kuralı kimsenin
+**başkasının** oyunu görememesi (`fiyat_oyu_test.sql` adım 10 ve 10b).
+Fiyat oyu dışarıya yalnız eşik üstü toplam olarak veriliyor (`OY_ESIK = 3`).
+Bir kişinin oyunu adıyla yayımlamak ölçülmüş bir kararı kırardı. **Maket bir
+çizim, kural bir karar** — akış kuralın tarafında duruyor.
+
+Kartların altındaki **"24 beğeni, 3 yorum"** sayacı da yok: arkasında ne
+tablo var ne moderasyon. Sıfır yazan bir sayaç da uydurma bir sayı da yalan
+olurdu.
+
+Menü katkıları akışta **adsız**: mekan sayfasında da yazarsız duruyorlar ve
+katkı formu kullanıcıya "adın yazacak" demiyor. Fişler hiç yok — kanı değil
+ödeme kaydı.
+
+### Kontrollerin kendi kusurları
+
+- **SQL bitiş imzası sessizce yanlıştı.** `sahiplenme_test.sql` bitiş
+  satırını dosya adı olmadan yazıyordu (`=== 21 kontrolun hepsi gecti ===`)
+  ve `test.py`'nin aradığı `"20 kontrolun hepsi gecti"` metni **yorum**
+  dosyasının satırının içinde geçiyordu. Sahiplenme koşumu baştan sona
+  patlasa bile kontrol yeşil kalırdı — 21 SQL kontrolü başkasının çıktısına
+  yaslanmıştı. `sayac` (11→16) ve `akran` (11→12) imzaları eskimişti,
+  `fiyat_oyu_test` (14 adım) hiç listede yoktu.
+- **Kare kontrolü** artık olmayan bir katmanı ölçüyordu; silmek yerine
+  **tersine** çevrildi: ana ekranda sürekli dönen bir çizim döngüsü olmamalı.
+- **Sekmeler** yorumları ve galeriyi gizleyince tarayıcı kontrolleri patladı
+  — sekmelerin neyi gizlediğini ilk söyleyen şey onlar oldu.
+- Yeni gruplar `s or True` dönüyordu; `kayit()` **liste** bekliyor ve boş
+  listede `True`'yu BAŞARISIZ sayıp bütün koşumu çatlattı.
+
+Toplam **20 sabotaj** koşuldu; ikisi ilk yazımda kaçtı (`"sort("` gevşekti,
+`"MENU_ILK"` düğme metninde de geçiyordu) ve kontroller daraltıldı.
+
+**42 kontrol grubunun hepsi geçiyor.** Kurulum: `veritabani/topluluk.sql`
+Supabase'te çalıştırılmalı.

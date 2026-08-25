@@ -111,6 +111,10 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
   /* ---- gövde: liste + harita ---- */
   .govde{
     display:grid;grid-template-columns:minmax(340px,440px) 1fr;
+    /* SATIR BELIRLI OLMALI. Ortulu `auto` satirda cocugun height:100%
+       degeri cozulemiyordu; tarayici icerige donuyor ve harita
+       ekranin 4,4 katina cikiyordu (olculdu: 2194 px / 497 px). */
+    grid-template-rows:minmax(0,1fr);
     height:calc(100dvh - var(--ust-yukseklik) - var(--arac-yukseklik,116px));
   }
   .liste{overflow-y:auto;border-right:1px solid var(--cizgi);overscroll-behavior:contain}
@@ -159,7 +163,10 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
   }
   .daha:hover{border-color:var(--vurgu);color:var(--vurgu)}
 
-  #harita{background:var(--zemin-2);height:100%}
+  /* min-height:0 grid cocugunun kucuImesine izin veriyor: varsayilan
+     `auto` deger, icerigi tasiyan bir cocugun satiri asmasina yol
+     aciyor. */
+  #harita{background:var(--zemin-2);height:100%;min-height:0}
   .leaflet-container{background:var(--zemin-2);font:inherit}
   .leaflet-popup-content-wrapper,.leaflet-popup-tip{
     background:var(--yuzey);color:var(--metin);border:1px solid var(--cizgi);
@@ -308,6 +315,10 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
       max-width:none;width:100%;margin:0 0 auto;position:fixed;bottom:0;top:auto;
       border-radius:var(--r-b) var(--r-b) 0 0;max-height:90dvh;
     }
+    /* HARITA GORUNUMUNDE KART KISA. Olculdu: panel 554 px ile harita
+       alaninin (295-792) tamamini ortuyordu. Simdi ustunde harita
+       kaliyor; panelin icerigi kendi icinde kayiyor. */
+    dialog#detay[data-uzerinde="harita"]{ max-height:min(56dvh,520px) }
     .d-alt{padding-bottom:max(var(--a4),env(safe-area-inset-bottom))}
     .d-alt .dugme{flex:1 1 140px}
   }
