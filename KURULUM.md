@@ -214,9 +214,19 @@ bu sayı büyüyor, o yüzden ara ara yeniden çalıştırmak mantıklı.
 > ve `.gitignore` şema dosyasını da yutmuştu — adlar bu yüzden ayrıldı.
 
 ```bash
-python turkiye_cek.py     # ham/ klasörünü doldurur (zaten yaptıysan gerek yok)
 python foto_cek.py        # foto_ekle.sql üretir
 ```
+
+> **`ham/` klasörüne gerek yok.** İlk sürüm `turkiye_cek.py`'nin ürettiği dev
+> dökümü okuyordu; o döküm 81 il için saatler sürüyor ve depoda durmuyor.
+> Oysa gereken şey menünün tamamı değil, yalnız **fotoğraf etiketi taşıyan**
+> mekanlar — Overpass'a onu soran sorgu küçük. `ham/` varsa yine de oradan
+> okunuyor, ağa hiç çıkmadan.
+
+> Betik yalnız **uygulamada gerçekten olan** mekanlara fotoğraf yazıyor
+> (35.852 kimlik `app/veri/` içinden okunuyor). Hiçbir il çekilemezse
+> **dosya yazmıyor ve hata veriyor** — ağ arızasını "%0,00 fotoğraf bulundu"
+> diye ölçüm gibi raporlamak, kaynağı haksız yere eletirdi.
 
 > **Kapsamı düşük olacak, bunu baştan söylüyorum.** Commons'ta anıt, cami ve
 > müze bol; mahalle kafesi yok denecek kadar az. Betik sonunda kaç mekanın

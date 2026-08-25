@@ -779,6 +779,43 @@ Commons'ta anıt ve müze bol, mahalle kafesi yok denecek kadar az.
 
 ---
 
+## 2026-08-25 — foto_cek.py artık `ham/` istemiyor
+
+İlk sürüm `turkiye_cek.py`'nin ürettiği dev dökümü okuyordu — 81 il için
+**saatler** süren, depoda durmayan bir dosya. Oysa aranan şey menünün
+tamamı değil, **üç etiketten birini taşıyan** mekanlar; Overpass'a onu
+soran sorgu 12 satır ve saniyeler sürüyor. `ham/` varsa yine oradan
+okunuyor (ağa hiç çıkmadan).
+
+Seçiciler `turkiye_cek.py` ve `eglence_cek.py`'den **import ediliyor**,
+kopyalanmıyor: üç yerde üç ayrı liste, birinin güncellenip ötekilerin
+unutulması demekti.
+
+Betik yalnız **uygulamada gerçekten olan** mekanlara yazıyor — 35.852
+kimlik `app/veri/` içinden okunuyor. Overpass aynı seçiciyle başka gün
+çekilmiş mekanlar da döndürebiliyor; onlara satır yazmak hiçbir sayfada
+görünmeyecek kayıtlar biriktirmek olurdu.
+
+**Ölçülen hata:** ağ hatası "0 fotoğraf var" diye **ölçüm gibi**
+raporlanıyordu ve dosya yazılıyordu. Kullanıcı o %0,00'a bakıp kaynağı
+elerdi. Artık hiçbir il çekilemezse dosya yazılmıyor, hata veriliyor
+(çıkış kodu 1); kısmi koşumda da kaç ilin çekilemediği uyarı olarak
+yazılıyor — eksik bir sayıya tam sayı gibi bakmak aynı hataya götürür.
+
+### Google Maps / Yandex — istendi, yapılmadı
+
+Fotoğrafların oradan çekilmesi istendi. Yapılmadı: o fotoğraflar onları
+yükleyen kişilerin telifinde ve platforma lisanslı, alt-lisanslanamıyor.
+Kendi sitede yayımlamak ToS meselesi değil, doğrudan telif ihlali — ve
+aşağıdaki listede *"sermayesiz yapıda işi bitirir"* diye yazılı olan risk
+tam olarak bu.
+
+Yerine duran üç kaynak: **doğrulanmış işletme sahibi** (en temiz — hak
+kendisinde), **kullanıcı**, **Wikimedia Commons** (atıflı). Kafeler için
+sayfaları dolduracak olan ilk ikisi; Commons bir ek, ana kaynak değil.
+
+---
+
 ## Yapılmayacaklar
 
 | Yapma | Neden |

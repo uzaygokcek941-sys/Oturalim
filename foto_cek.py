@@ -3,8 +3,14 @@
 
 Kullanim:
     python foto_cek.py TR-06                 # tek il
-    python foto_cek.py                       # ham/ altindaki butun iller
+    python foto_cek.py                       # 81 il
     python foto_cek.py test                  # aga cikmadan mantik kontrolu
+
+ham/ KLASORU GEREKMIYOR. Ilk yazimda turkiye_cek.py'nin urettigi dev
+dokumu okuyordu; o dokum 81 il icin SAATLER suruyor ve depoda durmuyor.
+Oysa bize gereken sey menunun tamami degil, YALNIZ fotograf etiketi
+tasiyan mekanlar -- Overpass'a onu soran sorgu kucuk ve saniyeler suruyor.
+ham/ varsa yine de oradan okunuyor (aga hic cikmadan).
 
 Cikti:
     mekan_foto.csv        -- mekan_id, adres, yazar, lisans, kaynak_bag
@@ -46,6 +52,19 @@ import sys
 import time
 import urllib.parse
 
+OVERPASS = "https://overpass-api.de/api/interpreter"
+
+# Secicileri turkiye_cek.py ve eglence_cek.py'den ALIYORUZ, kopyalamiyoruz:
+# uc yerde uc ayri liste, birinin guncellenip otekilerin unutulmasi demekti.
+# (import modul duzeyinde: iki betik de aga cikmadan import edilebiliyor.)
+from turkiye_cek import AMENITY as YEME_AMENITY
+from eglence_cek import AMENITY as EGLENCE_AMENITY, LEISURE, TOURISM
+
+# Yalniz FOTOGRAF ETIKETI tasiyan mekanlar. Uc etiketin uclu de ayri
+# sorgu satiri; Overpass'ta "su etiketlerden herhangi biri" diye tek
+# satirda yazilamiyor.
+FOTO_ETIKET = ("image", "wikimedia_commons", "wikidata")
+
 COMMONS = "https://commons.wikimedia.org/w/api.php"
 WIKIDATA = "https://www.wikidata.org/w/api.php"
 BEKLEME = 0.34          # saniye; Wikimedia'nin istedigi hiz siniri
@@ -84,6 +103,69 @@ SERBEST = re.compile(
     r"|gfdl([ \-][0-9.]+)?"
     r"|attribution"
     r"|fal)$", re.I)
+
+
+def sorgu(kod):
+    """Bir ilin FOTOGRAF ETIKETLI mekanlari. Kucuk sorgu, saniyeler surer.
+
+    turkiye_cek.py'nin sorgusu ilin BUTUN mekanlarini istiyor ve 81 il
+    icin saatler suruyor. Burada aranan sey cok daha dar: uc etiketten
+    birini tasiyan mekanlar. Turkiye'de bu mekanlarin binde birkacini
+    geciyor, yani yanit da o kadar kucuk.
+    """
+    parcalar = []
+    for aile, kalip in (("amenity", YEME_AMENITY), ("amenity", EGLENCE_AMENITY),
+                        ("leisure", LEISURE), ("tourism", TOURISM)):
+        for etiket in FOTO_ETIKET:
+            parcalar.append('nwr["%s"~"%s"]["%s"](area.a);' % (aile, kalip, etiket))
+    return ('[out:json][timeout:180];area["ISO3166-2"="%s"]->.a;(%s);out center tags;'
+            % (kod, "".join(parcalar)))
+
+
+def overpass_oku(kod):
+    """Overpass yanitindan fotograf etiketi tasiyan mekanlar."""
+    import httpx
+    with httpx.Client(timeout=200, headers={"User-Agent": KULLANICI_AJANI}) as c:
+        y = c.post(OVERPASS, data={"data": sorgu(kod)})
+        y.raise_for_status()
+        return _elemanlari_coz(y.json())
+
+
+def _elemanlari_coz(veri):
+    """Overpass/ham JSON -> mekan listesi. Ikisi de ayni bicimde."""
+    cikti = []
+    for el in veri.get("elements", []):
+        t = el.get("tags") or {}
+        ad = t.get("name")
+        if not ad:
+            continue
+        cikti.append({
+            "mekan_id": "%s/%s" % (el["type"], el["id"]),
+            "mekan_ad": ad,
+            "image": t.get("image", ""),
+            "commons": t.get("wikimedia_commons", ""),
+            "wikidata": t.get("wikidata", ""),
+        })
+    return cikti
+
+
+def bizdeki_mekanlar():
+    """app/veri/*.json icindeki mekan kimlikleri.
+
+    Overpass bize UYGULAMADA OLMAYAN mekanlar da dondurebiliyor (secici
+    ayni ama veri farkli gunde cekilmis olabilir). Onlara fotograf
+    yazmak, hicbir sayfada gorunmeyecek satirlar biriktirmek olurdu."""
+    import glob as _glob
+    kimlik = {}
+    for yol in _glob.glob(os.path.join("app", "veri", "*.json")):
+        ad = os.path.basename(yol)
+        if ad in ("index.json", "etkinlik.json", "vitrin.json", "fiyat_olcut.json"):
+            continue
+        with open(yol, encoding="utf-8") as f:
+            d = json.load(f)
+        for m in d.get("mekanlar", []):
+            kimlik[m["id"]] = ad[:-5]        # il kodu
+    return kimlik
 
 
 def _guvenli_dosya_adi(ham):
@@ -214,23 +296,9 @@ def wikidata_gorselleri(kimlikler):
 
 
 def ham_oku(yol):
-    """ham/<il>.json -> fotograf etiketi TASIYAN mekanlar."""
+    """ham/<il>.json -> mekanlar. Varsa aga hic cikilmiyor."""
     with open(yol, encoding="utf-8") as f:
-        veri = json.load(f)
-    cikti = []
-    for el in veri.get("elements", []):
-        t = el.get("tags") or {}
-        ad = t.get("name")
-        if not ad:
-            continue
-        cikti.append({
-            "mekan_id": "%s/%s" % (el["type"], el["id"]),
-            "mekan_ad": ad,
-            "image": t.get("image", ""),
-            "commons": t.get("wikimedia_commons", ""),
-            "wikidata": t.get("wikidata", ""),
-        })
-    return cikti
+        return _elemanlari_coz(json.load(f))
 
 
 def sql_uret(satirlar):
@@ -257,29 +325,57 @@ def sql_uret(satirlar):
 
 
 def main(kodlar):
-    if not os.path.isdir("ham"):
-        sys.exit("ham/ klasoru yok. Once: python turkiye_cek.py")
-    if not kodlar:
-        kodlar = sorted(x[:-5] for x in os.listdir("ham") if x.endswith(".json"))
+    """Fotograf etiketli mekanlari bulup atifli satirlara cevirir.
 
-    hepsi, toplam_mekan, etiketli = [], 0, 0
-    for kod in kodlar:
+    ham/ VARSA oradan okunuyor (aga hic cikilmadan); yoksa Overpass'a
+    kucuk bir sorgu atiliyor. Ikinci yol saniyeler suruyor -- 81 ilin
+    tamamini indirmeye gerek yok, aranan sey uc etiketten birini tasiyan
+    mekanlar."""
+    from turkiye_cek import ILLER
+    if not kodlar:
+        kodlar = list(ILLER)
+    kotu = [k for k in kodlar if k not in ILLER]
+    if kotu:
+        sys.exit("bilinmeyen il kodu: %s (ornek: TR-06)" % ", ".join(kotu))
+
+    bizim = bizdeki_mekanlar()
+    if not bizim:
+        sys.exit("app/veri bos. Once: python app_veri.py")
+    print("uygulamada %d mekan var; yalniz bunlara fotograf yazilacak\n"
+          % len(bizim), flush=True)
+
+    hepsi, bizde_olan, basarisiz = [], 0, []
+    for sira, kod in enumerate(kodlar, 1):
         yol = os.path.join("ham", kod + ".json")
-        if not os.path.exists(yol):
-            print("  %s: ham dosya yok, atlandi" % kod)
+        try:
+            if os.path.exists(yol):
+                mekanlar, kaynak = ham_oku(yol), "ham"
+            else:
+                mekanlar, kaynak = overpass_oku(kod), "overpass"
+                time.sleep(BEKLEME)
+        except Exception as e:
+            basarisiz.append(kod)
+            print("[%2d/%d] %s  CEKILEMEDI: %s"
+                  % (sira, len(kodlar), kod, str(e)[:60]), flush=True)
             continue
-        mekanlar = ham_oku(yol)
-        toplam_mekan += len(mekanlar)
+
+        # Uygulamada OLMAYAN mekana fotograf yazmak, hicbir sayfada
+        # gorunmeyecek satirlar biriktirmek olurdu.
+        mekanlar = [m for m in mekanlar if m["mekan_id"] in bizim]
+        bizde_olan += len(mekanlar)
 
         # 1) wikidata -> dosya adi
-        q = [m["wikidata"] for m in mekanlar
+        q = [m["wikidata"].strip() for m in mekanlar
              if re.match(r"^Q\d+$", (m["wikidata"] or "").strip())]
         q_gorsel = {}
         for i in range(0, len(q), YIGIN):
-            q_gorsel.update(wikidata_gorselleri(q[i:i + YIGIN]))
+            try:
+                q_gorsel.update(wikidata_gorselleri(q[i:i + YIGIN]))
+            except Exception as e:
+                print("    wikidata: %s" % str(e)[:50], flush=True)
             time.sleep(BEKLEME)
 
-        # 2) her mekan icin bir dosya adi sec
+        # 2) her mekan icin BIR dosya adi sec
         istek = {}
         for m in mekanlar:
             dosya = (_guvenli_dosya_adi(m["commons"])
@@ -287,24 +383,38 @@ def main(kodlar):
                      or _guvenli_dosya_adi(m["image"]))
             if dosya:
                 istek[m["mekan_id"]] = (m, dosya)
-        etiketli += len(istek)
 
-        # 3) Commons'tan atif bilgisi
+        # 3) Commons'tan ATIF bilgisi
         adlar = sorted({d for _, d in istek.values()})
         bilgiler = {}
         for i in range(0, len(adlar), YIGIN):
-            bilgiler.update(commons_bilgi(adlar[i:i + YIGIN]))
+            try:
+                bilgiler.update(commons_bilgi(adlar[i:i + YIGIN]))
+            except Exception as e:
+                print("    commons: %s" % str(e)[:50], flush=True)
             time.sleep(BEKLEME)
 
         il_satir = []
         for mekan_id, (m, dosya) in istek.items():
-            m = dict(m, il=kod[-2:])
-            r = kayit_kur(m, bilgiler.get(dosya))
+            r = kayit_kur(dict(m, il=bizim[mekan_id]), bilgiler.get(dosya))
             if r:
                 il_satir.append(r)
         hepsi.extend(il_satir)
-        print("[%s] %5d mekan, %4d etiketli, %4d serbest lisansli"
-              % (kod, len(mekanlar), len(istek), len(il_satir)), flush=True)
+        print("[%2d/%d] %-6s %-9s %4d etiketli -> %3d cozuldu -> %3d serbest lisansli"
+              % (sira, len(kodlar), kod, kaynak, len(mekanlar), len(istek),
+                 len(il_satir)), flush=True)
+
+    # HICBIR IL CEKILEMEDIYSE bu bir OLCUM DEGIL, bir ariza. Dosya yazip
+    # "%0.00" demek, ag hatasini "Commons'ta fotograf yok" diye rapor
+    # etmek olurdu -- ve kullanici o sayiya bakip kaynagi eler.
+    # Bu depoda kural: basarisizligi sayiya cevirme.
+    if len(basarisiz) == len(kodlar):
+        sys.exit("\nHICBIR IL CEKILEMEDI (%d/%d). Bu bir olcum degil, ag "
+                 "arizasi.\nDosya YAZILMADI; onceki mekan_foto.csv / "
+                 "foto_ekle.sql varsa oldugu gibi duruyor.\n"
+                 "Overpass'a ulasabildigini dogrula: "
+                 "curl -sI https://overpass-api.de/api/status"
+                 % (len(basarisiz), len(kodlar)))
 
     with open("mekan_foto.csv", "w", newline="", encoding="utf-8-sig") as f:
         w = csv.DictWriter(f, fieldnames=ALANLAR)
@@ -313,14 +423,23 @@ def main(kodlar):
     with open("foto_ekle.sql", "w", encoding="utf-8") as f:
         f.write(sql_uret(hepsi))
 
-    oran = (100.0 * len(hepsi) / toplam_mekan) if toplam_mekan else 0
-    print("\nTOPLAM: %d mekanin %d'inde fotograf etiketi, %d'i serbest "
-          "lisansli (%%%.2f)" % (toplam_mekan, etiketli, len(hepsi), oran))
-    print("foto_ekle.sql yazildi -- Supabase SQL Editor'e yapistir.")
-    if oran < 1:
-        print("\nBEKLENEN BIR SONUC. Commons'ta anit ve muze bol, mahalle "
-              "kafesi yok denecek kadar az.\nSayfalari asil dolduracak olan "
-              "kullanici ve dogrulanmis isletme sahibi yuklemeleri.")
+    kapsanan = len(kodlar) - len(basarisiz)
+    oran = (100.0 * len(hepsi) / len(bizim)) if bizim else 0
+    print("\nTOPLAM: uygulamadaki %d mekanin %d'inde fotograf etiketi var, "
+          "%d'i serbest lisansli (%%%.2f)" % (len(bizim), bizde_olan, len(hepsi), oran))
+    if basarisiz:
+        # Kismi kosum SESSIZ GECMEMELI: eksik bir sayiya tam sayi gibi
+        # bakmak, kaynagi haksiz yere elemeye goturur.
+        print("UYARI: %d il cekilemedi (%s%s). Sayilar EKSIK -- o iller icin "
+              "tekrar calistir." % (len(basarisiz), ", ".join(basarisiz[:6]),
+                                    " ..." if len(basarisiz) > 6 else ""))
+    print("%d/%d il tarandi. foto_ekle.sql yazildi -- Supabase SQL Editor'e "
+          "yapistir." % (kapsanan, len(kodlar)))
+    if oran < 1 and not basarisiz:
+        print("\nBEKLENEN BIR SONUC, tahmin degil sayim. Commons'ta anit ve "
+              "muze bol, mahalle kafesi yok denecek kadar az.\nSayfalari asil "
+              "dolduracak olan DOGRULANMIS ISLETME SAHIBI ve kullanici "
+              "yuklemeleri.")
 
 
 def kendini_kontrol_et():
@@ -401,7 +520,32 @@ def kendini_kontrol_et():
     finally:
         os.unlink(gecici)
 
-    print("kontrol gecti: dosya adi cozme, lisans elemesi, atif zorunlulugu")
+    # sorgu(): ham/ OLMADAN da calisabilmenin tek yolu. Kucuk olmasi sart --
+    # turkiye_cek.py'nin sorgusu 81 il icin saatler suruyor.
+    q = sorgu("TR-06")
+    assert '"ISO3166-2"="TR-06"' in q, q
+    # Uc etiketin ucu de sorulmali; biri unutulursa o kaynak sessizce kurur.
+    for etiket in FOTO_ETIKET:
+        assert '["%s"]' % etiket in q, etiket
+    # Yeme-icme VE eglence secicilerinin ikisi de: yalniz biri olsaydi
+    # muzelerin (Commons'ta en cok fotografi olan tur) hepsi kacardi.
+    assert "cafe" in q and "museum" in q, q
+    assert q.startswith("[out:json]") and q.endswith("out center tags;"), q
+    # Seciciler turkiye_cek/eglence_cek'ten ALINIYOR, kopyalanmiyor.
+    assert YEME_AMENITY in q and TOURISM in q
+
+    # _elemanlari_coz: Overpass ve ham/ AYNI bicimde; tek cozucu.
+    v = {"elements": [
+        {"type": "node", "id": 1, "tags": {"name": "A", "image": "File:A.jpg"}},
+        {"type": "relation", "id": 7, "tags": {"name": "M", "wikidata": "Q5"}},
+        {"type": "node", "id": 3, "tags": {}},            # adsiz: atlanir
+    ]}
+    c = _elemanlari_coz(v)
+    assert [x["mekan_id"] for x in c] == ["node/1", "relation/7"], c
+    assert c[1]["wikidata"] == "Q5" and c[1]["image"] == "", c
+
+    print("kontrol gecti: dosya adi cozme, lisans elemesi, atif zorunlulugu, "
+          "kucuk sorgu")
 
 
 if __name__ == "__main__":
