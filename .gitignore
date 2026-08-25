@@ -52,3 +52,15 @@ saha_liste.csv
 # adi da ayrildi (foto_ekle.sql), boylece cakisma tekrar edemez.
 /mekan_foto.csv
 /foto_ekle.sql
+
+# Android imzalama anahtari. ASLA depoya girmez: bu dosya + parolasi,
+# uygulamanin senin adina guncellenmesini saglayan tek sey. Kaybedersen
+# Play App Signing ile kurtarilabilir, SIZDIRIRSAN kurtarilamaz.
+*.jks
+*.keystore
+android.keystore
+twa-manifest.json.bak
+# Bubblewrap ciktilari (yeniden uretilebilir, buyuk)
+/app-release-bundle.aab
+/app-release-signed.apk
+/android/

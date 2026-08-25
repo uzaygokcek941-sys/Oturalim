@@ -296,8 +296,16 @@ def kendini_kontrol_et():
                 if "Content Security Policy" in m or "Refused to" in m:
                     csp_ihlal.append("%s: %s" % (yolu, m[:150]))
 
+            # SERVICE WORKER BU BAGLAMDA KAPALI. Kayitli bir sw, sonraki
+            # sayfalara ONBELLEKTEN yanit verebilir ve kontroller o an
+            # diskteki dosyayi degil dun akşamki kopyayi sinamis olur --
+            # sessizce yanlis gecen bir test takimi, olmayan bir test
+            # takiminden kotu. PWA'nin kendisi ayri bir baglamda
+            # sinaniyor (asagida).
+            ctx = t.new_context(service_workers="block")
+
             def sayfa_ac(yolu, taklit=None, sahte_modul=False):
-                sf = t.new_page()
+                sf = ctx.new_page()
                 hata = []
                 sf.on("pageerror", lambda e: hata.append(str(e)[:120]))
                 sf.on("console", lambda i: konsol(yolu, i))
@@ -388,8 +396,12 @@ def kendini_kontrol_et():
             # gorunumlu baglantilar. Metin icindeki satir ici baglantilar
             # disarida -- onlar kuralin kendisinden muaf ve dahil edilseydi
             # kontrol gurultuye bogulup okunmaz olurdu.
-            tel = t.new_page(viewport={"width": 390, "height": 844},
-                             is_mobile=True, has_touch=True)
+            # Telefon olculeri BAGLAM seviyesinde veriliyor: new_page()
+            # viewport/is_mobile kabul etmiyor, onlar context secenegi.
+            tel_ctx = t.new_context(viewport={"width": 390, "height": 844},
+                                    is_mobile=True, has_touch=True,
+                                    service_workers="block")
+            tel = tel_ctx.new_page()
             # Kutuphane TAKLITLE karsilaniyor: mobil olcum, uygulamanin
             # gercek kullanicidaki hali uzerinde yapilmali -- yani kutuphane
             # CALISIRKEN. Onceden supabase-js hic gelmiyordu ve katki formu
@@ -733,7 +745,7 @@ def kendini_kontrol_et():
             # Yukaridaki duzeltmenin dogru mesaji bastirmadigini gormek icin
             # sart: tek basina "acilamiyor" aramak, kurulum ekranini tamamen
             # silmek suretiyle de gecerdi.
-            sf = t.new_page()
+            sf = ctx.new_page()
             sf.route("**://*/**", lambda r: (
                 r.fulfill(status=200, headers={"content-type": "text/javascript"},
                           body="window.OTURALIM={supabaseUrl:'',supabaseAnahtar:''};")
@@ -749,7 +761,7 @@ def kendini_kontrol_et():
             # 1l) CDN ASILI kalirsa sayfa sonsuza kadar beklememeli.
             # Olculdu: cevaplanmayan bir istekte sayfa SURESIZ bos kaliyordu.
             # kimlik.js'te 12 sn'lik sinir var; burada sonucu olculuyor.
-            sf = t.new_page()
+            sf = ctx.new_page()
             asili = []
             def asili_birak(r):
                 u = r.request.url
@@ -934,6 +946,145 @@ def kendini_kontrol_et():
                 if "fiyatı bilinmiyor" not in civar:
                     sorunlar.append("isletme: civar katki cagrisi sayisiz")
             sf.close()
+
+            # 2v) ANDROID GERI TUSU. Olculdu: detay paneli acikken geri
+            # basinca panel kapanmiyordu, KESFET EKRANINDAN TAMAMEN
+            # cikiliyordu (adres index.html oluyordu). Tarayicida can
+            # sikici, uygulamada daha kotu: TWA'da baslangic adresinde
+            # geri basmak uygulamadan CIKMAK demek -- yani bir mekana
+            # bakip geri basan kullanicinin uygulamasi kapaniyordu.
+            #
+            # UC HALIN UCU DE SINANIYOR. Yalniz birincisine bakmak
+            # yetmez: paneli acarken gecmise kayit koyup KAPANIRKEN
+            # geri almayan bir surum de ilk adimi gecer, sonra kullanici
+            # "geri basiyorum bir sey olmuyor" haline duserdi.
+            geri_ctx = t.new_context(viewport={"width": 390, "height": 844},
+                                     is_mobile=True, has_touch=True,
+                                     service_workers="block")
+            gs = geri_ctx.new_page()
+            gs.route("**://*/**", lambda r: (r.continue_()
+                     if r.request.url.startswith(TABAN) else r.abort()))
+
+            def kesfete_git():
+                gs.goto(TABAN + "/index.html", wait_until="load", timeout=20000)
+                gs.wait_for_timeout(900)
+                gs.goto(TABAN + "/kesfet.html?il=06", wait_until="load", timeout=20000)
+                gs.wait_for_timeout(2500)
+
+            def panel_acik():
+                return gs.evaluate(
+                    "() => { const d=document.getElementById('detay'); "
+                    "return !!(d && d.open); }")
+
+            # (a) Panel acikken geri -> panel kapanir, SAYFA DEGISMEZ.
+            kesfete_git()
+            k = gs.query_selector(".kart")
+            if not k:
+                sorunlar.append("geri tusu kontrolu: kesfet hic kart cizmedi")
+            else:
+                k.click(); gs.wait_for_timeout(800)
+                if not panel_acik():
+                    sorunlar.append("geri tusu kontrolu: panel acilmadi")
+                gs.go_back(); gs.wait_for_timeout(1200)
+                if panel_acik():
+                    sorunlar.append("geri tusu paneli kapatmiyor")
+                if "kesfet.html" not in gs.url:
+                    sorunlar.append("geri tusu paneli kapatmak yerine sayfadan "
+                                    "cikiyor (%s)" % gs.url.split("/")[-1][:30])
+
+                # (b) X ile kapatinca ARTIK KAYIT KALMAMALI: sonraki geri
+                # basisi kesfetten cikarmali, "hicbir sey olmamali" degil.
+                kesfete_git()
+                gs.query_selector(".kart").click(); gs.wait_for_timeout(700)
+                gs.query_selector("[data-kapat]").click(); gs.wait_for_timeout(700)
+                gs.go_back(); gs.wait_for_timeout(1200)
+                if "index.html" not in gs.url:
+                    sorunlar.append("panel X ile kapandiktan sonra geri tusu "
+                                    "sayfadan cikarmiyor; artik gecmis kaydi "
+                                    "kalmis (%s)" % gs.url.split("/")[-1][:30])
+
+                # (c) Tekrar tekrar ac-kapa gecmisi SISIRMEMELI.
+                kesfete_git()
+                for _ in range(3):
+                    gs.query_selector(".kart").click(); gs.wait_for_timeout(450)
+                    gs.keyboard.press("Escape"); gs.wait_for_timeout(450)
+                gs.go_back(); gs.wait_for_timeout(1200)
+                if "index.html" not in gs.url:
+                    sorunlar.append("uc kez ac-kapa gecmisi sisiriyor (%s)"
+                                    % gs.url.split("/")[-1][:30])
+            geri_ctx.close()
+
+            # 2w) PWA / TWA: service worker kaydoluyor mu ve CEVRIMDISI
+            # ne oluyor. Google Play, cevrimdisiyken tarayicinin kendi
+            # hata ekranini gostermeyi "bozuk islevsellik" sayiyor
+            # (PLAY.md). Burasi o hali GERCEKTEN uretip bakiyor.
+            #
+            # AYRI BAGLAM: yukaridaki kontrollerin baglaminda service
+            # worker KAPALI, cunku kayitli bir sw onlara onbellekten
+            # yanit verip diskteki dosya yerine eski kopyayi sinatabilir.
+            pwa_ctx = t.new_context()          # sw'ye izin var
+            ps = pwa_ctx.new_page()
+            ps.route("**://*/**", lambda r: (r.continue_()
+                     if r.request.url.startswith(TABAN) else r.abort()))
+            ps.goto(TABAN + "/index.html", wait_until="load", timeout=20000)
+            ps.wait_for_timeout(2500)
+            kayit = ps.evaluate("""async () => {
+                const r = await navigator.serviceWorker.getRegistration();
+                return r && r.active ? r.active.state : null;
+            }""")
+            if kayit != "activated":
+                sorunlar.append("service worker etkinlesmedi (%s)" % kayit)
+
+            # Bir il gezilsin ki veri onbellege girsin.
+            ps.goto(TABAN + "/kesfet.html?il=06", wait_until="load", timeout=20000)
+            ps.wait_for_timeout(3000)
+            kovalar = ps.evaluate("async () => (await caches.keys())")
+            if not any(k.endswith("-kabuk") for k in kovalar):
+                sorunlar.append("kabuk onbellegi olusmadi (%s)" % kovalar)
+            if not any(k.endswith("-veri") for k in kovalar):
+                sorunlar.append("il verisi onbellege alinmadi (%s)" % kovalar)
+
+            pwa_ctx.set_offline(True)
+            # (a) HIC acilmamis sayfa -> cevrimdisi sayfasi, tarayici
+            #     hata ekrani DEGIL.
+            o1 = pwa_ctx.new_page()
+            o1.goto(TABAN + "/gizlilik.html", wait_until="domcontentloaded", timeout=15000)
+            o1.wait_for_timeout(1200)
+            if "Bağlantı yok" not in (o1.title() or ""):
+                sorunlar.append("cevrimdisi: acilmamis sayfada 'Bağlantı yok' "
+                                "ekrani cikmiyor (%r)" % (o1.title() or "")[:40])
+            # GERCEK cevrimdisi.html mi, yoksa sw.js icindeki ciplak
+            # son care yaniti mi. Ikisinin de basligi ayni ve yalniz
+            # baslige bakan bir kontrol, on yuklemenin bozuldugunu
+            # goremezdi -- ilk yazimda tam olarak boyleydi ve sabotaj
+            # testten gecti. Ayirt edici: "Tekrar dene" dugmesi.
+            if not o1.query_selector("#tekrar"):
+                sorunlar.append("cevrimdisi: cevrimdisi.html onbellekte yok; "
+                                "sw.js'in ciplak yedegi cizilmis")
+            o1.close()
+            # (b) start_url cevrimdisi ACILMALI: TWA her acilista onu
+            #     istiyor ve ilk kosumda ucak modunda olan biri
+            #     "baglanti yok" gormemeli. sw.js onu ON YUKLUYOR.
+            o2 = pwa_ctx.new_page()
+            o2.goto(TABAN + "/index.html", wait_until="domcontentloaded", timeout=15000)
+            o2.wait_for_timeout(1200)
+            if "Bağlantı yok" in (o2.title() or ""):
+                sorunlar.append("cevrimdisi: start_url acilmiyor; sw.js "
+                                "index.html'i on yuklemiyor")
+            o2.close()
+            # (c) DAHA ONCE acilmis kesfet ekrani, veriyle birlikte
+            #     gelmeli. Yalniz sayfanin acilmasi yetmez: kart sayisi
+            #     sifirsa il dosyasi onbellekten gelmemis demektir.
+            o3 = pwa_ctx.new_page()
+            o3.goto(TABAN + "/kesfet.html?il=06", wait_until="domcontentloaded", timeout=15000)
+            o3.wait_for_timeout(2500)
+            kart = o3.eval_on_selector_all(".kart", "n => n.length")
+            if kart == 0:
+                sorunlar.append("cevrimdisi: gezilmis il hic kart cizmiyor "
+                                "(veri onbellekten gelmiyor)")
+            o3.close()
+            pwa_ctx.set_offline(False)
+            pwa_ctx.close()
 
             # 3) Harita VARKEN normal yol izlenmeli: erken donus olmamali.
             sf, hata = sayfa_ac("/kesfet.html?il=06", LEAFLET_TAKLIT)

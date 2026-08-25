@@ -1365,8 +1365,42 @@ function kendiniKontrolEt(){
       : kontroller.length + " kontrolun hepsi gecti") + "</pre>");
 }
 
+/* ============================================================
+   Service worker kaydı
+
+   BURADA, satır içi bir <script> içinde DEĞİL: ortak.js zaten on
+   sayfanın hepsinde yüklü ve satır içi bir blok eklemek CSP karmalarını
+   on yerde büyütürdü.
+
+   NEDEN VAR: uygulama Google Play'e TWA olarak paketleniyor (PLAY.md).
+   Çevrimdışıyken tarayıcının kendi hata ekranını göstermek Play'in
+   "bozuk işlevsellik" kuralına takılıyor; `sw.js` onun yerine
+   `cevrimdisi.html`'i veriyor.
+
+   HTTP'DE KAYIT YAPILMIYOR. Service worker yalnız güvenli kaynakta
+   (https ya da localhost) çalışıyor; başka bir yerde `register` zaten
+   reddediliyor ve konsola hata düşüyor. Koşul burada, hata sessizce
+   birikmesin diye.
+
+   HATA YUTULMUYOR AMA SAYFAYI DA DURDURMUYOR: kayıt başarısız olursa
+   uygulama service worker'sız çalışmaya devam ediyor — bu bir hızlanma
+   katmanı, çalışma şartı değil. */
+function swKur(){
+  if (!("serviceWorker" in navigator)) return;
+  const g = location.protocol === "https:" ||
+            location.hostname === "localhost" ||
+            location.hostname === "127.0.0.1";
+  if (!g) return;
+  /* `load` sonrası: kayıt, ilk çizimle ağ için yarışmasın. */
+  addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(e =>
+      console.warn("service worker kaydedilemedi:", e && e.message));
+  });
+}
+
 /* ---------- açılış ---------- */
 document.addEventListener("DOMContentLoaded", () => {
+  swKur();
   temaKur();
   resimHatalariniGizle();
   kohortGuncelle();

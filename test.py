@@ -35,7 +35,8 @@ VERI = os.path.join(KOK, "app", "veri")
 BETIKLER = ["app_veri.py", "etkinlik_cek.py", "fiyat_analiz.py", "menu_cikar.py",
             "turkiye_cek.py", "foto_cek.py",
             "menu_ocr.py", "menu_pdf_tara.py", "saha.py", "sahiplen.py",
-            "site_haritasi.py", "csp_uret.py", "veri_bicim.py", "kutuphane_al.py"]
+            "site_haritasi.py", "csp_uret.py", "veri_bicim.py", "kutuphane_al.py",
+            "ikon_uret.py", "sw_uret.py", "assetlinks_uret.py"]
 
 # Turkiye siniri, genis pay. Disina dusen koordinat cekimde bir sey
 # kaymis demektir; haritada Atlantik'te bir nokta olarak gorunur.
@@ -463,6 +464,118 @@ def yayin_basliklari_mi():
     return s
 
 
+def pwa_tutarli_mi():
+    """Manifest, service worker ve Play parcalari birbirini tutuyor mu.
+
+    Hepsi SESSIZCE bozulabilecek turden -- yanlisi hicbir yerde patlamaz:
+      - manifest bozuksa uygulama kurulabilir gorunmez, hata vermez;
+      - sw damgasi eskirse kullanicilar eski surumu kullanmaya devam eder;
+      - paket adi iki dosyada ayrisirsa TWA dogrulamasi tutmaz ve
+        uygulamanin ustunde ADRES CUBUGU cikar, sebebi yazmaz.
+    """
+    s = []
+    try:
+        m = json.loads(oku("app", "manifest.webmanifest"))
+    except Exception as e:
+        return ["app/manifest.webmanifest okunamadi: %s" % e]
+
+    # Play/TWA'nin ISTEDIGI asgari alanlar.
+    for alan in ("name", "short_name", "start_url", "scope", "display",
+                 "background_color", "theme_color", "icons"):
+        if not m.get(alan):
+            s.append("manifest: %s yok" % alan)
+    if m.get("display") not in ("standalone", "fullscreen", "minimal-ui"):
+        s.append("manifest: display %r -- TWA standalone bekliyor" % m.get("display"))
+
+    # 192 ve 512 SART; maskelenebilir olmadan Android ikonu kirpiyor.
+    olculer = {i.get("sizes") for i in m.get("icons", [])}
+    for gerekli in ("192x192", "512x512"):
+        if gerekli not in olculer:
+            s.append("manifest: %s ikon yok" % gerekli)
+    if not any("maskable" in (i.get("purpose") or "") for i in m.get("icons", [])):
+        s.append("manifest: maskelenebilir ikon yok (Android ikonu kirpar)")
+
+    # Ikon dosyalari GERCEKTEN var mi ve olculeri manifest'in dedigi mi.
+    # Manifest'in dogru olmasi yetmiyor: dosya yoksa kurulum sessizce
+    # basarisiz oluyor.
+    for i in m.get("icons", []):
+        yol = os.path.join(KOK, "app", i["src"])
+        if not os.path.exists(yol):
+            s.append("manifest %s dosyasi yok" % i["src"])
+            continue
+        try:
+            from PIL import Image
+            g = Image.open(yol)
+            beklenen = tuple(int(x) for x in i["sizes"].split("x"))
+            if g.size != beklenen:
+                s.append("%s olcusu %s, manifest %s diyor"
+                         % (i["src"], g.size, i["sizes"]))
+        except ImportError:
+            pass
+
+    # Sayfalarin hepsi manifest'e baglanmali: biri unutulursa o sayfadan
+    # giren kullaniciya kurulum onerilmez.
+    for y in sorted(glob.glob(os.path.join(KOK, "app", "*.html"))):
+        metin = io.open(y, encoding="utf-8").read()
+        if 'rel="manifest"' not in metin:
+            s.append("%s manifest'e baglanmiyor" % os.path.basename(y))
+
+    # Service worker damgasi guncel mi.
+    y = subprocess.run([sys.executable, "sw_uret.py", "kontrol"], cwd=KOK,
+                       capture_output=True, text=True)
+    if y.returncode != 0:
+        s.append((y.stdout + y.stderr).strip()[-200:])
+
+    # Kayit gercekten yapiliyor mu. sw.js'in var olmasi yetmez.
+    if 'navigator.serviceWorker.register' not in oku("app", "ortak.js"):
+        s.append("ortak.js service worker kaydetmiyor")
+
+    # Paket adi IKI dosyada ayni olmali.
+    try:
+        twa = json.loads(oku("twa-manifest.json"))
+    except Exception as e:
+        return s + ["twa-manifest.json okunamadi: %s" % e]
+    al = oku("assetlinks_uret.py")
+    m2 = re.search(r'^PAKET = "([^"]+)"', al, re.M)
+    if not m2:
+        s.append("assetlinks_uret.py icinde PAKET yok")
+    elif m2.group(1) != twa.get("packageId"):
+        s.append("paket adi ayrisiyor: twa-manifest %r, assetlinks_uret %r"
+                 % (twa.get("packageId"), m2.group(1)))
+
+    # twa-manifest'teki start_url manifest ile ayni olmali; ayrisirsa
+    # uygulama baska bir sayfada aciliyor ve cevrimdisi on yuklemesi
+    # yanlis dosyayi tutuyor.
+    if twa.get("startUrl") != m.get("start_url"):
+        s.append("startUrl ayrisiyor: twa %r, manifest %r"
+                 % (twa.get("startUrl"), m.get("start_url")))
+    if twa.get("themeColor") != m.get("theme_color"):
+        s.append("tema rengi ayrisiyor: twa %r, manifest %r"
+                 % (twa.get("themeColor"), m.get("theme_color")))
+
+    # Cevrimdisi sayfasi TEK BASINA durmali: son savunma katmani, bir
+    # parcasi eksikse kullanici tarayicinin hata ekranini gorur.
+    cd = oku("app", "cevrimdisi.html")
+    # GERCEK basvuruya bakiliyor, metinde gecmesine degil: dosyanin
+    # basindaki yorum "sahne.js BILEREK yok" diyor ve duz arama ona
+    # takiliyordu -- yani kontrol, tam da dogru davranisi hata sayardi.
+    basvurular = set(re.findall(r'(?:src|href)="([^"]+\.(?:js|css))"', cd))
+    for yasak in ("ortak.js", "sahne.js", "sahne.css", "kimlik.js", "kesfet.js"):
+        if yasak in basvurular:
+            s.append("cevrimdisi.html %s'e bagli; tek basina durmali" % yasak)
+    if m.get("start_url", "").lstrip("/") not in oku("app", "sw.js").replace("./", ""):
+        s.append("sw.js manifest'in start_url'ini on yuklemiyor "
+                 "(ilk acilista cevrimdisi kalirsa 'baglanti yok' cikar)")
+
+    # Imzalama anahtari depoya SIZMAMIS olmali.
+    izlenen = subprocess.run(["git", "ls-files"], cwd=KOK,
+                             capture_output=True, text=True).stdout.split()
+    for dosya in izlenen:
+        if dosya.endswith((".jks", ".keystore")):
+            s.append("IMZALAMA ANAHTARI DEPODA: %s" % dosya)
+    return s
+
+
 def sirlar_sizmis_mi():
     """Depoya girmemesi gerekenler.
 
@@ -719,6 +832,7 @@ def main():
     kayit("degismez: sema korumalari yerinde", sema_tutarli_mi())
     kayit("degismez: sahne perdesi acilabiliyor", sahne_tutarli_mi())
     kayit("degismez: yayin yapilandirmasi", yayin_basliklari_mi())
+    kayit("degismez: PWA ve Play parcalari", pwa_tutarli_mi())
     kayit("degismez: kurulum dosyalari depoda", kurulum_dosyalari_izleniyor_mu())
     kayit("degismez: donus adresi ve gunun tarihi", adres_ve_tarih_mi())
     kayit("degismez: sir sizmamis", sirlar_sizmis_mi())

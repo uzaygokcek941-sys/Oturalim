@@ -970,6 +970,99 @@ yarıçap ekranda yazıyor**.
 
 ---
 
+## 2026-08-25 — Mobil ve Google Play (TWA)
+
+### Mobil düzen: ölçüldü, sorun çıkmadı
+
+Varsayımla başlamamak için önce ölçtüm — üç ekran boyutu (320×568,
+360×800, 412×915), 10 sayfa: **yatay kaydırma yok, 12 px altı yazı yok**.
+Düzen zaten duyarlıydı; dokunma hedefi kuralı ve `env(safe-area-inset-*)`
+de yerindeydi. Yani "mobil uyumlu hale getir" işinin büyük kısmı çoktan
+yapılmıştı ve yeniden yapmak yalnız risk olurdu.
+
+Ölçüm iki gerçek kusur buldu; ikisi de düzeltildi:
+
+**1. Android geri tuşu keşfet ekranından çıkarıyordu.** Detay paneli
+açıkken geri basınca panel kapanmıyor, adres `index.html` oluyordu.
+Tarayıcıda can sıkıcı; **uygulamada çok daha kötü** — TWA'da başlangıç
+adresinde geri basmak *uygulamadan çıkmak* demek, yani bir mekana bakıp
+geri basan kullanıcının uygulaması kapanıyordu. Panel açılırken geçmişe
+bir kayıt konuyor, geri basışı orada yakalanıyor. Filtreler bilerek
+`replaceState` kullanmaya devam ediyor (40 filtreyi tek tek geri almak
+istemiyoruz); panel ayrı, çünkü kullanıcının zihninde ayrı bir ekran.
+Üç hal de sınanıyor: geri panel kapatmalı, X ile kapatınca **artık kayıt
+kalmamalı**, tekrar tekrar aç-kapa geçmişi şişirmemeli.
+
+**2. Katkı formunun `select`'i 23 px'ti** (bir önceki commit'te). WCAG
+2.5.8 en az 24 istiyor.
+
+### PWA: manifest, ikon, service worker
+
+Üçü de yoktu. `manifest.webmanifest`, 4 ikon (`ikon_uret.py` — şekil ve
+renkler sayfaların kendi SVG'sinden ve `stil.css`'ten, iki yerde iki türlü
+olmasın diye), `sw.js` ve `cevrimdisi.html`.
+
+**Service worker sürümü elle yazılmıyor** (`sw_uret.py`), kabuk
+dosyalarının içeriğinden türetiliyor. Gerekçe CSP karmalarındakiyle aynı:
+elle tutulan bir sürüm ilk düzenlemede eskir ve **eskimesi sessizdir** —
+kullanıcılar aylarca eski sürümü kullanır, hiçbir yerde patlamaz.
+
+Önbellek kararları ürünün kuralına bağlı: **gezinme ve il verisi önce
+ağdan** geliyor, çünkü bu uygulama fiyat gösteriyor ve eski bir sayfayı
+sessizce vermek "bayat fiyat" kuralının çiğnenmesi olurdu. Onbellek yalnız
+yedek. Supabase istekleri ve harita döşemesi hiç saklanmıyor; ilki
+oturuma bağlı ve kişisel.
+
+Ölçülen çevrimdışı davranış:
+
+| Durum | Sonuç |
+|---|---|
+| Hiç açılmamış sayfa | `cevrimdisi.html` — tarayıcı hata ekranı değil |
+| `start_url` (ilk kurulum, uçak modu) | Açılıyor — `sw.js` onu ön yüklüyor |
+| Gezilmiş keşfet ekranı | **120 kartla** açılıyor, veri önbellekten |
+
+Üçüncüsü asıl kanıt: sayfanın açılması yetmez, kart sayısı sıfırsa il
+dosyası önbellekten gelmemiş demektir.
+
+**Bir kusur kendi kodumdaydı:** `navigationPreload` yanıtı doğrudan
+dönüyordu, yani gezinme yanıtları **hiç önbelleğe girmiyordu** — kullanıcı
+bir sayfayı açıp sonra çevrimdışı kalınca, *zaten açmış olduğu* sayfa bile
+"bağlantı yok" ekranına düşüyordu. Ölçülüp düzeltildi.
+
+### Google Play
+
+`PLAY.md`: TWA yolu, Bubblewrap komutları, imzalama anahtarı (`.gitignore`
+`*.jks`/`*.keystore` kapatıyor), mağaza girişi ve **veri güvenliği formu**
+— sonuncusu koddan okunarak dolduruldu, tahminle değil. Kritik satır:
+**konum toplanmıyor** ("yakınımdakiler" cihazda çalışıyor, koordinat
+hiçbir yere gitmiyor) ve **ham IP saklanmıyor** (günlük değişen tuzla
+özete çevriliyor).
+
+`assetlinks_uret.py` parmak izini doğruluyor: kısa, uzun, onaltılık
+olmayan ya da yapıştırılmış bir cümle **yazılmıyor**. Doğrulama tutmazsa
+uygulamanın üstünde adres çubuğu çıkıyor ve **bunun hiçbir yerde hatası
+görünmüyor** — TWA'da en sık yaşanan sorun bu.
+
+Paket adı iki dosyada (`twa-manifest.json`, `assetlinks_uret.py`) ve
+`test.py` ayrışmalarını hata sayıyor: ayrışırsa doğrulama sessizce tutmaz.
+
+**iOS yapılmadı, bilerek.** Apple yalnız web sitesini saran uygulamaları
+4.2 "minimum işlevsellik" kuralıyla reddediyor. Manifest ve
+`apple-touch-icon` duruyor; iOS kullanıcısının yolu "Ana Ekrana Ekle".
+
+### Test
+
+`test.py` 26 → **30 kontrol grubu**. Tarayıcı tarafında service worker
+**ayrı bir bağlamda** sınanıyor: kayıtlı bir sw, öteki kontrollere
+önbellekten yanıt verip diskteki dosya yerine eski kopyayı sınatabilirdi.
+
+Sekiz sabotaj denendi, sekizi de yakalandı. **Biri ilk yazımda kaçtı:**
+çevrimdışı kontrolü yalnız sayfa başlığına bakıyordu ve `sw.js` içindeki
+çıplak son çare yanıtının başlığı da aynı — yani ön yükleme tamamen
+bozulsa bile test geçiyordu. Ayırt edici konuldu ("Tekrar dene" düğmesi).
+
+---
+
 ## Yapılmayacaklar
 
 | Yapma | Neden |

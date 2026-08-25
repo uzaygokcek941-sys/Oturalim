@@ -652,7 +652,32 @@ async function favoriDegistir(){
   }
 }
 
-/* ---------- detay ---------- */
+/* ---------- detay ----------
+   ANDROID GERI TUSU. Olculdu: panel acikken geri basinca panel
+   kapanmiyordu, KESFET EKRANINDAN TAMAMEN CIKILIYORDU (adres index.html
+   oluyordu). Tarayicida bu can sikici, uygulamada daha kotu: TWA'da
+   baslangic adresindeyken geri basmak uygulamadan CIKMAK demek, yani
+   kullanici bir mekana bakip geri basinca uygulama kapaniyordu.
+
+   Cozum, panel acilirken gecmise bir kayit koymak ve geri basisini o
+   kayitta yakalamak. Suzgecler bilerek replaceState kullaniyor (40
+   filtreyi tek tek geri almak istemiyoruz); burasi ayri ve pushState
+   dogru, cunku panel kullanicinin zihninde AYRI BIR EKRAN. */
+let panelGecmiste = false;
+
+function panelAc(){
+  const d = el("#detay");
+  if (!d) return;
+  if (!d.open && !panelGecmiste){
+    /* Adres DEGISMIYOR: aynı URL ile yalniz bir gecmis kaydi ekleniyor.
+       Adresi degistirmek, paylasilan baglantilari bozardi. */
+    history.pushState({ panel: 1 }, "", location.href);
+    panelGecmiste = true;
+  }
+  d.showModal();
+}
+
+
 function ac(id){
   const m = mekanlar.find(x => x.id === id);
   if (!m) return;
@@ -817,7 +842,7 @@ function ac(id){
   el("#d-sayfa").href = "isletme.html?il=" + encodeURIComponent(el("#il").value) +
                         "&id=" + encodeURIComponent(m.id);
   favoriDugmesiniTazele(m);
-  el("#detay").showModal();
+  panelAc();
 
   const i = isaretler.get(id);
   if (i && haritaVar()){ harita.setView([m.lat, m.lon], Math.max(harita.getZoom(), 15)); i.openPopup(); }
@@ -995,6 +1020,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.querySelectorAll("[data-kapat]").forEach(b =>
     b.addEventListener("click", () => el("#detay").close()));
+
+  /* Panel kapaninca (dugme, Esc ya da disari tiklama) BIZIM koydugumuz
+     gecmis kaydi da geri alinmali; yoksa kayit orada kalir ve bir
+     sonraki geri basisi "hicbir sey olmuyor" gibi gorunur. */
+  el("#detay").addEventListener("close", () => {
+    if (panelGecmiste){ panelGecmiste = false; history.back(); }
+  });
+
+  addEventListener("popstate", () => {
+    /* Geri tusu: panel acikken ONCE paneli kapat. Bayrak burada
+       dusuruluyor, yoksa close olayi bir kez daha history.back()
+       cagirir ve kullanici sayfadan disari duser. */
+    if (panelGecmiste){
+      panelGecmiste = false;
+      const d = el("#detay");
+      if (d && d.open) d.close();
+    }
+  });
 
   const favDugme = el("#d-favori");
   if (favDugme) favDugme.addEventListener("click", favoriDegistir);

@@ -22,7 +22,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; script-src 'self' https://unpkg.com https://esm.sh 'sha256-05MtdyWyZSmPUdaTOp7su5zgHRqDNyptCepJ8hC4Ros=' 'sha256-CtbkLvmrTXVxz7VGvAwGP/6oq1IpUpSfhhRfBH+PpIU=' 'sha256-GrvfL+LpFMU7JHa+6O96o27s2FH97TecsJMWyKYt2uU=' 'sha256-T391PA9NIa3NZsgbDfIp5hogrE8esKqM05s0/VpfCqo=' 'sha256-UddHt/ab2RCU2vCCNL0cgsh2Qj75n9cU5BAl2NhjDzQ=' 'sha256-YWoBHrkYcGS1hHqQzNnVBCGc6kywPSbYT5Um4g2EF/E=' 'sha256-biGyKWhQkINE6bt4sEk2f3QLvp8fRYVAyPtWQ9bqsxU=' 'sha256-goIHdW41hQ1v3qOyYnGZlYJuwBlANLprXf9M4c1Qc+w=' 'sha256-kR7jIbzDiFs3ozp4PFyxrGgAw+jVz1ZDYoDM0B9gduk=' 'sha256-py44g/KQDQkVWosoBOZK4Kv3DncigNPD/p8TxLuPzDc=' 'sha256-tz4Y14cRJrZb/NpJRU4bGtUPUW72rXKdNs1lkMTV/f4=' 'sha256-v0tyAssCoAyQ3kib3ovey4gNldoLKaUeEoMnROy9o8k='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.supabase.co https://upload.wikimedia.org https://*.basemaps.cartocdn.com https://unpkg.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://esm.sh"
+          "value": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; script-src 'self' https://unpkg.com https://esm.sh 'sha256-05MtdyWyZSmPUdaTOp7su5zgHRqDNyptCepJ8hC4Ros=' 'sha256-CtbkLvmrTXVxz7VGvAwGP/6oq1IpUpSfhhRfBH+PpIU=' 'sha256-GrvfL+LpFMU7JHa+6O96o27s2FH97TecsJMWyKYt2uU=' 'sha256-MnnaVwwkH+GWumbMGf/VMlaQZW1SKIPfH/TFj8iH+Ew=' 'sha256-T391PA9NIa3NZsgbDfIp5hogrE8esKqM05s0/VpfCqo=' 'sha256-UddHt/ab2RCU2vCCNL0cgsh2Qj75n9cU5BAl2NhjDzQ=' 'sha256-YWoBHrkYcGS1hHqQzNnVBCGc6kywPSbYT5Um4g2EF/E=' 'sha256-biGyKWhQkINE6bt4sEk2f3QLvp8fRYVAyPtWQ9bqsxU=' 'sha256-goIHdW41hQ1v3qOyYnGZlYJuwBlANLprXf9M4c1Qc+w=' 'sha256-kR7jIbzDiFs3ozp4PFyxrGgAw+jVz1ZDYoDM0B9gduk=' 'sha256-py44g/KQDQkVWosoBOZK4Kv3DncigNPD/p8TxLuPzDc=' 'sha256-tz4Y14cRJrZb/NpJRU4bGtUPUW72rXKdNs1lkMTV/f4=' 'sha256-v0tyAssCoAyQ3kib3ovey4gNldoLKaUeEoMnROy9o8k='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.supabase.co https://upload.wikimedia.org https://*.basemaps.cartocdn.com https://unpkg.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://esm.sh"
         }
       ]
     },
@@ -50,6 +50,41 @@
         {
           "key": "Cache-Control",
           "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/manifest.webmanifest",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/manifest+json; charset=utf-8"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/.well-known/assetlinks.json",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/json; charset=utf-8"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=300"
         }
       ]
     }
