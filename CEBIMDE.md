@@ -2190,3 +2190,93 @@ Toplam **20 sabotaj** koşuldu; ikisi ilk yazımda kaçtı (`"sort("` gevşekti,
 
 **42 kontrol grubunun hepsi geçiyor.** Kurulum: `veritabani/topluluk.sql`
 Supabase'te çalıştırılmalı.
+
+---
+
+## 2026-08-26 — Leaflet yerele alındı, gizlilik listesi gerçeğe getirildi
+
+### Harita artık üçüncü bir tarafa bağlı değil
+
+Bu **varsayım değil, yaşanmış**: Leaflet CDN'den gelmeyince keşfet
+ekranının **tamamı** ölüyordu — sıfır kart, sayaç "…"da donmuş. SRI o gün
+hiçbir şey yapamadı, çünkü SRI dosyanın **doğru** olup olmadığını söylüyor,
+**gelip gelmediğini** değil. İki ayrı soru.
+
+Dosya artık depoda (200 KB). `kutuphane_al.py` onu **npm kayıt
+defterinden** alıyor ve kayıt defterinin resmî `sha512` özetiyle
+(`dist.integrity`) doğrulamadan hiçbir şey yazmıyor — yani SRI'nin verdiği
+güvence duruyor, üzerine erişilebilirlik geliyor. unpkg yerine kayıt
+defteri, çünkü özet orada yayımlanıyor.
+
+Ölçüm (bütün dış istekler kesili, gerçek tarayıcı):
+
+```
+Leaflet yüklendi : True        (önceden False)
+harita kabı      : True        (.leaflet-container)
+harita-yok kutusu: False       (önceden True)
+```
+
+BSD-2-Clause: atıf başlığı dosyanın içinde, lisans metni
+`app/lib/leaflet-LICENSE.txt`'te. Kodu depoya kopyalayıp lisansı bırakmak
+şartın yarısını atlamak olurdu.
+
+CSP kendiliğinden daralıyor: dosya yoksa `unpkg.com` üç yönergede birden
+kalmak zorunda, varsa üçünden birden düşüyor.
+
+### Gizlilik sayfası üç ayrı şeyi yanlış söylüyormuş
+
+Sağlayıcı tablosu CSP ile karşılaştırıldı:
+
+| Sağlayıcı | Tabloda | Gerçekte |
+|---|---|---|
+| unpkg | yazıyordu | artık **hiç** çağrılmıyor |
+| upload.wikimedia.org | yoktu | çağrılıyor (Commons fotoğrafları) |
+| esm.sh | yoktu | çağrılıyor (supabase-js yer tutucusu) |
+
+İlki fazla beyan; diğerleri **eksik beyan** ve daha ağır — kullanıcıya
+tarayıcısının kimlerle konuştuğunu eksik söylemek. Tablo artık CSP ile
+karşılaştırılıyor: CSP tarayıcının nereye gidebileceğini söyleyen tek
+yetkili yer.
+
+### Kontrollerin kendi kusurları
+
+- **Tarayıcı kontrollerinin ikisi de anlamını kaybetmişti.** "Leaflet
+  yokken" hali unpkg isteği kesilerek oluşuyordu; dosya yerele alınınca o
+  hal kendiliğinden **imkânsızlaştı** ve zarif düşüş yolu sınanmamış
+  kalacaktı. "Leaflet varken" hali ise taklit `window.L`i açılışta
+  kuruyordu; gerçek dosya sonradan yüklenip **üzerine yazıyor** ve sayaçlar
+  hiç dolmuyordu. İkisi de `sayfa_ac`'ın yeni `leafletsiz` seçeneğiyle
+  kuruluyor — kütüphanenin nerede durduğundan bağımsız.
+- **SRI kontrolü sayıyla ölçüyordu** ("keşfet.html'de tam iki `integrity`").
+  Kurala çevrildi: dış bir kaynaktan yüklenen her `script`/`link`
+  `integrity` taşımalı. Google Fonts muaf ve gerekçesi somut — yayımladıkları
+  CSS'in içeriği tarayıcıya göre değişiyor, sabit bir özet tutmuyor.
+- `sw_uret.py` yalnız `lib/*.js` tarıyordu; `leaflet.css` kabuğun **dışında**
+  kalırdı ve çevrimdışı açılan haritada üslup hiç gelmezdi.
+- Gizlilik kontrolünün ilk hali **gevşekti**: "ad sayfada geçiyor mu" diye
+  bakıyordu ve üç sabotaj birden geçti — "Wikimedia Commons" ve "esm.sh"
+  sayfanın metninde de açıklanıyor, "unpkg" ise tablonun üstündeki yorumda
+  geçiyor. Artık tablo satırları okunuyor.
+- İlk yazımda `leaflet.js`'i "Copyright" arayarak **reddettim**; Leaflet
+  başlığı "(c) 2010-2023 Vladimir Agafonkin" diye yazıyor.
+
+### topluluk.sql ne istediğini söylemiyordu
+
+Dosya Supabase'te çalıştırıldı ve `ERROR: 42P01: relation
+"public.yorumlar" does not exist` dedi. O satır kullanıcıya ne yapacağını
+söylemiyor. İki kusur birden: dosya **KURULUM.md'ye hiç yazılmamıştı** ve
+bağımlılığını söylemiyordu. Depoda bu iş için gelenek zaten vardı
+(`yorum.sql` sırası yanlışsa "Önce profil.sql çalıştırılmalı" diyor).
+
+Kapı **en başta**, sonda değil: fonksiyon `language sql` ve gövdesi
+*oluşturulurken* doğrulanıyor. Kapının ilk hali de hatalıydı ve gerçek
+Postgres'te ortaya çıktı: `text[] || 'metin'` belirsiz ("malformed array
+literal").
+
+Yeni kontrol grubu: `kos.sh`'ın kurduğu her dosya KURULUM.md'de yazıyor mu,
+ve başka bir dosyanın tablosunu okuyan her dosyanın `to_regclass` kapısı
+var mı. Dosya adları `kos.sh`'tan okunuyor.
+
+**45 kontrol grubunun hepsi geçiyor.** Kalan tek CDN bağımlılığı
+supabase-js; `python kutuphane_al.py` çalıştırılınca o da yerele iniyor ve
+`esm.sh` hem CSP'den hem gizlilik tablosundan kendiliğinden düşüyor.
