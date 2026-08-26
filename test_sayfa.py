@@ -311,6 +311,15 @@ GIRISLI = [
   # haritadaki nokta "burasi nerede" sorusunun tek cevabi. Sinanan sey
   # metnin varligi degil, BAGIN KOORDINATA gitmesi: yol tarifi adla
   # aramaya duserse kullanici yanlis subeye gider.
+  # SEMT: ilce ve mahalle CSV'de DOLUYDU ve uygulamaya hic ulasmiyordu.
+  # Iki hal birden sinaniyor, cunku asil kazanc ikincisinde:
+  #   adresi OLAN mekan  -> adresin yanina semt ekleniyor
+  #   adresi OLMAYAN     -> semt, sayfadaki TEK yer adi
+  # Olculdu: adresi olmayan 26.455 mekanin 883'u boyle.
+  ("isletme.html/semt", "/isletme.html?il=34&id=node/9821259942", None,
+   ["Şevki Bey Sokağı · Caferağa · Kadıköy · İstanbul"], ["kul-1"]),
+  ("isletme.html/semt-adressiz", "/isletme.html?il=34&id=node/7591718367", None,
+   ["Üniversite · Avcılar · İstanbul"], ["kul-1"]),
   ("isletme.html/konum", "/isletme.html?il=34&id=node/8223784325",
    '.sekme-cubuk [data-sekme="bilgi"]',
    ["Konum", "40.986810, 29.025530", "Yol tarifi", "Google'da ara",

@@ -17,6 +17,7 @@ import html
 import json
 import os
 import re
+import unicodedata
 from collections import defaultdict
 
 from fiyat_analiz import (TABAN, TAVAN, kampanya_mi, kategorile,
@@ -345,6 +346,74 @@ def kalem_atilir(ad):
             or ARAYUZ_AD.match(ad))
 
 
+# ---------------------------------------------------------------
+# SEMT: ilce ve mahalle
+#
+# NEDEN VAR: adresi olan mekan 9.397 (%26,2). Kalan 26.455'te "burasi
+# nerede" sorusunun tek cevabi koordinat. Ama turkiye_mekanlar.csv
+# ILCE ve MAHALLE sutunlarini tasiyor ve IKISI DE uygulamaya hic
+# ulasmiyordu:
+#
+#   ilce    7.186 mekan (%20,0)
+#   mahalle 3.985 mekan (%11,1)
+#   en az biri 7.460 mekan (%20,8)
+#
+# Adresi OLMAYAN 26.455 mekanin 883'u (%3,3) bununla ilk kez bir yer
+# adi kazaniyor. Adres bosluunun tamamini kapatmiyor -- ve bunu
+# oldugundan buyuk gostermiyoruz.
+#
+# TR_BUYUK: "istanbul".title() Python'da "Istanbul" veriyor, "İstanbul"
+# degil. Ayni tuzak fiyat_analiz.py'de de yakalanmisti (377 kalem adi).
+TR_BUYUK = str.maketrans("iıçğöşü", "İIÇĞÖŞÜ")
+MAHALLE_SONEK = re.compile(r"\s*(mahallesi|mahalle|mah\.?)\s*$", re.I)
+
+
+def _tr_baslik(s):
+    """Turkce buyuk harf kurallariyla kelime baslari.
+
+    ONCE TR_BUYUK, SONRA upper(): "i" -> "İ" ozel kural, "m" -> "M"
+    siradan. Yalniz translate kullanmak "merkez"i oldugu gibi
+    birakiyordu (m tabloda yok) -- kendi denememde gorundu.
+    """
+    return " ".join(
+        (k[0].translate(TR_BUYUK).upper() + k[1:]) if k else k
+        for k in s.split(" "))
+
+
+def semt_adi(ham, mahalle=False):
+    """ilce/mahalle degerini tek bicime indirir; kullanilamazsa None.
+
+    OLCULDU (36.103 kayit):
+      - ilce'de 63 deger yalniz BUYUK/KUCUK HARF yuzunden ikiye
+        boluyordu ("merkez" ve "Merkez", "cankaya" ve "Cankaya").
+      - mahalle'de ayni mahalle 211 kez farkli yazimla duruyordu:
+        "Cumhuriyet" / "Cumhuriyet Mah." / "Cumhuriyet Mahallesi" /
+        "Cumhuriyet mah.". 1.397 ham deger, sadelestirince 1.133.
+      - 3 kayitta BIRLESEN NOKTA (U+0307) var: "Pi̇ri̇celebi̇". "İ".lower()
+        Python'da tek harf degil; NFC ile toparlaniyor.
+
+    SONEK ATILIYOR, EKLENMIYOR: 611 degerde zaten sonek yok ve
+    "Mahallesi" eklemek veride olmayan bir sey uydurmak olurdu.
+
+    ADRESIN TAMAMI KACMIS degerler eleniyor: bir kayitta mahalle
+    sutununda "Buyukkumla, ARMUTLU YOLU UZERI NO:220 A, 16600
+    Gemlik/Bursa" yaziyor.
+    """
+    # BIRLESEN NOKTA SILINIYOR. "İ".lower() Python'da tek harf degil,
+    # "i" + U+0307 uretiyor ve NFC bunu geri BIRLESTIRMIYOR (U+0130'un
+    # ayrisimi "I" + U+0307, "i" + U+0307 degil). fiyat_analiz.CEVIR
+    # ayni noktayi ayni sekilde siliyor.
+    v = unicodedata.normalize("NFC", (ham or "").strip()).replace("\u0307", "")
+    v = re.sub(r"\s+", " ", v).strip(" ,/")
+    if not v or len(v) > 30 or "/" in v or "," in v or re.search(r"\d{3}", v):
+        return None
+    if mahalle:
+        v = MAHALLE_SONEK.sub("", v).strip()
+    if len(v) < 2:
+        return None
+    return _tr_baslik(v)
+
+
 def _menu_anahtari(il, ad):
     """Menu anahtari: (il, ad) -- ad BUYUK/KUCUK HARFTEN BAGIMSIZ.
 
@@ -648,6 +717,12 @@ def mekan_kaydi(m, menu):
     for anahtar, deger in (("mutfak", m["mutfak"]), ("tel", tel),
                            ("web", m["website"]), ("saat", m["saatler"]),
                            ("adres", m["adres"]),
+                           # SEMT: ilce ve mahalle. Ikisi de CSV'de
+                           # DOLUYDU ve uygulamaya hic ulasmiyordu --
+                           # 7.460 mekan (%20,8) bir yer adi kazaniyor,
+                           # adresi olmayan 26.455'in 883'u de ilk kez.
+                           ("ilce", semt_adi(m.get("ilce"))),
+                           ("mahalle", semt_adi(m.get("mahalle"), True)),
                            # Instagram TOPLANIYORDU ama uygulamaya hic
                            # ulasmiyordu. Olculdu: 194 mekanin instagrami
                            # var ve sitesi YOK -- yani o isletmelere hem
@@ -882,6 +957,34 @@ def kendini_kontrol_et():
     # 250g paket porsiyon degil: hic kategoriye girmemeli
     assert "Filtre kahve" not in d, d
     assert d["Kebap"]["med"] == 700.0 and d["Ayran"]["med"] == 60.0
+
+    # --- semt adi (ilce / mahalle) ---
+    # BUYUK/KUCUK HARF: 63 ilce degeri yalniz bu yuzden ikiye boluyordu.
+    # "istanbul".title() Python'da "Istanbul" verir, "İstanbul" degil.
+    assert semt_adi("merkez") == "Merkez", semt_adi("merkez")
+    assert semt_adi("istanbul") == "İstanbul", semt_adi("istanbul")
+    assert semt_adi("çankaya") == "Çankaya"
+    assert semt_adi("şişli") == "Şişli"
+    assert semt_adi("ıspartakule") == "Ispartakule"
+    # SONEK ATILIYOR: ayni mahalle 211 kez farkli yazimla duruyordu.
+    for v in ("Cumhuriyet", "Cumhuriyet Mah.", "Cumhuriyet Mahallesi",
+              "cumhuriyet mah", "Cumhuriyet Mahalle"):
+        assert semt_adi(v, True) == "Cumhuriyet", (v, semt_adi(v, True))
+    # SONEK EKLENMIYOR: 611 degerde zaten yok, uydurmak olurdu.
+    assert semt_adi("Suadiye", True) == "Suadiye"
+    # BIRLESEN NOKTA (U+0307): "İ".lower() tek harf degil ve NFC geri
+    # birlestirmiyor.
+    assert semt_adi("Pi\u0307ri\u0307çelebi\u0307 Mahallesi", True) == "Piriçelebi", \
+        semt_adi("Pi\u0307ri\u0307çelebi\u0307 Mahallesi", True)
+    # ADRESIN TAMAMI KACMIS deger ELENMELI (veride gercekten var).
+    assert semt_adi("Büyükkumla, ARMUTLU YOLU ÜZERİ NO:220 A, 16600 Gemlik/Bursa",
+                    True) is None
+    assert semt_adi("Orhaniye Mahallesi/Marmatris") is None
+    assert semt_adi("") is None and semt_adi(None) is None
+    # Tek harf bir yer adi degil.
+    assert semt_adi("A") is None
+    # Rakamla BASLAYAN gercek mahalle adlari KALMALI ("17 Eylül").
+    assert semt_adi("17 Eylül Mahallesi", True) == "17 Eylül"
 
     # Fiyatin yasi: kolonsuz eski satir tabana duser, kolonlu satir kendi
     # tarihini tasir. Tarih uydurulmuyor -- bilinmeyen icin bildigimiz UST

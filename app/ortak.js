@@ -465,11 +465,19 @@ function ilCoz(d){
 /* ============================================================
    CİVAR — "mahalle statüsü"
 
-   NEDEN MAHALLE ADI YOK: veride yok. Ölçüldü — 35.852 mekanın 9.397'sinde
-   adres alanı var ama içinde ayrıştırılabilir bir mahalle adı geçen
-   YALNIZ 49 tane (%0,14). Mahalle adını dışarıdan bir coğrafi çözücüyle
-   uydurmak, bu depoda kapalı olan bir kapı. Bu yüzden "mahalle" yerine
-   ÖLÇÜLEBİLİR bir şey kullanılıyor: yarıçap.
+   NEDEN BU KUTUNUN BAŞLIĞINDA MAHALLE ADI YOK. Bu cümlenin ilk hali
+   "mahalle adı veride yok" diyordu ve ADRES METNİNDEN AYRIŞTIRMAYI
+   kastediyordu: 9.397 adresin yalnız 49'unda (%0,14) ayrıştırılabilir
+   bir mahalle adı geçiyor. O ölçüm hâlâ doğru.
+
+   AMA MAHALLE ADI ARTIK VAR: OSM'in kendi `addr:*` etiketlerinden
+   geliyor ve 3.788 mekanda (%10,6) yazıyor; ilçe 7.195'te (%20,1).
+   İkisi de veride duruyordu ve uygulamaya hiç ulaşmıyordu.
+
+   Kutunun başlığı yine de YARIÇAP diyor, çünkü burada sayılan şey bir
+   mahallenin tamamı değil, 500 m'lik bir daire. "Suadiye'de 55 mekan"
+   demek, elimizde olmayan bir sınırı iddia etmek olurdu. Mahalle adı
+   mekanın KENDİ satırında yazıyor (semtYaz), sayımın başlığında değil.
 
    NEDEN 500 m: yürüme mesafesi ve veri buna elveriyor. Ölçüldü (500 m
    yarıçapta komşu sayısı medyanı): Ankara 13, İstanbul 40, İzmir 19,
@@ -697,6 +705,25 @@ function sosyalListe(m){
     .filter(k => (m[k] || "").toString().trim())
     .map(k => ({ alan: k, ad: SOSYAL[k].ad, bag: sosyalBag(k, m[k]) }))
     .filter(x => x.bag);
+}
+
+/* Mekanın semti: "Suadiye · Kadıköy". İkisi de olmayabilir.
+
+   TEK YERDE: keşfet detay paneli ve işletme sayfası aynı satırı
+   yazıyor; iki yerde iki türlü kurulursa aynı mekan iki sayfada iki
+   türlü okunur (mutfakYaz'ın gerekçesiyle aynı).
+
+   Sıra DAR'DAN GENİŞ'e: mahalle, sonra ilçe. Adres satırının devamı
+   gibi okunuyor.
+
+   AYNI DEĞER İKİ KEZ YAZILMIYOR: OSM'de mahalle ile ilçe aynı olabiliyor
+   ("Fatih" hem ilçe hem mahalle) ve "Fatih · Fatih" saçma görünürdü. */
+function semtYaz(m){
+  if (!m) return "";
+  const l = [];
+  if (m.mahalle) l.push(m.mahalle);
+  if (m.ilce && m.ilce !== m.mahalle) l.push(m.ilce);
+  return l.join(" · ");
 }
 
 /* ---------- dış harita ve "yorumları kaynağında oku" ----------
@@ -2467,6 +2494,23 @@ function kendiniKontrolEt(){
       sosyalListe({insta:"a", tiktok:"b", x:"c"}).map(o => o.alan).join(","),
                                                                   "insta,x,tiktok"],
     ["sosyal liste bos mekan",  sosyalListe({}).length,                        0],
+
+    /* --- semt (ilce + mahalle) ---
+       Ikisi de veride DOLUYDU ve uygulamaya hic ulasmiyordu: ilce 7.195
+       mekan (%20,1), mahalle 3.788 (%10,6). Adresi olmayan 26.455
+       mekanin 883'u bununla ilk kez bir yer adi kazaniyor. */
+    ["semt ikisi de var",
+      semtYaz({mahalle:"Suadiye", ilce:"Kadıköy"}),         "Suadiye · Kadıköy"],
+    /* DAR'DAN GENIS'e: mahalle once. Ters sira adres satirinin
+       devami gibi okunmazdi. */
+    ["semt yalniz ilce",   semtYaz({ilce:"Kadıköy"}),                 "Kadıköy"],
+    ["semt yalniz mahalle",semtYaz({mahalle:"Suadiye"}),              "Suadiye"],
+    ["semt ikisi de yok",  semtYaz({ad:"X"}),                               ""],
+    ["semt mekansiz",      semtYaz(null),                                   ""],
+    /* AYNI DEGER IKI KEZ YAZILMIYOR: OSM'de "Fatih" hem ilce hem
+       mahalle olabiliyor ve "Fatih · Fatih" sacma gorunurdu. */
+    ["semt ayni degeri tekrarlamiyor",
+      semtYaz({mahalle:"Fatih", ilce:"Fatih"}),                       "Fatih"],
 
     /* --- konum: harita ve dis baglantilar ---
        Adresi olan mekan %26,2 (9.397/35.852). Kalan 26.455'te

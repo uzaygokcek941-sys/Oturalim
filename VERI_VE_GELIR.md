@@ -146,7 +146,7 @@ restaurantguru'yu kazıyacaktı.
 
 Adresi olan mekan **9.397 (%26,2)**. Üç kaynak, maliyet sırasına göre:
 
-### 2.1 Bedava: okunmayan OSM etiketleri
+### 2.1 Bedava: okunmayan OSM etiketleri ✅ **YAPILDI**
 
 Adres şu an **iki** etiketten kuruluyor (`turkiye_cek.py`, `mekan_isle.py`):
 
@@ -164,9 +164,22 @@ atılan** etiketler:
 | addr:housename | 15 | atılıyor |
 | addr:country / unit / province / floor | 10 | atılıyor |
 
-Adresi boş olup başka `addr:*` taşıyan: **47 kayıt**. Çankaya'da tavan
-**%27,3 → %32,8 (+5,6 puan)**. Sorgu değişmiyor — `out center tags` bu
-etiketleri zaten indiriyor, `cikar()` atıyor.
+**Ölçüm düzeltildi.** İlk hesap "+5,6 puan" diyordu ve `addr:city` ile
+`addr:postcode`'u da sayıyordu. İkisi de **tek başına adres değil**:
+şehir zaten `il` sütununda duruyor, posta kodunu adres diye yazmak
+"06450" satırını adres sanan kullanıcıya hiçbir şey söylemez. **Adres
+boşluğunu kapatmış gibi görünüp kapatmamak, boş bırakmaktan kötü.**
+
+Gerçekten eklenebilecek tek etiket **`addr:housename`** (15 kayıt):
+"Armada AVM" bir adres ifadesidir ve sokak adı olmayan bir kayıtta
+kullanıcının elindeki tek tarif o olabilir. Ölçüldü:
+
+    sokak+no ile adres : 230 / 844  (%27,3)
+    + bina adı         : 243 / 844  (%28,8)   → +1,5 puan
+
+**Yapıldı:** `turkiye_cek.py` ve `mekan_isle.py` sokak+no yoksa bina
+adına düşüyor. Sorgu değişmedi — `out center tags` bu etiketi zaten
+indiriyordu. **Etki bir sonraki çekimde görünür.**
 
 ### 2.2 Bedava ve zaten elimizde: ilçe/mahalle sütunları
 
@@ -190,10 +203,33 @@ O cümle **adres metninden ayrıştırma** hakkında ve doğru. Ama `mahalle`
 **sütunu** 4.015 kayıt taşıyor — 80 katı. Cümle yanlış değil, artık
 yanıltıcı: elimizde olan bir şeyi "yok" diye anlatıyor.
 
-**Yapılacak:** `ilce` ve `mahalle` boru hattına alınacak, `ortak.js`'teki
-cümle ölçümle birlikte düzeltilecek. Değer temizliği gerekiyor
-(`Gültepe Mah.` / `Yenişehir Mahallesi` / `merkez` / `Merkez` —
-`sahiplen.py:72` bu tutarsızlığı zaten not etmiş).
+**✅ YAPILDI.** `ilce` ve `mahalle` boru hattına alındı; işletme
+sayfasının başlık altı satırında ve Bilgi listesinde, keşfet detay
+panelinde görünüyor. Kural tek yerde: `ortak.js → semtYaz()`.
+
+Uygulamaya inen sayı: **ilçe 7.195 (%20,1), mahalle 3.788 (%10,6)**.
+Adresi olmayan 26.455 kayıttan **883'ü (%3,3)** ilk kez bir yer adı
+kazandı: *"Üniversite · Avcılar · İstanbul"* — önceden yalnız
+*"İstanbul"* yazıyordu.
+
+Değer temizliği yapıldı (`app_veri.semt_adi`), ve ölçümle:
+
+- **63 ilçe** yalnız büyük/küçük harf yüzünden ikiye bölünüyordu
+  (`merkez`/`Merkez`). `"istanbul".title()` Python'da `"Istanbul"`
+  veriyor — Türkçe tablo şart.
+- **211 mahalle** farklı yazımlarla duruyordu (`Cumhuriyet` /
+  `Cumhuriyet Mah.` / `Cumhuriyet Mahallesi` / `Cumhuriyet mah.`).
+  1.397 ham değer → 1.133. **Sonek atılıyor, eklenmiyor**: 611 değerde
+  zaten yok ve "Mahallesi" eklemek uydurmak olurdu.
+- **3 kayıtta birleşen nokta** (U+0307) vardı — `"İ".lower()` Python'da
+  tek harf değil ve NFC geri birleştirmiyor.
+- **197 değer elendi**: biri mahalle sütununa kaçmış tam bir adresti
+  (*"Büyükkumla, ARMUTLU YOLU ÜZERİ NO:220 A, 16600 Gemlik/Bursa"*).
+
+`ortak.js`'teki "mahalle adı veride yok" cümlesi de düzeltildi: o ölçüm
+**adres metninden ayrıştırma** hakkındaydı ve hâlâ doğru, ama artık
+yanıltıcıydı. Civar kutusunun başlığı yine yarıçap diyor — *"Suadiye'de
+55 mekan"* demek elimizde olmayan bir sınırı iddia etmek olurdu.
 
 ### 2.3 Pahalı: binanın adresi
 
@@ -315,8 +351,8 @@ Maliyet ve hazır olma durumuna göre:
 | 2 | `python menu_tarayici.py olc 30` | 10 dk | verim ölçümü | **araç bu commit'te** |
 | 3 | Verim %10+ ise `tam` | koşum | ≤1.467 site | 2'ye bağlı |
 | 4 | `python turkiye_cek.py` | koşum | 4 sosyal sütun | kod hazır |
-| 5 | `ilce`/`mahalle` boru hattına | küçük | 7.245 / 4.015 kayıt | yazılacak |
-| 6 | OSM `addr:*` genişletme | küçük | Çankaya'da +5,6 puan | yazılacak |
+| ~~5~~ | ~~`ilce`/`mahalle` boru hattına~~ | — | **7.460 mekan (%20,8)** | ✅ **yapıldı** |
+| ~~6~~ | ~~OSM `addr:housename`~~ | — | +1,5 puan (sonraki çekimde) | ✅ **yapıldı** |
 | 7 | **Kadıköy 500 m elle derinleştirme** | 1 hafta sonu | 4/474 → 150/474 | `PAZARLAMA.md` Faz A |
 | 8 | Saha kartları (112 Kadıköy) | baskı | işletme sahiplenmesi | senin onayın |
 | 9 | Bina adresi (Overpass `out geom`) | büyük | ölçülmedi | 6'dan sonra |

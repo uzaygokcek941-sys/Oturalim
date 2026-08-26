@@ -509,9 +509,10 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
     <a class="dugme ikincil" id="fisEkle" href="paylas.html">Ödediğini ekle</a>
   </section>
 
-  <!-- Bu civar. MAHALLE ADI YOK cunku veride yok: 35.852 mekanin
-       yalniz 49'unun adresinden mahalle adi ayristirilabiliyor (%0,14).
-       Yaricap olculebilir bir sey, mahalle adi ise uydurma olurdu.
+  <!-- Bu civar. BASLIKTA MAHALLE ADI YOK: burada sayilan sey bir
+       mahallenin tamami degil, 500 m'lik bir daire. "Suadiye'de 55
+       mekan" demek elimizde olmayan bir siniri iddia etmek olurdu.
+       Mahalle adi mekanin KENDI satirinda yaziyor (semtYaz).
        "Cevresine gore pahali" da DEMIYORUZ: menu fiyati bilinen mekan
        %0,82 ve 500 m'de en az uc fiyatli komsusu olan mekan %4,16 --
        uc ornekten cikan bir medyana dayanip fiyat iddiasi kurmak,
@@ -754,8 +755,12 @@ function goster(m, ilAd){
   document.title = m.ad + " — Cebimde";
   document.getElementById("ad").textContent  = m.ad;
   document.getElementById("tur").textContent = m.tur;
+  /* SEMT ARTIK BURADA. Adresi olmayan 26.455 kayittan 883'u bu satirla
+     ilk kez bir yer adi kaziniyor; adresi OLANLARDA da "Bagdat Caddesi
+     12" hangi ilcede oldugunu soylemiyordu. Kural ortak.js'te
+     (semtYaz) -- kesfet detay paneli ayni satiri yaziyor. */
   document.getElementById("nerede").textContent =
-    [m.adres, ilAd].filter(Boolean).join(" · ");
+    [m.adres, semtYaz(m), ilAd].filter(Boolean).join(" · ");
 
   const sv = seviye(m), dy = fiyatDayanagi(m, zincir);
   /* Guven rozeti basligin altinda: sayfaya gelen kullanici tek bir
@@ -782,6 +787,8 @@ function goster(m, ilAd){
     ["Saatler", kacir(m.saat || ""),         "saat"],
     ["Telefon", kacir(m.tel || ""),          "tel"],
     ["Adres",   kacir(m.adres || ""),        "adres"],
+    /* SEMT AYRI SATIR: adres bos olsa da doluyor. */
+    ["Semt",    kacir(semtYaz(m)),            null],
     ["Site",    m.web ? bag(String(m.web)) : "", "web"],
     /* Sosyal medya: adres GOSTERIM ANINDA kuruluyor, veride yalniz
        kullanici adi var. Kural ortak.js'te (sosyalBag) -- kesfet detay

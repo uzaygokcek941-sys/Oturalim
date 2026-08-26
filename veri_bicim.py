@@ -59,7 +59,8 @@ YOGUN = ["id", "ad", "tur", "lat", "lon"]
 # hata verir (asagida). Yeni bir alan eklendiginde burasi da guncellenmeli
 # ve unutulursa kosum patlar, veri kaybolmaz.
 SEYREK = ["mutfak", "adres", "saat", "tel", "web", "wifi", "bahce", "insta",
-          "menu", "kat", "min", "max", "tarih", "kalem_n"]
+          "menu", "kat", "min", "max", "tarih", "kalem_n",
+          "ilce", "mahalle"]
 
 ONEK = {"node": "n", "way": "w", "relation": "r"}
 ACIK = {v: k for k, v in ONEK.items()}

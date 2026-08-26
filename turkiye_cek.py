@@ -112,7 +112,20 @@ def cikar(el, il):
         lat, lon = c.get("lat"), c.get("lon")
     if lat is None or lon is None:
         return None
+    # SOKAK+NO YOKSA BINA ADINA dusuluyor. "Armada AVM" bir adres
+    # ifadesidir; sokak adi olmayan bir kayitta kullanicinin elindeki
+    # tek tarif o olabiliyor. Olculdu (cankaya_osm_raw.json, adi olan
+    # 844 kayit): sokak+no ile 230 adres cikiyor, bina adiyla 243
+    # (%27,3 -> %28,8).
+    #
+    # addr:city ve addr:postcode EKLENMIYOR (112 ve 106 kayit): ikisi de
+    # tek basina bir adres degil. Sehir zaten "il" sutununda duruyor ve
+    # posta kodunu adres diye yazmak, "06450" satirini adres sanan bir
+    # kullaniciya hicbir sey soylemez -- adres bosluunu KAPATMIS gibi
+    # gorunup kapatmamak, bos birakmaktan kotu.
     adres = " ".join(x for x in (t.get("addr:street"), t.get("addr:housenumber")) if x)
+    if not adres:
+        adres = (t.get("addr:housename") or "").strip()
     return {
         "il": il,
         "ad": ad,
@@ -204,6 +217,23 @@ def kendini_kontrol_et():
     assert r["x"] == "c", r                  # contact:twitter -> x
     assert r["tiktok"] == "" and r["youtube"] == "", r
     assert r["osm_id"] == "node/1", r
+
+    # --- adres: sokak+no, yoksa BINA ADI ---
+    def _adres(tags):
+        d = dict(dugum)
+        d["tags"] = dict(dugum["tags"], **tags)
+        return cikar(d, "Ankara")["adres"]
+    assert _adres({"addr:street": "Tunali Hilmi", "addr:housenumber": "12"}) \
+        == "Tunali Hilmi 12"
+    # Sokak varken bina adi ONE GECMEZ.
+    assert _adres({"addr:street": "Tunali Hilmi", "addr:housename": "Armada"}) \
+        == "Tunali Hilmi"
+    # Sokak yoksa bina adi kullaniliyor (olculdu: Cankaya'da +13 kayit).
+    assert _adres({"addr:housename": "Armada AVM"}) == "Armada AVM"
+    # POSTA KODU VE SEHIR ADRES DEGIL: tek baslarina bos kalmali.
+    assert _adres({"addr:postcode": "06450"}) == ""
+    assert _adres({"addr:city": "Ankara"}) == ""
+    assert _adres({"addr:city": "Ankara", "addr:postcode": "06450"}) == ""
     # CSV basligi ile uretilen anahtarlar birebir ayni olmali; ayrisirsa
     # DictWriter ya sutunu atar ya patlar.
     assert set(r) == set(ALANLAR), set(r) ^ set(ALANLAR)
