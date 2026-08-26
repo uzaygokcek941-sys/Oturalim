@@ -1280,16 +1280,48 @@ def kendini_kontrol_et():
             # degisiklikten de gecerdi (kesfet haritasiyla ayni desen).
             sf, hata = sayfa_ac("/isletme.html?il=34&id=node/8223784325")
             sf.wait_for_timeout(900)
-            k = sf.evaluate("""() => ({
-              kap:    !!document.querySelector('#mekanHarita.leaflet-container'),
-              isaret: document.querySelectorAll('#mekanHarita path').length,
-              koord:  (document.getElementById('konumKoordinat')||{}).textContent||'',
-              tarif:  (document.querySelector('#konumBaglar a')||{}).href||''
-            })""")
+            # SEKME ACILIYOR: harita "Bilgi" sekmesinin ardinda ve o
+            # grup display:none. Tiklamadan olcmek, kullanicinin hic
+            # gormedigi bir hali olcmek olurdu.
+            sf.eval_on_selector('.sekme-cubuk [data-sekme="bilgi"]', "e => e.click()")
+            sf.wait_for_timeout(700)
+            k = sf.evaluate("""() => {
+              const m = document.getElementById('mekanHarita');
+              const r = m.getBoundingClientRect();
+              const p = m.querySelector('path');
+              const b = p ? p.getBoundingClientRect() : null;
+              return {
+                kap:    !!document.querySelector('#mekanHarita.leaflet-container'),
+                isaret: !!p,
+                /* Isaretin MERKEZI, kutunun merkezine gore. Leaflet
+                   gizli kapta 0x0 olcup isareti kutunun DISINA
+                   koyuyordu; "path var mi" diye bakan bir kontrol bunu
+                   goremez. */
+                sapmaX: b ? Math.round(Math.abs((b.x + b.width/2) - (r.x + r.width/2))) : -1,
+                sapmaY: b ? Math.round(Math.abs((b.y + b.height/2) - (r.y + r.height/2))) : -1,
+                icinde: !!(b && b.x >= r.x && b.y >= r.y &&
+                           b.x + b.width <= r.x + r.width &&
+                           b.y + b.height <= r.y + r.height),
+                koord:  (document.getElementById('konumKoordinat')||{}).textContent||'',
+                tarif:  (document.querySelector('#konumBaglar a')||{}).href||''
+              };
+            }""")
             if not k["kap"]:
                 sorunlar.append("isletme: konum haritasi kurulmadi")
-            if k["isaret"] < 1:
+            if not k["isaret"]:
                 sorunlar.append("isletme: haritada mekanin isareti yok")
+            # ISARET KUTUNUN ICINDE VE ORTASINDA OLMALI. Bu satir
+            # gercek bir hatanin uzerine yazildi: harita gizli sekmede
+            # kuruldugu icin Leaflet kabi 0x0 olcuyor ve isaret kutunun
+            # sol ust kosesinin DISINA dusuyordu (kutu 16,403 358x220
+            # iken isaret 8,395). Ekranda bos bir harita goruluyordu.
+            elif not k["icinde"]:
+                sorunlar.append("isletme: harita isareti kutunun DISINDA "
+                                "(sapma %d,%d px) -- invalidateSize cagrilmiyor"
+                                % (k["sapmaX"], k["sapmaY"]))
+            elif k["sapmaX"] > 4 or k["sapmaY"] > 4:
+                sorunlar.append("isletme: harita isareti merkezde degil "
+                                "(sapma %d,%d px)" % (k["sapmaX"], k["sapmaY"]))
             # KOORDINATIN KENDISI: harita cizilse de cizilmese de
             # "burasi nerede" sorusunun bir cevabi ekranda kalmali.
             if "40.986810, 29.025530" not in k["koord"]:

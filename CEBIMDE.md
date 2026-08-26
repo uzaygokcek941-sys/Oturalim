@@ -2448,6 +2448,15 @@ Yani eksik olan şey kod değil, veri: `python turkiye_cek.py` yeniden
   `ortak.js`'in *kendi kontrol bloğunda* beklenen değer olarak da
   duruyor; tabanı aramaya çevirdiğimde kontrol yine geçti. Artık
   `DIS_HARITA`'daki `yol` kaydının kendi tabanına bakılıyor.
+- **İşaret haritanın DIŞINDA çiziliyordu ve kontrol bunu göremedi.**
+  Harita "Bilgi" sekmesinin ardında kuruluyor; o grup `display:none`
+  olduğu için Leaflet kabı **0×0** ölçüyor ve merkezi ona göre
+  hesaplıyor. Ölçüldü: kutu `16,403 358×220` iken işaret `8,395` — yani
+  sol üst köşenin dışında, ekranda boş bir harita. Kontrolün ilk hali
+  `path` **sayıyordu**, yerine bakmıyordu: "işaret var" diyordu, "doğru
+  yerde" demiyordu. Artık işaretin merkezi kutunun merkeziyle
+  karşılaştırılıyor (sapma > 4 px hata). Düzeltme sekme açılınca
+  `invalidateSize()` çağırmak; sabotajla doğrulandı, sapma 557 px.
 - **Haritasız hâl kontrolü olmayan bir menüyü arıyordu.** Seçtiğim mekan
   (Draft) menüsüz ve kontrol "Leaflet yokken menü de çizilmiyor" diye
   patladı — kod değil kontrol yanlıştı. Menüsü *ve* Instagram'ı olan bir

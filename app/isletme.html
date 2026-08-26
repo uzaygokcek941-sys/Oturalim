@@ -1793,6 +1793,26 @@ function sekmeyiSec(ad){
     bos.textContent = dolu ? "" : (SEKME_BOS[ad] || "");
     bos.hidden = dolu;
   }
+  /* HARITA GIZLI SEKMEDE KURULUYOR. Sekme grubu display:none olduğu
+     için Leaflet kabı 0x0 ölçüyor ve merkezi oraya göre hesaplıyor:
+     işaret kutunun SOL ÜST KÖŞESİNİN DIŞINA düşüyordu (ölçüldü, kutu
+     16,403 358x220 iken işaret 8,395). Sekme açılınca kap gerçek
+     boyutuna kavuşuyor ama Leaflet bunu kendiliğinden bilmiyor.
+
+     Kontrol ilk yazımda BUNU KAÇIRDI: `path` sayıyordu, yerine
+     bakmıyordu -- yani "işaret var" diyordu, "doğru yerde" demiyordu. */
+  if (ad === "bilgi") haritayiTazele();
+}
+
+function haritayiTazele(){
+  if (!mHarita) return;
+  /* İki kare bekleniyor: sekme sınıfı yazıldıktan sonra düzen bir
+     sonraki karede oturuyor, invalidateSize ondan önce çalışırsa yine
+     0x0 okur. */
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    mHarita.invalidateSize();
+    mHarita.setView([mHarita._cebimdeNokta[0], mHarita._cebimdeNokta[1]], 16);
+  }));
 }
 
 function sekmeleriKur(){
@@ -1993,6 +2013,9 @@ function konumHaritasi(m){
     /* Ipucu balonu YOK: dokunmatikte "uzerine gelme" diye bir sey yok
        ve mekanin adi zaten 200 px yukarida, sayfanin basliginda. */
   }).addTo(mHarita);
+  /* Nokta haritanın üzerinde saklanıyor: sekme açılınca setView tekrar
+     çağrılıyor ve merkez elde olmalı. */
+  mHarita._cebimdeNokta = [m.lat, m.lon];
 }
 
 function konumKatmani(m, ilAd){
