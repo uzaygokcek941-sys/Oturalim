@@ -162,20 +162,64 @@ Yerelde çalıştır:
 python -m http.server 8123 --directory app
 ```
 
+Bu liste **gerçek Supabase'e karşı** koşuyor ve otomatik kontrollerin
+sınayamadığı tek şeyi sınıyor: RLS ve eşikler sunucuda gerçekten tutuyor mu.
+`test_sayfa.py` aynı ekranları taklit veriyle çiziyor — orada geçen bir şey
+burada düşebilir, çünkü orada yetkiyi taklit veriyoruz.
+
 Sırayla dene:
 
+**Hesap ve temel akış**
 - [ ] `giris.html` → hesap aç → doğrulama postası geldi mi
 - [ ] Giriş yap → `hesabim.html` açılıyor mu
 - [ ] `kesfet.html` → bir mekan aç → **Favorilere ekle** → `hesabim.html`
       → Favorilerim'de görünüyor mu
+- [ ] Çıkış yap → `hesabim.html` adresine git → girişe yönlendiriyor mu
+
+**Fiyat hattı**
 - [ ] `paylas.html` → fiyat gönder → Paylaşımlarım'da "onay bekliyor" mu
 - [ ] `yonetim.html` → paylaşımı **Onayla** → durum "yayımlandı" oldu mu
+- [ ] Aynı mekana **üç ayrı hesaptan** fiş gir → mekan sayfasında
+      "Buraya gidenler ne ödemiş" kutusu **ancak üçüncüde** medyanı yazıyor mu
+      (k-anonimlik eşiği `FIS_ESIK = 3`; ikide sayı çıkıyorsa eşik sunucuda
+      tutmuyor demektir)
+
+**Katkı hattı**
 - [ ] `kesfet.html` → bir mekan aç → **Sayfasını aç** → eksik listesinin altında
       katkı formu görünüyor mu (bilgileri tam olan mekanda görünmemeli)
 - [ ] Katkı gönder → `yonetim.html` → **Eksik bilgi katkıları** bölümünde
       göründü mü → **Onayla** → işletme sayfasında "kullanıcıdan" işaretiyle
       çıktı mı ve o satır eksik listesinden düştü mü
-- [ ] Çıkış yap → `hesabim.html` adresine git → girişe yönlendiriyor mu
+- [ ] Mekan sayfası → **Menü** sekmesi → menü katkısı gönder (kalem + fiyat)
+      → `yonetim.html` → **Menü katkıları** → Onayla → mekan sayfasında çıktı mı
+- [ ] Mekan sayfası → **Fotoğraflar** sekmesi → fotoğraf yükle → `yonetim.html`
+      → **Mekan fotoğrafları** → Onayla → şerit ve **kapak** göründü mü
+- [ ] Mekan sayfası → **Yorumlar** sekmesi → puan + yorum gönder →
+      `yonetim.html` → Onayla → mekan sayfasında ve `profil.html`'de çıktı mı
+
+**Mekan sayfasının kendisi**
+- [ ] Dört sekme de çalışıyor mu (Menü / Yorumlar / Fotoğraflar / Bilgi) ve
+      boş sekmede *neden* boş olduğunu yazan bir satır çıkıyor mu
+- [ ] Menüsü olan bir mekanda **Menü listesi** görünüyor mu; `?butce=300` ile
+      açınca "300 ₺ ile N kalem alınabiliyor" satırı geliyor mu
+- [ ] Fiyatı olan bir mekanda **Hâlâ böyle / Değişmiş** düğmeleri çıkıyor mu;
+      **üç ayrı hesaptan** oy verilince güven rozeti değişiyor mu
+      (eşik `OY_ESIK = 3` — ikide değişiyorsa eşik sunucuda tutmuyor)
+
+**Topluluk ve profil**
+- [ ] `topluluk.html` → onaylanan yorum ve menü katkıları akışta çıkıyor mu
+- [ ] Akışta menü katkısının yanında **ad yazmıyor** olmalı (yorumun yanında
+      yazmalı) — yazıyorsa `topluluk.sql` eski sürümde kalmış demektir
+- [ ] `hesabim.html` → **Ayarlar** → profili herkese kapat → `topluluk.html`
+      ve `profil.html`'de adın düştü mü (yorumun durmalı, **adın** düşmeli)
+- [ ] `hesabim.html` → onaylı katkı sayın arttıkça **seviye** satırı değişiyor mu
+
+**İşletme tarafı**
+- [ ] Saha kartındaki QR → `isletme.html?...&kod=...` → giriş → sahiplenme
+      kabul edildi mi (adres çubuğunda kod **kalmamalı**)
+- [ ] `isletmem.html` → görüntülenme, yorum ortalaması, fiş medyanı ve
+      **"bakanlar hangi bütçeyle arıyordu"** dağılımı geliyor mu
+      (dağılım **beş kişiden az** ise hiç çıkmamalı)
 
 ---
 
