@@ -47,7 +47,7 @@ elenmiştir — hepsi bu üründe ya kullanımı yavaşlatır ya da koridor okum
 ## Ürün gerçeği — filmden önce gelen kısıt
 
 Bu bir tanıtım sayfası değil, **sokakta kullanılan bir araç**. Keşfet ekranı
-36.102 mekanlık liste + harita taşıyor. Sinematik dil şuna hizmet etmeli:
+35.852 mekanlık liste + harita taşıyor. Sinematik dil şuna hizmet etmeli:
 kullanıcı 3 saniyede "bu akşam nereye" sorusunun cevabını görmeli.
 
 Bu yüzden **iki tempo** kuruluyor (filmin iki görüntü yönetmeni mantığı):
@@ -61,5 +61,5 @@ Bu yüzden **iki tempo** kuruluyor (filmin iki görüntü yönetmeni mantığı)
 ## Görsel karar
 
 Görsel kullanılmıyor. Atmosfer tamamen CSS ile kurulacak: neon sızıntısı,
-ıslak asfalt parlaması, grain, hareket izi. Sebep: 36.102 mekan için telifsiz
+ıslak asfalt parlaması, grain, hareket izi. Sebep: 35.852 mekan için telifsiz
 fotoğraf bulunamaz ve sayfa hızı bu üründe özellik değil zorunluluk.

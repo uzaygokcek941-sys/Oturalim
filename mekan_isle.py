@@ -22,7 +22,20 @@ def cikar(el):
         lat, lon = c.get("lat"), c.get("lon")
     if lat is None or lon is None:
         return None
+    # SOKAK+NO YOKSA BINA ADINA dusuluyor. "Armada AVM" bir adres
+    # ifadesidir; sokak adi olmayan bir kayitta kullanicinin elindeki
+    # tek tarif o olabiliyor. Olculdu (cankaya_osm_raw.json, adi olan
+    # 844 kayit): sokak+no ile 230 adres cikiyor, bina adiyla 243
+    # (%27,3 -> %28,8).
+    #
+    # addr:city ve addr:postcode EKLENMIYOR (112 ve 106 kayit): ikisi de
+    # tek basina bir adres degil. Sehir zaten "il" sutununda duruyor ve
+    # posta kodunu adres diye yazmak, "06450" satirini adres sanan bir
+    # kullaniciya hicbir sey soylemez -- adres bosluunu KAPATMIS gibi
+    # gorunup kapatmamak, bos birakmaktan kotu.
     adres = " ".join(x for x in (t.get("addr:street"), t.get("addr:housenumber")) if x)
+    if not adres:
+        adres = (t.get("addr:housename") or "").strip()
     return {
         "ad": ad,
         "tur": t.get("amenity", ""),

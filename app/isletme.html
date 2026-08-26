@@ -23,6 +23,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="lib/leaflet.css">
 <link rel="stylesheet" href="stil.css">
 <link rel="stylesheet" href="sahne.css">
 <script>document.documentElement.classList.add("js-sahne");/* Emniyet: sahne.js gelmezse (CDN degil ama betik hatasi, engel,
@@ -125,6 +126,42 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
   .mk-kalem{display:flex;justify-content:space-between;gap:var(--a3);
     padding:6px 0;border-bottom:1px solid var(--cizgi)}
   .mk-kalem b{white-space:nowrap}
+  /* Kalemin kendi tarihi. Menu listesindeki .menu-kat ile ayni bicim:
+     ikisi de adin altinda duran ikincil bir etiket. */
+  .mk-ne{display:block;margin-top:2px;color:var(--metin-2);font-size:.8rem}
+  /* ---- konum ----
+     Adresi olan mekan yalniz %26,2. Kalan 26.455'inde haritadaki
+     nokta, "burasi nerede" sorusunun TEK cevabi. */
+  .konum{margin-top:var(--a5)}
+  .konum h2{margin:0 0 var(--a2)}
+  #mekanHarita{
+    height:220px; border-radius:var(--r-b); overflow:hidden;
+    background:var(--zemin-2); border:1px solid var(--cizgi);
+  }
+  /* Leaflet kendi z-index'ini 400-1000 arasinda kuruyor; sayfadaki
+     yapisik baslik ve perde onun USTUNDE kalmali. */
+  #mekanHarita.leaflet-container{z-index:0}
+  .konum-koordinat{
+    margin:var(--a3) 0 0; color:var(--metin-2); font-size:.9rem;
+    font-variant-numeric:tabular-nums;
+  }
+  .konum-baglar{display:flex;flex-wrap:wrap;gap:var(--a2);margin-top:var(--a3)}
+  /* Dokunma hedefi kurali stil.css'te (.dugme.kucuk, 44 px -- WCAG
+     2.5.8) ve burada TEKRARLANMIYOR: ayni kural tek yerde dursun.
+     Burada yalniz hizalama var. */
+  .konum-baglar .dugme{display:inline-flex;align-items:center}
+  /* Sosyal bagi ortak.js <a> olarak uretiyor (sosyalBag). Dugme
+     goruntusunu SPAN'a degil BAGIN KENDISINE veriyoruz: sarmalayici
+     bir span dugme gibi gorunur ama yalniz icindeki metin tiklanir --
+     dokunma hedefi gorunenden kucuk olurdu. */
+  #konumSosyal a{
+    display:inline-flex; align-items:center; min-height:44px;
+    padding:8px 16px; font-size:13px; border-radius:var(--r-s);
+    border:1px solid var(--cizgi); color:var(--metin);
+    text-decoration:none; background:var(--zemin-2);
+  }
+  #konumSosyal a:hover{border-color:var(--marka)}
+  .konum-not{margin:var(--a3) 0 0;color:var(--soluk);font-size:.85rem}
   .mk-fotolar{display:flex;flex-wrap:wrap;gap:var(--a2);margin-top:var(--a3)}
   .mk-fotolar a{display:block;width:96px;height:96px;border-radius:var(--r-s,6px);
     overflow:hidden;border:1px solid var(--cizgi)}
@@ -254,6 +291,50 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
   }
   .kapak figcaption a{color:inherit}
 
+  /* ONERILER -- her satir bir butce basamagi. Rakam solda ve tabular,
+     cunku satirlar birbiriyle karsilastiriliyor. */
+  /* CIVARDA NE YENIR -- kalem solda, fiyat sagda, mekan ve mesafe
+     altta. Menu listesiyle ayni okuma. */
+  .civar-ne{margin-top:var(--a4)}
+  .civar-ne h3{font-size:1rem;margin:0 0 var(--a2)}
+  .civar-ne ul{list-style:none;margin:0;padding:0}
+  .civar-ne li{
+    display:flex; align-items:baseline; gap:var(--a3);
+    padding:var(--a2) 0; border-top:1px solid var(--cizgi);
+  }
+  .civar-ne li:first-child{border-top:0}
+  .civar-ne .k-ad{flex:1 1 auto;min-width:0;overflow-wrap:anywhere}
+  .civar-ne .k-nerede{display:block;font-size:.8rem;color:var(--metin-2);margin-top:2px}
+  .civar-ne .k-fiyat{
+    flex:0 0 auto; font-weight:700; font-variant-numeric:tabular-nums;
+    white-space:nowrap;
+  }
+  .civar-ne li.asiyor .k-ad,.civar-ne li.asiyor .k-fiyat{color:var(--metin-2)}
+
+  .oneri{margin-top:var(--a5)}
+  .oneri h2{margin:0 0 var(--a3)}
+  .oneri ul{list-style:none;margin:0;padding:0;display:grid;gap:var(--a2)}
+  .oneri li{
+    display:flex; align-items:baseline; gap:var(--a3);
+    padding:var(--a3) var(--a4); border-radius:var(--r-s);
+    background:var(--yuzey-us); border:1px solid var(--cizgi);
+  }
+  .oneri .esik{
+    flex:0 0 auto; font-weight:700; font-variant-numeric:tabular-nums;
+    color:var(--metin);
+  }
+  .oneri .kombin-ad{flex:1 1 auto; min-width:0; color:var(--metin-2);
+                    overflow-wrap:anywhere}
+  /* Kullanicinin GIRDIGI butceye uyan satir isaretli: sayfaya
+     ?butce=300 ile gelen kisi hangi satirin kendisi icin oldugunu
+     bir bakista gormeli. */
+  .oneri li.senin{border-color:var(--vurgu);background:var(--vurgu-los)}
+  .oneri li.senin .esik{color:var(--vurgu)}
+  .oneri .senin-not{
+    flex:0 0 auto; font-size:.78rem; font-weight:700; letter-spacing:.03em;
+    text-transform:uppercase; color:var(--vurgu);
+  }
+
   .menu-liste{margin-top:var(--a5)}
   .menu-liste h2{margin:0 0 var(--a2)}
   .menu-not{margin:0 0 var(--a4);color:var(--metin-2);font-size:.92rem}
@@ -280,6 +361,14 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
   .menu-liste li.asiyor .menu-ad,
   .menu-liste li.asiyor .menu-fiyat{color:var(--metin-2)}
   .menu-hepsi{margin-top:var(--a4)}
+  /* KAMPANYA BOLUMU menunun USTUNDE degil ALTINDA: sayfanin sordugu ilk
+     soru "burada bir ogun kaca gelir"; teklif onu cevaplamiyor.
+     Menu listesiyle ayni satir bicimi kullaniliyor (.menu-liste sinifi
+     birlikte veriliyor) -- iki ayri satir uslubu tutmak, ikisinin
+     ayrismasini beklemek olurdu. */
+  .kampanya{margin-top:var(--a5)}
+  .kampanya li{border-bottom-style:dashed}
+  .kampanya .menu-fiyat{color:var(--vurgu)}
   .sahiplen{display:inline-block;margin-top:var(--a4)}
   .kaynak{font-size:.85rem;color:var(--soluk);margin-top:var(--a5);
           border-top:1px solid var(--cizgi);padding-top:var(--a3)}
@@ -360,6 +449,26 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
     <div class="galeri-serit" id="galeriSerit"></div>
   </section>
 
+  <!-- KONUM. Adresi olan mekan %26,2; kalan 26.455'inde haritadaki
+       nokta "burasi nerede" sorusunun tek cevabi. O yuzden harita bilgi
+       listesinin USTUNDE.
+
+       Harita ISTEGE BAGLI (kesfet ile ayni kural): yuklenemezse yerine
+       ne oldugunu soyleyen kutu kaliyor, koordinat ve dis baglantilar
+       calismaya devam ediyor.
+
+       YORUMLAR KAZINMIYOR. Maps/Yandex/Instagram yorumlari yazarlarinin
+       telifinde ve platforma lisansli; buraya kopyalamak fotograflarla
+       ayni ihlal olurdu. Kullanici kaynaga gonderiliyor. -->
+  <section class="konum" id="konum" data-grup="bilgi" hidden>
+    <h2>Konum</h2>
+    <div id="mekanHarita"></div>
+    <p class="konum-koordinat" id="konumKoordinat"></p>
+    <div class="konum-baglar" id="konumBaglar"></div>
+    <div class="konum-baglar" id="konumSosyal"></div>
+    <p class="konum-not" id="konumNot"></p>
+  </section>
+
   <dl class="bilgi" id="bilgi" data-grup="bilgi"></dl>
   <!-- Fiyatin kac olcumden geldigi. Bilgi listesinde yalniz kisa etiket
        var ("56 subede ayni menu"); NEDEN onemli oldugu burada yaziyor. -->
@@ -371,11 +480,27 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
   <!-- MENU LISTESI. Maketteki "Menuleri Gor" ekrani. Bu bolum sayfada
        HIC YOKTU: 7.335 fiyatli kalem veride duruyor ama ekranda
        gorunmuyordu. Fotograf yok cunku veride yok (bkz. betik). -->
+  <!-- CEBIMDE ONERILERI. Urun tarifinin 11. maddesi: tek bir kombin
+       degil, birden cok butce basamagi. Basamaklar mekanin KENDI menu
+       fiyatlarindan cikiyor; sabit bir liste bir kafede uc basamagi
+       birden bos birakirdi. Olculdu: 291 menulu mekanin 153'unde
+       basamak cikiyor, 147'sinde uc basamak birden. -->
+  <section class="oneri" id="oneri" data-grup="menu" hidden>
+    <h2>Cebimde önerileri</h2>
+    <ul id="oneriListe"></ul>
+  </section>
+
   <section class="menu-liste" id="menuListe" data-grup="menu" hidden>
     <h2>Menü</h2>
     <p class="menu-not" id="menuNot"></p>
     <ul id="menuSatirlar"></ul>
     <button type="button" class="dugme ikincil menu-hepsi" id="menuHepsi" hidden></button>
+  </section>
+
+  <section class="menu-liste kampanya" id="kampanyaListe" data-grup="menu" hidden>
+    <h2>Kampanyalar</h2>
+    <p class="menu-not" id="kampanyaNot"></p>
+    <ul id="kampanyaSatirlar"></ul>
   </section>
 
   <section class="fis" id="fis" hidden data-grup="menu">
@@ -384,17 +509,26 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
     <a class="dugme ikincil" id="fisEkle" href="paylas.html">Ödediğini ekle</a>
   </section>
 
-  <!-- Bu civar. MAHALLE ADI YOK cunku veride yok: 35.852 mekanin
-       yalniz 49'unun adresinden mahalle adi ayristirilabiliyor (%0,14).
-       Yaricap olculebilir bir sey, mahalle adi ise uydurma olurdu.
+  <!-- Bu civar. BASLIKTA MAHALLE ADI YOK: burada sayilan sey bir
+       mahallenin tamami degil, 500 m'lik bir daire. "Suadiye'de 55
+       mekan" demek elimizde olmayan bir siniri iddia etmek olurdu.
+       Mahalle adi mekanin KENDI satirinda yaziyor (semtYaz).
        "Cevresine gore pahali" da DEMIYORUZ: menu fiyati bilinen mekan
-       %0,81 ve 500 m'de en az uc fiyatli komsusu olan mekan %4,16 --
+       %0,82 ve 500 m'de en az uc fiyatli komsusu olan mekan %4,16 --
        uc ornekten cikan bir medyana dayanip fiyat iddiasi kurmak,
        uydurma seviyeden farksiz olurdu. Gosterilen sey KAPSAM. -->
   <section class="civar" id="civar" hidden data-grup="bilgi">
     <h2 id="civarBaslik">Bu civarda</h2>
     <ul class="civar-sayilar" id="civarSayilar"></ul>
     <ul class="civar-tur" id="civarTur"></ul>
+    <!-- "Bu civarda ne yenir" -- urun tarifinin 10. maddesi. Tarif
+         "bugun populer" diyor; POPULERLIK VERISI YOK ve uydurulamaz.
+         Siralama ucuzdan pahaliya: uygulamanin sorusu "bu parayla ne
+         yenir". -->
+    <div class="civar-ne" id="civarNe" hidden>
+      <h3>Bu civarda ne yenir</h3>
+      <ul id="civarNeListe"></ul>
+    </div>
     <p id="civarNot"></p>
     <a class="dugme ikincil" id="civarBag" href="kesfet.html">Çevresini haritada gör</a>
   </section>
@@ -556,6 +690,11 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
   <p><a class="dugme birincil" href="kesfet.html">Keşfet'e dön</a></p>
 </div>
 
+<!-- Leaflet YEREL (app/lib/leaflet.js, BSD-2-Clause; lisans metni
+     lib/leaflet-LICENSE.txt'te). Kesfet ile ayni dosya, ayni surum.
+     Bu sayfada harita ISTEGE BAGLI: yuklenemezse yerine koordinatin
+     kendisi ve dis harita baglantilari kaliyor. -->
+<script src="lib/leaflet.js"></script>
 <script src="yapilandirma.js"></script>
 <script src="ortak.js"></script>
 <!-- sahne.js EKSIKTI: sayfa sahne.css yukluyor ve js-sahne sinifini
@@ -616,8 +755,12 @@ function goster(m, ilAd){
   document.title = m.ad + " — Cebimde";
   document.getElementById("ad").textContent  = m.ad;
   document.getElementById("tur").textContent = m.tur;
+  /* SEMT ARTIK BURADA. Adresi olmayan 26.455 kayittan 883'u bu satirla
+     ilk kez bir yer adi kaziniyor; adresi OLANLARDA da "Bagdat Caddesi
+     12" hangi ilcede oldugunu soylemiyordu. Kural ortak.js'te
+     (semtYaz) -- kesfet detay paneli ayni satiri yaziyor. */
   document.getElementById("nerede").textContent =
-    [m.adres, ilAd].filter(Boolean).join(" · ");
+    [m.adres, semtYaz(m), ilAd].filter(Boolean).join(" · ");
 
   const sv = seviye(m), dy = fiyatDayanagi(m, zincir);
   /* Guven rozeti basligin altinda: sayfaya gelen kullanici tek bir
@@ -644,6 +787,8 @@ function goster(m, ilAd){
     ["Saatler", kacir(m.saat || ""),         "saat"],
     ["Telefon", kacir(m.tel || ""),          "tel"],
     ["Adres",   kacir(m.adres || ""),        "adres"],
+    /* SEMT AYRI SATIR: adres bos olsa da doluyor. */
+    ["Semt",    kacir(semtYaz(m)),            null],
     ["Site",    m.web ? bag(String(m.web)) : "", "web"],
     /* Sosyal medya: adres GOSTERIM ANINDA kuruluyor, veride yalniz
        kullanici adi var. Kural ortak.js'te (sosyalBag) -- kesfet detay
@@ -700,7 +845,9 @@ function goster(m, ilAd){
     kmbKutu.hidden = true;
   }
 
+  onerileriCiz(m, _b);
   menuListesi(m, _b);
+  kampanyaListesi(m, _b);
 
   const eksik = eksikleriBul(m);
   const giris = document.getElementById("eksikGiris");
@@ -735,6 +882,7 @@ function goster(m, ilAd){
   document.getElementById("govde").hidden = false;
   sayacCalistir(ID);
   fisKatmani(ID, m.ad, IL);
+  konumKatmani(m, ilAd);
   civarKatmani(m);
   oyKatmani(m, IL);
   sekmeleriKur();
@@ -1213,9 +1361,17 @@ async function menuKatkiKatmani(mekanId, mekanAd, ilKod){
         "menüden ayrı duruyor ve ortalama hesabına girmiyor."
       : "Buranın menüsünü kimse eklememiş.";
     yuva.innerHTML =
-      kalemler.map(k =>
-        '<div class="mk-kalem"><span>' + kacir(k.urun) + "</span><b>" +
-        tl(k.fiyat) + "</b></div>").join("") +
+      kalemler.map(k => {
+        /* KALEM DUZEYINDE TARIH (urun tarifi md.4). Kazinan menude boyle
+           bir tarih YOK ve uydurulmuyor -- olculdu, 293 mekanin 293'unde
+           butun kalemler ayni gun derlenmis. Tarihi GERCEKTEN olan tek
+           kalem kullanicidan gelen: olusturuldu ceklliyordu ama ekrana
+           hic gelmiyordu. Bicim gunOnce'ta, oy rozetiyle ayni yerde. */
+        const ne = gunOnce(zamanYasi(k.olusturuldu));
+        return '<div class="mk-kalem"><span>' + kacir(k.urun) +
+          (ne ? '<span class="mk-ne">' + kacir(ne) + "</span>" : "") +
+          "</span><b>" + tl(k.fiyat) + "</b></div>";
+      }).join("") +
       (fotolar.length
         ? '<div class="mk-fotolar">' + fotolar.map(k => {
             const u = Kimlik.menuFotoAdresi(k.foto);
@@ -1483,6 +1639,38 @@ function guvenTazele(m, ozet, oy){
   kutu.hidden = false;
 }
 
+/* ---------- Cebimde onerileri ----------
+   Basamaklarin nasil secildigi ve neden EN PAHALI uyan kombinin
+   verildigi ortak.js'te yazili (oneriBasamaklari). Burasi yalniz cizim.
+
+   TEK BASAMAK CIKIYORSA BOLUM HIC ACILMIYOR: "onerileR" basligi altinda
+   tek satir gostermek, kombin kutusunun sozunu ikinci kez soylemek
+   olurdu -- o kutu zaten hemen ustunde duruyor. */
+function onerileriCiz(m, butce){
+  const bol = document.getElementById("oneri");
+  const b = oneriBasamaklari(m);
+  if (b.length < 2){ bol.hidden = true; return; }
+  /* BASAMAKLAR VARSA KOMBIN KUTUSU KAPANIYOR. Kutu menudeki EN UCUZ
+     ikiliyi veriyor; basamak listesi ayni satiri zaten ilk sirada
+     tasiyor VE kullanicinin butcesine uyanini isaretliyor. Ikisi birden
+     durdugunda ekran ayni seyi iki kez soyluyordu -- ustelik 300 TL ile
+     gelen kullaniciya kutu 100 TL'lik en ucuzu, liste 180 TL'lik
+     dogrusunu oneriyordu. */
+  const kmb = document.getElementById("kombin");
+  if (kmb){ kmb.textContent = ""; kmb.hidden = true; }
+  /* Kullanicinin butcesine uyan EN YUKSEK basamak isaretleniyor. */
+  let senin = -1;
+  if (butce > 0)
+    for (let i = 0; i < b.length; i++) if (b[i].esik <= butce) senin = i;
+  document.getElementById("oneriListe").innerHTML = b.map((x, i) =>
+    '<li class="' + (i === senin ? "senin" : "") + '">' +
+      '<span class="esik">' + kacir(tl(x.esik)) + " altı</span>" +
+      '<span class="kombin-ad">' + kacir(oneriCumlesi(x)) + "</span>" +
+      (i === senin ? '<span class="senin-not">bütçen</span>' : "") +
+    "</li>").join("");
+  bol.hidden = false;
+}
+
 /* ---------- menu listesi ----------
    Kalemler FIYATA GORE ARTAN siralaniyor: uygulamanin sorusu "burada ne
    yenir" degil "bu parayla ne yenir", ve ucuzdan pahaliya sira o soruyu
@@ -1505,9 +1693,31 @@ function menuSatiri(k, butce){
     kacir(fiyat) + "</span></li>";
 }
 
+/* Kampanyalar AYRI BOLUMDE. Menu satirlarinin arasinda dururken bir
+   TEKLIFIN fiyati bir PORSIYONUN fiyati gibi okunuyordu; olculdu, 96
+   mekanda 672 satir. Ayirmak satiri silmiyor -- teklif gercek. */
+function kampanyaListesi(m, butce){
+  const bol = document.getElementById("kampanyaListe");
+  const l = kampanyalar(m).slice()
+              .sort((a, b) => (a.f == null) - (b.f == null) || a.f - b.f);
+  if (!l.length){ bol.hidden = true; return; }
+  /* Kampanyanin tarihi mekanin fiyat tarihi -- ayri bir tarih YOK ve
+     uydurulmuyor. Teklif en cabuk bayatlayan veri, o yuzden tarih
+     ISTEGE BAGLI DEGIL: varsa yaziliyor, yoksa bilinmedigi yaziliyor. */
+  const yas = fiyatYasEtiketi(m);
+  document.getElementById("kampanyaNot").textContent =
+    "Mekânın kendi menüsünde duyurduğu teklifler; fiyat tek porsiyonun " +
+    "değil teklifin fiyatı. " +
+    (yas ? yas.ad + (yas.eski ? " — eskimiş olabilir." : ".")
+         : "Tarihi bilinmiyor.");
+  document.getElementById("kampanyaSatirlar").innerHTML =
+    l.map(k => menuSatiri(k, butce)).join("");
+  bol.hidden = false;
+}
+
 function menuListesi(m, butce){
   const bol = document.getElementById("menuListe");
-  const mn  = (m.menu || []).slice();
+  const mn  = menuKalemleri(m).slice();
   if (!mn.length){ bol.hidden = true; return; }
 
   /* Fiyatsiz kalem en sona. Number.MAX_VALUE yerine ayri dal:
@@ -1590,6 +1800,26 @@ function sekmeyiSec(ad){
     bos.textContent = dolu ? "" : (SEKME_BOS[ad] || "");
     bos.hidden = dolu;
   }
+  /* HARITA GIZLI SEKMEDE KURULUYOR. Sekme grubu display:none olduğu
+     için Leaflet kabı 0x0 ölçüyor ve merkezi oraya göre hesaplıyor:
+     işaret kutunun SOL ÜST KÖŞESİNİN DIŞINA düşüyordu (ölçüldü, kutu
+     16,403 358x220 iken işaret 8,395). Sekme açılınca kap gerçek
+     boyutuna kavuşuyor ama Leaflet bunu kendiliğinden bilmiyor.
+
+     Kontrol ilk yazımda BUNU KAÇIRDI: `path` sayıyordu, yerine
+     bakmıyordu -- yani "işaret var" diyordu, "doğru yerde" demiyordu. */
+  if (ad === "bilgi") haritayiTazele();
+}
+
+function haritayiTazele(){
+  if (!mHarita) return;
+  /* İki kare bekleniyor: sekme sınıfı yazıldıktan sonra düzen bir
+     sonraki karede oturuyor, invalidateSize ondan önce çalışırsa yine
+     0x0 okur. */
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    mHarita.invalidateSize();
+    mHarita.setView([mHarita._cebimdeNokta[0], mHarita._cebimdeNokta[1]], 16);
+  }));
 }
 
 function sekmeleriKur(){
@@ -1735,6 +1965,103 @@ async function fisKatmani(mekanId, mekanAd, ilKod){
 let ilMekanlari = [];
 let zincir = null;
 
+/* ============================================================
+   Konum: harita + dis harita ve sosyal baglantilari
+
+   HARITA ISTEGE BAGLI. kesfet.js ile ayni kural ve ayni gerekce:
+   kutuphane yuklenemezse sayfanin geri kalani calismaya devam etmeli.
+   Burada dusus daha da onemli, cunku koordinatin KENDISI ekranda
+   yaziyor ve dis baglantilar haritaya hic ihtiyac duymuyor.
+   ============================================================ */
+let mHarita = null;
+
+function konumHaritasi(m){
+  const kutu = document.getElementById("mekanHarita");
+  /* typeof: L tanimsizken duz "if (!L)" ReferenceError firlatir --
+     korumanin kendisi cokerdi (kesfet.js'te olculmus hata). */
+  if (typeof L === "undefined"){
+    kutu.innerHTML = '<div class="harita-yok">' +
+      "<strong>Harita yüklenemedi</strong>" +
+      "<span>Bağlantı engellenmiş olabilir. Koordinat ve yol tarifi " +
+      "bağlantısı aşağıda duruyor.</span></div>";
+    return;
+  }
+  mHarita = L.map(kutu, {
+    zoomControl:false,
+    /* Tek nokta gosteriliyor; kaydirma ve yakinlastirma SAYFA
+       KAYDIRMASINI calmasin diye kapali. Buyutmek isteyen dis
+       haritaya gidiyor -- dugme hemen altinda. */
+    dragging:false, scrollWheelZoom:false, doubleClickZoom:false,
+    touchZoom:false, keyboard:false, attributionControl:true
+  }).setView([m.lat, m.lon], 16);
+
+  const koyuMu = () => (document.documentElement.dataset.tema ||
+    (matchMedia("(prefers-color-scheme: dark)").matches ? "koyu" : "acik")) === "koyu";
+  let dosem = null;
+  const dosemKur = () => {
+    if (dosem) mHarita.removeLayer(dosem);
+    dosem = L.tileLayer(
+      "https://{s}.basemaps.cartocdn.com/" + (koyuMu() ? "dark_all" : "light_all") +
+      "/{z}/{x}/{y}{r}.png",
+      { maxZoom:19, attribution:"&copy; OpenStreetMap &copy; CARTO" }).addTo(mHarita);
+  };
+  dosemKur();
+  /* Tema donunce dosem de donmeli; kesfet ile ayni izleyici. */
+  new MutationObserver(dosemKur).observe(document.documentElement,
+    { attributes:true, attributeFilter:["data-tema"] });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", dosemKur);
+
+  const stil = getComputedStyle(document.documentElement);
+  L.circleMarker([m.lat, m.lon], {
+    radius:9, weight:3,
+    color: stil.getPropertyValue("--marka").trim() || "#0a7",
+    fillColor: stil.getPropertyValue("--marka").trim() || "#0a7",
+    fillOpacity:.5
+    /* Ipucu balonu YOK: dokunmatikte "uzerine gelme" diye bir sey yok
+       ve mekanin adi zaten 200 px yukarida, sayfanin basliginda. */
+  }).addTo(mHarita);
+  /* Nokta haritanın üzerinde saklanıyor: sekme açılınca setView tekrar
+     çağrılıyor ve merkez elde olmalı. */
+  mHarita._cebimdeNokta = [m.lat, m.lon];
+}
+
+function konumKatmani(m, ilAd){
+  if (!koordinatVar(m)) return;      /* koordinatsiz mekan: kutu hic cikmiyor */
+  const bol = document.getElementById("konum");
+  bol.hidden = false;
+  konumHaritasi(m);
+
+  /* Koordinat METIN olarak da yaziyor: harita cizilmese de "burasi
+     nerede" sorusunun bir cevabi kalsin. */
+  document.getElementById("konumKoordinat").textContent =
+    "Koordinat: " + koordinatYaz(m) + (m.adres ? "" : " (adres kayıtlı değil)");
+
+  document.getElementById("konumBaglar").innerHTML =
+    disHaritalar(m, ilAd).map(h =>
+      '<a class="dugme ' + (h.anahtar === "yol" ? "birincil" : "ikincil") +
+      ' kucuk" href="' + kacir(h.bag) + '" target="_blank" rel="noopener">' +
+      kacir(h.ad) + "</a>").join("");
+
+  /* SOSYAL HESAPLAR bilgi listesinde satir satir duruyordu; burada
+     dugme olarak da veriliyor cunku "yorumu kaynaginda oku" sorusunun
+     cevabi tam olarak bunlar. Ayni bagi ortak.js kuruyor (sosyalListe)
+     -- iki yerde iki turlu adres uretilmesin. */
+  const sos = sosyalListe(m);
+  const web = m.web ? guvenliBag(String(m.web)) : "";
+  document.getElementById("konumSosyal").innerHTML =
+    (web ? '<a class="dugme ikincil kucuk" href="' + kacir(web) +
+           '" target="_blank" rel="noopener">Kendi sitesi</a>' : "") +
+    sos.map(x => x.bag).join("");
+
+  /* NEDEN DIS BAGLANTI. Kullaniciya "yorumlar nerede" sorusunun cevabi
+     veriliyor ve neden burada olmadigi tek cumleyle yaziliyor. */
+  document.getElementById("konumNot").textContent =
+    "Yol tarifi koordinata gider; arama düğmeleri adla arar (mekanın " +
+    "harita kimliği elimizde yok, yanlış şubeye yollamayalım). " +
+    "Maps ve sosyal medya yorumlarını kaynağında okuyabilirsin — " +
+    "yazarlarının telifinde oldukları için buraya kopyalanmıyor.";
+}
+
 async function civarKatmani(m){
   const o = civarOzeti(m, ilMekanlari);
   if (!o) return;                       /* tenha yer: uydurulacak bir sey yok */
@@ -1752,6 +2079,25 @@ async function civarKatmani(m){
       await Kimlik.hazir;
       cf = await Kimlik.civarFisOzeti(o.idler);
     } catch (e) { /* ag yok, fonksiyon yok: kutunun geri kalani yine dogru */ }
+  }
+
+  /* CIVARDA NE YENIR. Sayilar soyut ("55 mekanin fiyati bilinmiyor");
+     bu liste somut: kalem, fiyat, mekan, mesafe. Butce URL'den, kombin
+     kutusuyla ayni yerden. */
+  const _cb = butceOku(new URLSearchParams(location.search).get("butce"));
+  const kalemler = civarKalemleri(m, ilMekanlari, _cb, o.yaricap);
+  const neKutu = document.getElementById("civarNe");
+  if (kalemler.length){
+    document.getElementById("civarNeListe").innerHTML = kalemler.map(k =>
+      '<li class="' + (_cb > 0 && k.fiyat > _cb ? "asiyor" : "") + '">' +
+        '<span class="k-ad">' + kacir(k.ad) +
+          '<span class="k-nerede">' + kacir(k.mekan) + " · " +
+          kacir(sayi(k.uzak)) + " m</span></span>" +
+        '<span class="k-fiyat">' + kacir(tl(k.fiyat)) + "</span>" +
+      "</li>").join("");
+    neKutu.hidden = false;
+  } else {
+    neKutu.hidden = true;
   }
 
   const kutular = [

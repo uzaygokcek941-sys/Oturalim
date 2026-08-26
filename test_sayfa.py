@@ -187,8 +187,13 @@ window.__SAHTE_VERI = {
         olusturuldu: "2026-08-17T10:00:00Z" }], error: null }),
     /* Biri kalem, biri YALNIZ fotograf: ikisi de cizilmeli. */
     mekan_menu_katkilari: () => ({ data: [
+      /* TARIH HESAPLANIYOR, sabit yazilmiyor: kalem duzeyinde tarih
+         (urun tarifi md.4) "3 gun once" diye GORECELI ciziliyor ve sabit
+         bir damga kontrolu yarin curuturdu. Tam 3 gun geri: zamanYasi
+         asagi yuvarliyor, cizim aninda gecen milisaniyeler sonucu
+         buyutur, kucultmez. */
       { id: 1, urun: "Latte", fiyat: 95, foto: null,
-        olusturuldu: "2026-08-22T12:00:00Z" },
+        olusturuldu: new Date(Date.now() - 3 * 86400000).toISOString() },
       { id: 2, urun: null, fiyat: null, foto: "kul-1/1.jpg",
         olusturuldu: "2026-08-21T12:00:00Z" }], error: null }),
     /* TOPLULUK AKISI. Uc satir, uc ayri hal:
@@ -214,6 +219,23 @@ window.__SAHTE_VERI = {
         urun: "Latte", fiyat: 145, foto: "kul-1/1.jpg",
         olusturuldu: "2026-08-22T10:00:00Z",
         yazar_adi: null, yazar_ad: null, yazar_avatar: null }], error: null }),
+    /* FIYAT OYU OZETI. Onceden hic taklit edilmiyordu, yani guven
+       rozetinin OY dali gercek tarayicida HIC cizilmemisti. Uc kisi ve
+       son oy 2 gun once: esik gecildigi icin hem dagilim hem tarih
+       geliyor -- rozet "3 kisi ... — 2 gun once" demeli. */
+    /* Mekan ve FIYAT gercek olmali: oyKatmani ekranda YAZAN rakamin
+       satirini ariyor (yemekFiyati). Bambi Cafe'nin hesaplanan ogun
+       fiyati 243 TL; baska bir sayi yazarsak satir hic eslesmez ve
+    kontrol "rozet cizilmedi" derdi -- kod dogru olsa bile. */
+    fiyat_oy_ozeti: () => ({ data: [
+      { mekan_id: "node/6324460285", fiyat: 243, gecerli: 3, degisti: 0,
+        kisi: 3, son_gun: 2 },
+      /* IKINCI SATIR TARIHSIZ. Sunucu esigin altinda son_gun
+         dondurmuyor; istemci onu SIFIRA cevirirse rozet "bugün" der ve
+         elimizde olmayan bir tazeligi iddia eder. Sabotajla dogrulandi:
+         `+o.son_gun || 0` yazildiginda bu satir "bugün" cikiyor. */
+      { mekan_id: "node/4914653325", fiyat: 243, gecerli: 3, degisti: 0,
+        kisi: 3, son_gun: null }], error: null }),
     il_puanlari: () => ({ data: [], error: null }),
     /* Birakma SILMIYOR, durumu degistiriyor -- taklit de oyle davranmali,
        yoksa arayuz kontrolu gercekte olmayan bir davranisi dogrular. */
@@ -285,6 +307,23 @@ GIRISLI = [
    '.sekme-cubuk [data-sekme="yorum"]',
    ["Yorumlar", "Deneme Kisi", "28 · Öğretmen", "Sessiz ve ucuz",
     "Bir kullanıcı", "4,0"], ["kul-1"]),
+  # KONUM SEKMESI. Adresi olan mekan yalniz %26,2; kalan 26.455 mekanda
+  # haritadaki nokta "burasi nerede" sorusunun tek cevabi. Sinanan sey
+  # metnin varligi degil, BAGIN KOORDINATA gitmesi: yol tarifi adla
+  # aramaya duserse kullanici yanlis subeye gider.
+  # SEMT: ilce ve mahalle CSV'de DOLUYDU ve uygulamaya hic ulasmiyordu.
+  # Iki hal birden sinaniyor, cunku asil kazanc ikincisinde:
+  #   adresi OLAN mekan  -> adresin yanina semt ekleniyor
+  #   adresi OLMAYAN     -> semt, sayfadaki TEK yer adi
+  # Olculdu: adresi olmayan 26.455 mekanin 883'u boyle.
+  ("isletme.html/semt", "/isletme.html?il=34&id=node/9821259942", None,
+   ["Şevki Bey Sokağı · Caferağa · Kadıköy · İstanbul"], ["kul-1"]),
+  ("isletme.html/semt-adressiz", "/isletme.html?il=34&id=node/7591718367", None,
+   ["Üniversite · Avcılar · İstanbul"], ["kul-1"]),
+  ("isletme.html/konum", "/isletme.html?il=34&id=node/8223784325",
+   '.sekme-cubuk [data-sekme="bilgi"]',
+   ["Konum", "40.986810, 29.025530", "Yol tarifi", "Google'da ara",
+    "OpenStreetMap", "yazarlarının telifinde"], ["kul-1"]),
   ("profil.html", "/profil.html?k=deneme_kisi", None,
    ["Deneme Kisi", "@deneme_kisi", "28 · Öğretmen", "Yorum Kafe"],
    ["Yükleniyor", "kul-1", "Profil bulunamadı"]),
@@ -321,13 +360,31 @@ GIRISLI = [
   #   - KAPALI profilin yorumu duruyor ama adi "Bir kullanici"
   #   - menu katkisi kalemi ve fiyatiyla cikiyor, ADSIZ
   # "Yukleniyor" hala ekrandaysa akis hic cizilmemis demektir.
+  # GUVEN ROZETININ OY DALI + "son dogrulanma" tarihi. Urun tarifinin
+  # 5. maddesi rozetin yaninda tarih istiyor; oy tablosu bunun icin
+  # dogru kaynak ve tarih artik sunucudan geliyor (fiyat_oy_ozeti.son_gun).
+  ("isletme.html/oy-tarihi", "/isletme.html?il=34&id=node/6324460285", None,
+   ["hâlâ böyle", "2 gün önce"], ["kul-1"]),
+  # TARIHSIZ HAL: cumle tarihsiz de tam kalmali.
+  #
+  # ARANAN SEY ROZETIN KENDI BICIMI ("dedi — "), sayfada gecen herhangi
+  # bir tarih kelimesi DEGIL. Ilk yazimda "bugün" diye bakiyordum ve
+  # kontrol yanlis yerden patladi: goruntulenme sayaci da "· bugün 3"
+  # yaziyor. Ayni tuzak bu depoda daha once de yasandi (href ile gorunen
+  # metin, title ile gorunen etiket).
+  ("isletme.html/oy-tarihsiz", "/isletme.html?il=34&id=node/4914653325", None,
+   ["hâlâ böyle"], ["kul-1", "dedi — "]),
   ("topluluk.html", "/topluluk.html", None,
    ["Akis Kafe", "Deneme Kisi", "Akista gorunen yorum",
     "Gizli Yazar Kafe", "Bir kullanıcı", "Akis Menu", "Latte", "145"],
    ["Yükleniyor", "kul-1", "Henüz onaylanmış bir katkı yok"]),
   # Isletme sayfasi: kalem ve fotograf ayri ayri cizilmeli.
+  # "3 gun once" KALEMIN KENDI tarihi: mekan tarihi degil. Kazinan menude
+  # boyle bir tarih yok (291 mekanin 291'inde butun kalemler ayni gun
+  # derlenmis); yalniz kullanici katkisinda var ve ekrana yeni geliyor.
   ("isletme.html/menu", "/isletme.html?il=34&id=node/8223784325", None,
-   ["Kullanıcıların eklediği fiyatlar", "Latte", "Menüyü görüyor musun"],
+   ["Kullanıcıların eklediği fiyatlar", "Latte", "3 gün önce",
+    "Menüyü görüyor musun"],
    ["kul-1"]),
 ]
 
@@ -834,7 +891,12 @@ def kendini_kontrol_et():
                 kon.wait_for_timeout(400)
                 return kon.inner_text("#konum-durum")
 
-            durum = _butce_ara("300", "Kafe")
+            # KATEGORI CIPI ARTIK "kat:..." tasiyor. Onceden duz tur adi
+            # ("Kafe") vardi; kategoriler tur VE mutfak eksenine gecince
+            # secici degisti ve bu satir 30 sn zaman asimina dustu --
+            # yani cipin anahtarini degistirdigimizi ilk soyleyen sey bu
+            # kontrol oldu.
+            durum = _butce_ara("300", "kat:kahve")
             m = re.search(r"([\d.]+) mekan, en yakın üçü", durum)
             if not m:
                 sorunlar.append("ana ekran: '%s' -- kac mekan icinden secildigi yazmiyor"
@@ -866,7 +928,9 @@ def kendini_kontrol_et():
                 # Secim kesfete tasinmali: kullanici butceyi ve kategoriyi
                 # bir kez sesin, iki kez degil.
                 hepsi = kon.eval_on_selector(".hepsi", "n => n.getAttribute('href')")
-                for parca in ("butce=300", "tur=Kafe"):
+                # Kategori adreste KODLANMIS geciyor: "kat:kahve" ->
+                # "kat%3Akahve". Iki nokta URL'de kacirilan bir karakter.
+                for parca in ("butce=300", "tur=kat%3Akahve"):
                     if parca not in (hepsi or ""):
                         sorunlar.append("ana ekran: '%s' kesfet baglantisinda yok (%s)"
                                         % (parca, hepsi))
@@ -875,7 +939,7 @@ def kendini_kontrol_et():
                 # OLCULEN mekanlar cikarilmadan onceki listeden aliniyor;
                 # 150 TL ile 700 TL ayni paydayi vermeli. Ayrisirsa ekran
                 # butceyi suzgec gibi gostermeye baslamis demektir.
-                d2 = _butce_ara("700", "Kafe")
+                d2 = _butce_ara("700", "kat:kahve")
                 m2 = re.search(r"([\d.]+) mekan, en yakın üçü", d2)
                 if m2 and int(m2.group(1).replace(".", "")) != toplam:
                     sorunlar.append("ana ekran: payda butceyle degisiyor (300 -> %d, "
@@ -1212,6 +1276,105 @@ def kendini_kontrol_et():
             if len(yedek) < 30:
                 sorunlar.append("Leaflet yokken harita yerine aciklama konmuyor "
                                 "(kutu metni %d karakter)" % len(yedek))
+            sf.close()
+
+            # 2b) ISLETME SAYFASINDA KONUM HARITASI.
+            #
+            # Adresi olan mekan yalniz %26,2 (9.397/35.852); kalan
+            # 26.455 mekanda haritadaki nokta "burasi nerede" sorusunun
+            # TEK cevabi. Iki hal birden sinaniyor:
+            #   harita VARKEN  -> leaflet kabi ve isaret ciziliyor
+            #   harita YOKKEN  -> koordinat ve dis baglantilar duruyor
+            # Yalniz birine bakmak, ozelligi tamamen silen bir
+            # degisiklikten de gecerdi (kesfet haritasiyla ayni desen).
+            sf, hata = sayfa_ac("/isletme.html?il=34&id=node/8223784325")
+            sf.wait_for_timeout(900)
+            # SEKME ACILIYOR: harita "Bilgi" sekmesinin ardinda ve o
+            # grup display:none. Tiklamadan olcmek, kullanicinin hic
+            # gormedigi bir hali olcmek olurdu.
+            sf.eval_on_selector('.sekme-cubuk [data-sekme="bilgi"]', "e => e.click()")
+            sf.wait_for_timeout(700)
+            k = sf.evaluate("""() => {
+              const m = document.getElementById('mekanHarita');
+              const r = m.getBoundingClientRect();
+              const p = m.querySelector('path');
+              const b = p ? p.getBoundingClientRect() : null;
+              return {
+                kap:    !!document.querySelector('#mekanHarita.leaflet-container'),
+                isaret: !!p,
+                /* Isaretin MERKEZI, kutunun merkezine gore. Leaflet
+                   gizli kapta 0x0 olcup isareti kutunun DISINA
+                   koyuyordu; "path var mi" diye bakan bir kontrol bunu
+                   goremez. */
+                sapmaX: b ? Math.round(Math.abs((b.x + b.width/2) - (r.x + r.width/2))) : -1,
+                sapmaY: b ? Math.round(Math.abs((b.y + b.height/2) - (r.y + r.height/2))) : -1,
+                icinde: !!(b && b.x >= r.x && b.y >= r.y &&
+                           b.x + b.width <= r.x + r.width &&
+                           b.y + b.height <= r.y + r.height),
+                koord:  (document.getElementById('konumKoordinat')||{}).textContent||'',
+                tarif:  (document.querySelector('#konumBaglar a')||{}).href||''
+              };
+            }""")
+            if not k["kap"]:
+                sorunlar.append("isletme: konum haritasi kurulmadi")
+            if not k["isaret"]:
+                sorunlar.append("isletme: haritada mekanin isareti yok")
+            # ISARET KUTUNUN ICINDE VE ORTASINDA OLMALI. Bu satir
+            # gercek bir hatanin uzerine yazildi: harita gizli sekmede
+            # kuruldugu icin Leaflet kabi 0x0 olcuyor ve isaret kutunun
+            # sol ust kosesinin DISINA dusuyordu (kutu 16,403 358x220
+            # iken isaret 8,395). Ekranda bos bir harita goruluyordu.
+            elif not k["icinde"]:
+                sorunlar.append("isletme: harita isareti kutunun DISINDA "
+                                "(sapma %d,%d px) -- invalidateSize cagrilmiyor"
+                                % (k["sapmaX"], k["sapmaY"]))
+            elif k["sapmaX"] > 4 or k["sapmaY"] > 4:
+                sorunlar.append("isletme: harita isareti merkezde degil "
+                                "(sapma %d,%d px)" % (k["sapmaX"], k["sapmaY"]))
+            # KOORDINATIN KENDISI: harita cizilse de cizilmese de
+            # "burasi nerede" sorusunun bir cevabi ekranda kalmali.
+            if "40.986810, 29.025530" not in k["koord"]:
+                sorunlar.append("isletme: koordinat ekranda yazmiyor (%r)"
+                                % k["koord"][:60])
+            # YOL TARIFI KOORDINATA GITMELI. Adla aramaya duserse
+            # kullanici ayni adli baska bir subeye gider -- ve bag
+            # gorunuste calismaya devam ettigi icin fark edilmez.
+            if "destination=40.986810%2C29.025530" not in k["tarif"]:
+                sorunlar.append("isletme: yol tarifi koordinata gitmiyor (%r)"
+                                % k["tarif"][:80])
+            sf.close()
+
+            # HARITASIZ HALDE BASKA BIR MEKAN: node/8223784325 (Draft)
+            # MENUSUZ ve ilk yazimda "Leaflet yokken menu de cizilmiyor"
+            # diye HATA VERDI -- kod degil KONTROL yanlisti, olmayan bir
+            # menuyu ariyordu. Adana'daki bu mekanin menusu de,
+            # instagrami da var; yani "harita gitti, geri kalan duruyor"
+            # gercekten olculebiliyor.
+            sf, hata = sayfa_ac("/isletme.html?il=01&id=node/13068227666",
+                                leafletsiz=True)
+            sf.wait_for_timeout(700)
+            y = sf.evaluate("""() => ({
+              yedek: ((document.querySelector('#mekanHarita .harita-yok')||{})
+                        .innerText||'').trim(),
+              bag:   document.querySelectorAll('#konumBaglar a').length,
+              sosyal: document.querySelectorAll('#konumSosyal a').length,
+              koord: (document.getElementById('konumKoordinat')||{}).textContent||'',
+              menu:  document.querySelectorAll('#menuSatirlar li').length
+            })""")
+            if len(y["yedek"]) < 30:
+                sorunlar.append("isletme: Leaflet yokken harita yerine aciklama "
+                                "konmuyor (%d karakter)" % len(y["yedek"]))
+            if y["bag"] < 4:
+                sorunlar.append("isletme: Leaflet yokken dis harita baglantilari "
+                                "da kayboluyor (%d bag)" % y["bag"])
+            if y["sosyal"] == 0:
+                sorunlar.append("isletme: Leaflet yokken sosyal hesap dugmesi "
+                                "de kayboluyor")
+            if "36.772070, 35.792900" not in y["koord"]:
+                sorunlar.append("isletme: Leaflet yokken koordinat da yaziMIYOR "
+                                "(%r)" % y["koord"][:60])
+            if y["menu"] == 0:
+                sorunlar.append("isletme: Leaflet yokken menu de cizilmiyor")
             sf.close()
 
             # 2z) FIS ESIGI KESFET EKRANINDA DA GECERLI.

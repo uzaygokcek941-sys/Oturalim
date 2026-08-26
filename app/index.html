@@ -471,9 +471,9 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 13 4 4L19 7"/></svg>
               <span><strong id="d-toplam">35.852</strong> mekanın konumu, türü, açılış saati — OpenStreetMap'ten, açık lisanslı.</span></li>
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 13 4 4L19 7"/></svg>
-              <span><strong id="d-kalem">7.335</strong> menü kalemi, <strong id="d-fiyatli">291</strong> mekandan — işletmelerin kendi sitelerinden.</span></li>
+              <span><strong id="d-kalem">7.406</strong> menü kalemi, <strong id="d-fiyatli">293</strong> mekandan — işletmelerin kendi sitelerinden.</span></li>
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 13 4 4L19 7"/></svg>
-              <span>Ama o 291 mekan <strong id="d-marka">93</strong> işletme: aynı zincirin şubeleri tek bir menüyü paylaşıyor.
+              <span>Ama o 293 mekan <strong id="d-marka">93</strong> işletme: aynı zincirin şubeleri tek bir menüyü paylaşıyor.
               Fiyatın kaç ölçümden geldiğini mekan sayfasında yazıyoruz.</span></li>
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 13 4 4L19 7"/></svg>
               <span>Bahçe, wi-fi, telefon ve adres bilgisi olan mekanlar için ayrı filtre.</span></li>
@@ -785,8 +785,8 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll(".canim-cip").forEach(c =>
     c.setAttribute("aria-pressed", String(canim.has(c.dataset.tur))));
 
-  /* Seçili kategorilerin tür kümesi. turUyar() ortak.js'te ve keşfet
-     ekranıyla aynı: "grup:eglence" burada da orada da aynı şeyi seçsin. */
+  /* Seçili kategorilerin ölçüt kümesi. mekanUyar() ortak.js'te ve keşfet
+     ekranıyla aynı: "kat:esnaf" burada da orada da aynı şeyi seçsin. */
   function seciliTurler(){
     const t = new Set();
     canim.forEach(x => x.split("|").forEach(v => t.add(v)));
@@ -836,7 +836,7 @@ document.addEventListener("DOMContentLoaded", () => {
            bir cemberden bakan hesap onu 2 gosterirdi. */
         zincir = zincirHaritasi(v.mekanlar);
         const civar = v.mekanlar.filter(m => uzaklikKm(m.lon, m.lat, lat, lon) < YAKIN_KM);
-        const konu  = turSet.size ? civar.filter(m => turUyar(turSet, m.tur)) : civar;
+        const konu  = turSet.size ? civar.filter(m => mekanUyar(turSet, m)) : civar;
 
         if (!konu.length){
           konumDugme.disabled = false;

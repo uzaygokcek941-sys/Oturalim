@@ -74,7 +74,7 @@ function aracYuksekligiOlc(){
 /* ---------- süzme ---------- */
 function suzulmus(){
   const l = mekanlar.filter(m => {
-    if (turler.size && !turUyar(turler, m.tur)) return false;
+    if (turler.size && !mekanUyar(turler, m)) return false;
     if (bayraklar.has("bahce") && !m.bahce) return false;
     if (bayraklar.has("wifi")  && !m.wifi)  return false;
     /* "Fiyati olan" cipi yemekFiyati'na bakiyor, m.menu varligina DEGIL.
@@ -768,8 +768,15 @@ function ac(id){
     mutfak:'<path d="M3 2v7a3 3 0 0 0 3 3v10M9 2v7a3 3 0 0 1-3 3"/><path d="M17 2c-1.7 1.3-2.5 3.4-2.5 6 0 2 .8 3.4 2.5 4v10"/>'
   };
 
+  /* SEMT: adres satirinin hemen altinda ve ADRES YOKKEN DE cikiyor.
+     Adresi olmayan 26.455 mekanin 883'unde bu, panelin tek yer adi.
+     Kural ortak.js'te (semtYaz) -- isletme sayfasi ayni satiri yaziyor,
+     iki yerde iki turlu olmasin (mutfakYaz ile ayni gerekce). */
+  const semt = semtYaz(m);
   const bilgi = [
     m.adres  ? satir(IK.adres,  kacir(m.adres)) : "",
+    /* Adres VARSA ikonu tekrarlamiyoruz: ayni sorunun devami. */
+    semt     ? satir(m.adres ? "" : IK.adres, kacir(semt)) : "",
     m.mutfak ? satir(IK.mutfak, kacir(mutfakYaz(m.mutfak))) : "",
     m.saat   ? satir(IK.saat,   kacir(m.saat)) : "",
     m.tel    ? satir(IK.tel, '<a href="tel:' + kacir(m.tel.replace(/\s/g,"")) + '">' +

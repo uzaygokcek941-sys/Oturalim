@@ -103,7 +103,8 @@ create policy "fiyat oyu kendi siler" on public.fiyat_oylari
 -- "son 6 ayda" diyor.
 -- ============================================================
 create or replace function public.fiyat_oy_ozeti(p_mekan_idler text[])
-returns table (mekan_id text, fiyat numeric, gecerli int, degisti int, kisi int)
+returns table (mekan_id text, fiyat numeric, gecerli int, degisti int,
+               kisi int, son_gun int)
 language plpgsql
 security definer
 set search_path = public, pg_temp
@@ -129,7 +130,19 @@ begin
          case when count(distinct o.kullanici) >= 3
               then count(distinct o.kullanici) filter (where not o.gecerli)::int
               else 0 end,
-         count(distinct o.kullanici)::int
+         count(distinct o.kullanici)::int,
+         -- SON OYUN YASI, GUN cinsinden. Urun tarifi rozetin yaninda
+         -- "3 gun once dogrulandi" istiyor ve bunun icin en dogru
+         -- kaynak oy: birinin BUGUN "hala boyle" demesi.
+         --
+         -- ESIGIN ARDINDA, dagilimla ayni kapi: tek oy varken "son oy
+         -- dun" demek, o kisinin ne zaman oy verdigini soylerdi.
+         --
+         -- SAAT DEGIL GUN: saat kisiyi daraltir ve kullanicinin sordugu
+         -- soru "ne kadar taze", "saat kacta" degil.
+         case when count(distinct o.kullanici) >= 3
+              then extract(day from now() - max(o.olusturuldu))::int
+              else null end
     from public.fiyat_oylari o
    where p_mekan_idler is not null
      and o.mekan_id = any(p_mekan_idler)

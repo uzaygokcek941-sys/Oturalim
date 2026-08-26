@@ -36,7 +36,8 @@ BETIKLER = ["app_veri.py", "etkinlik_cek.py", "fiyat_analiz.py", "menu_cikar.py"
             "turkiye_cek.py", "foto_cek.py",
             "menu_ocr.py", "menu_pdf_tara.py", "saha.py", "sahiplen.py",
             "site_haritasi.py", "csp_uret.py", "veri_bicim.py", "kutuphane_al.py",
-            "ikon_uret.py", "sw_uret.py", "assetlinks_uret.py", "og_uret.py"]
+            "ikon_uret.py", "sw_uret.py", "assetlinks_uret.py", "og_uret.py",
+            "menu_tarayici.py"]
 
 # Turkiye siniri, genis pay. Disina dusen koordinat cekimde bir sey
 # kaymis demektir; haritada Atlantik'te bir nokta olarak gorunur.
@@ -216,12 +217,38 @@ def veri_tutarli_mi():
     # Bu sayilar <meta description> ve og:description icinde, yani arama
     # sonucunda ve paylasilan baglantida gorunen ilk cumle. Kimse oraya
     # bakmiyor -- tam da bu yuzden kontrol gerekiyor.
+    dogru = "{:,}".format(toplam).replace(",", ".")
     for ad in sorted(glob.glob(os.path.join(KOK, "app", "*.html"))):
         h = io.open(ad, encoding="utf-8").read()
         for yazan in set(re.findall(r"(\d{2}\.\d{3}) mekan", h)):
             if yazan.replace(".", "") != str(toplam):
                 s.append("%s: metinde '%s mekan' yaziyor, gercek %s"
-                         % (os.path.basename(ad), yazan, "{:,}".format(toplam).replace(",", ".")))
+                         % (os.path.basename(ad), yazan, dogru))
+
+    # BELGELER DE ESKIYOR, ve kimse onlara bakmiyor. Kural app/*.html
+    # icin vardi; tasarim/decisions.md iki yerde "36.102 mekan" diyordu
+    # ve CEBIMDE.md bir yerde -- yani kontrol yazildiktan SONRA bile
+    # depoda uc yanlis rakam kalmisti. Ayni kural, daha genis kapi.
+    #
+    # DUZELTMEYI ANLATAN SATIR MUAF: "36.102 -> 35.852" yazan bir cumle
+    # eski sayiyi HATA OLARAK aniyor, iddia olarak degil. Olcut, DOGRU
+    # sayinin ayni satirda gecmesi.
+    # PAZARLAMA.md ozellikle onemli: yatirimciya ve YC'ye SOYLENECEK
+    # rakamlar orada. Eskimis bir sayiyi bir toplantida soylemek, bir
+    # belgede birakmaktan pahali.
+    for ad in ("CEBIMDE.md", "README.md", "KURULUM.md", "PLAY.md",
+               "PAZARLAMA.md", "VERI_VE_GELIR.md",
+               os.path.join("tasarim", "decisions.md")):
+        yol = os.path.join(KOK, ad)
+        if not os.path.exists(yol):
+            continue
+        for no, satir in enumerate(io.open(yol, encoding="utf-8"), 1):
+            if dogru in satir:
+                continue
+            for yazan in set(re.findall(r"(\d{2}\.\d{3}) mekan", satir)):
+                if yazan.replace(".", "") != str(toplam):
+                    s.append("%s:%d: '%s mekan' yaziyor, gercek %s"
+                             % (ad, no, yazan, dogru))
 
     # Anasayfadaki SABIT yedekler: JS kapaliyken gorunen sayi bunlar.
     ana = oku("app", "index.html")
@@ -1494,6 +1521,187 @@ def menu_listesi_mi():
                # True donuyordu, kayit onu BASARISIZ sayiyordu.
 
 
+def platform_kapisi_mi():
+    """Menu kazima kapisi PLATFORMLARI gercekten eliyor mu.
+
+    NEDEN ONEMLI: bu kapi, deponun en cok savundugu sinirin kodda duran
+    hali. "Yapilmayacaklar" listesi Google Maps, Yemeksepeti, Getir ve
+    TrendyolGo'yu telif gerekcesiyle disarida birakiyor; platform_mu()
+    o karari uygulayan tek yer.
+
+    BULUNAN ACIK: kapi yalniz "m." ve "mobile." oneklerini taniyordu ve
+    platformlarin DIL ALT ALANLARI geciyordu. Olculdu: "tr-tr.facebook.com"
+    ve "tr.foursquare.com" isletmenin kendi sitesi sayiliyordu. Ayrica
+    restaurantguru.com hic listede yoktu -- 17 kayit. Bir isletme
+    rehberinden menu almak, Google Maps'ten almakla ayni sey.
+
+    Veri o an degismedi (o 21 mekanin zaten menusu yoktu); kapi ILERIDE
+    onemli, cunku menu_tarayici.py tam da o yigini tarayacak.
+    """
+    s = []
+    try:
+        from app_veri import platform_mu
+    except Exception as e:
+        return ["app_veri.platform_mu okunamadi: %s" % e]
+
+    # (a) PLATFORM SAYILMASI GEREKENLER -- dil alt alanlariyla birlikte.
+    for u in ("https://www.instagram.com", "https://tr-tr.facebook.com",
+              "https://en-gb.facebook.com", "https://tr.foursquare.com",
+              "https://www.yemeksepeti.com", "https://getir.com",
+              "https://www.trendyol.com", "https://www.google.com/maps/x",
+              "https://restaurantguru.com/kafe", "https://wa.me/905550000000",
+              "https://www.tripadvisor.com", "https://m.youtube.com"):
+        if not platform_mu(u):
+            s.append("platform_mu KACIRDI (kazimamaliyiz): %s" % u)
+
+    # (b) ISLETMENIN KENDI SITESI SAYILMASI GEREKENLER.
+    #
+    # qr.menulux.com ve qrmenu.actdurum.com ISLETMENIN KENDI QR MENUSU:
+    # barindirici bir SaaS ama icerik isletmenin. Kapinin bunlari elemesi,
+    # elimizdeki mesru kaynagi atmak olurdu.
+    #
+    # "kumpirbox.com" ve "taproomx.com" kapiyi ELEMEMELI: kalip "x.com"u
+    # gevsek ararsa bu adresler platform sanilir (ilk olcumumde tam
+    # olarak bu oldu).
+    for u in ("https://kaffamiro.com", "https://qrmenu.actdurum.com",
+              "https://misoramenankara.qr.menulux.com", "https://kumpirbox.com",
+              "https://taproomx.com", "https://www.westmix.com.tr",
+              "https://mygoogle.com"):
+        if platform_mu(u):
+            s.append("platform_mu YANLIS ELEDI (kendi sitesi): %s" % u)
+
+    # (c) TARAYICI HATTI da ayni kapiyi kullanmali.
+    #
+    # METIN DEGIL DAVRANIS SINANIYOR. Ilk hali dosyada "platform_mu" ve
+    # "robots" dizgelerini ARIYORDU ve iki sabotaj birden gecti:
+    # `platform_mu = lambda u: False` yazmak dizgeyi yerinde birakiyor,
+    # robotparser'i atmak da "robots" kelimesini yorumlarda birakiyor.
+    # Artik fonksiyonlar CAGIRILIYOR.
+    if not os.path.exists(os.path.join(KOK, "menu_tarayici.py")):
+        return s
+    try:
+        import menu_tarayici as MT
+    except Exception as e:
+        return s + ["menu_tarayici.py okunamadi: %s" % e]
+
+    # Platform kapisi: aday listesinde platform adresi KALMAMALI.
+    tabanlar = [t for _, t in MT.js_adaylari()]
+    for kotu in ("instagram.", "facebook.", "yemeksepeti.", "getir.",
+                 "trendyol.", "restaurantguru.", "foursquare."):
+        gecen = [t for t in tabanlar if kotu in t]
+        if gecen:
+            s.append("menu_tarayici aday listesinde platform var: %s"
+                     % gecen[0])
+    if any(not MT.gecerli_alan(t) for t in tabanlar):
+        s.append("menu_tarayici aday listesinde bozuk alan adi var")
+
+    # robots.txt: YASAK gercekten durdurmali, YOKLUK durdurmamali,
+    # ve BIZI ADIMIZLA yasaklayan site de durdurmali (robotparser tam UA
+    # dizgesi verilirse adi "mozilla" diye okur ve bu yasagi kacirir).
+    MT._robot_onbellek.clear()
+    if MT.robots_izin("https://a.test", getir=lambda u: "User-agent: *\nDisallow: /\n"):
+        s.append("menu_tarayici robots.txt 'Disallow: /' dedigi halde tariyor")
+    MT._robot_onbellek.clear()
+    if not MT.robots_izin("https://b.test", getir=lambda u: ""):
+        s.append("menu_tarayici robots.txt YOKKEN taramayi durduruyor "
+                 "(yokluk kisitlama degil)")
+    MT._robot_onbellek.clear()
+    if MT.robots_izin("https://c.test",
+                      getir=lambda u: "User-agent: CebimdeBot\nDisallow: /\n"):
+        s.append("menu_tarayici bizi ADIMIZLA yasaklayan robots.txt'yi "
+                 "gecersiz sayiyor")
+    MT._robot_onbellek.clear()
+    return s
+
+
+def konum_paneli_mi():
+    """Isletme sayfasi mekanin NEREDE oldugunu soyluyor mu.
+
+    NEDEN: adresi olan mekan yalniz 9.397/35.852 (%26,2). Kalan
+    26.455 mekanda koordinat "burasi nerede" sorusunun TEK cevabi ve
+    sayfada bugune kadar hic gorunmuyordu -- yalniz "cevresini haritada
+    gor" diye kesfet ekranina bir bag vardi.
+
+    YORUMLAR KAZINMIYOR. Maps/Yandex/Instagram yorumlari yazarlarinin
+    telifinde ve platforma lisansli; buraya kopyalamak fotograflarla
+    ayni ihlal olurdu (CEBIMDE.md "Yapilmayacaklar"). Kullaniciyi
+    KAYNAGA gonderiyoruz ve sayfa bunu YAZIYOR -- sessizce yapilan bir
+    tercih, kullanicinin "yorumlar nerede" sorusunu cevapsiz birakirdi.
+    Kontrol o cumlenin varligini da ariyor.
+    """
+    s = []
+    okun = lambda *y: io.open(os.path.join(KOK, *y), encoding="utf-8").read()
+    ham = okun("app", "isletme.html")
+    js  = _js_yorumsuz(okun("app", "ortak.js"))
+
+    # (1) Kutuphane YEREL. unpkg'den cekmek hem CSP'yi genisletir hem
+    # sayfayi bir CDN'e baglar; kesfet ile ayni dosya kullaniliyor.
+    if '<script src="lib/leaflet.js">' not in ham:
+        s.append("isletme.html: konum haritasi icin yerel Leaflet yuklenmiyor")
+    if '<link rel="stylesheet" href="lib/leaflet.css">' not in ham:
+        s.append("isletme.html: leaflet.css yuklenmiyor "
+                 "(harita uslupsuz ve bozuk cizilir)")
+    if 'id="mekanHarita"' not in ham:
+        s.append("isletme.html: harita kabi yok")
+
+    # (2) HARITA ISTEGE BAGLI. typeof denetimi olmazsa korumanin
+    # KENDISI ReferenceError firlatir -- kesfet.js'te olculmus hata.
+    if 'typeof L === "undefined"' not in ham:
+        s.append("isletme.html: Leaflet yoksa sayfa cokuyor "
+                 "(typeof denetimi yok)")
+    if "harita-yok" not in ham:
+        s.append("isletme.html: harita yuklenemediginde yerine aciklama yok")
+
+    # (3) YOL TARIFI KOORDINATA, ARAMA ADLA. Ikisinin AYRI olmasi
+    # kuralin kendisi: Maps yer kimligi (place_id) elimizde yok, yani
+    # "bu mekanin sayfasi" diyemeyiz. Kural ortak.js'te tek yerde.
+    for ad in ("koordinatVar", "koordinatYaz", "disHaritalar", "aramaMetni"):
+        if ("function " + ad) not in js:
+            s.append("ortak.js: %s yok (konum kurali tek yerde durmali)" % ad)
+    # DUZ ARAMA YETMIYOR: ayni dizgi asagidaki kendi-kendini-kontrol
+    # blogunda BEKLENEN DEGER olarak da duruyor, yani DIS_HARITA'daki
+    # taban degistirilse bile arama gecerdi. Sabotajla goruldu.
+    # Onun yerine "yol" kaydinin KENDI tabanina bakiliyor.
+    yol_kaydi = re.search(r'anahtar:"yol".*?taban:"([^"]+)"', js, re.S)
+    if not yol_kaydi:
+        s.append("ortak.js: DIS_HARITA'da yol tarifi kaydi yok")
+    elif "maps/dir/" not in yol_kaydi.group(1):
+        s.append("ortak.js: yol tarifi bagi koordinata degil aramaya "
+                 "gidiyor: %s" % yol_kaydi.group(1))
+    # Koordinat denetimi TIP bakmali: veride dizgi gelirse toFixed
+    # catlar ve harita hic cizilmez.
+    if 'typeof m.lat === "number"' not in js:
+        s.append("ortak.js: koordinat denetimi tipe bakmiyor")
+
+    # (4) DIS BAGLAR https. Karisik icerik hem CSP'ye takilir hem
+    # baglantiyi aciga cikarir.
+    for esles in re.findall(r'taban:"([^"]+)"', js):
+        if not esles.startswith("https://"):
+            s.append("ortak.js: dis harita bagi https degil: %s" % esles)
+
+    # (5) NEDEN YORUM YOK, EKRANDA YAZIYOR MU.
+    #
+    # YORUMLAR SILINEREK ARANIYOR. Ilk hali duz "telifinde in ham" idi
+    # ve SABOTAJ GECTI: ayni kelime bolumun ustundeki HTML yorumunda da
+    # geciyor, yani kullaniciya gorunen cumle silinse bile kontrol
+    # gecerdi. Gizlilik tablosu kontrolunde de tam olarak bu olmustu.
+    gorunen = re.sub(r"<!--.*?-->", " ", ham, flags=re.S)
+    gorunen = re.sub(r"/\*.*?\*/", " ", gorunen, flags=re.S)
+    if "yazarlarının telifinde" not in gorunen:
+        s.append("isletme.html: yorumlarin neden kaynaginda okundugu "
+                 "EKRANDA yazmiyor")
+
+    # (6) YORUM KAZIYAN BIR SEY EKLENMEDI. Depoda Maps/Yandex yorum
+    # ucu aramak, kuralin kendisini kontrole cevirmek.
+    for yol in ("app/isletme.html", "app/ortak.js", "app/kesfet.js"):
+        d = okun(*yol.split("/"))
+        for kotu in ("maps.googleapis.com", "place/details",
+                     "reviews?", "api.yandex", "graph.facebook.com"):
+            if kotu in d:
+                s.append("%s: yorum/veri kaziyan uc bulundu (%s)" % (yol, kotu))
+    return s
+
+
 def harita_karti_mi():
     """Haritada acilan panel HARITAYI GOSTERIYOR ve tek kopya bilgi basiyor.
 
@@ -1884,12 +2092,33 @@ def turler_ulasilabilir_mi():
                                     m.group(1), re.S):
             gruplar[ad] = set(re.findall(r'"([^"]+)"', govde))
 
+    # KATEGORI cipleri (kat:...) tur VE mutfak tasiyor; tur tarafi burada
+    # aciliyor. Acilmasaydi "kat:kahve" duz bir tur adi sanilir ve Kafe
+    # yalniz eski cip sayesinde ulasilabilir gorunurdu -- yani eski cip
+    # silindiginde kontrol yanlis yerden yesil kalirdi.
+    ortak_js = oku("app", "ortak.js")
+    kat, KATEGORI_AD = {}, {}
+    mk = re.search(r"const KATEGORI = \{(.*?)\n\};", ortak_js, re.S)
+    if mk:
+        for ad, govde in re.findall(r"(\w+):\s*\{(.*?)\}", mk.group(1), re.S):
+            mt = re.search(r"tur:\s*\[(.*?)\]", govde, re.S)
+            kat[ad] = re.findall(r'"([^"]+)"', mt.group(1)) if mt else []
+            ma = re.search(r'ad:\s*"([^"]+)"', govde)
+            KATEGORI_AD[ad] = ma.group(1) if ma else ad
+
     secilebilir = set()
-    for c in cipler:
-        if c.startswith("grup:"):
-            secilebilir |= gruplar.get(c[5:], set())
+
+    def ekle(sec):
+        if sec.startswith("grup:"):
+            secilebilir.update(gruplar.get(sec[5:], set()))
+        elif sec.startswith("kat:"):
+            for t in kat.get(sec[4:], []):
+                ekle(t)
         else:
-            secilebilir.add(c)
+            secilebilir.add(sec)
+
+    for c in cipler:
+        ekle(c)
 
     # Veride gecen turler.
     idx = json.loads(oku("app", "veri", "index.json"))
@@ -1906,6 +2135,17 @@ def turler_ulasilabilir_mi():
     for n, t in ulasilmaz:
         s.append("kesfet.html: '%s' turu hicbir ciple secilemiyor (%d mekan)"
                  % (t, n))
+
+    # TANIMLI HER KATEGORININ CIPI OLMALI. Bu ayri bir sart: Esnaf
+    # lokantasinin mekanlari (mutfagi turkish olan Restoranlar) Yemek
+    # cipiyle de listeye giriyor, yani "her tur ulasilabilir" kontrolu
+    # Esnaf cipi silinince bile yesil kaliyor -- sabotaj bunu gosterdi.
+    # Kategoriyi tanimlayip cipini koymamak, yazilmis ama hicbir yerden
+    # secilemeyen bir suzgec birakmak demek.
+    for ad in sorted(kat):
+        if ("kat:" + ad) not in cipler:
+            s.append("kesfet.html: '%s' kategorisi tanimli ama cipi yok"
+                     % KATEGORI_AD.get(ad, ad))
 
     # Ana ekranin kategorileri de kesfette karsiligini bulmali: ana
     # ekrandan kesfete gecen kullanici ayni secimi orada gormeli.
@@ -2246,7 +2486,7 @@ def sql_kontrolleri():
               ("menu katkisi", "menu katkisi: 12 kontrolun hepsi gecti"),
               ("mekan fotografi", "mekan fotografi: 12 kontrolun hepsi gecti"),
               ("akran", "akran_test: 12 adimin hepsi gecti"),
-              ("fiyat oyu", "fiyat_oyu_test: 14 adimin hepsi gecti"),
+              ("fiyat oyu", "fiyat_oyu_test: 15 adimin hepsi gecti"),
               ("topluluk", "topluluk_test: 11 adimin hepsi gecti"))
              if imza not in cikti]
     if eksik:
@@ -2295,6 +2535,8 @@ def main():
     kayit("degismez: kombin mekanin kendi menusunden", kombin_mi())
     kayit("degismez: mekan sayfasi menuyu gosteriyor", menu_listesi_mi())
     kayit("degismez: harita karti maketteki gibi", harita_karti_mi())
+    kayit("degismez: isletme sayfasi konumu gosteriyor", konum_paneli_mi())
+    kayit("degismez: kazima kapisi platformlari eliyor", platform_kapisi_mi())
     kayit("degismez: seviye onayli katkiyi sayiyor", seviye_mi())
     kayit("degismez: butce talebi ifsa etmiyor", butce_talebi_mi())
     kayit("degismez: kurulum dosyalari depoda", kurulum_dosyalari_izleniyor_mu())

@@ -205,6 +205,22 @@ Sırayla dene:
 - [ ] Fiyatı olan bir mekanda **Hâlâ böyle / Değişmiş** düğmeleri çıkıyor mu;
       **üç ayrı hesaptan** oy verilince güven rozeti değişiyor mu
       (eşik `OY_ESIK = 3` — ikide değişiyorsa eşik sunucuda tutmuyor)
+- [ ] Oy verdikten sonra rozette **"— bugün"** yazıyor mu. Oyun günü 7'yi
+      geçince rozet sarıya, 30'u geçince menü kanıtına düşer
+      (`OY_TAZE_GUN` / `OY_SON_GUN`) — bunu görmek için tabloda
+      `olusturuldu` alanını geriye alman gerekir
+- [ ] **Bilgi** sekmesi → **Konum** kutusu: harita çiziliyor mu, işaret
+      doğru yerde mi, altında koordinat yazıyor mu
+- [ ] **Yol tarifi** düğmesi haritada mekanın *kendisine* mi gidiyor
+      (adres çubuğunda `destination=<enlem>,<boylam>` olmalı — ada
+      düşmüşse yanlış şubeye yollar)
+- [ ] Instagram'ı olan bir mekanda hesap düğmesi çıkıyor mu
+      (kapsam **%0,8**: 304 mekan. Facebook/X/TikTok/YouTube sütunları
+      `turkiye_mekanlar.csv`'de **hiç yok** — `python turkiye_cek.py`
+      yeniden çalıştırılınca doluyor)
+- [ ] Menüsünde kampanya olan bir mekanda (ör. bir Domino's şubesi)
+      **Kampanyalar** kutusu ayrı duruyor mu; o satırlar menü listesinde
+      *tekrar* görünmemeli
 
 **Topluluk ve profil**
 - [ ] `topluluk.html` → onaylanan yorum ve menü katkıları akışta çıkıyor mu

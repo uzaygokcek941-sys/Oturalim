@@ -255,4 +255,41 @@ begin
 end $$;
 
 reset role;
-\echo '=== fiyat_oyu_test: 14 adimin hepsi gecti ==='
+\echo '--- 12. SON OY YASI: esik ustunde geliyor, altinda GELMIYOR'
+-- KENDI FIXTURE'I: onceki adimlar node/1'in oylarini degistiriyor
+-- (bayat oy, ek kisiler). Bu adim kendi mekaniyla kosuyor ki yas
+-- olcumu baska bir adimin yan etkisine bagli olmasin.
+reset role;
+insert into public.fiyat_oylari (kullanici, mekan_id, il, fiyat, gecerli,
+                                 olusturuldu) values
+  ('b1111111-1111-4111-8111-111111111111','node/yas','34',300,true,
+   now() - interval '3 days'),
+  ('b2222222-2222-4222-8222-222222222222','node/yas','34',300,true,
+   now() - interval '9 days'),
+  ('b3333333-3333-4333-8333-333333333333','node/yas','34',300,false,
+   now() - interval '40 days'),
+  -- Esik ALTI ayri fiyat: tek kisi.
+  ('b1111111-1111-4111-8111-111111111111','node/yas','34',999,true,
+   now() - interval '1 day');
+do $$
+declare r record; n int;
+begin
+  select * into r from public.fiyat_oy_ozeti(array['node/yas']) where fiyat = 300;
+  if r.son_gun is null then
+    raise exception 'BASARISIZ: esik ustunde son oy yasi gelmedi';
+  end if;
+  -- EN YENI oyun yasi donmeli (3 gun), en eskisininki degil.
+  if r.son_gun <> 3 then
+    raise exception 'BASARISIZ: son oy yasi % (3 olmaliydi -- en yeni oy)', r.son_gun;
+  end if;
+  -- Esik ALTI grup: yas donmemeli, yoksa tek kisinin ne zaman oy
+  -- verdigi disari cikar.
+  select count(*) into n from public.fiyat_oy_ozeti(array['node/yas'])
+   where kisi < 3 and son_gun is not null;
+  if n > 0 then
+    raise exception 'BASARISIZ: esik altinda son oy yasi sizdi (% satir)', n;
+  end if;
+  raise notice 'gecti: son oy yasi esigin ardinda, en yeni oydan';
+end $$;
+
+\echo '=== fiyat_oyu_test: 15 adimin hepsi gecti ==='

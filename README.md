@@ -5,7 +5,7 @@
 Türkiye'deki kafe, restoran ve barları bütçene, bahçesine ve şu an açık olup
 olmadığına göre süzen web uygulaması. Üyelik zorunlu değil, reklam yok, çerez yok.
 
-**35.852 mekan · 81 il · 7.335 menü kalemi · 774 etkinlik**
+**35.852 mekan · 81 il · 7.406 menü kalemi · 774 etkinlik**
 
 ---
 
@@ -51,7 +51,7 @@ iki kafe, aynı kahve, iki kat fark olabiliyor. Uygulamanın tek işi:
 Google Maps, Yemeksepeti, Getir gibi platformlardan **hiçbir veri alınmadı**;
 kullanım şartları buna izin vermiyor.
 
-Dürüst not, dört katmanlı: **35.852 mekanın 291'i (%0,81)** menüsünü
+Dürüst not, dört katmanlı: **35.852 mekanın 293'ü (%0,82)** menüsünü
 yayımlamış. O 7.335 kalem bağımsız değil — **%68,9'u zincir tekrarı**, yani
 geriye **93 farklı menü** kalıyor (bir Domino's menüsü 94 şubeye uygulanıyor).
 Ve uygulama bunların yalnız **163'ünde** bir rakam söylüyor: mekanın
