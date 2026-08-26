@@ -42,6 +42,7 @@ Toplam süre: ~15 dakika. Ücret yok, kart istenmiyor.
    | `veritabani/mekan_foto.sql` | Mekan fotoğrafları | Fotoğraf şeridi hiç görünmez |
    | `veritabani/akran.sql` | Bütçe akranları ve civar özeti | Keşfette akran şeridi, işletme sayfasında civar fişi görünmez |
    | `veritabani/fiyat_oyu.sql` | "Bu fiyat hâlâ geçerli mi?" oylaması | Doğrulama düğmesi hiç görünmez, güven skoru yalnız menüye bakar |
+   | `veritabani/topluluk.sql` | Topluluk akışı (`topluluk.html`) | Sayfa açılır ama "Akış şu an yüklenemedi" der |
 
    Hiçbiri kurulmadığında sayfa normal çalışır; yalnız o bölümler
    sessizce gizli kalır. Beklenen çıktılar:
@@ -56,11 +57,26 @@ Toplam süre: ~15 dakika. Ücret yok, kart istenmiyor.
    Mekan fotografi kuruldu: RLS acik, 5 politika, atif zorunlu
    Akran kuruldu: iki fonksiyon, 10 arguman adi tarandi
    Fiyat oylari kuruldu: tablo, RLS, tek-oy kurali ve fiyat_oy_ozeti().
+   Topluluk akisi kuruldu: yorum yazariyla, menu katkisi ADSIZ, fis ve fiyat oyu yok.
    ```
 
    > `profil.sql` **`yorum.sql`'den önce** çalıştırılmalı: yorumlar yazarın
    > profil alanlarını okuyor. Sıra yanlışsa `yorum.sql` anlaşılır bir
    > cümleyle duruyor, bozuk bir kurulum bırakmıyor.
+
+   > `topluluk.sql` **en sonda**: akış `yorum.sql` ve `menu_katki.sql`
+   > tablolarından besleniyor. Sıra yanlışsa dosya eksik olanları
+   > **adıyla** sayıyor:
+   >
+   > ```
+   > ERROR: topluluk.sql once sunlari istiyor:
+   >   - veritabani/yorum.sql (yorumlar tablosu)
+   >   - veritabani/menu_katki.sql (menu_katkilari tablosu)
+   > ```
+   >
+   > Bu kapı yaşanmış bir hatadan sonra eklendi: dosya ilk çalıştırıldığında
+   > `ERROR: 42P01: relation "public.yorumlar" does not exist` diyordu ve o
+   > satır ne yapılacağını söylemiyordu.
 
    > **Fotoğraflar için ek adım yok.** `profil.sql` ve `menu_katki.sql`
    > depolama kovalarını (`avatar`, `menu`) ve yetkilerini kendileri

@@ -1610,6 +1610,75 @@ def yazi_tipi_tutarli_mi():
     return s
 
 
+def kurulum_belgesi_tam_mi():
+    """Kurulan HER SQL dosyasi KURULUM.md'de yaziyor mu, ve bagimliliklari
+    ham bir Postgres hatasiyla mi patliyor?
+
+    YASANDI: topluluk.sql yazildi, kos.sh'a eklendi, testleri gecti --
+    ama KURULUM.md'ye yazilmadi. Kullanici dosyayi Supabase'te
+    calistirdiginda su cikti:
+
+        ERROR: 42P01: relation "public.yorumlar" does not exist
+        LINE 93:  from public.yorumlar y
+
+    Iki ayri kusur birden: (1) dosya kurulum listesinde yoktu, yani
+    kullanici onu SIRANIN NERESINDE calistiracagini bilemezdi;
+    (2) dosya kendi bagimliligini soylemiyordu. Depoda bu is icin bir
+    gelenek zaten var -- yorum.sql sirasi yanlissa "Once profil.sql
+    calistirilmali" diye duruyor.
+
+    Bu grup ikisini de olcuyor. Kontrol dosya adlarini kos.sh'tan
+    okuyor: yeni bir SQL dosyasi eklendiginde liste kendiliginden
+    buyuyor ve belgelenmemis dosya hemen goze carpiyor.
+    """
+    s = []
+    kos = oku("veritabani", "kos.sh")
+    belge = oku("KURULUM.md")
+
+    m = re.search(r'DOSYALAR="([^"]+)"', kos)
+    if not m:
+        return ["veritabani/kos.sh: DOSYALAR listesi okunamadi"]
+
+    # Kurulum dosyalari: _test ile bitenler ve taklit HARIC. Testler
+    # kullanicinin calistiracagi seyler degil.
+    dosyalar = [d for d in m.group(1).split()
+                if not d.endswith("_test") and d != "supabase_taklit"]
+
+    for d in dosyalar:
+        yol = "veritabani/%s.sql" % d
+        if not os.path.exists(os.path.join(KOK, yol)):
+            s.append("%s kos.sh'ta var ama dosya yok" % yol)
+            continue
+        # sema.sql listede degil, ADIM 2 olarak ayrica anlatiliyor.
+        if ("`%s`" % yol) not in belge:
+            s.append("KURULUM.md: %s hic gecmiyor (kullanici sirayi bilemez)"
+                     % yol)
+
+    # BAGIMLILIK KAPISI. Baska bir dosyanin tablosunu okuyan her kurulum
+    # dosyasi, o tablo yokken ANLASILIR bir cumleyle durmali.
+    TABLO_SAHIBI = {
+        "yorumlar": "yorum",
+        "menu_katkilari": "menu_katki",
+        "mekan_fotolari": "mekan_foto",
+        "fiyat_oylari": "fiyat_oyu",
+        "sahiplenme_kodlari": "sahiplenme",
+    }
+    for d in dosyalar:
+        govde = oku("veritabani", "%s.sql" % d)
+        for tablo, sahip in TABLO_SAHIBI.items():
+            if sahip == d:
+                continue
+            if ("public.%s" % tablo) not in govde:
+                continue
+            # Tabloyu KULLANIYOR ama kendisi kurmuyor: kapi sart.
+            if ("to_regclass('public.%s')" % tablo) not in govde:
+                s.append("veritabani/%s.sql: public.%s tablosunu kullaniyor "
+                         "ama yoksa ham hata veriyor (to_regclass kapisi yok)"
+                         % (d, tablo))
+
+    return s
+
+
 def kombin_mi():
     """Cebimde kombini: "bu butceyle burada ne yenir".
 
@@ -1984,6 +2053,8 @@ def main():
     kayit("degismez: seviye onayli katkiyi sayiyor", seviye_mi())
     kayit("degismez: butce talebi ifsa etmiyor", butce_talebi_mi())
     kayit("degismez: kurulum dosyalari depoda", kurulum_dosyalari_izleniyor_mu())
+    kayit("degismez: kurulum belgesi eksiksiz",
+          kurulum_belgesi_tam_mi())
     kayit("degismez: donus adresi ve gunun tarihi", adres_ve_tarih_mi())
     kayit("degismez: sir sizmamis", sirlar_sizmis_mi())
 

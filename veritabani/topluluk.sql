@@ -53,6 +53,41 @@
 -- eder). İmleç zaman damgası.
 -- ============================================================
 
+-- ------------------------------------------------------------
+-- ONCE NE KURULMALI
+--
+-- Akis iki tablodan besleniyor ve ikisi de baska dosyalarda:
+--     yorumlar        -> veritabani/yorum.sql   (o da profil.sql'e bagli)
+--     menu_katkilari  -> veritabani/menu_katki.sql
+--
+-- Fonksiyon `language sql` ve govdesi OLUSTURULURKEN dogrulaniyor, yani
+-- eksik tablo ham bir hatayla patliyor:
+--     ERROR: 42P01: relation "public.yorumlar" does not exist
+-- O satir kullaniciya ne yapacagini soylemiyor. Kapi burada, en basta.
+-- ------------------------------------------------------------
+do $$
+-- ::text SART: text[] || 'metin' belirsiz, Postgres literali
+  -- diziye cevirmeye calisiyor ("malformed array literal").
+  declare eksik text[] := '{}';
+begin
+  if to_regclass('public.yorumlar') is null then
+    eksik := eksik || 'veritabani/yorum.sql (yorumlar tablosu)'::text;
+  end if;
+  if to_regclass('public.menu_katkilari') is null then
+    eksik := eksik || 'veritabani/menu_katki.sql (menu_katkilari tablosu)'::text;
+  end if;
+  -- profiller yorum.sql'in de sarti; ayri sayiliyor cunku yorumlar
+  -- kurulu olsa bile profil alanlari eksik olabilir.
+  if to_regclass('public.profiller') is null then
+    eksik := eksik || 'veritabani/profil.sql (profiller tablosu)'::text;
+  end if;
+  if array_length(eksik, 1) is not null then
+    raise exception E'topluluk.sql once sunlari istiyor:\n  - %\n'
+      'KURULUM.md''deki sirayla calistir, sonra bu dosyayi tekrar dene.',
+      array_to_string(eksik, E'\n  - ');
+  end if;
+end $$;
+
 create or replace function public.topluluk_akisi(
   p_once timestamptz default null,
   p_limit integer default 30
@@ -121,3 +156,9 @@ grant execute on function public.topluluk_akisi(timestamptz, integer) to anon, a
 
 comment on function public.topluluk_akisi is
   'Son onayli katkilar. Yorum yazariyla, menu katkisi ADSIZ. Fis ve fiyat oyu YOK.';
+
+do $$
+begin
+  if to_regclass('public.topluluk_akisi'::text) is null then null; end if;
+  raise notice 'Topluluk akisi kuruldu: yorum yazariyla, menu katkisi ADSIZ, fis ve fiyat oyu yok.';
+end $$;
