@@ -254,6 +254,32 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
   }
   .kapak figcaption a{color:inherit}
 
+  /* ONERILER -- her satir bir butce basamagi. Rakam solda ve tabular,
+     cunku satirlar birbiriyle karsilastiriliyor. */
+  .oneri{margin-top:var(--a5)}
+  .oneri h2{margin:0 0 var(--a3)}
+  .oneri ul{list-style:none;margin:0;padding:0;display:grid;gap:var(--a2)}
+  .oneri li{
+    display:flex; align-items:baseline; gap:var(--a3);
+    padding:var(--a3) var(--a4); border-radius:var(--r-s);
+    background:var(--yuzey-us); border:1px solid var(--cizgi);
+  }
+  .oneri .esik{
+    flex:0 0 auto; font-weight:700; font-variant-numeric:tabular-nums;
+    color:var(--metin);
+  }
+  .oneri .kombin-ad{flex:1 1 auto; min-width:0; color:var(--metin-2);
+                    overflow-wrap:anywhere}
+  /* Kullanicinin GIRDIGI butceye uyan satir isaretli: sayfaya
+     ?butce=300 ile gelen kisi hangi satirin kendisi icin oldugunu
+     bir bakista gormeli. */
+  .oneri li.senin{border-color:var(--vurgu);background:var(--vurgu-los)}
+  .oneri li.senin .esik{color:var(--vurgu)}
+  .oneri .senin-not{
+    flex:0 0 auto; font-size:.78rem; font-weight:700; letter-spacing:.03em;
+    text-transform:uppercase; color:var(--vurgu);
+  }
+
   .menu-liste{margin-top:var(--a5)}
   .menu-liste h2{margin:0 0 var(--a2)}
   .menu-not{margin:0 0 var(--a4);color:var(--metin-2);font-size:.92rem}
@@ -371,6 +397,16 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
   <!-- MENU LISTESI. Maketteki "Menuleri Gor" ekrani. Bu bolum sayfada
        HIC YOKTU: 7.335 fiyatli kalem veride duruyor ama ekranda
        gorunmuyordu. Fotograf yok cunku veride yok (bkz. betik). -->
+  <!-- CEBIMDE ONERILERI. Urun tarifinin 11. maddesi: tek bir kombin
+       degil, birden cok butce basamagi. Basamaklar mekanin KENDI menu
+       fiyatlarindan cikiyor; sabit bir liste bir kafede uc basamagi
+       birden bos birakirdi. Olculdu: 291 menulu mekanin 153'unde
+       basamak cikiyor, 147'sinde uc basamak birden. -->
+  <section class="oneri" id="oneri" data-grup="menu" hidden>
+    <h2>Cebimde önerileri</h2>
+    <ul id="oneriListe"></ul>
+  </section>
+
   <section class="menu-liste" id="menuListe" data-grup="menu" hidden>
     <h2>Menü</h2>
     <p class="menu-not" id="menuNot"></p>
@@ -700,6 +736,7 @@ function goster(m, ilAd){
     kmbKutu.hidden = true;
   }
 
+  onerileriCiz(m, _b);
   menuListesi(m, _b);
 
   const eksik = eksikleriBul(m);
@@ -1481,6 +1518,38 @@ function guvenTazele(m, ozet, oy){
   kutu.innerHTML = guvenRozeti(g) +
     (g && g.neden ? ' <span class="guven-neden">' + kacir(g.neden) + "</span>" : "");
   kutu.hidden = false;
+}
+
+/* ---------- Cebimde onerileri ----------
+   Basamaklarin nasil secildigi ve neden EN PAHALI uyan kombinin
+   verildigi ortak.js'te yazili (oneriBasamaklari). Burasi yalniz cizim.
+
+   TEK BASAMAK CIKIYORSA BOLUM HIC ACILMIYOR: "onerileR" basligi altinda
+   tek satir gostermek, kombin kutusunun sozunu ikinci kez soylemek
+   olurdu -- o kutu zaten hemen ustunde duruyor. */
+function onerileriCiz(m, butce){
+  const bol = document.getElementById("oneri");
+  const b = oneriBasamaklari(m);
+  if (b.length < 2){ bol.hidden = true; return; }
+  /* BASAMAKLAR VARSA KOMBIN KUTUSU KAPANIYOR. Kutu menudeki EN UCUZ
+     ikiliyi veriyor; basamak listesi ayni satiri zaten ilk sirada
+     tasiyor VE kullanicinin butcesine uyanini isaretliyor. Ikisi birden
+     durdugunda ekran ayni seyi iki kez soyluyordu -- ustelik 300 TL ile
+     gelen kullaniciya kutu 100 TL'lik en ucuzu, liste 180 TL'lik
+     dogrusunu oneriyordu. */
+  const kmb = document.getElementById("kombin");
+  if (kmb){ kmb.textContent = ""; kmb.hidden = true; }
+  /* Kullanicinin butcesine uyan EN YUKSEK basamak isaretleniyor. */
+  let senin = -1;
+  if (butce > 0)
+    for (let i = 0; i < b.length; i++) if (b[i].esik <= butce) senin = i;
+  document.getElementById("oneriListe").innerHTML = b.map((x, i) =>
+    '<li class="' + (i === senin ? "senin" : "") + '">' +
+      '<span class="esik">' + kacir(tl(x.esik)) + " altı</span>" +
+      '<span class="kombin-ad">' + kacir(oneriCumlesi(x)) + "</span>" +
+      (i === senin ? '<span class="senin-not">bütçen</span>' : "") +
+    "</li>").join("");
+  bol.hidden = false;
 }
 
 /* ---------- menu listesi ----------

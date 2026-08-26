@@ -1489,6 +1489,74 @@ function kombinCumlesi(k, butce){
     : " — " + tl(k.toplam - butce) + " aşıyor.");
 }
 
+/* ---------- çok bütçeli öneri (mekan sayfası) ----------
+   Ürün tarifi mekan sayfasında birden çok basamak istiyor:
+   "₺200 altında … ✅ / ₺300 altında … ❌". Tek kombin bunu veremiyordu.
+
+   HER BASAMAKTA EN PAHALI UYAN KOMBİN. "₺300'e ne alırım" sorusunun
+   cevabı 300'e en yakın olan; en ucuzu vermek kullanıcının elindeki
+   parayı bilerek eksik kullanması olurdu.
+
+   BASAMAKLAR MEKANIN KENDİ MENÜSÜNDEN. Sabit bir liste (BUTCE_SECENEK)
+   bir kafede üç basamağı birden boş bırakırdı. Kombin fiyatlarının
+   kendisi yuvarlanarak basamak oluyor, yani her mekanda dolu satır
+   çıkıyor. */
+const ONERI_EN_COK = 3;
+
+/* Menüdeki bütün ana ürün + yanına ikililerini kurar, ucuzdan pahalıya.
+   kombinKur() TEK en ucuzu veriyor; buradaki liste basamakları
+   doldurmak için gerekiyor. Kural aynı: alkolsüz önce, aynı kalem iki
+   kez sayılmaz. */
+function kombinListesi(m, bugun){
+  const menu = m && m.menu;
+  if (!menu || !menu.length) return [];
+  const ana = anaKategoriler(m);
+  if (!ana || !ana.length) return [];
+  const anaKume = new Set(ana);
+  const yan = _alkolsuz(new Set([...ICECEK_KAT, ...TATLI_KAT]));
+  const fiyatli = k => k && k.f != null && k.a;
+
+  const yemekler = menu.filter(k => fiyatli(k) && k.k && anaKume.has(k.k));
+  let yanlar = menu.filter(k => fiyatli(k) && k.k && yan.has(k.k));
+  /* Alkolsüz hiç yoksa alkollüye düşülüyor -- kombinKur ile aynı sıra. */
+  if (!yanlar.length)
+    yanlar = menu.filter(k => fiyatli(k) && k.k && ICECEK_KAT.has(k.k));
+  if (!yemekler.length || !yanlar.length) return [];
+
+  const l = [];
+  for (const y of yemekler)
+    for (const z of yanlar){
+      if (y === z) continue;
+      l.push({ kalemler: [y, z], toplam: y.f + z.f });
+    }
+  l.sort((a, b) => a.toplam - b.toplam);
+  return l;
+}
+
+/* Basamaklar: en ucuz kombinin üstünden başlayıp 50'şer yuvarlanmış
+   birkaç eşik. Her eşik için o eşiği AŞMAYAN en pahalı kombin. */
+function oneriBasamaklari(m, bugun){
+  const l = kombinListesi(m, bugun);
+  if (!l.length) return [];
+  const yuvarla = n => Math.ceil(n / 50) * 50;
+  const esikler = [];
+  for (const k of l){
+    const e = yuvarla(k.toplam);
+    if (!esikler.includes(e)) esikler.push(e);
+    if (esikler.length >= ONERI_EN_COK) break;
+  }
+  return esikler.map(e => {
+    const uyan = l.filter(k => k.toplam <= e);
+    return { esik: e, kombin: uyan.length ? uyan[uyan.length - 1] : null };
+  });
+}
+
+function oneriCumlesi(b){
+  if (!b || !b.kombin) return "";
+  const k = b.kombin;
+  return k.kalemler.map(x => x.a).join(" + ") + " — " + tl(k.toplam);
+}
+
 /* ============================================================
    KULLANICI SEVİYESİ
 
@@ -1506,18 +1574,21 @@ function kombinCumlesi(k, butce){
    -- görünmez değil, seviyeye etkisiz.
 
    EŞİKLER NEREDEN GELİYOR, VE HANGİSİ UYDURMA:
-     0   Yeni
-     1   Katkıcı       ilk katkı: bir mekan senin sayende daha eksiksiz
-     3   Doğrulayıcı   FIS_ESIK ile aynı sayı -- tek başına bir mekanın
-                       fiyatını k-anonimlik eşiğine taşıyabilecek katkı
-     10  Düzenli       YUVARLAK SAYI, ölçüm değil
-     25  Kaşif         YUVARLAK SAYI, ölçüm değil
-     50  Emektar       YUVARLAK SAYI, ölçüm değil
+     0   Yeni Cebimdeci
+     1   Menü Avcısı      ilk katkı: bir mekan senin sayende daha eksiksiz
+     3   Fiyat Dedektifi  FIS_ESIK ile aynı sayı -- tek başına bir mekanın
+                          fiyatını k-anonimlik eşiğine taşıyabilecek katkı
+     10  Cebimde Gurmesi  YUVARLAK SAYI, ölçüm değil
+     25  Cebimde Elçisi   YUVARLAK SAYI, ölçüm değil
 
-   İlk üçünün gerekçesi var, son üçü yok ve bu bilerek yazılıyor:
+   İlk üçünün gerekçesi var, son ikisi yok ve bu bilerek yazılıyor:
    uygulama daha yayında değil, yani gerçek bir katkı dağılımı yok.
-   Dağılım oluşunca bu üç sayı ölçüme göre yeniden konmalı. Uydurma bir
+   Dağılım oluşunca bu iki sayı ölçüme göre yeniden konmalı. Uydurma bir
    eğriye "veri" demektense uydurma olduğunu söylemek daha dürüst.
+
+   BASAMAK SAYISI ALTIDAN BEŞE İNDİ: ürün tarifindeki merdiven beş
+   basamaklı. Altıncı basamağın eşiği (50) zaten uydurmaydı; uydurma bir
+   sayıyı korumak için markanın adlandırmasını bozmanın anlamı yok.
 
    SEVİYE HERKESE AÇIK DEĞİL. Kullanıcı kendi sayfasında görüyor; başka
    kimseye gösterilmiyor. Başkasına göstermek için sayımın SUNUCUDA
@@ -1526,13 +1597,18 @@ function kombinCumlesi(k, butce){
    iddiayı taşıyamaz.
    ============================================================ */
 
+/* ADLAR MARKA TARIFINDEN. Önce genel adlar yazmıştım (Yeni, Katkıcı,
+   Doğrulayıcı, Düzenli, Kâşif, Emektar); ürün tarifindeki adlar hem
+   markanın sesini taşıyor hem de KATKININ TÜRÜNÜ söylüyor -- "Menü
+   Avcısı" ne yaptığını anlatıyor, "Katkıcı" anlatmıyor.
+
+   Eşikler DEĞİŞMEDİ: adlar süs, sayım değil. */
 const SEVIYELER = [
-  { esik: 0,  ad: "Yeni" },
-  { esik: 1,  ad: "Katkıcı" },
-  { esik: 3,  ad: "Doğrulayıcı" },
-  { esik: 10, ad: "Düzenli" },
-  { esik: 25, ad: "Kaşif" },
-  { esik: 50, ad: "Emektar" }
+  { esik: 0,  ad: "Yeni Cebimdeci" },
+  { esik: 1,  ad: "Menü Avcısı" },
+  { esik: 3,  ad: "Fiyat Dedektifi" },
+  { esik: 10, ad: "Cebimde Gurmesi" },
+  { esik: 25, ad: "Cebimde Elçisi" }
 ];
 
 /* onayli: onaydan geçmiş katkı sayısı (fiş, katkı, yorum, menü, fotoğraf).
@@ -1782,6 +1858,24 @@ function kendiniKontrolEt(){
      128'i (%44) boyle. Burada yalniz icecek kategorisi var, yani
      anaKategoriler() bos donuyor ve yemekFiyati() null. Kalemlerin
      fiyati ise ekranda YAZIYOR. */
+  /* Cok butceli oneri fixture'i: iki ana urun (ANA 30, ANA2 60) ve iki
+     yan (TATLI 70, TATLI2 150) -> dort ikili, uc ayri basamak. */
+  const ONR = { id:"o1", ad:"Oneri", tur:"Kafe", tarih:"2026-08",
+    kat:{ "Poğaça / börek": { n:2, med:45 }, "Tatlı": { n:2, med:110 } },
+    menu:[ {a:"ANA",    f:30,  k:"Poğaça / börek"},
+           {a:"ANA2",   f:60,  k:"Poğaça / börek"},
+           {a:"TATLI",  f:70,  k:"Tatlı"},
+           {a:"TATLI2", f:150, k:"Tatlı"},
+           /* BIRA EN UCUZ YAN. Alkol suzgeci kalkarsa butun basamaklar
+              buna kayar; fixture'da alkol hic yokken sabotaj KACIYORDU. */
+           {a:"BIRA",   f:10,  k:"Bira"} ] };
+  /* YALNIZ TATLI olan mekan (pastane): anaKategoriler tatliya dusuyor,
+     yani ayni kalem hem ana urun hem yan olabiliyor. "y === z" korumasi
+     kalkarsa "TEK + TEK" diye bir kombin cikar. */
+  const ONR_TEK = { id:"o2", ad:"Pastane", tur:"Kafe", tarih:"2026-08",
+    kat:{ "Tatlı": { n:2, med:60 } },
+    menu:[ {a:"TEK",  f:40, k:"Tatlı"},
+           {a:"TEK2", f:80, k:"Tatlı"} ] };
   const _menulu = { id:"g5", ad:"Sadece Icecek", tur:"Kafe",
                     kat:{ "Bira": { n:3, med:230 } }, tarih:"2026-08",
                     menu:[ {a:"EFES 33", f:230, k:"Bira"},
@@ -2449,31 +2543,72 @@ function kendiniKontrolEt(){
        ONAYDAN GECMIS katki sayiliyor, gonderilen degil: gonderileni
        saymak seviyeyi kuyruga cop atarak yukseltilebilir yapardi.
        Fiyat oyu seviyeye GIRMIYOR -- tek dokunus ve onay kuyrugu yok. */
-    ["seviye sifir katki",       seviyeHesapla(0).ad,                    "Yeni"],
-    ["seviye ilk katki",         seviyeHesapla(1).ad,                 "Katkıcı"],
-    ["seviye ikide hala katkici", seviyeHesapla(2).ad,                "Katkıcı"],
+    /* --- cok butceli oneri (urun tarifi md.11) ---
+       Fixture ELLE: menude iki ana urun ve iki yan var, yani dort ikili
+       kurulabiliyor ve basamaklarin gercekten AYRILDIGI gorulebiliyor. */
+    ["oneri basamaklari cikiyor",     oneriBasamaklari(ONR).length,           3],
+    /* HER BASAMAKTA EN PAHALI UYAN. En ucuzu vermek, kullanicinin
+       elindeki parayi bilerek eksik kullandirmak olurdu. */
+    ["oneri en pahali uyani veriyor",
+      oneriBasamaklari(ONR)[2].kombin.toplam,                               180],
+    ["oneri basamak esikleri artan",
+      oneriBasamaklari(ONR).map(x => x.esik).join(","),           "100,150,200"],
+    ["oneri esigi asan kombin secilmiyor",
+      oneriBasamaklari(ONR).every(x => x.kombin.toplam <= x.esik),        true],
+    /* Menusuz ya da tek kalemli mekanda bolum hic acilmamali. */
+    ["oneri menusuz mekanda bos",     oneriBasamaklari({ad:"X"}).length,      0],
+    ["oneri tek kalemde bos",
+      oneriBasamaklari({ad:"X", kat:{"Kebap":{n:1,med:50}},
+                        menu:[{a:"Kebap", f:50, k:"Kebap"}]}).length,        0],
+    /* ALKOL YANINDA SONA: kombinKur ile ayni kural. Alkolsuz yan varken
+       alkollu kalem basamaklara girmemeli. */
+    ["oneri alkolsuz yani secer",
+      oneriBasamaklari(ONR).every(x =>
+        !x.kombin.kalemler.some(k => ALKOL_KAT.has(k.k))),                true],
+    ["oneri cumlesi iki kalemi yaziyor",
+      /ANA \+ TATLI/.test(oneriCumlesi(oneriBasamaklari(ONR)[0])),        true],
+    ["oneri cumlesi bos girdide sus",  oneriCumlesi(null),                   ""],
+    /* Menude ondan UCUZ bir bira var; alkol suzgeci calismazsa butun
+       basamaklar ona kayar ve toplamlar degisir. */
+    ["oneri en ucuz yan bira olsa da alkolsuz",
+      oneriBasamaklari(ONR)[0].kombin.kalemler.map(k => k.a).join("+"),
+                                                                  "ANA+TATLI"],
+    /* AYNI KALEM IKI KEZ SAYILMAZ: yalniz tatli satan mekanda ana urun
+       ile yan ayni kumeden geliyor. */
+    ["oneri ayni kalemi kendisiyle eslemiyor",
+      oneriBasamaklari(ONR_TEK).every(x =>
+        x.kombin.kalemler[0] !== x.kombin.kalemler[1]),                   true],
+    ["oneri pastanede yine basamak veriyor",
+      oneriBasamaklari(ONR_TEK).length >= 1,                             true],
+
+    ["seviye sifir katki",       seviyeHesapla(0).ad,          "Yeni Cebimdeci"],
+    ["seviye ilk katki",         seviyeHesapla(1).ad,            "Menü Avcısı"],
+    ["seviye ikide hala menu avcisi", seviyeHesapla(2).ad,       "Menü Avcısı"],
     /* 3 = FIS_ESIK: tek basina bir mekanin fiyatini esige tasiyabilecek
        sayi. Esigin kendisi degisirse bu ad da anlamini kaybeder. */
-    ["seviye ucte dogrulayici",  seviyeHesapla(3).ad,             "Doğrulayıcı"],
-    ["seviye onda duzenli",      seviyeHesapla(10).ad,                "Düzenli"],
-    ["seviye elli ve ustu emektar", seviyeHesapla(500).ad,           "Emektar"],
+    ["seviye ucte fiyat dedektifi", seviyeHesapla(3).ad,      "Fiyat Dedektifi"],
+    ["seviye onda gurme",        seviyeHesapla(10).ad,       "Cebimde Gurmesi"],
+    ["seviye en ust elci",       seviyeHesapla(500).ad,       "Cebimde Elçisi"],
+    /* EN UST BASAMAKTA "sonraki" NULL olmali: merdiven bittiginde
+       "N katki sonra X" demek, olmayan bir basamagi vaat etmek olurdu. */
+    ["seviye en ustte sonraki yok", seviyeHesapla(500).sonraki,          null],
     /* Bozuk girdi seviyeyi yukseltmemeli: negatif, metin, null hepsi
        sifir sayiliyor. */
-    ["seviye negatif sifir sayilir",  seviyeHesapla(-5).ad,            "Yeni"],
-    ["seviye metin sifir sayilir",    seviyeHesapla("abc").ad,         "Yeni"],
-    ["seviye null sifir sayilir",     seviyeHesapla(null).ad,          "Yeni"],
-    ["seviye ondalik asagi yuvarlanir", seviyeHesapla(2.9).ad,      "Katkıcı"],
+    ["seviye negatif sifir sayilir",  seviyeHesapla(-5).ad,  "Yeni Cebimdeci"],
+    ["seviye metin sifir sayilir",    seviyeHesapla("abc").ad, "Yeni Cebimdeci"],
+    ["seviye null sifir sayilir",     seviyeHesapla(null).ad, "Yeni Cebimdeci"],
+    ["seviye ondalik asagi yuvarlanir", seviyeHesapla(2.9).ad, "Menü Avcısı"],
     /* Kalan katki RAKAMLA: kullaniciyi ilerleme cubuguna bakip tahmin
        etmeye birakmak, ekranin isini kullaniciya yikmak olurdu. */
     ["seviye kalan katki sayisi",     seviyeHesapla(7).kalan,               3],
     ["seviye en ustte sonraki yok",   seviyeHesapla(50).sonraki,         null],
     ["seviye en ustte kalan sifir",   seviyeHesapla(50).kalan,              0],
     ["seviye cumlesi sifirda davet",
-      /İlk katkın seni Katkıcı yapar/.test(seviyeCumlesi(seviyeHesapla(0))), true],
+      /İlk katkın seni Menü Avcısı yapar/.test(seviyeCumlesi(seviyeHesapla(0))), true],
     ["seviye cumlesi kalani yaziyor",
-      /3 katkı daha: Düzenli/.test(seviyeCumlesi(seviyeHesapla(7))),      true],
+      /3 katkı daha: Cebimde Gurmesi/.test(seviyeCumlesi(seviyeHesapla(7))), true],
     ["seviye cumlesi en ustte",
-      /En üst seviyedesin/.test(seviyeCumlesi(seviyeHesapla(50))),        true],
+      /En üst seviyedesin/.test(seviyeCumlesi(seviyeHesapla(25))),        true],
     ["seviye cumlesi bos girdi",      seviyeCumlesi(null),                 ""],
 
     /* --- butce talebi (isletme paneli) ---
