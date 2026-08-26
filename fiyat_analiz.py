@@ -89,6 +89,25 @@ PERAKENDE = [
 PAKET = [r"alana \d", r"bedava", r"\bmenu\b", r"combo", r"firsat", r"kampanya",
          r"\d+.?l[iu]\b", r"paket", r"secili", r"\bseri\b", r"\bbox\b", r"\+"]
 
+# PAKET'in kampanya olan DAR alt kumesi: bir TEKLIF anlatan satirlar.
+# PAKET'in tamami degil, cunku o listenin cogu coklu paket ve perakende
+# ("10'lu Caffe Latte", "Tekirdag 70 CL", "5-6'li Orgu" -- sonuncusu bir
+# kuafor). Kampanya kapisi dar tutuluyor: yanlis etiket, etiketsizlikten
+# kotu (projenin ilk kuralinin ayni bicimi).
+#
+# Olculdu (app/veri/*.json, 291 menulu mekan): 96 mekanda 672 satir bu
+# kapiya uyuyor -- o mekanlarin menu satirlarinin %17'si. Fiyatlari
+# CARPITMIYORLAR (mekan medyanini 1,5 kat asan tek satir bile yok);
+# eksik olan sey ETIKET: "1 Alana 1 Bedava Icecek · 120 TL" bugun sira
+# menude 120 liralik bir icecek gibi duruyor.
+KAMPANYA = [r"alana \d", r"bedava", r"kampanya", r"firsat", r"hediye",
+            r"indirim"]
+
+
+def kampanya_mi(ad):
+    """Bu satir bir urun degil, bir TEKLIF mi? ("1 Alana 1 Bedava ...")"""
+    return eslesir(KAMPANYA, sadelestir(ad or ""))
+
 PERAKENDE_ESIK = 0.35   # bu orani asan mekan bir menu degil, bir katalog
 # Menu kalemi sayilabilecek makul aralik (TL). TEK YERDE: app_veri.py bunu
 # ice aktariyor. Onceden iki dosyada iki farkli deger vardi (5-3000 burada,

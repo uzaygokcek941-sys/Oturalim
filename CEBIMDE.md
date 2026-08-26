@@ -2282,3 +2282,98 @@ var mı. Dosya adları `kos.sh`'tan okunuyor.
 **45 kontrol grubunun hepsi geçiyor.** Kalan tek CDN bağımlılığı
 supabase-js; `python kutuphane_al.py` çalıştırılınca o da yerele iniyor ve
 `esm.sh` hem CSP'den hem gizlilik tablosundan kendiliğinden düşüyor.
+
+---
+
+## 26 Ağustos 2026 — ürün tarifinin kalan dört maddesi
+
+Ürün tarifindeki 16 maddenin 12'si zaten ekrandaydı. Kalan dördü bu
+turda kapandı; ikisi (14 ve 15) bilerek kapanmadı ve sebepleri aşağıda.
+
+### md.10 — "Bugün burada ne yenir?" fixture'ı kendi kontrolünü kaçırıyormuş
+
+Kalem listesi çalışıyordu ama **sabotaj üçü birden kaçtı**:
+tekilleştirme, tekrarda en yakın şubenin kalması, mekan başına tek
+kalem. Sebep koddan değil **fixture'dan** çıktı:
+
+```
+const CIVAR_YARICAP = 500;   /* metre */
+c2 "Uzak Sube"  ->  535 m
+```
+
+İkinci şube yarıçapın 35 m dışındaydı; yani aynı adlı iki kalem hiçbir
+zaman birlikte menzile girmiyor, tekilleştirme hiç denenmiyordu. Şube
+187 m'ye alındı ve iki yenir kalemi olan bir mekan (`Corbaci`, 55 ve 70)
+eklendi. Altı sabotajın altısı yakalanıyor.
+
+### md.5 — onayın raf ömrü: 🟢 0-7 gün, 🟡 8-30, 🔴 30+
+
+Tarifin istediği gün eşikleri **hiç uygulanmıyordu**: üç kişi "hâlâ
+böyle" dediyse oy kaç günlük olursa olsun rozet yeşildi. Menü tarihine
+uygulanamıyor (kazınan sayfada gün yok, `FIYAT_TAZE_AY` orada duruyor)
+ama **oyun günü var** ve eşikler tam ona ait.
+
+- 0-7 gün → yeşil
+- 8-30 gün → sarı
+- 30 günden eski → **hüküm vermiyor**, karar menü kanıtına düşüyor
+
+Eski onay **kırmızıya çevrilmiyor**: bir onayı cezaya çevirmek olurdu.
+Fiyatın yanlış olduğunun kanıtı değil, doğru olduğunun kanıtı olmaktan
+çıkması.
+
+Tarihsiz onay da artık yeşil değil (sarı, "tarihi bilinmiyor"): yaşını
+bilmediğimiz bir onay "son 7 gün" diyemez. `Number(null)` sıfır olduğu
+için `oyYasi` bu iki değeri önce eliyor — `gunOnce`'ta yakalanan aynı
+tuzak.
+
+### md.3 — kampanya alanı: 672 satır "ürün" gibi duruyormuş
+
+Ölçüldü (291 menülü mekan): **96 mekanda 672 satır** bir ürün değil bir
+**teklif** — "1 Alana 1 Bedava İçecek · 120 ₺" sıra menüde 120 liralık
+bir içecek gibi duruyordu. O mekanların menü satırlarının %17'si.
+
+Fiyatları çarpıtmıyorlar (mekan medyanını 1,5 kat aşan tek satır bile
+yok); eksik olan **etiket**. Satır silinmiyor, ayrılıyor: teklif gerçek
+ve bütçesine bakan için değerli.
+
+Kural Python'da (`fiyat_analiz.kampanya_mi`), veriye tek baytlık bir
+bayrak olarak yazılıyor (`"p":1`). Kapı `PAKET`'in **dar alt kümesi**,
+tamamı değil: o listenin çoğu çoklu paket ve perakende ("10'lu Caffe
+Latte", "Tekirdağ 70 CL", bir kuaförün "5-6'lı Örgü"sü). Yanlış etiket,
+etiketsizlikten kötü.
+
+Bayrak üç yeri birden düzeltiyor: menü listesi, "menüde N kalemin fiyatı
+var" rozeti ve "bu civarda ne yenir". Sonuncusu ölçülmüş bir zarar
+değildi ama açıktı — bir teklifin fiyatı porsiyon fiyatı diye
+önerilebilirdi.
+
+### md.4 — kalem düzeyinde tarih: kazınan menüde YOK, katkıda VAR
+
+Tarif "Latte · son doğrulanma 2 gün önce" istiyordu. Ölçüldü: **291
+mekanın 291'inde bütün kalemler aynı gün derlenmiş**. Yani kalem tarihi
+mekan tarihinin birebir kopyası olurdu — 81 dosyada bilgi taşımayan bayt.
+Uydurmak yerine ölçüm yazıldı.
+
+Kalem düzeyinde tarihi **gerçekten** olan tek veri kullanıcıdan gelen
+menü katkısı (`menu_katkilari.olusturuldu`). O alan sorguda zaten
+çekiliyordu ve **ekrana hiç gelmiyordu**. Artık kalemin altında
+"3 gün önce" yazıyor — biçim `gunOnce`'ta, oy rozetiyle aynı yerde.
+
+`zamanYasi` adı bilerek `gunFarki` değil: o ad kohort ölçümünde başka
+bir anlamla duruyor (iki gün arası fark, yuvarlanmış, negatif olabilir).
+Birleştirmek ikisinden birini bozardı.
+
+### Kapanmayan iki madde
+
+- **md.14 (gelir modeli).** Abonelik akışı bugün kurulamaz: Faz 0
+  kararı "şirket gelir doğana kadar kurulmayacak", yani ödeme
+  alınamıyor. İşletme paneli hazır ve aboneliği somut yapacak sayıyı
+  üretiyor. **Sponsorlu sonuç yapılmadı ve yapılmayacak**: bütçe
+  dürüstlüğü satan bir uygulamada sıralamayı satmak, satılan şeyin
+  kendisini bozar.
+- **md.15 (teknik mimari).** Spring Boot + PostGIS + Redis + React
+  Native yerine derleme adımı olmayan statik site + Supabase. Sebep Faz
+  0'ın "maliyet 0 TL" kararı; bilinçli ayrışma, eksik değil.
+
+**421 iç kontrol + 46 kontrol grubu geçiyor.** Bu turda yazılan 14
+sabotajın 14'ü yakalanıyor.

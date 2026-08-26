@@ -505,6 +505,70 @@ function mesafeM(a, b){
    yazan "500 m çevresinde" ifadesini yalan yapardı -- İstanbul'un yoğun
    caddelerinde 500 m'de 600 mekan olabiliyor. Onun yerine yarıçap 100'er
    metre daraltılıyor ve DARALTILMIŞ yarıçap dönüyor; ekranda o yazıyor. */
+/* ---------- "bu civarda ne yenir" ----------
+   Ürün tarifinin 10. maddesi. Tarif "bugün popüler" diyor; POPÜLERLİK
+   VERİSİ YOK ve uydurulamaz -- tek kullanıcı yok, tıklama geçmişi yok.
+   Sıfır tıklamayı "popüler" diye sıralamak ölçülmemiş bir şey uydurmak
+   olurdu.
+
+   Sorunun kendisi ise cevaplanabilir: 1 km çemberinde fiyatlı menü
+   kalemi olan mekan 12.102 (%44,3), kalem ortancası 47.
+
+   SIRA UCUZDAN PAHALIYA. Uygulamanın sorusu "bu parayla ne yenir";
+   ucuzdan sıralamak onu ilk satırda cevaplıyor ve uydurma bir
+   popülerlik iddiası taşımıyor.
+
+   İÇECEK VE TATLI DIŞARIDA: soru "ne YENİR". Menüdeki en ucuz kalem
+   neredeyse her zaman bir içecek olduğu için liste ayransa hiçbir şey
+   söylemezdi -- yemekFiyati()'nin dışladığı kümelerin aynısı. */
+const CIVAR_KALEM_EN_COK = 5;
+
+function civarKalemleri(m, hepsi, butce, yaricap){
+  if (!m || typeof m.lat !== "number") return [];
+  if (!Array.isArray(hepsi) || !hepsi.length) return [];
+  const tavan = yaricap || CIVAR_YARICAP;
+  const disi = new Set([...ICECEK_KAT, ...TATLI_KAT]);
+  const l = [];
+  for (const o of hepsi){
+    if (!o || o === m || o.id === m.id) continue;
+    if (typeof o.lat !== "number" || !(o.menu || []).length) continue;
+    const d = mesafeM(m, o);
+    if (d > tavan) continue;
+    /* Bir mekandan EN UCUZ TEK kalem: aynı restoranın altı çeşidi
+       listeyi doldurup çevreyi göstermez hale getirirdi. */
+    let en = null;
+    for (const k of o.menu){
+      if (!k || k.f == null || !k.a) continue;
+      if (k.k && disi.has(k.k)) continue;
+      if (kampanyaMi(k)) continue;      /* teklif, porsiyon fiyati degil */
+      if (!en || k.f < en.f) en = k;
+    }
+    if (en) l.push({ ad: en.a, fiyat: en.f, mekan: o.ad, id: o.id,
+                     uzak: Math.round(d) });
+  }
+  l.sort((a, b) => a.fiyat - b.fiyat || a.uzak - b.uzak);
+  /* AYNI KALEM BIR KEZ. Ölçüldü: liste "Caffe Latte 10'lu — Kahve
+     Dünyası" satırını ÜÇ KEZ veriyordu, çünkü aynı zincirin üç şubesi
+     500 m içinde. Beş satırın üçü tek bir ürüne gidince liste
+     "civarda ne var" sorusunu cevaplamıyor. Ad anahtarı zincir
+     haritasınınkiyle aynı (_adAnahtari): boşluk ve büyük/küçük harf
+     farkları aynı kalemi ikiye bölmesin. En YAKIN şube kalıyor. */
+  const gorulen = new Set();
+  const tekil = [];
+  for (const k of l){
+    const anahtar = _adAnahtari(k.ad);
+    if (gorulen.has(anahtar)) continue;
+    gorulen.add(anahtar);
+    tekil.push(k);
+  }
+  /* Bütçe varsa AŞANLAR ELENMİYOR, sona atılıyor: "300 TL'ye ne var"
+     diye bakan biri 320 TL'lik bir seçeneği de görmeli. */
+  if (butce > 0)
+    tekil.sort((a, b) => (a.fiyat > butce) - (b.fiyat > butce) ||
+                         a.fiyat - b.fiyat);
+  return tekil.slice(0, CIVAR_KALEM_EN_COK);
+}
+
 function civarOzeti(m, hepsi, yaricap){
   if (!m || typeof m.lat !== "number" || typeof m.lon !== "number") return null;
   if (!Array.isArray(hepsi) || !hepsi.length) return null;
@@ -1247,13 +1311,38 @@ const GUVEN_ADI = { yesil:"doğrulanmış", sari:"dolaylı", kirmizi:"fiyat yok"
                        bilmiyoruz -- değişen yalnız yanlış olan cümle. */
                     menu:"öğün fiyatı yok" };
 
+/* KAMPANYA SATIRI: bir ürün değil bir TEKLİF. Bayrağı app_veri.py
+   koyuyor (fiyat_analiz.kampanya_mi) -- kural tek dilde, tek yerde.
+
+   Ölçüldü: 291 menülü mekanın 96'sında 672 satır böyle ve o mekanların
+   menü satırlarının %17'si. Fiyatları çarpıtmıyorlar; eksik olan ETİKET:
+   "1 Alana 1 Bedava İçecek · 120 ₺" sıra menüde 120 liralık bir içecek
+   gibi duruyordu.
+
+   ATILMIYOR, AYRILIYOR: teklif gerçek ve bütçesine bakan için değerli.
+   Kendi bölümünde gösteriliyor; kombine ve "bu civarda ne yenir"
+   listesine girmiyor, çünkü ikisi de "bir öğün kaça gelir" sorusunun
+   cevabı ve bir teklifin fiyatı tek porsiyonun fiyatı değil. */
+function kampanyaMi(k){ return !!(k && k.p); }
+
+/* Menünün sıradan kalemleri (kampanyasız) ve kampanyaları. */
+function menuKalemleri(m){
+  return ((m && m.menu) || []).filter(k => k && !kampanyaMi(k));
+}
+function kampanyalar(m){
+  return ((m && m.menu) || []).filter(k => kampanyaMi(k) && k.a);
+}
+
 /* Menüde fiyatı yazan kalem var mı. yemekFiyati()'nin sorusundan FARKLI:
-   o "bir öğün kaça gelir" diye soruyor, bu "ekranda rakam görünecek mi". */
+   o "bir öğün kaça gelir" diye soruyor, bu "ekranda rakam görünecek mi".
+
+   KAMPANYA SAYILMIYOR: rozet "menüde N kalemin fiyatı var" diyor ve o
+   cümle bir ürün fiyatı vaat ediyor. */
 function menudeFiyatVar(m){
   const mn = m && m.menu;
   if (!mn || !mn.length) return 0;
   let n = 0;
-  for (const k of mn) if (k && k.f != null) n++;
+  for (const k of mn) if (k && k.f != null && !kampanyaMi(k)) n++;
   return n;
 }
 
@@ -1324,6 +1413,30 @@ function gunOnce(gun){
   return sayi(Math.round(g / 365)) + " yıl önce";
 }
 
+/* ISO zaman damgasindan bugüne kaç gün. Bozuksa ya da ileri tarihliyse
+   null -- gunOnce ile aynı kural: bilinmeyen yaş SIFIR DEĞİL.
+
+   NEDEN VAR (ürün tarifi md.4, "kalem düzeyinde tarih"): kazınan menüde
+   kalem başına tarih YOK ve uydurulamaz -- ölçüldü, 291 menülü mekanın
+   291'inde bütün kalemler aynı gün derlenmiş, yani kalem tarihi mekan
+   tarihinin birebir kopyası olurdu (bilgi taşımayan bayt).
+
+   Kalem düzeyinde tarihi GERÇEKTEN olan tek veri kullanıcıdan gelen
+   menü katkısı: menu_katkilari.olusturuldu. O tarih bugüne kadar
+   çekiliyordu ama ekrana hiç gelmiyordu.
+
+   ADI gunFarki DEĞİL: o ad kohort ölçümünde başka bir anlamla duruyor
+   (iki gün arasındaki fark, yuvarlanmış, negatif olabilir). Birleştirmek
+   ikisinden birini bozardı; ayrı iş, ayrı ad. */
+function zamanYasi(zaman, simdi){
+  if (!zaman) return null;
+  const t = Date.parse(zaman);
+  if (!isFinite(t)) return null;
+  const fark = (simdi ? simdi.getTime() : Date.now()) - t;
+  if (fark < 0) return null;         /* saati yanlis kurulmus cihaz */
+  return Math.floor(fark / 86400000);
+}
+
 /* Oy özetinin okunabilir hali. Eşiğin altında SAYI VERİLMİYOR: iki
    kişinin oyu bir mekanın fiyatı hakkında hüküm değil (k-anonimlik,
    fiş eşiğiyle aynı desen) -- eşik yine katkı çağrısına dönüşüyor. */
@@ -1335,6 +1448,31 @@ function oyCumlesi(oy){
   return oy.gecerli >= oy.degisti
     ? sayi(oy.kisi) + " kişiden " + sayiEkli(oy.gecerli) + " \"hâlâ böyle\" dedi."
     : sayi(oy.kisi) + " kişiden " + sayiEkli(oy.degisti) + " \"değişmiş\" dedi.";
+}
+
+/* ONAYIN RAF ÖMRÜ (ürün tarifi md.5: 🟢 0-7 gün, 🟡 8-30, 🔴 30+).
+
+   Menü tarihi AY cinsinden geliyor (kazınan sayfada gün yok), o yüzden
+   gün eşiği menüye uygulanamıyor -- FIYAT_TAZE_AY orada duruyor. Ama
+   OYUN günü var ve bu eşikler tam ona ait: birinin bugün "hâlâ böyle"
+   demesiyle 40 gün önce demesi aynı şey değil.
+
+   30 günü geçen onay rozeti KIRMIZIYA ÇEVİRMİYOR, sadece HÜKÜM VERMEYİ
+   BIRAKIYOR: karar menü kanıtına düşüyor. Eski bir "hâlâ böyle" oyu
+   fiyatın yanlış olduğunun kanıtı değil, doğru olduğunun kanıtı
+   olmaktan çıkması. Aksi yön, bir onayı cezaya çevirirdi.
+
+   Sunucunun kendi penceresi 180 gün (fiyat_oy_ozeti); bu eşik onun
+   içinde daha dar bir kapı, çelişki değil. */
+const OY_TAZE_GUN = 7;
+const OY_SON_GUN  = 30;
+
+/* Oyun kaç günlük olduğu; bilinmiyorsa null (sıfır DEĞİL). */
+function oyYasi(oy){
+  const g = oy && oy.son_gun;
+  if (g == null || g === "") return null;
+  const n = Math.floor(Number(g));
+  return isFinite(n) && n >= 0 ? n : null;
 }
 
 /* Oy eşiği geçildi mi ve sonuç ne. null = hüküm yok. */
@@ -1367,9 +1505,20 @@ function fiyatGuveni(m, harita, ozet, oy, bugun){
        verdiğini ifşa ederdi), o yüzden yokluğu normal -- cümle
        tarihsiz de tam kalıyor. */
     const ne = gunOnce(oy.son_gun);
-    return { sinif:"yesil", ad:GUVEN_ADI.yesil,
-             neden: sayi(oy.gecerli) + " kişi \"hâlâ böyle\" dedi" +
-                    (ne ? " — " + ne : "") };
+    const cumle = sayi(oy.gecerli) + " kişi \"hâlâ böyle\" dedi" +
+                  (ne ? " — " + ne : "");
+    const g = oyYasi(oy);
+    /* TARIHSIZ ONAY YEŞİL OLMUYOR. Yaşını bilmediğimiz bir onay "son 7
+       gün" diyemez; sarı, elimizde olmayan tazeliği iddia etmeden
+       doğrulamayı da yok saymayan tek basamak. */
+    if (g == null)
+      return { sinif:"sari", ad:GUVEN_ADI.sari,
+               neden: cumle + " (tarihi bilinmiyor)" };
+    if (g <= OY_TAZE_GUN)
+      return { sinif:"yesil", ad:GUVEN_ADI.yesil, neden: cumle };
+    if (g <= OY_SON_GUN)
+      return { sinif:"sari", ad:GUVEN_ADI.sari, neden: cumle };
+    /* 30 günden eski: hüküm menü kanıtına düşüyor, aşağı devam. */
   }
 
   /* Fiş katmanı önce: kullanıcıdan gelen fiyat, kazınmış menüden daha
@@ -1757,6 +1906,9 @@ function kendiniKontrolEt(){
   if (!new URLSearchParams(location.search).has("test")) return;
   const g14 = new Date(2026,7,19,14,0), g03 = new Date(2026,7,19,3,0),
         g01 = new Date(2026,7,19,1,0);
+  /* zamanYasi UTC ile calisiyor (Date.parse), o yuzden sabit "simdi" de
+     UTC verilmis bir an. */
+  const g26 = new Date("2026-08-26T12:00:00Z");
   /* Sabit taban: kontrol sonucu sayfanin nerede servis edildigine
      bagli olmasin. */
   const T = "https://o.test/app/giris.html";
@@ -1907,6 +2059,42 @@ function kendiniKontrolEt(){
   /* YALNIZ TATLI olan mekan (pastane): anaKategoriler tatliya dusuyor,
      yani ayni kalem hem ana urun hem yan olabiliyor. "y === z" korumasi
      kalkarsa "TEK + TEK" diye bir kombin cikar. */
+  /* "Bu civarda ne yenir" fixture'i. Koordinatlar Kadikoy civari;
+     mesafeler mesafeM ile gercekten hesaplaniyor. */
+  const CV0 = { id:"c0", ad:"Merkez", tur:"Kafe", lat:40.9900, lon:29.0280 };
+  const CVL = [
+    CV0,
+    { id:"c1", ad:"Yakin Sube", tur:"Restoran", lat:40.9902, lon:29.0282,
+      menu:[{a:"Lahmacun", f:90, k:"Kebap"}] },
+    /* Ayni kalem, AYNI YARICAP ICINDE ikinci sube: c1 ~28 m, c2 ~187 m.
+       Ikisi de menzilde olmazsa tekillestirme hic denenmemis olur. */
+    { id:"c2", ad:"Uzak Sube", tur:"Restoran", lat:40.9915, lon:29.0290,
+      menu:[{a:"Lahmacun", f:90, k:"Kebap"}] },
+    { id:"c3", ad:"Bufe", tur:"Fast food", lat:40.9901, lon:29.0281,
+      menu:[{a:"Tost", f:40, k:"Tost"}, {a:"Ayran", f:15, k:"Ayran"}] },
+    /* TEK mekanda IKI yenir kalem: mekan basina yalniz en ucuzu cikmali,
+       yoksa bir lokanta butun listeyi doldurur. */
+    { id:"c6", ad:"Corbaci", tur:"Restoran", lat:40.9904, lon:29.0284,
+      menu:[{a:"Mercimek Corbasi", f:55, k:"Çorba"},
+            {a:"Ezogelin Corbasi", f:70, k:"Çorba"}] },
+    { id:"c4", ad:"Pahali", tur:"Restoran", lat:40.9903, lon:29.0283,
+      menu:[{a:"Kuzu Sis", f:300, k:"Kebap"}] },
+    /* Yaninda 20 TL'lik bir TEKLIF var; suzgec kalkarsa listenin basina
+       gecer ve "bu civarda 20 TL'ye tost yenir" denmis olur. */
+    { id:"c7", ad:"Kampanyali", tur:"Fast food", lat:40.9902, lon:29.0281,
+      menu:[{a:"Kampanya Tost", f:20, k:"Tost", p:1}] },
+    /* 5 km oteden: yaricap disi. */
+    { id:"c5", ad:"Uzak", tur:"Restoran", lat:41.0400, lon:29.0900,
+      menu:[{a:"Bonfile", f:10, k:"Kebap"}] }
+  ];
+  /* Kampanya fixture'i: iki siradan kalem, bir teklif. Teklifin
+     kategorisi YOK (app_veri kategorile'yi reddediyor) -- kombinin
+     disinda kalmasinin sebebi de bu. */
+  const KMP = { id:"p1", ad:"Kampanyali", tur:"Restoran", tarih:"2026-08",
+    kat:{ "Kebap": { n:1, med:120 } },
+    menu:[ {a:"Latte", f:95, k:"Kahve"},
+           {a:"Lahmacun", f:120, k:"Kebap"},
+           {a:"1 Alana 1 Bedava Kola", f:80, p:1} ] };
   const ONR_TEK = { id:"o2", ad:"Pastane", tur:"Kafe", tarih:"2026-08",
     kat:{ "Tatlı": { n:2, med:60 } },
     menu:[ {a:"TEK",  f:40, k:"Tatlı"},
@@ -2492,9 +2680,12 @@ function kendiniKontrolEt(){
       oyKarari({kisi:4, gecerli:2, degisti:2}),                  "gecerli"],
 
     /* --- oy guven skorunu degistiriyor --- */
+    /* Fiyat yokken bile TAZE onay yesile cikariyor: sinanan sey oyun
+       rozeti degistirdigi. Tarih ARTIK ZORUNLU -- tarihsizin sarida
+       kaldigi ayri bir kontrol. */
     ["oy dogrulayinca YESIL",
-      fiyatGuveni(_yok, GH, null, {kisi:3, gecerli:3, degisti:0}, g14).sinif,
-                                                                    "yesil"],
+      fiyatGuveni(_yok, GH, null, {kisi:3, gecerli:3, degisti:0, son_gun:1},
+                  g14).sinif,                                       "yesil"],
     ["oy dogrulayinca gerekce",
       /3 kişi "hâlâ böyle" dedi/.test(
         fiyatGuveni(_yok, GH, null, {kisi:3, gecerli:3, degisti:0}, g14).neden),
@@ -2578,6 +2769,53 @@ function kendiniKontrolEt(){
        ONAYDAN GECMIS katki sayiliyor, gonderilen degil: gonderileni
        saymak seviyeyi kuyruga cop atarak yukseltilebilir yapardi.
        Fiyat oyu seviyeye GIRMIYOR -- tek dokunus ve onay kuyrugu yok. */
+    /* --- kampanya satiri (urun tarifi md.3: "kampanya alani") --- */
+    ["kampanya bayragi okunuyor",   kampanyaMi({a:"1 Alana 1 Bedava", f:80, p:1}),
+                                                                        true],
+    ["bayraksiz kalem kampanya degil", kampanyaMi({a:"Latte", f:95}),  false],
+    ["kampanya menu listesinden cikiyor",
+      menuKalemleri(KMP).map(k => k.a).join(","),              "Latte,Lahmacun"],
+    ["kampanya kendi listesinde",
+      kampanyalar(KMP).map(k => k.a).join(","),         "1 Alana 1 Bedava Kola"],
+    /* Rozet "menude N kalemin fiyati var" diyor ve o cumle bir URUN
+       fiyati vaat ediyor -- teklif o sayiya girmemeli. */
+    ["kampanya menudeFiyatVar'a girmiyor", menudeFiyatVar(KMP),           2],
+    /* Kombin zaten kategori istiyordu; civar listesi ISTEMIYORDU ve
+       "Patates Firsati 60 TL" en ucuz yemek diye cikabilirdi. */
+    ["civar kampanyayi onermiyor",
+      civarKalemleri(CV0, CVL, 0).some(k => k.ad === "Kampanya Tost"), false],
+    ["kampanya kombine girmiyor",
+      kombinListesi(KMP).length,                                          0],
+
+    /* --- "bu civarda ne yenir" (urun tarifi md.10) ---
+       Fixture: iki zincir subesi AYNI kalemi tasiyor (tekillestirme
+       sinaniyor), bir mekan yalniz icecek satiyor (disarida kalmali),
+       bir mekan cok uzak (yaricap disi). */
+    ["civar kalem ucuzdan pahaliya",
+      civarKalemleri(CV0, CVL, 0).map(k => k.fiyat).join(","),  "40,55,90,300"],
+    ["civar ayni kalemi bir kez veriyor",
+      civarKalemleri(CV0, CVL, 0).filter(k => k.ad === "Lahmacun").length,   1],
+    ["civar tekrarda EN YAKIN sube kaliyor",
+      civarKalemleri(CV0, CVL, 0).find(k => k.ad === "Lahmacun").mekan,
+                                                                    "Yakin Sube"],
+    /* Icecek ve tatli disarida: soru "ne YENIR" ve menudeki en ucuz
+       kalem neredeyse her zaman bir icecek. */
+    ["civar icecegi listelemiyor",
+      civarKalemleri(CV0, CVL, 0).some(k => k.ad === "Ayran"),          false],
+    ["civar yaricap disini almiyor",
+      civarKalemleri(CV0, CVL, 0).some(k => k.mekan === "Uzak"),        false],
+    /* Butce ASANLARI ELEMIYOR, sona atiyor: 300 TL'ye bakan biri
+       320 TL'lik secenegi de gormeli. */
+    ["civar butce asani sona atiyor",
+      civarKalemleri(CV0, CVL, 100).map(k => k.fiyat).join(","),"40,55,90,300"],
+    /* Bir mekandan tek kalem: Corbaci'nin 55'i giriyor, 70'i girmiyor. */
+    ["civar mekan basina tek kalem",
+      civarKalemleri(CV0, CVL, 0).filter(k => k.mekan === "Corbaci").length, 1],
+    ["civar mekandan en ucuzunu aliyor",
+      civarKalemleri(CV0, CVL, 0).find(k => k.mekan === "Corbaci").fiyat,   55],
+    ["civar butcesiz mekanda bos",   civarKalemleri(CV0, [], 0).length,    0],
+    ["civar konumsuz mekanda bos",   civarKalemleri({ad:"X"}, CVL, 0).length, 0],
+
     /* --- "son dogrulanma" (urun tarifi md.5) --- */
     ["gun once bugun",      gunOnce(0),                              "bugün"],
     ["gun once dun",        gunOnce(1),                                "dün"],
@@ -2593,10 +2831,62 @@ function kendiniKontrolEt(){
       /3 kişi "hâlâ böyle" dedi — 2 gün önce/.test(
         fiyatGuveni(_yok, GH, null, {kisi:3, gecerli:3, degisti:0, son_gun:2},
                     g14).neden),                                         true],
-    ["rozet tarihsiz de tam",
-      /3 kişi "hâlâ böyle" dedi$/.test(
+    /* Tarihsizde cumle "3 kişi ... dedi (tarihi bilinmiyor)" oluyor:
+       tire+tarih EKLENMIYOR, yerine bilinmedigi YAZILIYOR. */
+    ["rozet tarihsizde tarih uydurmuyor",
+      /3 kişi "hâlâ böyle" dedi \(tarihi bilinmiyor\)$/.test(
         fiyatGuveni(_yok, GH, null, {kisi:3, gecerli:3, degisti:0}, g14).neden),
                                                                          true],
+    /* ONAYIN RAF OMRU (urun tarifi md.5: 7 / 30 gun). */
+    ["taze onay yesil",
+      fiyatGuveni(_yok, GH, null, {kisi:3, gecerli:3, degisti:0, son_gun:2},
+                  g14).sinif,                                       "yesil"],
+    ["yedinci gun hala yesil",
+      fiyatGuveni(_yok, GH, null, {kisi:3, gecerli:3, degisti:0, son_gun:7},
+                  g14).sinif,                                       "yesil"],
+    ["sekizinci gun sariya duser",
+      fiyatGuveni(_yok, GH, null, {kisi:3, gecerli:3, degisti:0, son_gun:8},
+                  g14).sinif,                                        "sari"],
+    ["otuzuncu gun hala sari",
+      fiyatGuveni(_yok, GH, null, {kisi:3, gecerli:3, degisti:0, son_gun:30},
+                  g14).sinif,                                        "sari"],
+    /* 30 gunu gecen onay HUKUM VERMEYI BIRAKIYOR: _yok'un menusunde
+       ogun fiyati yok, o yuzden karar menu koluna dusup kirmizi cikiyor.
+       Onayin kendisi ceza degil -- sadece artik kanit degil. */
+    ["otuz birinci gun hukum vermiyor",
+      fiyatGuveni(_yok, GH, null, {kisi:3, gecerli:3, degisti:0, son_gun:31},
+                  g14).sinif,                                     "kirmizi"],
+    ["eski onay menuyu bastirmiyor",
+      fiyatGuveni(_kendi, GH, null, {kisi:3, gecerli:3, degisti:0, son_gun:90},
+                  g14).sinif,                                       "yesil"],
+    /* Tarihsiz onay yesil OLAMAZ: yasini bilmedigimiz bir onay
+       "son 7 gun" diyemez. */
+    ["tarihsiz onay yesil degil",
+      fiyatGuveni(_yok, GH, null, {kisi:3, gecerli:3, degisti:0}, g14).sinif,
+                                                                     "sari"],
+    ["oy yasi tarihsizde null",   oyYasi({kisi:3}),                    null],
+    ["oy yasi sifiri sifir okur", oyYasi({son_gun:0}),                    0],
+    ["oy yasi bozugu null",       oyYasi({son_gun:"abc"}),            null],
+    /* Kalem duzeyinde tarih (urun tarifi md.4). Sabit "simdi" veriliyor:
+       Date.now() ile kosan bir kontrol yarin baska sonuc verirdi. */
+    ["zaman yasi bugun",   zamanYasi("2026-08-26T09:00:00Z", g26),           0],
+    ["zaman yasi dun",     zamanYasi("2026-08-25T09:00:00Z", g26),           1],
+    ["zaman yasi hafta",   zamanYasi("2026-08-19T12:00:00Z", g26),           7],
+    ["zaman yasi bos null",     zamanYasi("", g26),                       null],
+    ["zaman yasi bozuk null",   zamanYasi("dun", g26),                    null],
+    /* Ileri tarih null: cihazin saati yanlissa kalem "-2 gun once"
+       olmasin, tarihsiz kalsin. */
+    ["zaman yasi ileri tarih null", zamanYasi("2026-09-01T00:00:00Z", g26), null],
+    ["zaman yasi cumleye donuyor",
+      gunOnce(zamanYasi("2026-08-23T12:00:00Z", g26)),          "3 gün önce"],
+    /* Number(null) ve Number("") SIFIR. Bu iki degeri once elemezsek
+       tarihi olmayan bir oy "bugün" diye okunur ve rozet elimizde
+       olmayan bir tazeligi iddia eder -- ayni tuzak gunOnce'ta da vardi. */
+    ["oy yasi acik null'da null",  oyYasi({son_gun:null}),            null],
+    ["oy yasi bos metinde null",   oyYasi({son_gun:""}),              null],
+    ["acik null onay yesil degil",
+      fiyatGuveni(_yok, GH, null,
+        {kisi:3, gecerli:3, degisti:0, son_gun:null}, g14).sinif,     "sari"],
     ["degismis rozetinde de tarih",
       /— dün/.test(fiyatGuveni(_kendi, GH, null,
         {kisi:3, gecerli:0, degisti:3, son_gun:1}, g14).neden),          true],

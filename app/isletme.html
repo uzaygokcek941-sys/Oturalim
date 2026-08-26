@@ -125,6 +125,9 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
   .mk-kalem{display:flex;justify-content:space-between;gap:var(--a3);
     padding:6px 0;border-bottom:1px solid var(--cizgi)}
   .mk-kalem b{white-space:nowrap}
+  /* Kalemin kendi tarihi. Menu listesindeki .menu-kat ile ayni bicim:
+     ikisi de adin altinda duran ikincil bir etiket. */
+  .mk-ne{display:block;margin-top:2px;color:var(--metin-2);font-size:.8rem}
   .mk-fotolar{display:flex;flex-wrap:wrap;gap:var(--a2);margin-top:var(--a3)}
   .mk-fotolar a{display:block;width:96px;height:96px;border-radius:var(--r-s,6px);
     overflow:hidden;border:1px solid var(--cizgi)}
@@ -256,6 +259,24 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
 
   /* ONERILER -- her satir bir butce basamagi. Rakam solda ve tabular,
      cunku satirlar birbiriyle karsilastiriliyor. */
+  /* CIVARDA NE YENIR -- kalem solda, fiyat sagda, mekan ve mesafe
+     altta. Menu listesiyle ayni okuma. */
+  .civar-ne{margin-top:var(--a4)}
+  .civar-ne h3{font-size:1rem;margin:0 0 var(--a2)}
+  .civar-ne ul{list-style:none;margin:0;padding:0}
+  .civar-ne li{
+    display:flex; align-items:baseline; gap:var(--a3);
+    padding:var(--a2) 0; border-top:1px solid var(--cizgi);
+  }
+  .civar-ne li:first-child{border-top:0}
+  .civar-ne .k-ad{flex:1 1 auto;min-width:0;overflow-wrap:anywhere}
+  .civar-ne .k-nerede{display:block;font-size:.8rem;color:var(--metin-2);margin-top:2px}
+  .civar-ne .k-fiyat{
+    flex:0 0 auto; font-weight:700; font-variant-numeric:tabular-nums;
+    white-space:nowrap;
+  }
+  .civar-ne li.asiyor .k-ad,.civar-ne li.asiyor .k-fiyat{color:var(--metin-2)}
+
   .oneri{margin-top:var(--a5)}
   .oneri h2{margin:0 0 var(--a3)}
   .oneri ul{list-style:none;margin:0;padding:0;display:grid;gap:var(--a2)}
@@ -306,6 +327,14 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
   .menu-liste li.asiyor .menu-ad,
   .menu-liste li.asiyor .menu-fiyat{color:var(--metin-2)}
   .menu-hepsi{margin-top:var(--a4)}
+  /* KAMPANYA BOLUMU menunun USTUNDE degil ALTINDA: sayfanin sordugu ilk
+     soru "burada bir ogun kaca gelir"; teklif onu cevaplamiyor.
+     Menu listesiyle ayni satir bicimi kullaniliyor (.menu-liste sinifi
+     birlikte veriliyor) -- iki ayri satir uslubu tutmak, ikisinin
+     ayrismasini beklemek olurdu. */
+  .kampanya{margin-top:var(--a5)}
+  .kampanya li{border-bottom-style:dashed}
+  .kampanya .menu-fiyat{color:var(--vurgu)}
   .sahiplen{display:inline-block;margin-top:var(--a4)}
   .kaynak{font-size:.85rem;color:var(--soluk);margin-top:var(--a5);
           border-top:1px solid var(--cizgi);padding-top:var(--a3)}
@@ -414,6 +443,12 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
     <button type="button" class="dugme ikincil menu-hepsi" id="menuHepsi" hidden></button>
   </section>
 
+  <section class="menu-liste kampanya" id="kampanyaListe" data-grup="menu" hidden>
+    <h2>Kampanyalar</h2>
+    <p class="menu-not" id="kampanyaNot"></p>
+    <ul id="kampanyaSatirlar"></ul>
+  </section>
+
   <section class="fis" id="fis" hidden data-grup="menu">
     <h2>Buraya gidenler ne ödemiş</h2>
     <p id="fisOzet"></p>
@@ -431,6 +466,14 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
     <h2 id="civarBaslik">Bu civarda</h2>
     <ul class="civar-sayilar" id="civarSayilar"></ul>
     <ul class="civar-tur" id="civarTur"></ul>
+    <!-- "Bu civarda ne yenir" -- urun tarifinin 10. maddesi. Tarif
+         "bugun populer" diyor; POPULERLIK VERISI YOK ve uydurulamaz.
+         Siralama ucuzdan pahaliya: uygulamanin sorusu "bu parayla ne
+         yenir". -->
+    <div class="civar-ne" id="civarNe" hidden>
+      <h3>Bu civarda ne yenir</h3>
+      <ul id="civarNeListe"></ul>
+    </div>
     <p id="civarNot"></p>
     <a class="dugme ikincil" id="civarBag" href="kesfet.html">Çevresini haritada gör</a>
   </section>
@@ -738,6 +781,7 @@ function goster(m, ilAd){
 
   onerileriCiz(m, _b);
   menuListesi(m, _b);
+  kampanyaListesi(m, _b);
 
   const eksik = eksikleriBul(m);
   const giris = document.getElementById("eksikGiris");
@@ -1250,9 +1294,17 @@ async function menuKatkiKatmani(mekanId, mekanAd, ilKod){
         "menüden ayrı duruyor ve ortalama hesabına girmiyor."
       : "Buranın menüsünü kimse eklememiş.";
     yuva.innerHTML =
-      kalemler.map(k =>
-        '<div class="mk-kalem"><span>' + kacir(k.urun) + "</span><b>" +
-        tl(k.fiyat) + "</b></div>").join("") +
+      kalemler.map(k => {
+        /* KALEM DUZEYINDE TARIH (urun tarifi md.4). Kazinan menude boyle
+           bir tarih YOK ve uydurulmuyor -- olculdu, 291 mekanin 291'inde
+           butun kalemler ayni gun derlenmis. Tarihi GERCEKTEN olan tek
+           kalem kullanicidan gelen: olusturuldu ceklliyordu ama ekrana
+           hic gelmiyordu. Bicim gunOnce'ta, oy rozetiyle ayni yerde. */
+        const ne = gunOnce(zamanYasi(k.olusturuldu));
+        return '<div class="mk-kalem"><span>' + kacir(k.urun) +
+          (ne ? '<span class="mk-ne">' + kacir(ne) + "</span>" : "") +
+          "</span><b>" + tl(k.fiyat) + "</b></div>";
+      }).join("") +
       (fotolar.length
         ? '<div class="mk-fotolar">' + fotolar.map(k => {
             const u = Kimlik.menuFotoAdresi(k.foto);
@@ -1574,9 +1626,31 @@ function menuSatiri(k, butce){
     kacir(fiyat) + "</span></li>";
 }
 
+/* Kampanyalar AYRI BOLUMDE. Menu satirlarinin arasinda dururken bir
+   TEKLIFIN fiyati bir PORSIYONUN fiyati gibi okunuyordu; olculdu, 96
+   mekanda 672 satir. Ayirmak satiri silmiyor -- teklif gercek. */
+function kampanyaListesi(m, butce){
+  const bol = document.getElementById("kampanyaListe");
+  const l = kampanyalar(m).slice()
+              .sort((a, b) => (a.f == null) - (b.f == null) || a.f - b.f);
+  if (!l.length){ bol.hidden = true; return; }
+  /* Kampanyanin tarihi mekanin fiyat tarihi -- ayri bir tarih YOK ve
+     uydurulmuyor. Teklif en cabuk bayatlayan veri, o yuzden tarih
+     ISTEGE BAGLI DEGIL: varsa yaziliyor, yoksa bilinmedigi yaziliyor. */
+  const yas = fiyatYasEtiketi(m);
+  document.getElementById("kampanyaNot").textContent =
+    "Mekânın kendi menüsünde duyurduğu teklifler; fiyat tek porsiyonun " +
+    "değil teklifin fiyatı. " +
+    (yas ? yas.ad + (yas.eski ? " — eskimiş olabilir." : ".")
+         : "Tarihi bilinmiyor.");
+  document.getElementById("kampanyaSatirlar").innerHTML =
+    l.map(k => menuSatiri(k, butce)).join("");
+  bol.hidden = false;
+}
+
 function menuListesi(m, butce){
   const bol = document.getElementById("menuListe");
-  const mn  = (m.menu || []).slice();
+  const mn  = menuKalemleri(m).slice();
   if (!mn.length){ bol.hidden = true; return; }
 
   /* Fiyatsiz kalem en sona. Number.MAX_VALUE yerine ayri dal:
@@ -1821,6 +1895,25 @@ async function civarKatmani(m){
       await Kimlik.hazir;
       cf = await Kimlik.civarFisOzeti(o.idler);
     } catch (e) { /* ag yok, fonksiyon yok: kutunun geri kalani yine dogru */ }
+  }
+
+  /* CIVARDA NE YENIR. Sayilar soyut ("55 mekanin fiyati bilinmiyor");
+     bu liste somut: kalem, fiyat, mekan, mesafe. Butce URL'den, kombin
+     kutusuyla ayni yerden. */
+  const _cb = butceOku(new URLSearchParams(location.search).get("butce"));
+  const kalemler = civarKalemleri(m, ilMekanlari, _cb, o.yaricap);
+  const neKutu = document.getElementById("civarNe");
+  if (kalemler.length){
+    document.getElementById("civarNeListe").innerHTML = kalemler.map(k =>
+      '<li class="' + (_cb > 0 && k.fiyat > _cb ? "asiyor" : "") + '">' +
+        '<span class="k-ad">' + kacir(k.ad) +
+          '<span class="k-nerede">' + kacir(k.mekan) + " · " +
+          kacir(sayi(k.uzak)) + " m</span></span>" +
+        '<span class="k-fiyat">' + kacir(tl(k.fiyat)) + "</span>" +
+      "</li>").join("");
+    neKutu.hidden = false;
+  } else {
+    neKutu.hidden = true;
   }
 
   const kutular = [

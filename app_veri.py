@@ -19,7 +19,8 @@ import os
 import re
 from collections import defaultdict
 
-from fiyat_analiz import TABAN, TAVAN, kategorile, sadelestir, yiyecek_mi
+from fiyat_analiz import (TABAN, TAVAN, kampanya_mi, kategorile,
+                          sadelestir, yiyecek_mi)
 
 import veri_bicim   # il dosyasi bicimi tek yerde
 
@@ -653,6 +654,16 @@ def mekan_kaydi(m, menu):
             kat = kategorile(k["a"])[0]
             if kat:
                 kalem["k"] = kat
+            # KAMPANYA BAYRAGI ("p"). Satir bir urun degil bir teklif:
+            # "1 Alana 1 Bedava Icecek 120 TL" sira menude 120 liralik bir
+            # icecek gibi duruyordu. Kural PYTHON'DA (fiyat_analiz), kat[]
+            # ve kategori ile ayni gerekce -- sozlugu iki dilde tutmuyoruz.
+            #
+            # Bayrak, ayirmayi ARAYUZE birakiyor: satir veriden ATILMIYOR
+            # (teklif gercek ve butceye bakan icin degerli), yalniz kendi
+            # bolumune gidiyor ve kombinden/civardan uzak duruyor.
+            if kampanya_mi(k["a"]):
+                kalem["p"] = 1
             kayit["menu"].append(kalem)
         kayit["min"] = kalemler[0]["f"]
         kayit["max"] = kalemler[-1]["f"]

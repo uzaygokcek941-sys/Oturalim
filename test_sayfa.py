@@ -187,8 +187,13 @@ window.__SAHTE_VERI = {
         olusturuldu: "2026-08-17T10:00:00Z" }], error: null }),
     /* Biri kalem, biri YALNIZ fotograf: ikisi de cizilmeli. */
     mekan_menu_katkilari: () => ({ data: [
+      /* TARIH HESAPLANIYOR, sabit yazilmiyor: kalem duzeyinde tarih
+         (urun tarifi md.4) "3 gun once" diye GORECELI ciziliyor ve sabit
+         bir damga kontrolu yarin curuturdu. Tam 3 gun geri: zamanYasi
+         asagi yuvarliyor, cizim aninda gecen milisaniyeler sonucu
+         buyutur, kucultmez. */
       { id: 1, urun: "Latte", fiyat: 95, foto: null,
-        olusturuldu: "2026-08-22T12:00:00Z" },
+        olusturuldu: new Date(Date.now() - 3 * 86400000).toISOString() },
       { id: 2, urun: null, fiyat: null, foto: "kul-1/1.jpg",
         olusturuldu: "2026-08-21T12:00:00Z" }], error: null }),
     /* TOPLULUK AKISI. Uc satir, uc ayri hal:
@@ -357,8 +362,12 @@ GIRISLI = [
     "Gizli Yazar Kafe", "Bir kullanıcı", "Akis Menu", "Latte", "145"],
    ["Yükleniyor", "kul-1", "Henüz onaylanmış bir katkı yok"]),
   # Isletme sayfasi: kalem ve fotograf ayri ayri cizilmeli.
+  # "3 gun once" KALEMIN KENDI tarihi: mekan tarihi degil. Kazinan menude
+  # boyle bir tarih yok (291 mekanin 291'inde butun kalemler ayni gun
+  # derlenmis); yalniz kullanici katkisinda var ve ekrana yeni geliyor.
   ("isletme.html/menu", "/isletme.html?il=34&id=node/8223784325", None,
-   ["Kullanıcıların eklediği fiyatlar", "Latte", "Menüyü görüyor musun"],
+   ["Kullanıcıların eklediği fiyatlar", "Latte", "3 gün önce",
+    "Menüyü görüyor musun"],
    ["kul-1"]),
 ]
 
