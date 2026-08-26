@@ -472,7 +472,17 @@ def _alan_adi(u):
     return _site_anahtari(u).split("/")[0]
 
 
-def ek_menuler_oku(mekanlar, yollar=("menu_pdf_kalem.csv", "menu_ocr_kalem.csv")):
+# Ek menu kaynaklari. UCU DE SITEYE gore birlestiriliyor (asagida).
+#
+# tr_menu_tarayici.csv BURAYA EKLENDI ve eklenmeden once BOSLUKTAYDI:
+# menu_tarayici.py dosyayi uretiyordu ama app_veri.py onu hic okumuyordu,
+# yani tarayici turu kosulsa bile tek bir fiyat uygulamaya girmezdi.
+# Kopuk halka, ozelligin kendisi kadar pahali.
+EK_MENU_KAYNAKLARI = ("menu_pdf_kalem.csv", "menu_ocr_kalem.csv",
+                      "tr_menu_tarayici.csv")
+
+
+def ek_menuler_oku(mekanlar, yollar=EK_MENU_KAYNAKLARI):
     """PDF/sayfa metni ve gorsel OCR ile toplanan menuler.
 
     Birlestirme anahtari MEKAN ADI degil WEB SITESI: bu kalemler siteler

@@ -887,6 +887,42 @@ def sirlar_sizmis_mi():
                 s.append("%s: rolu '%s' olan jeton depoda — yalniz 'anon' olabilir"
                          % (os.path.relpath(p, KOK), rol))
 
+    # SAGLAYICI ANAHTARLARI. JWT olmayan bicimler de var ve
+    # bunlar depoya girerse fatura baskasina yazilir. veri.yml
+    # anahtari GitHub Secrets'tan aliyor; dosyada duz yazilmis bir
+    # anahtar o tasarimi sessizce bozar.
+    #
+    # Is akislari (.yml) DA taraniyor: bir sirri oraya duz yazmak,
+    # koda yazmakla ayni sey ve daha kolay gozden kaciyor.
+    ANAHTAR_BICIMLERI = [
+        (re.compile(r"nvapi-[A-Za-z0-9_-]{20,}"), "NVIDIA NIM"),
+        (re.compile(r"sk-[A-Za-z0-9]{32,}"),      "OpenAI"),
+        (re.compile(r"gh[pousr]_[A-Za-z0-9]{30,}"), "GitHub"),
+        (re.compile(r"AKIA[0-9A-Z]{16}"),         "AWS"),
+    ]
+    for p in (glob.glob(os.path.join(KOK, "*.py")) +
+              glob.glob(os.path.join(KOK, "app", "*.js")) +
+              glob.glob(os.path.join(KOK, "app", "*.html")) +
+              glob.glob(os.path.join(KOK, "*.md")) +
+              glob.glob(os.path.join(KOK, ".github", "workflows", "*.yml"))):
+        if os.path.basename(p) == "test.py":
+            continue          # kaliplarin kendisi burada
+        metin = io.open(p, encoding="utf-8").read()
+        for kalip, ad in ANAHTAR_BICIMLERI:
+            if kalip.search(metin):
+                s.append("%s: %s anahtari duz yazilmis — GitHub Secrets'a "
+                         "tasi ve anahtari IPTAL ET"
+                         % (os.path.relpath(p, KOK), ad))
+
+    # .env DEPODA OLMAMALI. .gitignore onu tutuyor ama dosya bir kez
+    # zorla eklenirse gitignore geriye donuk calismaz.
+    y = subprocess.run(["git", "ls-files", ".env", ".env.*"],
+                       cwd=KOK, capture_output=True, text=True)
+    for satir in y.stdout.split():
+        if satir != ".env.ornek":
+            s.append("%s git tarafindan IZLENIYOR — sir depoya girmis olabilir"
+                     % satir)
+
     # TLS: yorum degil, kod arayacagiz. test.py kendi arama dizesini
     # tasidigi icin disarida.
     for p in glob.glob(os.path.join(KOK, "*.py")):
