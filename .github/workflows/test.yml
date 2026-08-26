@@ -6,8 +6,16 @@
 # yazildiklari gun disinda hicbir seyi korumuyordu.
 name: Kontroller
 
+# push YALNIZ main'de. Onceden filtresizdi ve bir dal PR'a baglandiginda
+# AYNI COMMIT ICIN IKI KOSUM birden basliyordu (biri push, biri
+# pull_request). Ikisi ayni isi yapiyor, ayni runner havuzu icin
+# yarisiyor ve suresi ikiye katliyor: olculdu -- yalniz Chromium
+# indirme adimi 40 dakikayi asti, oysa yarissiz kosum 7 dakikada
+# bitiyordu. concurrency onlari birlestiremiyor cunku github.ref
+# farkli (refs/heads/... ile refs/pull/N/merge).
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
