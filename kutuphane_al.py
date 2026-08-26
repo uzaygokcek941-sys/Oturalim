@@ -55,7 +55,25 @@ import urllib.request
 # yonlendiriyorsa oradaki surumle ayni olmali -- ayrisirsa indirmeden once
 # ve sonra farkli surum calisirdi. Kontrol asagida.
 SURUM = "2.45.4"
-ADRES = "https://esm.sh/@supabase/supabase-js@%s?bundle&target=es2020" % SURUM
+
+# TEK ADRESE BAGLI KALINMIYOR. Ilk hali yalniz esm.sh'in "?bundle"
+# bayragini kullaniyordu ve GitHub kosucusunda denendiginde 148 BAYT
+# dondu -- o bayrak artik eskimis. Betik dogru davrandi (bozuk dosyayi
+# YAZMADI) ama is de yapamadi.
+#
+# Simdi SIRAYLA deneniyor ve ILK GECERLI olan aliniyor. Guvence
+# adresten degil KAPIDAN geliyor: dogrula() boyutu, HTML gelmesini,
+# kalan dis ithalati ve createClient'in disari verilmesini denetliyor.
+# Yani kaynak degisse de yazilan sey ayni kapiyi gecmek zorunda.
+ADAYLAR = [
+    # esm.sh, guncel bayrak (eski "?bundle" bunun takma adiydi)
+    "https://esm.sh/@supabase/supabase-js@%s?bundle=all&target=es2020" % SURUM,
+    # jsDelivr'in ESM ucu: tek dosya, dis ithalatsiz
+    "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@%s/+esm" % SURUM,
+    # esm.sh, eski bayrak -- CDN geri alirsa diye
+    "https://esm.sh/@supabase/supabase-js@%s?bundle&target=es2020" % SURUM,
+]
+ADRES = ADAYLAR[0]
 
 KOK = os.path.dirname(os.path.abspath(__file__))
 HEDEF = os.path.join(KOK, "app", "lib", "supabase-js.js")
@@ -125,10 +143,28 @@ def dogrula(govde):
     return s
 
 
-def indir():
-    istek = urllib.request.Request(ADRES, headers={"User-Agent": "cebimde/1.0"})
-    with urllib.request.urlopen(istek, timeout=60) as c:
-        return c.read().decode("utf-8")
+def indir(adresler=None):
+    """Adaylari sirayla dener, KAPIYI GECEN ilkini dondurur.
+
+    (govde, adres, denemeler) doner. Hicbiri gecmezse son denemenin
+    sorunlariyla birlikte SistemCikis firlatilir -- sessizce yazmak,
+    bozuk bir kutuphaneyi yayina koymak olurdu.
+    """
+    denemeler = []
+    for adres in (adresler or ADAYLAR):
+        try:
+            istek = urllib.request.Request(
+                adres, headers={"User-Agent": "cebimde/1.0"})
+            with urllib.request.urlopen(istek, timeout=60) as c:
+                govde = c.read().decode("utf-8")
+        except Exception as e:
+            denemeler.append((adres, ["indirilemedi: %s" % e]))
+            continue
+        sorunlar = dogrula(govde)
+        denemeler.append((adres, sorunlar))
+        if not sorunlar:
+            return govde, adres, denemeler
+    return None, None, denemeler
 
 
 # ---------- Leaflet ----------
@@ -210,6 +246,67 @@ def leaflet_al():
                          len(gorseller)))
 
 
+def _aday_kontrolu():
+    """indir() KAPIYI GECEN ilk adayi mi seciyor? Ag'a CIKMADAN sinanir.
+
+    Bu kontrol gercek bir hatanin uzerine yazildi: tek adres kullaniliyordu
+    ve esm.sh'in "?bundle" bayragi eskiyince 148 bayt dondu. Sorun tek
+    adrese baglilikti; siralama o yuzden var ve DOGRU CALISTIGI
+    sinanmali.
+    """
+    s = []
+    # LISTENIN KENDISI de sinaniyor. Mekanizmayi sinamak yetmiyordu:
+    # ADAYLAR tek adrese indirilince butun kontroller geciyordu ve
+    # duzeltilen hata (tek adrese baglilik) geri gelmis oluyordu --
+    # sabotajla goruldu.
+    if len(ADAYLAR) < 2:
+        s.append("ADAYLAR tek adrese dusmus: bir CDN bayragi eskiyince "
+                 "is yine durur (bu hata bir kez yasandi)")
+    if len({a.split("/")[2] for a in ADAYLAR}) < 2:
+        s.append("ADAYLAR'in hepsi ayni sunucuda: o sunucu duserse yedek yok")
+
+    # EN_AZ_BAYT'i (80 KB) gecmeli, yoksa "cok kucuk" diye elenir --
+    # ilk yazimda tam olarak bu oldu ve kontrol kendi fixture'ina takildi.
+    iyi = "export function createClient(){}\n" + ("// dolgu\n" * 12000)
+    kotu = "hata"
+    sahte = {"https://bir.test": kotu, "https://iki.test": iyi,
+             "https://uc.test": iyi}
+    ozgun = globals()["urllib"].request.urlopen
+
+    class _Cevap:
+        def __init__(self, g): self.g = g.encode("utf-8")
+        def read(self): return self.g
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+
+    def _taklit(istek, timeout=None):
+        adres = istek.full_url if hasattr(istek, "full_url") else istek
+        if adres not in sahte:
+            raise OSError("bilinmeyen adres")
+        return _Cevap(sahte[adres])
+
+    globals()["urllib"].request.urlopen = _taklit
+    try:
+        govde, adres, denemeler = indir(list(sahte))
+        # ILK aday bozuk, IKINCI'si gecmeli.
+        if adres != "https://iki.test":
+            s.append("indir() kapiyi gecen ilk adayi secmiyor: %r" % adres)
+        if len(denemeler) != 2:
+            s.append("indir() gecen adaydan SONRA da denemeye devam ediyor "
+                     "(%d deneme)" % len(denemeler))
+        # Hicbiri gecmezse govde None olmali -- bozuk dosya YAZILMAMALI.
+        g2, a2_, _ = indir(["https://bir.test"])
+        if g2 is not None:
+            s.append("indir() hicbir aday gecmediginde govde donduruyor")
+        # Ulasilamayan adres CATLATMAMALI, sonrakine gecmeli.
+        g3, a3_, _ = indir(["https://yok.test", "https://uc.test"])
+        if a3_ != "https://uc.test":
+            s.append("indir() ulasilamayan adreste durup sonrakine gecmiyor")
+    finally:
+        globals()["urllib"].request.urlopen = ozgun
+    return s
+
+
 def kendini_kontrol_et():
     s = []
     # Dogrulayici GERCEKTEN eliyor mu. Her satir ayri bir tuzagi taklit
@@ -241,6 +338,7 @@ def kendini_kontrol_et():
         return s
     if "esm.sh" in lib and ("supabase-js@" + SURUM) not in lib:
         s.append("yer tutucudaki surum %s degil" % SURUM)
+    s += _aday_kontrolu()
     return s
 
 
@@ -257,22 +355,21 @@ def main():
             print("  HATA: " + x)
         if not sorunlar:
             print("kontrol gecti: dogrulayici bes bozuk hali eliyor, "
-                  "kimlik.js tek yerel adrese bagli")
+                  "kimlik.js tek yerel adrese bagli, aday siralamasi calisiyor")
         sys.exit(1 if sorunlar else 0)
 
-    print("indiriliyor: %s" % ADRES)
-    try:
-        govde = indir()
-    except Exception as e:
-        # Ag hatasi bir OLCUM DEGIL: dosya yazilmiyor, var olan duruyor.
-        sys.exit("INDIRILEMEDI: %s\nDosya YAZILMADI; var olan app/lib/ dokunulmadi." % e)
-
-    sorunlar = dogrula(govde)
-    if sorunlar:
-        print("INDIRILEN DOSYA KULLANILAMAZ, yazilmadi:")
+    print("supabase-js: %d aday sirayla denenecek" % len(ADAYLAR))
+    govde, adres, denemeler = indir()
+    for a, sorunlar in denemeler:
+        print("  %s %s" % ("OK  " if not sorunlar else "RED ", a))
         for x in sorunlar:
-            print("  - " + x)
-        sys.exit(1)
+            print("       - " + x)
+    if govde is None:
+        # Ag hatasi da bozuk dosya da bir OLCUM DEGIL: dosya
+        # yazilmiyor, var olan duruyor.
+        sys.exit("HICBIR ADAY KAPIYI GECMEDI. Dosya YAZILMADI; "
+                 "var olan app/lib/ dokunulmadi.")
+    print("kullanilan: %s" % adres)
 
     os.makedirs(os.path.dirname(HEDEF), exist_ok=True)
     io.open(HEDEF, "w", encoding="utf-8").write(govde)
