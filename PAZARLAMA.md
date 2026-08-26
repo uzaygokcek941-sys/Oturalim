@@ -114,8 +114,8 @@ Neuromorphic. Yani bu bir ilk değil — patika açık.
 |---|---|---|
 | İl | 81 | `app/veri/*.json` |
 | Mekan | 35.852 | aynı |
-| **Menü fiyatı bilinen mekan** | **291 (%0,81)** | aynı |
-| Ekranda fiyatlı kalem | 7.335 | aynı |
+| **Menü fiyatı bilinen mekan** | **293 (%0,82)** | aynı |
+| Ekranda fiyatlı kalem | 7.406 | aynı |
 | **Tek bir menüsü olmayan il** | **62 / 81 (%76,5)** | aynı |
 | Kullanıcı | **0** | yayına girmedi |
 | Gelir | **0 ₺** | Faz 0 ödemeyi kapatıyor |
@@ -149,7 +149,7 @@ haritadan kötüdür.**
 
 YC'nin en bilinen iki öğüdü tam olarak bunu söylüyor: *"ölçeklenmeyen
 şeyler yap"* ve *"az sayıda insanın bayıldığı bir şey yap."* 81 ilde
-%0,81 kapsama, 100 kişinin bayıldığı bir ürün değil; 35.852 kişinin
+%0,82 kapsama, 100 kişinin bayıldığı bir ürün değil; 35.852 kişinin
 umursamadığı bir veri tabanı.
 
 **Karar: 81 il vitrinde kalsın, ama ürünün ve pitch'in merkezi tek bir
@@ -261,7 +261,7 @@ kur.
 Deponun "yanlış fiyat, fiyatsızlıktan kötüdür" kuralı pitch'te de
 geçerli. Aşağıdakiler doğru değil, söylenirse ilk kontrol eden yakalar:
 
-- ❌ *"81 ilde 35.852 mekanın fiyatları"* — 291'inde var, %0,81
+- ❌ *"81 ilde 35.852 mekanın fiyatları"* — 293'ünde var, %0,82
 - ❌ *"Türkiye'nin en büyük fiyat veri tabanı"* — ölçülmedi, bilinmiyor
 - ❌ *"Kullanıcılarımız"* — henüz yok
 - ❌ *"Yemeksepeti alternatifi"* — değil, ve o masada bunu söylemek en kötü
@@ -271,7 +271,7 @@ geçerli. Aşağıdakiler doğru değil, söylenirse ilk kontrol eden yakalar:
   güçlü
 
 **Bunları söyle** — hepsi doğrulanabilir:
-- ✅ *"81 il, 35.852 mekan **haritada**; fiyat **291'inde** — %0,81, ve
+- ✅ *"81 il, 35.852 mekan **haritada**; fiyat **293'ünde** — %0,82, ve
   büyütmenin tek yolu kullanıcı. Sorun bu, ürün de tam bu sorunu çözmek
   için kurulu."*
 - ✅ *"Kadıköy'de 500 metrede 474 mekan var, 4'ünde fiyat vardı, **8

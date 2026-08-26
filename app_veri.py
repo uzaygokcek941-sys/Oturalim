@@ -217,10 +217,24 @@ ARAYUZ_AD = re.compile(
 # Alan adina bakiliyor, yola degil: "instagram.com/xkafe" bir profil,
 # "qrmenu.actdurum.com" ise A.C.T Durum'un KENDI QR menusu -- ikincisi
 # listede yok ve kalmasi dogru.
+#
+# ONEK SERBEST, "m." ve "mobile." DEGIL. Ilk hali yalniz o ikisini
+# taniyordu ve platformlarin DIL ALT ALANLARI kapiyi geciyordu:
+# olculdu, "tr-tr.facebook.com" ve "tr.foursquare.com" isletmenin kendi
+# sitesi sayiliyordu. Artik alan adinin SONUNA bakiliyor.
+#
+# Sona bakmak "qrmenu.actdurum.com" kuralini bozmuyor: o adres
+# actdurum.com ile bitiyor ve listede actdurum yok.
+#
+# restaurantguru EKLENDI (17 kayit): bir isletme rehberi, isletmenin
+# kendi sitesi degil. Icerigi baskasinin ve oradan menu almak, Google
+# Maps'ten almakla ayni sey olurdu -- "Yapilmayacaklar" listesinin
+# gerekcesi bu.
 PLATFORM = re.compile(
-    r"^(m\.|mobile\.)?(facebook|instagram|twitter|tiktok|youtube|linktr\.ee|"
+    r"(^|\.)(facebook|instagram|twitter|tiktok|youtube|linktr\.ee|"
     r"linktree|shopier|google|goo\.gl|wixsite|blogspot|wordpress|yemeksepeti|"
-    r"getir|trendyol|foursquare|zomato|tripadvisor|yelp)\.", re.I)
+    r"getir|trendyol|foursquare|zomato|tripadvisor|yelp|restaurantguru|"
+    r"wa\.me|api\.whatsapp)\.", re.I)
 
 
 # OSM'de instagram dort ayri bicimde yaziliyor (olculdu, 306 kayit):
@@ -304,7 +318,10 @@ def platform_mu(url):
     """Bu adres isletmenin kendi sitesi degil, bir platform profili mi?"""
     u = re.sub(r"^https?://", "", (url or "").strip().lower())
     u = re.sub(r"^www\.", "", u).split("/")[0]
-    return bool(u) and bool(PLATFORM.match(u + "."))
+    # match DEGIL search: kalip artik "(^|\.)" ile basliyor ve alan adinin
+    # ORTASINDAKI noktadan sonra da eslesebilmeli ("tr-tr.facebook.com").
+    # match() bastan capaliyor ve o hali dil alt alanlarini kaciriyordu.
+    return bool(u) and bool(PLATFORM.search(u + "."))
 
 
 def kalem_adi(ham):
@@ -328,6 +345,27 @@ def kalem_atilir(ad):
             or ARAYUZ_AD.match(ad))
 
 
+def _menu_anahtari(il, ad):
+    """Menu anahtari: (il, ad) -- ad BUYUK/KUCUK HARFTEN BAGIMSIZ.
+
+    Ilk hali tam dizgeydi ve OSM'de ayni mekan iki farkli yazimla
+    duruyordu. Olculdu, 4 mekan menusunu bu yuzden alamiyordu:
+
+        Diyarbakir  "Onur OcakBasi"  <-> "Onur Ocakbasi"
+        Istanbul    "BELTUR"         <-> "Beltur"
+        Istanbul    "karabatak"      <-> "Karabatak"
+        Istanbul    "pizza bulls"    <-> "Pizza Bulls"
+
+    YALNIZ HARF BUYUKLUGU dusuruluyor, Turkce harfler DEGIL. ortak.js
+    _adAnahtari'nin gerekcesi burada da gecerli: "Cinar" ile "Cinar"i
+    ayni saymak iki AYRI isletmeyi tek zincir yapar ve birinin fiyatini
+    otekine yapistirir. Az eslestirmek cok eslestirmekten iyi.
+
+    Il anahtarda KALIYOR: zincir adlari illerde tekrar ediyor.
+    """
+    return (il, (ad or "").casefold())
+
+
 def menuleri_oku(yol="tr_menu.csv"):
     """Anahtar (il, mekan adi) -- sadece ada bakmak yetmez: zincir adlari
     illerde tekrar ediyor ve Istanbul'daki subeye Ankara'nin fiyatlari yapisir."""
@@ -347,7 +385,7 @@ def menuleri_oku(yol="tr_menu.csv"):
                 continue
             if kalem_atilir(ad):
                 continue
-            menu[(r["il"], r["mekan"])].append(
+            menu[_menu_anahtari(r["il"], r["mekan"])].append(
                 {"a": ad, "f": fiyat, "t": _tarih(r)})
     return menu
 
@@ -381,8 +419,12 @@ def ek_menuler_oku(mekanlar, yollar=("menu_pdf_kalem.csv", "menu_ocr_kalem.csv")
     for m in mekanlar:
         u = (m.get("website") or "").strip()
         if u and not platform_mu(u):
-            site_mekan.setdefault(_site_anahtari(u), (m["il"], m["ad"]))
-            alan_mekan[_alan_adi(u)].add((m["il"], m["ad"]))
+            # ANAHTAR menuleri_oku ile AYNI bicimde kurulmali. Ilk
+            # yazimda burada ham (il, ad) duruyordu ve menu sozlugu
+            # casefold'a gecince PDF/OCR kalemleri kimsenin okumadigi
+            # bir anahtara dusuyordu: menulu mekan 291 -> 286.
+            site_mekan.setdefault(_site_anahtari(u), _menu_anahtari(m["il"], m["ad"]))
+            alan_mekan[_alan_adi(u)].add(_menu_anahtari(m["il"], m["ad"]))
     tekil_alan = {a: next(iter(v)) for a, v in alan_mekan.items() if len(v) == 1}
 
     ek = defaultdict(list)
@@ -533,7 +575,7 @@ PLATFORM_ELENEN = set()   # rapor icin: (il, mekan) -- platform profili
 
 
 def mekan_kaydi(m, menu):
-    tum_kalemler = menu.get((m["il"], m["ad"]), [])
+    tum_kalemler = menu.get(_menu_anahtari(m["il"], m["ad"]), [])
     tur_tr = TUR_TR.get(m["tur"], m["tur"])
 
     # Sos ve garnitur kalem degildir; hepsi alt sinira yigilip medyani
@@ -746,7 +788,7 @@ def main():
     # bir ada takilmis demektir.
     ad_menusu = kendi_sitesi = 0
     for m in mekanlar:
-        if (m["il"], m["ad"]) not in menu:
+        if _menu_anahtari(m["il"], m["ad"]) not in menu:
             continue
         if m.get("website") and not platform_mu(m["website"]):
             kendi_sitesi += 1

@@ -477,7 +477,7 @@ function ilCoz(d){
    İzmir %8, Aksaray %20 -- yani çoğu sayfada dolu bir cevap çıkıyor.
 
    NEDEN "ÇEVRESİNE GÖRE PAHALI" DEMİYORUZ: diyemiyoruz. Menü fiyatı
-   bilinen mekan 35.852'de 291 (%0,81); 500 m içinde en az 3 fiyatlı
+   bilinen mekan 35.852'de 293 (%0,82); 500 m içinde en az 3 fiyatlı
    komşusu olan mekan yalnız %4,16. Üç örnekten çıkan bir medyana dayanıp
    "burası çevresine göre pahalı" demek, uydurma seviyeden farksız olurdu.
    Gösterilen şey KAPSAM: kaç mekan var, kaçının fiyatı biliniyor. Ağ

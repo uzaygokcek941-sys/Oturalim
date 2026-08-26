@@ -115,6 +115,22 @@ girmek için araştırma + tarihli yol haritası: **`PAZARLAMA.md`**.
    (Fall 2026 son tarihi 27 Temmuz'du, geçti) · grup **Ocak–Mart 2027,
    San Francisco**.
 
+## Kalan veri ve gelir planı
+
+Kalan 35.559 işletmenin fiyatı, adresi, menüsü ve hesabı nereden gelecek,
+ve bundan nasıl para kazanılır: **`VERI_VE_GELIR.md`**.
+
+Bugün koşulabilecek üç şey (kod tarafında hiçbir şey beklemiyor):
+
+1. `python menu_ocr.py tam` — **422 satır / 283 mekan** OCR kuyruğunda
+   bekliyor; okuyucu var ve doğruluğu ölçülmüş (8/8), bugüne kadar yalnız
+   pilot koşulmuş (1 mekan).
+2. `python menu_tarayici.py olc 30` — 2.294 site JavaScript'le menü
+   basıyor ve `menu_topla.py` onları göremiyor; yeni betik gerçek
+   tarayıcıyla açıyor. Önce **verim ölçülüyor**, sonra karar veriliyor.
+3. `python turkiye_cek.py` — Facebook/X/TikTok/YouTube sütunları CSV'de
+   hiç yok; kod beşini de okuyor.
+
 ## İçerik planı — ilk 15
 
 Format: dikey, 45-60 sn, ilk 3 saniyede hook, tek fikir, **somut rakam**.
@@ -147,7 +163,7 @@ Günde 1. Telefonla çek, kurgu yok. Kapanış çağrısı: **"Uygulamada hepsi 
 - [x] Bio yazıldı — **eski taslak iki yerinden yanlıştı** ve düzeltildi:
       ~~"Çankaya'da bütçene göre nereye gidilir. 724 mekan, gerçek fiyatlar."~~
       724 → **35.852** (uygulama Çankaya'yı aştı, 81 il), ve *"gerçek fiyatlar"*
-      abartı: 35.852 mekanın **291'inde** menü fiyatı var (%0,81). Manşete
+      abartı: 35.852 mekanın **293'ünde** menü fiyatı var (%0,82). Manşete
       çıkarmak, gelen kullanıcının ilk açtığı on mekanda fiyat görmemesi
       demekti — *yanlış fiyat, fiyat olmamasından kötü* kuralı vaat için de
       geçerli. Yerine: **"Cebindeki bütçeyle keşfet. 81 ilde 35.852 mekan. Fiyatı
@@ -973,7 +989,7 @@ kapı. Yerine ölçülebilir bir şey kondu: yarıçap.
 %4, %1, %8, %20.
 
 **"Çevresine göre pahalı" DEMİYORUZ, çünkü diyemeyiz.** Menü fiyatı bilinen
-mekan 35.852'de **291 (%0,81)**; 500 m içinde en az üç fiyatlı komşusu olan
+mekan 35.852'de **291 (%0,82)**; 500 m içinde en az üç fiyatlı komşusu olan
 mekan yalnız **%4,16**. Üç örnekten çıkan bir medyana dayanıp fiyat iddiası
 kurmak, uydurma seviyeden farksız olurdu. Gösterilen şey **kapsam**: kaç
 mekan var, kaçının fiyatı biliniyor — ve katkı çağrısı tam oraya düşüyor.
@@ -2390,7 +2406,7 @@ değildi ama açıktı — bir teklifin fiyatı porsiyon fiyatı diye
 ### md.4 — kalem düzeyinde tarih: kazınan menüde YOK, katkıda VAR
 
 Tarif "Latte · son doğrulanma 2 gün önce" istiyordu. Ölçüldü: **291
-mekanın 291'inde bütün kalemler aynı gün derlenmiş**. Yani kalem tarihi
+mekanın 293'ünde bütün kalemler aynı gün derlenmiş**. Yani kalem tarihi
 mekan tarihinin birebir kopyası olurdu — 81 dosyada bilgi taşımayan bayt.
 Uydurmak yerine ölçüm yazıldı.
 

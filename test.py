@@ -36,7 +36,8 @@ BETIKLER = ["app_veri.py", "etkinlik_cek.py", "fiyat_analiz.py", "menu_cikar.py"
             "turkiye_cek.py", "foto_cek.py",
             "menu_ocr.py", "menu_pdf_tara.py", "saha.py", "sahiplen.py",
             "site_haritasi.py", "csp_uret.py", "veri_bicim.py", "kutuphane_al.py",
-            "ikon_uret.py", "sw_uret.py", "assetlinks_uret.py", "og_uret.py"]
+            "ikon_uret.py", "sw_uret.py", "assetlinks_uret.py", "og_uret.py",
+            "menu_tarayici.py"]
 
 # Turkiye siniri, genis pay. Disina dusen koordinat cekimde bir sey
 # kaymis demektir; haritada Atlantik'te bir nokta olarak gorunur.
@@ -236,7 +237,8 @@ def veri_tutarli_mi():
     # rakamlar orada. Eskimis bir sayiyi bir toplantida soylemek, bir
     # belgede birakmaktan pahali.
     for ad in ("CEBIMDE.md", "README.md", "KURULUM.md", "PLAY.md",
-               "PAZARLAMA.md", os.path.join("tasarim", "decisions.md")):
+               "PAZARLAMA.md", "VERI_VE_GELIR.md",
+               os.path.join("tasarim", "decisions.md")):
         yol = os.path.join(KOK, ad)
         if not os.path.exists(yol):
             continue
@@ -1519,6 +1521,99 @@ def menu_listesi_mi():
                # True donuyordu, kayit onu BASARISIZ sayiyordu.
 
 
+def platform_kapisi_mi():
+    """Menu kazima kapisi PLATFORMLARI gercekten eliyor mu.
+
+    NEDEN ONEMLI: bu kapi, deponun en cok savundugu sinirin kodda duran
+    hali. "Yapilmayacaklar" listesi Google Maps, Yemeksepeti, Getir ve
+    TrendyolGo'yu telif gerekcesiyle disarida birakiyor; platform_mu()
+    o karari uygulayan tek yer.
+
+    BULUNAN ACIK: kapi yalniz "m." ve "mobile." oneklerini taniyordu ve
+    platformlarin DIL ALT ALANLARI geciyordu. Olculdu: "tr-tr.facebook.com"
+    ve "tr.foursquare.com" isletmenin kendi sitesi sayiliyordu. Ayrica
+    restaurantguru.com hic listede yoktu -- 17 kayit. Bir isletme
+    rehberinden menu almak, Google Maps'ten almakla ayni sey.
+
+    Veri o an degismedi (o 21 mekanin zaten menusu yoktu); kapi ILERIDE
+    onemli, cunku menu_tarayici.py tam da o yigini tarayacak.
+    """
+    s = []
+    try:
+        from app_veri import platform_mu
+    except Exception as e:
+        return ["app_veri.platform_mu okunamadi: %s" % e]
+
+    # (a) PLATFORM SAYILMASI GEREKENLER -- dil alt alanlariyla birlikte.
+    for u in ("https://www.instagram.com", "https://tr-tr.facebook.com",
+              "https://en-gb.facebook.com", "https://tr.foursquare.com",
+              "https://www.yemeksepeti.com", "https://getir.com",
+              "https://www.trendyol.com", "https://www.google.com/maps/x",
+              "https://restaurantguru.com/kafe", "https://wa.me/905550000000",
+              "https://www.tripadvisor.com", "https://m.youtube.com"):
+        if not platform_mu(u):
+            s.append("platform_mu KACIRDI (kazimamaliyiz): %s" % u)
+
+    # (b) ISLETMENIN KENDI SITESI SAYILMASI GEREKENLER.
+    #
+    # qr.menulux.com ve qrmenu.actdurum.com ISLETMENIN KENDI QR MENUSU:
+    # barindirici bir SaaS ama icerik isletmenin. Kapinin bunlari elemesi,
+    # elimizdeki mesru kaynagi atmak olurdu.
+    #
+    # "kumpirbox.com" ve "taproomx.com" kapiyi ELEMEMELI: kalip "x.com"u
+    # gevsek ararsa bu adresler platform sanilir (ilk olcumumde tam
+    # olarak bu oldu).
+    for u in ("https://kaffamiro.com", "https://qrmenu.actdurum.com",
+              "https://misoramenankara.qr.menulux.com", "https://kumpirbox.com",
+              "https://taproomx.com", "https://www.westmix.com.tr",
+              "https://mygoogle.com"):
+        if platform_mu(u):
+            s.append("platform_mu YANLIS ELEDI (kendi sitesi): %s" % u)
+
+    # (c) TARAYICI HATTI da ayni kapiyi kullanmali.
+    #
+    # METIN DEGIL DAVRANIS SINANIYOR. Ilk hali dosyada "platform_mu" ve
+    # "robots" dizgelerini ARIYORDU ve iki sabotaj birden gecti:
+    # `platform_mu = lambda u: False` yazmak dizgeyi yerinde birakiyor,
+    # robotparser'i atmak da "robots" kelimesini yorumlarda birakiyor.
+    # Artik fonksiyonlar CAGIRILIYOR.
+    if not os.path.exists(os.path.join(KOK, "menu_tarayici.py")):
+        return s
+    try:
+        import menu_tarayici as MT
+    except Exception as e:
+        return s + ["menu_tarayici.py okunamadi: %s" % e]
+
+    # Platform kapisi: aday listesinde platform adresi KALMAMALI.
+    tabanlar = [t for _, t in MT.js_adaylari()]
+    for kotu in ("instagram.", "facebook.", "yemeksepeti.", "getir.",
+                 "trendyol.", "restaurantguru.", "foursquare."):
+        gecen = [t for t in tabanlar if kotu in t]
+        if gecen:
+            s.append("menu_tarayici aday listesinde platform var: %s"
+                     % gecen[0])
+    if any(not MT.gecerli_alan(t) for t in tabanlar):
+        s.append("menu_tarayici aday listesinde bozuk alan adi var")
+
+    # robots.txt: YASAK gercekten durdurmali, YOKLUK durdurmamali,
+    # ve BIZI ADIMIZLA yasaklayan site de durdurmali (robotparser tam UA
+    # dizgesi verilirse adi "mozilla" diye okur ve bu yasagi kacirir).
+    MT._robot_onbellek.clear()
+    if MT.robots_izin("https://a.test", getir=lambda u: "User-agent: *\nDisallow: /\n"):
+        s.append("menu_tarayici robots.txt 'Disallow: /' dedigi halde tariyor")
+    MT._robot_onbellek.clear()
+    if not MT.robots_izin("https://b.test", getir=lambda u: ""):
+        s.append("menu_tarayici robots.txt YOKKEN taramayi durduruyor "
+                 "(yokluk kisitlama degil)")
+    MT._robot_onbellek.clear()
+    if MT.robots_izin("https://c.test",
+                      getir=lambda u: "User-agent: CebimdeBot\nDisallow: /\n"):
+        s.append("menu_tarayici bizi ADIMIZLA yasaklayan robots.txt'yi "
+                 "gecersiz sayiyor")
+    MT._robot_onbellek.clear()
+    return s
+
+
 def konum_paneli_mi():
     """Isletme sayfasi mekanin NEREDE oldugunu soyluyor mu.
 
@@ -2441,6 +2536,7 @@ def main():
     kayit("degismez: mekan sayfasi menuyu gosteriyor", menu_listesi_mi())
     kayit("degismez: harita karti maketteki gibi", harita_karti_mi())
     kayit("degismez: isletme sayfasi konumu gosteriyor", konum_paneli_mi())
+    kayit("degismez: kazima kapisi platformlari eliyor", platform_kapisi_mi())
     kayit("degismez: seviye onayli katkiyi sayiyor", seviye_mi())
     kayit("degismez: butce talebi ifsa etmiyor", butce_talebi_mi())
     kayit("degismez: kurulum dosyalari depoda", kurulum_dosyalari_izleniyor_mu())
