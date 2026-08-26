@@ -288,6 +288,8 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
 - [x] `sema.sql`, `sayac.sql`, `katki.sql` Supabase'de çalıştırıldı (2026-08-23)
 - [x] `profil.sql`, `yorum.sql`, `menu_katki.sql`, `mekan_foto.sql`, `akran.sql`
       çalıştırıldı (2026-08-25)
+- [x] `sayac.sql` (bütçe bandı sütunu için tekrar), `fiyat_oyu.sql`,
+      `topluluk.sql` çalıştırıldı (2026-08-26) — **veritabanı tarafı bitti**
 - [ ] `@cebimde` handle (Instagram + TikTok) — **bio ve ilk 3 içeriğin notu
       hazır** (`icerik_ilk3.md`); kalan tek şey hesabı açmak
 - [ ] Vercel yayını
