@@ -68,59 +68,58 @@ değişkeninde ne `.env`'de var.
 5 uydurma vakası ölçülmüştü (bir mekanda sıra numaraları fiyat sanılmıştı).
 Kural yerinde kalıyor.
 
-### 1.2 JavaScript ile basılan siteler — en büyük ama ölçülmemiş kaldıraç
+### 1.2 JavaScript ile basılan siteler — ❌ **ÖLÇÜLDÜ, HİPOTEZ ÇÜRÜDÜ**
 
-`tr_menu_ozet.csv`: **2.476 site denendi, 182'sinde kalem çıktı (%7,4)**.
-Kalanların **2.294'ü `js`** — menü JavaScript'le basılıyor ve
-`menu_topla.py` sunucunun gönderdiği ilk HTML'e baktığı için boş görüyor.
-Dosyanın kendi notu: *"gerçek tarayıcı gerektirir."*
+Hipotez şuydu: `tr_menu_ozet.csv`'de 2.476 site denenmiş, 182'sinde kalem
+çıkmış (%7,4); kalanların **2.294'ü `js`** ve `menu_topla.py` sunucunun
+ilk HTML'ine baktığı için onları göremiyor. Gerçek tarayıcı açsa
+okunurdu.
 
-Platform ve bozuk adresler elenince: **2.091 kayıt, 1.467 tekil alan adı.**
+**GitHub koşucusunda 40 alan adıyla denendi:**
 
-**Bu tur için `menu_tarayici.py` yazıldı** (bu commit'te):
-- Sayfayı gerçek Chromium'da açar, JS'in menüyü basmasını bekler
-- Ayıklama kuralı **`menu_cikar.menu_cikar`**'da kalır — ikinci bir
-  ayıklayıcı yazmak aynı sözlüğü iki yerde tutmak olurdu
-- **`robots.txt`'ye bakar** — `menu_topla.py`'de olmayan kapı. Düz HTML
-  için eksiklikti; sayfayı tam çalıştıran bir tarayıcıda yanlışa dönerdi
-- Aynı alan adına saniyede bir istek
-- Yasaklanan site **raporda yazar** — sessizce kırpmak "hepsini denedik"
-  diye okunurdu
+```
+Aday alan adi     : 40
+robots.txt atladi : 0
+Denenen           : 40
+Kalem cikan       : 0 (%0,0)
+Hata              : 7
+Toplam kalem      : 0
+```
 
-**Verim bilinmiyor ve uydurulmuyor.** Önce ölç:
+**Sıfır.** Planın kendi kuralı "verim %10'un altındaysa tam tarama zaman
+kaybı" diyordu; 0% çok altında. Tam tarama **yapılmayacak**.
 
-    python menu_tarayici.py olc 30
+**Sebebi de ortaya çıktı, ve daha önemli:** `menu_pdf_tara.py` bu işi
+**zaten yapıyor ve daha iyi yapıyor**. O betik siteyi gerçek tarayıcıda
+açıyor *ve menü bağlantısını takip ediyor* (`MENU_BAGI` ile `<a>`
+metinlerinde "menü/fiyat/sipariş" arıyor). Benim yazdığım betik yalnız
+**ana sayfayı** okuyordu — bir restoranın ana sayfasında fiyat nadiren
+yazar.
 
-30 site dener, dosyaya hiçbir şey yazmaz, kaçında fiyat çıktığını sayar.
-**Verim %10'un altındaysa tam tarama zaman kaybı; üstündeyse:**
+`menu_pdf_tara.py` 1.974 mekanda koşmuş ve sonucu şu:
 
-    python menu_tarayici.py tam
+| durum | satır |
+|---|---|
+| menu bulunamadi | 1.552 |
+| erisilemedi | 691 |
+| pdf-ocr-gerekli | 224 |
+| gorsel-ocr-gerekli | 198 |
+| pdf-menu-degil | 53 |
+| pdf-metin | 8 |
+| sayfa-metin | 2 |
 
-> Bu ölçüm bu oturumda yapılamadı: sandbox tüm dış siteleri kesiyor.
-> Doğrulandı, tahmin değil — `overpass-api.de`, `integrate.api.nvidia.com`
-> ve işletme siteleri hepsi `CONNECT tunnel failed, response 403`
-> veriyor. Senin makinende koşacak.
+Yani hipotez **zaten sınanmıştı** ve cevabı buradaydı: sitelerin
+çoğunda okunabilir bir menü metni yok; olanların büyük kısmı **görsel
+veya PDF** — ve o da 1.1'deki OCR kuyruğu.
 
-**Ama çıkarmanın kendisi kanıtlandı.** Betiğin varlık sebebi — "JS ile
-basılan menüyü tarayıcı okuyabiliyor mu" — artık **yerel bir fixture**
-ile sınanıyor ve dış ağ gerektirmiyor (`python menu_tarayici.py test`).
+**Sonuç: `menu_tarayici.py` silindi.** Gereksiz ve zayıftı; deponun
+"aynı kural tek yerde dursun" kuralına da aykırıydı. Getirdiği tek
+gerçek iyileştirme — **`robots.txt` kapısı** — `menu_pdf_tara.py`'ye
+taşındı, çünkü asıl ağır ziyareti o yapıyor (siteyi tam çalıştırıyor,
+menü sayfasına geçiyor, PDF/görsel indiriyor) ve kapısı yoktu.
 
-Fixture bilerek üç fiyat taşıyor ve ikisi **ekranda yok**:
-
-| Fiyat | Nerede | Ekranda |
-|---|---|---|
-| 45 ₺ | betiğin kaynağında (`var ESKI = 45`) | ❌ |
-| 55 ₺ | `display:none` bir kutuda | ❌ |
-| **85 ₺** | JS'in hesaplayıp bastığı (`ESKI + 40`) | ✅ |
-
-85 sayısı fixture'ın kaynağında **hiç geçmiyor** — ancak JS çalışırsa
-ortaya çıkıyor. Kontrol hem onun çıktığını hem 45/55'in **sızmadığını**
-ölçüyor: ham HTML okunsaydı kullanıcıya, mekanın ekranda yazmadığı bir
-fiyat gösterilirdi.
-
-Sabotajla doğrulandı: `inner_text` yerine ham HTML okumak, çizim
-beklemesini kaldırmak, fiyatı ölçeklemek ve fixture'ı bozmak — altısı da
-yakalanıyor.
+> Bu, planın en büyük kalemiydi ve **yanlıştı**. Ölçüm olmasa iki saatlik
+> bir tarama koşulacak ve hiçbir şey çıkmayacaktı.
 
 ### 1.3 Zincir yayılımı — sayıyı büyütür, ÖLÇÜMÜ BÜYÜTMEZ
 
@@ -173,7 +172,7 @@ listede yoktu: 17 kayıt.** Bir işletme rehberinden menü almak, Google
 Maps'ten almakla aynı şey.
 
 Veri o an değişmedi (o 21 mekanın zaten menüsü yoktu). Kapı **ileride**
-önemliydi: `menu_tarayici.py` tam da o yığını tarayacaktı ve
+önemliydi: `menu_pdf_tara.py` tam da o yığını tarıyor ve
 restaurantguru'yu kazıyacaktı.
 
 ---
@@ -308,10 +307,10 @@ X, TikTok, YouTube **sıfır**.
 **Yapılacak:** `python turkiye_cek.py` yeniden koşacak. Dört sütun
 kendiliğinden dolacak; kod değişikliği yok.
 
-**İkinci kaynak, bedava:** `menu_tarayici.py` zaten 1.467 işletme sitesini
-açacak. Aynı geçişte sayfadaki `instagram.com/…`, `facebook.com/…`
-bağlantıları toplanabilir — işletmenin **kendi sitesinde kendi yayımladığı**
-bağlantı. Ek istek yok, ek kaynak yok.
+**İkinci kaynak, bedava:** `menu_pdf_tara.py` zaten her işletme sitesini
+gerçek tarayıcıda açıyor. Aynı geçişte sayfadaki `instagram.com/…`,
+`facebook.com/…` bağlantıları toplanabilir — işletmenin **kendi sitesinde
+kendi yayımladığı** bağlantı. Ek istek yok, ek kaynak yok.
 
 ---
 
@@ -384,8 +383,8 @@ Maliyet ve hazır olma durumuna göre:
 | # | İş | Maliyet | Beklenen | Durum |
 |---|---|---|---|---|
 | 1 | `python menu_ocr.py tam` | koşum + API anahtarı | **362 kaynak / 235 mekan** | araç hazır; `NVIDIA_API_KEY` gerekiyor |
-| 2 | `python menu_tarayici.py olc 30` | 10 dk | verim ölçümü | **araç bu commit'te** |
-| 3 | Verim %10+ ise `tam` | koşum | ≤1.467 site | 2'ye bağlı |
+| ~~2~~ | ~~Tarayıcıyla JS menüleri~~ | — | **0/40 (%0,0)** | ❌ **ölçüldü, çürüdü** |
+| ~~3~~ | ~~Tam tarama~~ | — | — | ❌ 2'nin sonucu |
 | 4 | `python turkiye_cek.py` | koşum | 4 sosyal sütun | kod hazır |
 | ~~5~~ | ~~`ilce`/`mahalle` boru hattına~~ | — | **7.460 mekan (%20,8)** | ✅ **yapıldı** |
 | ~~6~~ | ~~OSM `addr:housename`~~ | — | +1,5 puan (sonraki çekimde) | ✅ **yapıldı** |

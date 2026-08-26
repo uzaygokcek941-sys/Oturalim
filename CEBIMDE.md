@@ -125,9 +125,10 @@ Bugün koşulabilecek üç şey (kod tarafında hiçbir şey beklemiyor):
 1. `python menu_ocr.py tam` — **422 satır / 283 mekan** OCR kuyruğunda
    bekliyor; okuyucu var ve doğruluğu ölçülmüş (8/8), bugüne kadar yalnız
    pilot koşulmuş (1 mekan).
-2. `python menu_tarayici.py olc 30` — 2.294 site JavaScript'le menü
-   basıyor ve `menu_topla.py` onları göremiyor; yeni betik gerçek
-   tarayıcıyla açıyor. Önce **verim ölçülüyor**, sonra karar veriliyor.
+2. ~~Tarayıcıyla JS menüleri~~ — **ölçüldü ve çürüdü**: GitHub
+   koşucusunda 40 alan adında **0 kalem**. `menu_pdf_tara.py` bu işi
+   zaten yapıyor ve menü bağlantısını da takip ediyor. Yazdığım betik
+   silindi, `robots.txt` kapısı ona taşındı.
 3. `python turkiye_cek.py` — Facebook/X/TikTok/YouTube sütunları CSV'de
    hiç yok; kod beşini de okuyor.
 

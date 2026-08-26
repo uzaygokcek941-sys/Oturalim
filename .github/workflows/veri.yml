@@ -28,12 +28,9 @@ on:
         type: boolean
         default: false
       tarayici:
-        description: "JS menuleri gercek tarayiciyla (menu_tarayici.py)"
+        description: "Site/menu taramasi (menu_pdf_tara.py) — gercek tarayici"
         type: boolean
-        default: true
-      tarayici_adet:
-        description: "Kac alan adi denensin (0 = hepsi, ~1.467)"
-        default: "40"
+        default: false
       ocr:
         description: "Menu gorsellerini OCR ile oku (NVIDIA_API_KEY gerekir)"
         type: boolean
@@ -82,21 +79,27 @@ jobs:
         if: inputs.mekan
         run: python turkiye_cek.py
 
-      # ---- 2. JS ile basilan menuler -------------------------------
-      # menu_topla.py sunucunun ilk HTML'ine bakiyor; menusunu JS ile
-      # basan site orada bos duruyor ve "js" diye isaretlenip
-      # birakiliyor. Olculdu: 2.476 denenen sitenin 2.294'u boyle.
+      # ---- 2. Site/menu taramasi -----------------------------------
+      # VARSAYILAN KAPALI VE SEBEBI OLCULDU. "JS ile basilan 2.294 site
+      # gercek tarayiciyla okunur" diye bir hipotez kuruldu, ayri bir
+      # betik yazildi ve GitHub kosucusunda 40 alan adiyla denendi:
       #
-      # ONCE OLCUM: az sayida alan adi denenip verim SAYILIYOR. Verim
-      # dusukse tam tarama hem zaman hem baskasinin sunucusuna yuk.
-      - name: JS menuleri (tarayici)
+      #     Denenen      40
+      #     Kalem cikan   0  (%0,0)
+      #     Hata          7
+      #
+      # Sifir. Sebebi de ortaya cikti: menu_pdf_tara.py bu isi ZATEN
+      # yapiyor ve daha iyi yapiyor -- siteyi gercek tarayicida aciyor
+      # VE menu bagini takip ediyor. 1.974 mekanda kosmus, sonuc
+      # "menu bulunamadi 1552". Yani hipotez zaten sinanmis ve
+      # cevaplanmisti; ayri betik gereksizdi ve silindi.
+      #
+      # Bu adim yine de duruyor: siteler degisir, yeniden taramanin bir
+      # gun anlami olabilir. Ama varsayilan KAPALI, cunku bugun
+      # elimizdeki olcum "getirisi yok" diyor.
+      - name: Site/menu taramasi
         if: inputs.tarayici
-        run: |
-          if [ "${{ inputs.tarayici_adet }}" = "0" ]; then
-            python menu_tarayici.py tam
-          else
-            python menu_tarayici.py olc "${{ inputs.tarayici_adet }}"
-          fi
+        run: python menu_pdf_tara.py tam
 
       # ---- 3. Gorsel/PDF menuler (OCR) -----------------------------
       # Anahtar GITHUB SECRETS'ta. Depoya ASLA girmiyor (.gitignore).
@@ -161,6 +164,6 @@ jobs:
           {
             echo "### Veri turu"
             echo "- OSM mekan: ${{ inputs.mekan }}"
-            echo "- Tarayici : ${{ inputs.tarayici }} (${{ inputs.tarayici_adet }})"
+            echo "- Tarama   : ${{ inputs.tarayici }}"
             echo "- OCR      : ${{ inputs.ocr }}"
           } >> "$GITHUB_STEP_SUMMARY"

@@ -44,6 +44,52 @@ SAYFA_ZAMAN = 20000    # ms
 INDIRME_ZAMAN = 25     # s
 PDF_AZAMI = 15 * 1024 * 1024
 
+# ROBOTS.TXT KAPISI. Bu betik siteyi TAM olarak calistiriyor (betikler,
+# istekler, cerezler) ve menu sayfasina gecip PDF/gorsel indiriyor --
+# duz bir HTML istegine gore cok daha agir bir ziyaret. Kapinin
+# olmamasi bir eksiklikti.
+#
+# Alan adi basina BIR kez okunuyor ve sonuc onbelleklenip "izin yok"
+# diyen site ATLANIYOR; atlandigi BULGUYA yaziliyor ("robots-yasak").
+# Sessizce kirpmak, "menu bulunamadi" diye okunurdu -- oysa bakmadik.
+#
+# ADIMIZLA verilen yasak da geciyor: robotparser kullanici ajanini "/"
+# ile bolup ilk parcayi aliyor, yani TAM UA dizgesi verilirse ad
+# "mozilla" olur ve CebimdeBot'a konan yasak kacar.
+BOT_ADI = "CebimdeBot"
+_robot_onbellek = {}
+
+
+def robots_izin(taban, getir=None):
+    """robots.txt bu siteyi taramaya izin veriyor mu?
+
+    Okunamazsa IZIN VAR sayiliyor: robots.txt yoklugu standartta
+    "kisitlama yok" demek, yoklugu yasak saymak butun webi kapatirdi.
+    """
+    import urllib.robotparser
+    if taban in _robot_onbellek:
+        return _robot_onbellek[taban]
+    izin = True
+    try:
+        ham = (getir or _robots_getir)(taban.rstrip("/") + "/robots.txt")
+        if ham:
+            ayrac = urllib.robotparser.RobotFileParser()
+            ayrac.parse(ham.splitlines())
+            izin = ayrac.can_fetch(BOT_ADI, taban)
+    except Exception:
+        izin = True
+    _robot_onbellek[taban] = izin
+    return izin
+
+
+def _robots_getir(url):
+    import subprocess
+    r = subprocess.run(["curl", "-sL", "--max-time", "10", url],
+                       capture_output=True, text=True,
+                       encoding="utf-8", errors="replace")
+    return r.stdout or ""
+
+
 MENU_BAGI = re.compile(r"men[uü]|fiyat|sipari", re.I)
 MENU_DOSYASI = re.compile(r"men[uü]|fiyat|katalog|liste", re.I)
 GORSEL_UZANTI = re.compile(r"\.(jpe?g|png|webp)(\?|$)", re.I)
@@ -149,6 +195,9 @@ async def site_isle(tarayici, istemci, satir, kilit):
              "tur": "", "kaynak_url": "", "kalem_sayisi": 0, "not": ""}
     kalemler = []
     sayfa = None
+    if not robots_izin(site):
+        bulgu["tur"] = "robots-yasak"
+        return bulgu, kalemler
     try:
         sayfa = await tarayici.new_page()
         sayfa.set_default_timeout(SAYFA_ZAMAN)
@@ -333,7 +382,25 @@ Tel: 0322 233 60 60
                 ("TSRS Uygunluk Beyanı TSRS M.d", 72.0), ("Projeksiyonları,", 2020.0)]
     assert not menu_mu(kurumsal), "kurumsal belge menu sayildi"
     assert menu_mu(list(c.items())), "gercek menu reddedildi"
-    print("kontrol gecti: %d kalem ayiklandi, cop elendi, kurumsal PDF reddedildi" % len(c))
+    # ROBOTS.TXT KAPISI. Betik siteyi tam calistirip menu sayfasina
+    # geciyor; kapinin varligi kadar DOGRU calistigi da sinaniyor.
+    _robot_onbellek.clear()
+    assert not robots_izin("https://a.test",
+                           getir=lambda u: "User-agent: *\nDisallow: /\n"), \
+        "robots.txt 'Disallow: /' dedigi halde taraniyor"
+    _robot_onbellek.clear()
+    assert robots_izin("https://b.test", getir=lambda u: ""), \
+        "robots.txt YOKKEN tarama engellendi (yokluk kisitlama degil)"
+    _robot_onbellek.clear()
+    # TAM UA dizgesi verilseydi robotparser adi "mozilla" diye okur ve
+    # bu yasak KACARDI.
+    assert not robots_izin("https://c.test",
+                           getir=lambda u: "User-agent: CebimdeBot\nDisallow: /\n"), \
+        "bizi ADIMIZLA yasaklayan robots.txt gecersiz sayildi"
+    _robot_onbellek.clear()
+
+    print("kontrol gecti: %d kalem ayiklandi, cop elendi, kurumsal PDF "
+          "reddedildi, robots.txt kapisi calisiyor" % len(c))
     return True
 
 

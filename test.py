@@ -36,8 +36,7 @@ BETIKLER = ["app_veri.py", "etkinlik_cek.py", "fiyat_analiz.py", "menu_cikar.py"
             "turkiye_cek.py", "foto_cek.py",
             "menu_ocr.py", "menu_pdf_tara.py", "saha.py", "sahiplen.py",
             "site_haritasi.py", "csp_uret.py", "veri_bicim.py", "kutuphane_al.py",
-            "ikon_uret.py", "sw_uret.py", "assetlinks_uret.py", "og_uret.py",
-            "menu_tarayici.py"]
+            "ikon_uret.py", "sw_uret.py", "assetlinks_uret.py", "og_uret.py"]
 
 # Turkiye siniri, genis pay. Disina dusen koordinat cekimde bir sey
 # kaymis demektir; haritada Atlantik'te bir nokta olarak gorunur.
@@ -1572,7 +1571,7 @@ def platform_kapisi_mi():
     rehberinden menu almak, Google Maps'ten almakla ayni sey.
 
     Veri o an degismedi (o 21 mekanin zaten menusu yoktu); kapi ILERIDE
-    onemli, cunku menu_tarayici.py tam da o yigini tarayacak.
+    onemli, cunku menu_pdf_tara.py tam da o yigini tariyor.
     """
     s = []
     try:
@@ -1608,44 +1607,68 @@ def platform_kapisi_mi():
 
     # (c) TARAYICI HATTI da ayni kapiyi kullanmali.
     #
-    # METIN DEGIL DAVRANIS SINANIYOR. Ilk hali dosyada "platform_mu" ve
-    # "robots" dizgelerini ARIYORDU ve iki sabotaj birden gecti:
-    # `platform_mu = lambda u: False` yazmak dizgeyi yerinde birakiyor,
-    # robotparser'i atmak da "robots" kelimesini yorumlarda birakiyor.
-    # Artik fonksiyonlar CAGIRILIYOR.
-    if not os.path.exists(os.path.join(KOK, "menu_tarayici.py")):
-        return s
+    # menu_pdf_tara.py siteyi TAM calistirip menu sayfasina geciyor;
+    # platform kapisi ve robots.txt kapisi ORADA olmali.
+    yol = os.path.join(KOK, "menu_pdf_tara.py")
+    if os.path.exists(yol):
+        d = io.open(yol, encoding="utf-8").read()
+        if "robots_izin" not in d:
+            s.append("menu_pdf_tara.py robots.txt kapisi tasimiyor")
+        # TAM UA dizgesi verilirse robotparser adi "mozilla" diye okur
+        # ve bizi adimizla yasaklayan site kapiyi gecer.
+        if "can_fetch(BOT_ADI" not in d:
+            s.append("menu_pdf_tara.py robots.txt'ye bot adini vermiyor")
+
+    # METIN DEGIL DAVRANIS. Ilk hali dosyada dizge ariyordu ve iki
+    # sabotaj birden gecti (fonksiyonu lambda ile takma, robotparser'i
+    # atma). Artik fonksiyon CAGIRILIYOR.
     try:
-        import menu_tarayici as MT
+        import menu_pdf_tara as MT
     except Exception as e:
-        return s + ["menu_tarayici.py okunamadi: %s" % e]
-
-    # Platform kapisi: aday listesinde platform adresi KALMAMALI.
-    tabanlar = [t for _, t in MT.js_adaylari()]
-    for kotu in ("instagram.", "facebook.", "yemeksepeti.", "getir.",
-                 "trendyol.", "restaurantguru.", "foursquare."):
-        gecen = [t for t in tabanlar if kotu in t]
-        if gecen:
-            s.append("menu_tarayici aday listesinde platform var: %s"
-                     % gecen[0])
-    if any(not MT.gecerli_alan(t) for t in tabanlar):
-        s.append("menu_tarayici aday listesinde bozuk alan adi var")
-
-    # robots.txt: YASAK gercekten durdurmali, YOKLUK durdurmamali,
-    # ve BIZI ADIMIZLA yasaklayan site de durdurmali (robotparser tam UA
-    # dizgesi verilirse adi "mozilla" diye okur ve bu yasagi kacirir).
+        return s + ["menu_pdf_tara.py okunamadi: %s" % e]
     MT._robot_onbellek.clear()
-    if MT.robots_izin("https://a.test", getir=lambda u: "User-agent: *\nDisallow: /\n"):
-        s.append("menu_tarayici robots.txt 'Disallow: /' dedigi halde tariyor")
+    if MT.robots_izin("https://a.test",
+                      getir=lambda u: "User-agent: *\nDisallow: /\n"):
+        s.append("menu_pdf_tara robots.txt 'Disallow: /' dedigi halde tariyor")
     MT._robot_onbellek.clear()
     if not MT.robots_izin("https://b.test", getir=lambda u: ""):
-        s.append("menu_tarayici robots.txt YOKKEN taramayi durduruyor "
+        s.append("menu_pdf_tara robots.txt YOKKEN taramayi durduruyor "
                  "(yokluk kisitlama degil)")
     MT._robot_onbellek.clear()
     if MT.robots_izin("https://c.test",
                       getir=lambda u: "User-agent: CebimdeBot\nDisallow: /\n"):
-        s.append("menu_tarayici bizi ADIMIZLA yasaklayan robots.txt'yi "
+        s.append("menu_pdf_tara bizi ADIMIZLA yasaklayan robots.txt'yi "
                  "gecersiz sayiyor")
+    MT._robot_onbellek.clear()
+
+    # KAPI GERCEKTEN CAGRILIYOR MU. Yukaridakiler fonksiyonun DOGRU
+    # calistigini gosteriyor; cagrildigini GOSTERMIYOR. Sabotajla
+    # goruldu: site_isle'deki uc satiri silmek butun kontrolleri
+    # gecirdi. Simdi site_isle'nin KENDISI kosuluyor.
+    import asyncio
+
+    class _Catlayan:
+        """Sayfa acilmaya calisilirsa kontrol patlasin."""
+        async def new_page(self):
+            raise AssertionError("robots.txt YASAKLARKEN sayfa acildi")
+
+    MT._robot_onbellek.clear()
+    MT._robot_onbellek["https://yasakli.test"] = False   # kapi "hayir" desin
+    try:
+        bulgu, kalemler = asyncio.run(MT.site_isle(
+            _Catlayan(), None,
+            {"mekan": "Deneme", "il": "34", "website": "https://yasakli.test"},
+            None))
+        if bulgu.get("tur") != "robots-yasak":
+            s.append("menu_pdf_tara robots yasagini bulguya yazmiyor: %r"
+                     % bulgu.get("tur"))
+        if kalemler:
+            s.append("menu_pdf_tara robots yasakliyken kalem uretti")
+    except AssertionError as e:
+        s.append("menu_pdf_tara: %s" % e)
+    except Exception as e:
+        s.append("menu_pdf_tara.site_isle kosulamadi: %s: %s"
+                 % (type(e).__name__, e))
     MT._robot_onbellek.clear()
     return s
 
