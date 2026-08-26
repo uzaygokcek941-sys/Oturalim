@@ -68,12 +68,44 @@ SURUM = "2.45.4"
 ADAYLAR = [
     # esm.sh, guncel bayrak (eski "?bundle" bunun takma adiydi)
     "https://esm.sh/@supabase/supabase-js@%s?bundle=all&target=es2020" % SURUM,
-    # jsDelivr'in ESM ucu: tek dosya, dis ithalatsiz
+    # jsDelivr'in ESM ucu
     "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@%s/+esm" % SURUM,
     # esm.sh, eski bayrak -- CDN geri alirsa diye
     "https://esm.sh/@supabase/supabase-js@%s?bundle&target=es2020" % SURUM,
 ]
 ADRES = ADAYLAR[0]
+
+# CDN'LERIN UCU DE KAPIYI GECEMEDI (GitHub kosucusunda olculdu):
+#
+#   esm.sh ?bundle=all   148 bayt, "from \"/@" ithalatlari duruyor
+#   jsDelivr +esm      6.486 bayt, "from\"/npm" ithalatlari duruyor
+#   esm.sh ?bundle       148 bayt, ayni
+#
+# Sebep bayrak degil, TASARIM: modern ESM CDN'leri paketi bilerek
+# parcalara boluyor ve tarayiciya ithalat zinciri gonderiyor. "Tek
+# dosya" istegi bu ucuyle karsilanmiyor.
+#
+# ASIL KAYNAK NPM. Paketin KENDI tarayici derlemesi (dist/umd) zaten
+# tek dosya ve dis ithalatsiz; Leaflet'te kullanilan yol da bu ve
+# calisiyor. Tarball npm'in resmi sha512 ozetiyle DOGRULANIYOR, yani
+# indirilen sey npm'in yayimladigi seyle ayni olmadan hicbir sey
+# yazilmiyor -- CDN'in o gun ne dondurdugune bagli degil.
+#
+# UMD ESM DEGIL: global bir `supabase` nesnesi kuruyor. kimlik.js ise
+# `import { createClient }` diyor. Aradaki farki KUCUK BIR SARMAL
+# kapatiyor (asagida). Sarmal UYDURMUYOR: dosyanin gercekten
+# createClient tasidigini dogrula() zaten denetliyor.
+S_KAYIT = "https://registry.npmjs.org/@supabase/supabase-js/%s" % SURUM
+S_UMD_ADAYLARI = ["package/dist/umd/supabase.js",
+                  "package/dist/umd/supabase.min.js"]
+S_SARMAL = (
+    "\n/* --- Cebimde: UMD -> ESM sarmali (kutuphane_al.py) ---\n"
+    "   Ustteki derleme global bir `supabase` nesnesi kuruyor; kimlik.js\n"
+    "   ise ES modul ithalati yapiyor. Arasindaki tek fark bu satirlar. */\n"
+    "const _s = (typeof globalThis !== \"undefined\" && globalThis.supabase)\n"
+    "        || (typeof self !== \"undefined\" && self.supabase) || {};\n"
+    "export const createClient = _s.createClient;\n"
+    "export default _s;\n")
 
 KOK = os.path.dirname(os.path.abspath(__file__))
 HEDEF = os.path.join(KOK, "app", "lib", "supabase-js.js")
@@ -143,6 +175,23 @@ def dogrula(govde):
     return s
 
 
+def npm_umd():
+    """npm'den tarayici derlemesini alir, ozeti dogrular, ESM sarmali ekler."""
+    bilgi = json.loads(_ag(S_KAYIT).decode("utf-8"))
+    tarball = bilgi["dist"]["tarball"]
+    integrity = bilgi["dist"].get("integrity")
+    ham = _ag(tarball)
+    if not ozet_tutuyor_mu(ham, integrity):
+        raise ValueError("OZET TUTMADI (%s)" % integrity)
+    with tarfile.open(fileobj=io.BytesIO(ham), mode="r:gz") as t:
+        adlar = {u.name for u in t.getmembers() if u.isfile()}
+        for yol in S_UMD_ADAYLARI:
+            if yol in adlar:
+                return t.extractfile(yol).read().decode("utf-8") + S_SARMAL
+        raise ValueError("tarball'da tarayici derlemesi yok; bulunanlar: %s"
+                         % sorted(a for a in adlar if "umd" in a or "dist" in a)[:8])
+
+
 def indir(adresler=None):
     """Adaylari sirayla dener, KAPIYI GECEN ilkini dondurur.
 
@@ -151,6 +200,16 @@ def indir(adresler=None):
     bozuk bir kutuphaneyi yayina koymak olurdu.
     """
     denemeler = []
+    # NPM ONCE: guvence orada (resmi sha512), CDN'de degil.
+    if adresler is None:
+        try:
+            govde = npm_umd()
+            sorunlar = dogrula(govde)
+            denemeler.append((S_KAYIT, sorunlar))
+            if not sorunlar:
+                return govde, S_KAYIT, denemeler
+        except Exception as e:
+            denemeler.append((S_KAYIT, ["alinamadi: %s" % e]))
     for adres in (adresler or ADAYLAR):
         try:
             istek = urllib.request.Request(
@@ -264,6 +323,29 @@ def _aday_kontrolu():
                  "is yine durur (bu hata bir kez yasandi)")
     if len({a.split("/")[2] for a in ADAYLAR}) < 2:
         s.append("ADAYLAR'in hepsi ayni sunucuda: o sunucu duserse yedek yok")
+
+    # SARMAL GERCEKTEN createClient VERIYOR MU. UMD derlemesi global bir
+    # nesne kuruyor; sarmal onu ESM ihracina cevirmezse dosya kapiyi
+    # gecer ama kimlik.js yine calismaz -- sessiz bir kirilma olurdu.
+    taklit_umd = ("var supabase={createClient:function(){}};\n"
+                  + "// dolgu\n" * 12000)
+    if dogrula(taklit_umd + S_SARMAL):
+        s.append("UMD + sarmal kapiyi gecmiyor: %s"
+                 % dogrula(taklit_umd + S_SARMAL))
+    if "export const createClient" not in S_SARMAL:
+        s.append("sarmal createClient'i disari vermiyor")
+    # NPM ONCE DENENMELI: guvence resmi sha512'de, CDN'de degil.
+    kaynak = io.open(__file__, encoding="utf-8").read()
+    if "npm_umd()" not in kaynak.split("def indir(")[1][:900]:
+        s.append("indir() npm'i denemiyor")
+    # OZET DOGRULAMASI npm yolunun TEK guvencesi: onsuz tarball her ne
+    # gelirse gelsin acilir. Leaflet'te de ayni kural var ve orada da
+    # tek koruma o. Sabotajla goruldu -- silinince hicbir kontrol
+    # patlamiyordu.
+    umd = kaynak.split("def npm_umd(")[1].split("\ndef ")[0]
+    if "ozet_tutuyor_mu" not in umd:
+        s.append("npm_umd() tarball ozetini DOGRULAMIYOR -- npm'in "
+                 "yayimladigindan baska bir sey yazilabilir")
 
     # EN_AZ_BAYT'i (80 KB) gecmeli, yoksa "cok kucuk" diye elenir --
     # ilk yazimda tam olarak bu oldu ve kontrol kendi fixture'ina takildi.
