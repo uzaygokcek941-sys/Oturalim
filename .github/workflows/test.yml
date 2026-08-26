@@ -37,8 +37,13 @@ jobs:
 
       # Kazima betikleri bu paketleri MODUL DUZEYINDE import ediyor, o yuzden
       # saf mantik kontrolleri icin bile gerekiyorlar.
+      #
+      # pillow SONRADAN EKLENDI. Bu is akisi ilk kez kostugunda
+      # ikon_uret.py "Pillow kurulu degil" diye dustu -- yani ikon
+      # ureticisinin kontrolleri CI'da HIC kosmamisti. Betik zarifce
+      # duruyordu ama zarif durus, kontrolun kosmasi demek degil.
       - name: Bagimliliklar
-        run: pip install --quiet httpx pymupdf playwright qrcode
+        run: pip install --quiet httpx pymupdf playwright qrcode pillow
 
       # Chromium ARTIK INDIRILIYOR (~130 MB, onbelleklenmis). Onceden
       # indirilmiyordu ve test_sayfa.py sessizce atlaniyordu; o kontrol

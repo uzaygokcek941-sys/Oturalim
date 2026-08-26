@@ -32,8 +32,10 @@ import json
 import os
 import re
 import ssl
+import struct
 import sys
 import urllib.request
+import zlib
 
 KOK = os.path.dirname(os.path.abspath(__file__))
 UYGULAMA = os.path.join(KOK, "app")
@@ -172,9 +174,69 @@ def _krom():
     return None
 
 
+# ============================================================
+# PNG DAMGASI -- Pillow'suz
+#
+# Damga bir tEXt yigini. PNG bicimi: 8 baytlik imza, ardindan
+#     uzunluk(4, buyuk uclu) + tur(4) + veri(uzunluk) + crc32(4)
+# yiginlari. tEXt verisi "anahtar\x00metin" (Latin-1).
+#
+# NEDEN ELLE: kontrol her yerde kosmali. Pillow'a bagliyken CI'da
+# "ModuleNotFoundError: No module named 'PIL'" diye yigildi -- bir
+# kontrolun kutuphane yoklugundan patlamasi hicbir sey soylemiyor.
+# Uretim zaten Playwright istiyor; okuma hicbir sey istemesin.
+# ============================================================
+def _yigin(tur, veri):
+    govde = tur + veri
+    return (struct.pack(">I", len(veri)) + govde +
+            struct.pack(">I", zlib.crc32(govde) & 0xFFFFFFFF))
+
+
+def damga_yaz(kaynak, hedef, anahtar, deger):
+    """PNG'ye tEXt yigini ekler. Yigin IHDR'den HEMEN SONRA giriyor:
+    bicim ilk yiginin IHDR olmasini sart kosuyor."""
+    ham = io.open(kaynak, "rb").read()
+    if ham[:8] != b"\x89PNG\r\n\x1a\n":
+        raise SystemExit("PNG degil: %s" % kaynak)
+    # Ilk yigin (IHDR) 8 + 4 + 4 + 13 + 4 = 33 bayt.
+    kes = 8
+    uzunluk = struct.unpack(">I", ham[kes:kes + 4])[0]
+    son = kes + 12 + uzunluk
+    metin = anahtar.encode("latin-1") + b"\x00" + deger.encode("latin-1")
+    io.open(hedef, "wb").write(ham[:son] + _yigin(b"tEXt", metin) + ham[son:])
+
+
+def damga_ara(yol, anahtar):
+    """Dosyadaki tEXt yiginlarinda anahtari arar. Yoksa None."""
+    try:
+        ham = io.open(yol, "rb").read()
+    except Exception:
+        return None
+    if ham[:8] != b"\x89PNG\r\n\x1a\n":
+        return None
+    i, ara = 8, anahtar.encode("latin-1") + b"\x00"
+    while i + 12 <= len(ham):
+        uzunluk = struct.unpack(">I", ham[i:i + 4])[0]
+        tur = ham[i + 4:i + 8]
+        veri = ham[i + 8:i + 8 + uzunluk]
+        if len(veri) != uzunluk:
+            return None                     # dosya kesik
+        # CRC DOGRULANIYOR. Sabotaj sinamasinda crc'yi sifirla yazdim
+        # ve kontrol GECTI -- yani bozuk bir PNG sessizce yazilabilirdi.
+        # Tarayici crc'ye bakiyor; bozuk kart hic cizilmezdi.
+        beklenen = struct.unpack(">I", ham[i + 8 + uzunluk:i + 12 + uzunluk])[0]
+        if zlib.crc32(tur + veri) & 0xFFFFFFFF != beklenen:
+            return None                     # yigin bozuk
+        if tur == b"tEXt" and veri.startswith(ara):
+            return veri[len(ara):].decode("latin-1")
+        if tur == b"IEND":
+            return None
+        i += 12 + uzunluk
+    return None
+
+
 def uret():
     from playwright.sync_api import sync_playwright
-    from PIL import Image, PngImagePlugin
 
     mekan, il = veri_ozeti()
     gecici = os.path.join(UYGULAMA, "_og_gecici.html")
@@ -205,21 +267,14 @@ def uret():
         os.remove(gecici)
 
     # SAYIYI DOSYANIN ICINE DAMGALA: kart eskirse test.py soylesin.
-    im = Image.open(ham).convert("RGB")
-    bilgi = PngImagePlugin.PngInfo()
-    bilgi.add_text(DAMGA, "%d/%d" % (mekan, il))
-    im.save(CIKTI, "PNG", optimize=True, pnginfo=bilgi)
+    damga_yaz(ham, CIKTI, DAMGA, "%d/%d" % (mekan, il))
     os.remove(ham)
     print("app/og.png uretildi: %s mekan, %s il" % (_sayi(mekan), _sayi(il)))
 
 
 def damga_oku():
     """PNG'ye damgalanan sayi. Kart hic uretilmemisse None."""
-    from PIL import Image
-    if not os.path.exists(CIKTI):
-        return None
-    with Image.open(CIKTI) as im:
-        return (im.info or {}).get(DAMGA)
+    return damga_ara(CIKTI, DAMGA)
 
 
 def kendini_kontrol_et():
@@ -251,6 +306,48 @@ def kendini_kontrol_et():
     # Sayi bicimi: Turkce binlik ayraci nokta.
     if _sayi(35852) != "35.852":
         s.append("binlik ayraci yanlis: %s" % _sayi(35852))
+
+    # DAMGA YAZICISI/OKUYUCUSU DA SINANIYOR. Elle yazilmis bir bicim
+    # ayristiricisi sessizce yanlis okuyabilir; gidis-donus burada
+    # olculuyor ve bozuk girdiler reddediliyor.
+    import tempfile
+    with tempfile.TemporaryDirectory() as gec:
+        bos = os.path.join(gec, "a.png")
+        # En kucuk gecerli PNG: imza + IHDR + IEND.
+        ihdr = struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0)
+        io.open(bos, "wb").write(b"\x89PNG\r\n\x1a\n" + _yigin(b"IHDR", ihdr)
+                                 + _yigin(b"IEND", b""))
+        if damga_ara(bos, DAMGA) is not None:
+            s.append("damga_ara damgasiz dosyada deger uyduruyor")
+        # BOZUK CRC reddedilmeli.
+        bozuk = os.path.join(gec, "d.png")
+        h = bytearray(io.open(bos, "rb").read())
+        h[-1] ^= 0xFF                       # IEND'in crc'sinin son bayti
+        io.open(bozuk, "wb").write(bytes(h))
+        if damga_ara(bozuk, DAMGA) is not None:
+            s.append("damga_ara bozuk crc'li dosyayi kabul ediyor")
+        damgali = os.path.join(gec, "b.png")
+        damga_yaz(bos, damgali, DAMGA, "123/45")
+        if damga_ara(damgali, DAMGA) != "123/45":
+            s.append("damga gidis-donus tutmadi: %r" % damga_ara(damgali, DAMGA))
+        if damga_ara(damgali, "baska") is not None:
+            s.append("damga_ara yanlis anahtarda deger donduruyor")
+        # PNG olmayan dosya sessizce "damgasiz" sayilmali, patlamamali.
+        degil = os.path.join(gec, "c.png")
+        io.open(degil, "wb").write(b"bu bir png degil")
+        if damga_ara(degil, DAMGA) is not None:
+            s.append("damga_ara PNG olmayan dosyada deger donduruyor")
+        # IMZASI BOZUK ama govdesi gecerli dosya da reddedilmeli.
+        # Ilk sinamada "png degil" diye 16 baytlik cop yaziyordum ve
+        # imza denetimi kaldirildiginda kontrol GECIYORDU: cop zaten
+        # ayristirilamiyordu. Gercek tuzak bu -- govdesi okunabilir ama
+        # imzasi yanlis dosya.
+        sahte = os.path.join(gec, "e.png")
+        h2 = bytearray(io.open(damgali, "rb").read())
+        h2[1] = ord("X")
+        io.open(sahte, "wb").write(bytes(h2))
+        if damga_ara(sahte, DAMGA) is not None:
+            s.append("damga_ara imzasi bozuk dosyayi PNG sayiyor")
 
     d = damga_oku()
     if d is None:
