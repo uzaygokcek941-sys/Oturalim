@@ -232,8 +232,11 @@ def veri_tutarli_mi():
     # DUZELTMEYI ANLATAN SATIR MUAF: "36.102 -> 35.852" yazan bir cumle
     # eski sayiyi HATA OLARAK aniyor, iddia olarak degil. Olcut, DOGRU
     # sayinin ayni satirda gecmesi.
+    # PAZARLAMA.md ozellikle onemli: yatirimciya ve YC'ye SOYLENECEK
+    # rakamlar orada. Eskimis bir sayiyi bir toplantida soylemek, bir
+    # belgede birakmaktan pahali.
     for ad in ("CEBIMDE.md", "README.md", "KURULUM.md", "PLAY.md",
-               os.path.join("tasarim", "decisions.md")):
+               "PAZARLAMA.md", os.path.join("tasarim", "decisions.md")):
         yol = os.path.join(KOK, ad)
         if not os.path.exists(yol):
             continue

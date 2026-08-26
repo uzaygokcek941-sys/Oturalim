@@ -95,6 +95,26 @@ Tanıştırma çıktığı için yük büyük ölçüde azaldı ama sıfırlanma
 
 ---
 
+## Yatırım ve San Francisco yol haritası
+
+Nevzat Aydın gibi melek yatırımcılardan yatırım almak ve Y Combinator'a
+girmek için araştırma + tarihli yol haritası: **`PAZARLAMA.md`**.
+
+Üç şey oradan buraya taşınacak kadar önemli:
+
+1. **Faz 0 iki hedefi birden bloke ediyor.** *"Şirket: gelir doğana kadar
+   kurulmayacak"* kararı dururken ne melek yatırımı alınabilir (hisse için
+   şirket gerekir) ne de YC'ye girilebilir (ABD/Cayman/Singapur çatısı
+   isteniyor). Karar senin; üç seçenek `PAZARLAMA.md` B4'te.
+2. **Asıl sorun kapsama, ve yeri belli.** Kadıköy Moda/Bahariye'de
+   **500 metrede 474 mekan var, 4'ünde fiyat yazıyor (%0,8)**. Yatırımcı
+   toplantıda telefonu açarsa bunu görür. 35.852 rakamı burada yardım
+   etmiyor, zarar veriyor.
+3. **Takvim dışarıdan geliyor.** Webrazzi Summit **21 Ekim 2026**
+   (Nevzat Aydın konuşmacı) · YC Winter 2027 başvurusu **~Kasım 2026**
+   (Fall 2026 son tarihi 27 Temmuz'du, geçti) · grup **Ocak–Mart 2027,
+   San Francisco**.
+
 ## İçerik planı — ilk 15
 
 Format: dikey, 45-60 sn, ilk 3 saniyede hook, tek fikir, **somut rakam**.
