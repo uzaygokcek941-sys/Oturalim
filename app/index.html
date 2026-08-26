@@ -133,10 +133,12 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
     font-size:14px; font-weight:600; color:var(--metin-2);
     margin-bottom:var(--a3); padding:0; display:block; text-align:center;
   }
+  /* DORT SUTUN, tek satir -- maketteki duzen. Alti cip iki satira
+     tasiyordu. Dar ekranda da dort kaliyor: 320 px'te bile daire 44 px
+     dokunma hedefini koruyor. */
   .canim-cipler{
-    display:grid; grid-template-columns:repeat(6,1fr); gap:var(--a2);
+    display:grid; grid-template-columns:repeat(4,1fr); gap:var(--a2);
   }
-  @media (max-width:560px){ .canim-cipler{ grid-template-columns:repeat(3,1fr) } }
   .canim-cip{
     display:flex; flex-direction:column; align-items:center; gap:6px;
     background:none; border:0; padding:var(--a1) 0; color:var(--metin-2);

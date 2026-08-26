@@ -1016,9 +1016,28 @@ function butceCumlesi(o, butce){
 }
 
 /* ---------- ana ekranın kategorileri ----------
-   Çipler mekan sayısına göre seçildi, hevese göre değil (81 il, sayım):
-   Restoran 14.587, Kafe 10.815, Fast food 6.091, Bar+Pub 1.443,
-   Dondurma 395, geri kalan eğlence türleri toplam 2.521.
+   DÖRT ÇİP. Marka maketindeki "Bütçeni Gir" ekranında dört daire var;
+   ekran altı çiple iki satıra taşıyordu ve maketteki tek işli görüntüyü
+   bozuyordu.
+
+   HANGİ DÖRDÜ, SAYIMLA (81 il, 35.852 mekan, turUyar ile):
+
+       Restoran    14.587   %40,7
+       Kafe        10.815   %30,2
+       Fast food    6.091   %17,0
+       Gezilecek    2.521   %7,0     <- dördüncü
+       ---------------------------
+       Üst dört    34.014   %94,9
+       İçki         1.443   %4,0     <- düştü
+       Dondurma       395   %1,1     <- düştü
+
+   Dört çip mekanların %94,9'unu kapsıyor. Seçim hevese göre değil; iki
+   düşen çip birlikte %5,1.
+
+   DÜŞENLER ÜRÜNDEN KAYBOLMUYOR. Ana ekran "canın ne çekti" kısayolu,
+   keşfet ekranı tam süzgeç: Bar ve Pub çipleri keşfette zaten vardı,
+   DONDURMA YOKTU ve eklendi. Olmasaydı bu değişiklik 395 dondurmacıyı
+   aramanın dışında hiçbir yoldan ulaşılamaz yapardı.
 
    "Tatlı" diye bir çip YOK: verideki tür "Dondurma" ve 395 tane. Çipe
    "Tatlı" deyip dondurmacı listelemek, olmayan bir kapsamı vaat etmek
@@ -1026,14 +1045,11 @@ function butceCumlesi(o, butce){
 
    Eğlence tarafı tek tek çip olamayacak kadar parçalı; keşfet ekranının
    zaten kullandığı "grup:eglence" değeri taşınıyor. Gece kulübü O
-   GRUBUN İÇİNDE, o yüzden İçki çipinde tekrar edilmiyor -- iki çipte
-   birden görünen tür, sayıları iki kez saydırırdı. */
+   GRUBUN İÇİNDE. */
 const CANIM = [
   { ad:"Kafe",      tur:["Kafe"] },
   { ad:"Restoran",  tur:["Restoran"] },
   { ad:"Fast food", tur:["Fast food"] },
-  { ad:"İçki",      tur:["Bar","Pub"] },
-  { ad:"Dondurma",  tur:["Dondurma"] },
   { ad:"Gezilecek", tur:["grup:eglence"] }
 ];
 
@@ -2445,7 +2461,10 @@ function kendiniKontrolEt(){
        Ciplerin turleri veride GERCEKTEN var olmali; yanlis yazilmis tek
        bir tur adi, cipe basan kullaniciya bos liste verir ve bunu
        hicbir sey soylemez. */
-    ["kategori sayisi",        CANIM.length,                                   6],
+    /* DORT. Maket dort daire gosteriyor ve ekran altiyla iki satira
+       tasiyordu. Sayi burada SABITLENIYOR: besinciyi eklemek ekrani
+       sessizce iki satira dondururdu. */
+    ["kategori sayisi",        CANIM.length,                                   4],
     ["kategori turleri tanimli",
       CANIM.every(k => k.tur.length &&
         k.tur.every(t => t.slice(0,5) === "grup:"

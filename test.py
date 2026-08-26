@@ -1848,6 +1848,80 @@ def gizlilik_ucuncu_taraf_mi():
     return s
 
 
+def turler_ulasilabilir_mi():
+    """VERIDEKI HER TUR bir cip ile secilebiliyor mu.
+
+    Ana ekran kategorileri altidan DORDE indirildi (marka maketi dort
+    daire gosteriyor). Secim sayimla yapildi -- ust dort mekanlarin
+    %94,9'unu kapsiyor -- ama iki kategori dustu: Icki (Bar+Pub, 1.443)
+    ve Dondurma (395).
+
+    ANA EKRANDAN DUSMEK URUNDEN DUSMEK DEGIL: ana ekran "canin ne cekti"
+    kisayolu, kesfet ekrani tam suzgec. Bar ve Pub cipleri kesfette
+    zaten vardi. DONDURMA YOKTU -- yani degisiklik 395 dondurmaciyi
+    aramanin disinda hicbir yoldan ulasilamaz yapacakti. Kesfete
+    Dondurma cipi eklendi.
+
+    Bu kontrol o deligi genel olarak kapatiyor: veri hattina yeni bir
+    tur eklendiginde (turkiye_cek.py yeni bir OSM etiketi tanidiginda)
+    cipi unutulursa burada goze carpiyor. Olculdu: 26 tur, ulasilmaz 0.
+
+    Not: kontrol AGA CIKMIYOR, il dosyalarini okuyor -- yani veri
+    degistiginde kendiliginden guncelleniyor.
+    """
+    s = []
+    kes = oku("app", "kesfet.html")
+    cipler = re.findall(r'data-tur="([^"]+)"', kes)
+    if not cipler:
+        return ["kesfet.html: hic tur cipi yok"]
+
+    # TUR_GRUP ortak.js'te; grup cipleri (grup:eglence) bir kume aciyor.
+    ortak = oku("app", "ortak.js")
+    gruplar = {}
+    m = re.search(r"const TUR_GRUP = \{(.*?)\n\};", ortak, re.S)
+    if m:
+        for ad, govde in re.findall(r'(\w+):\s*new Set\(\[(.*?)\]\)',
+                                    m.group(1), re.S):
+            gruplar[ad] = set(re.findall(r'"([^"]+)"', govde))
+
+    secilebilir = set()
+    for c in cipler:
+        if c.startswith("grup:"):
+            secilebilir |= gruplar.get(c[5:], set())
+        else:
+            secilebilir.add(c)
+
+    # Veride gecen turler.
+    idx = json.loads(oku("app", "veri", "index.json"))
+    say = {}
+    for il in idx["iller"]:
+        ham = json.loads(oku("app", "veri", "%s.json" % il["kod"]))
+        for m2 in veri_bicim.coz(ham)["mekanlar"]:
+            t = m2.get("tur")
+            if t:
+                say[t] = say.get(t, 0) + 1
+
+    ulasilmaz = sorted(((n, t) for t, n in say.items() if t not in secilebilir),
+                       reverse=True)
+    for n, t in ulasilmaz:
+        s.append("kesfet.html: '%s' turu hicbir ciple secilemiyor (%d mekan)"
+                 % (t, n))
+
+    # Ana ekranin kategorileri de kesfette karsiligini bulmali: ana
+    # ekrandan kesfete gecen kullanici ayni secimi orada gormeli.
+    mc = re.search(r"const CANIM = \[(.*?)\];", ortak, re.S)
+    if not mc:
+        s.append("ortak.js: CANIM listesi okunamadi")
+    else:
+        girisler = re.findall(r'tur:\[([^\]]+)\]', mc.group(1))
+        for g in girisler:
+            for t in re.findall(r'"([^"]+)"', g):
+                if t not in cipler:
+                    s.append("ana ekrandaki '%s' kesfette cip olarak yok" % t)
+
+    return s
+
+
 def kombin_mi():
     """Cebimde kombini: "bu butceyle burada ne yenir".
 
@@ -2213,6 +2287,8 @@ def main():
     kayit("degismez: yazi tipi indirilen ile kullanilan ayni",
           yazi_tipi_tutarli_mi())
     kayit("degismez: ana ekran butceyi olcum diye satmiyor", ana_ekran_butce_mi())
+    kayit("degismez: her tur bir ciple secilebiliyor",
+          turler_ulasilabilir_mi())
     kayit("degismez: fiyat kac olcumden geldigini soyluyor", fiyat_dayanagi_mi())
     kayit("degismez: guven skoru renk disinda da okunuyor", guven_skoru_mu())
     kayit("degismez: k-anonimlik esigi sunucuda da var", esik_iki_tarafta_ayni_mi())
