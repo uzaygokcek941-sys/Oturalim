@@ -293,13 +293,20 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
         Sayfa açıldığında tarayıcın şu adreslerden dosya çeker ve bu istekler
         sırasında <strong>IP adresin ilgili sağlayıcıya görünür</strong>:
       </p>
+      <!-- BU LISTE CSP ILE KARSILASTIRILIYOR (test.py). CSP tarayicinin
+           hangi kaynaklara gidebilecegini soyleyen tek yetkili yer;
+           liste ondan sapinca kullaniciya yanlis sey soylemis oluruz.
+           Uc sapma birden yasandi: unpkg yaziyordu ama artik hic
+           cagrilmiyor (Leaflet yerele alindi), Wikimedia Commons ve
+           esm.sh ise cagriliyordu ama yazmiyordu. -->
       <div class="sar">
         <table>
           <thead><tr><th>Sağlayıcı</th><th>Ne için</th></tr></thead>
           <tbody>
             <tr><td>OpenStreetMap / CARTO</td><td>Harita döşemeleri</td></tr>
-            <tr><td>unpkg</td><td>Leaflet harita kütüphanesi</td></tr>
             <tr><td>Google Fonts</td><td>Yazı tipleri</td></tr>
+            <tr><td>Wikimedia Commons</td><td>Serbest lisanslı mekan fotoğrafları — yalnızca o fotoğrafın olduğu sayfada</td></tr>
+            <tr><td>esm.sh</td><td>Supabase istemci kütüphanesi</td></tr>
             <tr><td>Vercel</td><td>Sitenin barındırılması</td></tr>
             <tr><td>Supabase</td><td>Hesap, oturum, favori ve fiyat paylaşımı verisi — yalnızca hesap açarsan</td></tr>
           </tbody>

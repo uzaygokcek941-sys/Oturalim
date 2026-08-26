@@ -46,7 +46,16 @@ def kabuk_dosyalari():
         yollar += glob.glob(os.path.join(UYGULAMA, kalip))
     # lib/ altindaki kutuphane de kabugun parcasi: surumu degisince
     # onbellek tazelenmeli.
-    yollar += glob.glob(os.path.join(UYGULAMA, "lib", "*.js"))
+    #
+    # CSS DE SART. Ilk yazimda yalniz *.js taraniyordu; Leaflet yerele
+    # alininca leaflet.css kabugun DISINDA kaldi ve cevrimdisi acilan
+    # haritada uslup hic gelmezdi (kutucuklar ust uste, denetimler
+    # bicimsiz). Gorseller de aliniyor: bugun kullanilmiyorlar
+    # (circleMarker var, isaretci ikonu yok) ama leaflet.css onlari
+    # url() ile cagiriyor ve bir gun bir isaretci eklendiginde kabukta
+    # olmamalari sessiz bir bosluk olurdu. Besi toplam 6,5 KB.
+    for kalip in ("lib/*.js", "lib/*.css", "lib/images/*"):
+        yollar += glob.glob(os.path.join(UYGULAMA, *kalip.split("/")))
     yollar = [y for y in yollar if os.path.basename(y) != "sw.js"]
     return sorted(yollar)
 

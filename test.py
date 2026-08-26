@@ -244,10 +244,34 @@ def sayfalar_tutarli_mi():
         if noindex == og:
             s.append("%s: noindex=%s ama og:image=%s" % (ad, noindex, og))
 
-    kesfet = oku("app", "kesfet.html")
-    if kesfet.count("integrity=") != 2:
-        s.append("kesfet.html: Leaflet css+js icin iki integrity bekleniyordu, %d var"
-                 % kesfet.count("integrity="))
+    # SRI ARTIK SAYIYLA OLCULMUYOR. Eskiden "kesfet.html'de tam iki
+    # integrity olmali" deniyordu -- Leaflet'in css ve js'i icin. Leaflet
+    # yerele alininca ikisi de dustu ve kontrol HAKLI olarak bagirdi;
+    # ama artik sorulmasi gereken soru bu degil. SRI ayni kaynaktan gelen
+    # dosya icin anlamsiz ('self' zaten dogrulanmis).
+    #
+    # Yeni soru: DIS bir kaynaktan yuklenen her script/link integrity
+    # tasiyor mu. Sayi degil KURAL -- yarin baska bir CDN eklenirse de
+    # gecerli.
+    #
+    # Google Fonts MUAF ve gerekcesi somut: yayimladiklari CSS'in ICERIGI
+    # tarayiciya gore degisiyor (woff2 alt kumeleri, unicode-range), yani
+    # sabit bir ozet tutmuyor. Ustelik <link> stylesheet icin SRI, dosya
+    # gelmezse sayfayi yazi tipsiz birakir -- kirilma yeri gorunur.
+    SRI_MUAF = ("fonts.googleapis.com", "fonts.gstatic.com")
+    for y in sorted(glob.glob(os.path.join(KOK, "app", "*.html"))):
+        ad = os.path.basename(y)
+        h = oku("app", ad)
+        for etiket in re.findall(r"<(?:script|link)\b[^>]*>", h):
+            m = re.search(r'(?:src|href)="(https?://[^"]+)"', etiket)
+            if not m:
+                continue                      # goreli yol: ayni kaynak
+            adres = m.group(1)
+            if any(x in adres for x in SRI_MUAF):
+                continue
+            if "integrity=" not in etiket:
+                s.append("%s: dis kaynak integrity'siz yukleniyor: %s"
+                         % (ad, adres[:70]))
 
     # hesabim.html: sekme dugmeleri, bolum kimlikleri ve gizleme listesi
     # uc ayri yerde duruyor.
@@ -1679,6 +1703,151 @@ def kurulum_belgesi_tam_mi():
     return s
 
 
+def kutuphaneler_yerel_mi():
+    """Harita kutuphanesi UCUNCU BIR TARAFIN ayakta olmasina bagli olmasin.
+
+    VARSAYIM DEGIL, YASANMIS: Leaflet CDN'den gelmeyince kesfet ekraninin
+    TAMAMI oluyordu -- sifir kart, sayac "..."da donmus. SRI o gun hicbir
+    sey yapamadi, cunku SRI dosyanin DOGRU olup olmadigini soyluyor,
+    GELIP GELMEDIGINI degil.
+
+    Dosya artik depoda. Kutuphane_al.py onu npm kayit defterinden aliyor
+    ve kayit defterinin RESMI sha512 ozetiyle dogrulanmadan yazmiyor;
+    yani SRI'nin verdigi guvence duruyor, uzerine erisilebilirlik
+    geliyor.
+
+    OLCULDU (butun dis istekler kesili, gercek tarayici):
+        Leaflet yuklendi : True
+        harita kabi      : True   (.leaflet-container)
+        harita-yok kutusu: False
+    Onceden bu uc satirin ucu de tersiydi.
+
+    BSD-2-Clause lisans metni de depoda: kodu kopyalayip lisansi
+    birakmak sartin yarisini atlamak olurdu.
+    """
+    s = []
+    lib = os.path.join(KOK, "app", "lib")
+    js = os.path.join(lib, "leaflet.js")
+    if not os.path.exists(js):
+        return ["app/lib/leaflet.js yok; `python kutuphane_al.py leaflet` calistir"]
+    if os.path.getsize(js) < 100 * 1024:
+        s.append("app/lib/leaflet.js cok kucuk (%d bayt)" % os.path.getsize(js))
+    if not os.path.exists(os.path.join(lib, "leaflet.css")):
+        s.append("app/lib/leaflet.css yok")
+    # BSD-2-Clause: telif bildirimi ve izin metni korunmali.
+    lis = os.path.join(lib, "leaflet-LICENSE.txt")
+    if not os.path.exists(lis):
+        s.append("app/lib/leaflet-LICENSE.txt yok (BSD-2-Clause lisans metni)")
+    govde = io.open(js, encoding="utf-8", errors="replace").read(2000)
+    if "Vladimir Agafonkin" not in govde:
+        s.append("app/lib/leaflet.js atif basligi dusmus")
+
+    # Sayfa YERELDEN yuklemeli. Yerel dosya dururken CDN'e donmek,
+    # yasanmis arizayi geri getirirdi.
+    kes = oku("app", "kesfet.html")
+    if 'src="lib/leaflet.js"' not in kes:
+        s.append("kesfet.html leaflet.js'i yerelden yuklemiyor")
+    if 'href="lib/leaflet.css"' not in kes:
+        s.append("kesfet.html leaflet.css'i yerelden yuklemiyor")
+    for satir in re.findall(r"<(?:script|link)[^>]*>", kes):
+        if "unpkg.com" in satir and "leaflet" in satir.lower():
+            s.append("kesfet.html hala CDN'den Leaflet cekiyor: %s" % satir[:70])
+
+    # CSP DARALMALI: yerel kutuphane dururken unpkg.com kalmasi, artik
+    # kullanilmayan bir kaynagi acik birakmak olurdu.
+    ayar = oku("vercel.json")
+    if "unpkg.com" in ayar:
+        s.append("vercel.json'da unpkg.com hala var (kutuphane yerelde)")
+
+    # Kabuk surumu leaflet.css'i de saymali: saymazsa cevrimdisi acilan
+    # haritada uslup gelmezdi ve surum degisimi fark edilmezdi.
+    sw = oku("sw_uret.py")
+    if "lib/*.css" not in sw:
+        s.append("sw_uret.py: lib/*.css kabuk surumune girmiyor")
+
+    return s
+
+
+def gizlilik_ucuncu_taraf_mi():
+    """Gizlilik sayfasindaki saglayici listesi CSP ile TUTUYOR mu.
+
+    CSP tarayicinin hangi kaynaklara gidebilecegini soyleyen TEK YETKILI
+    yer. Gizlilik sayfasi ise kullaniciya "tarayicin sunlarla konusuyor"
+    diyor. Ikisi ayrisirsa sayfa yanlis sey soyluyor demektir ve bu
+    sessizce olur -- kimse iki listeyi yan yana koymaz.
+
+    UC SAPMA BIRDEN BULUNDU:
+        unpkg              yaziyordu, artik HIC cagrilmiyor (Leaflet yerelde)
+        upload.wikimedia   cagriliyordu, YAZMIYORDU (Commons fotograflari)
+        esm.sh             cagriliyordu, YAZMIYORDU (supabase-js yer tutucusu)
+    Ilki fazla beyan; digerleri EKSIK beyan ve daha agir.
+
+    Vercel listede ama CSP'de YOK ve olmasi da gerekmiyor: sitenin
+    kendisi oradan geliyor, yani 'self'. Muafiyet adiyla yazili.
+    """
+    s = []
+    ayar = oku("vercel.json")
+    sayfa = oku("app", "gizlilik.html")
+
+    m = re.search(r'"value":\s*"(default-src[^"]+)"', ayar)
+    if not m:
+        return ["vercel.json: CSP satiri okunamadi"]
+    csp = m.group(1)
+
+    # CSP'deki dis konaklar -> gizlilik sayfasinda aranacak ad.
+    # 'self', data:, blob: ve karma degerleri dis taraf degil.
+    AD = {
+        "https://unpkg.com":                 "unpkg",
+        "https://esm.sh":                    "esm.sh",
+        "https://fonts.googleapis.com":      "Google Fonts",
+        "https://fonts.gstatic.com":         "Google Fonts",
+        "https://*.supabase.co":             "Supabase",
+        "wss://*.supabase.co":               "Supabase",
+        "https://*.basemaps.cartocdn.com":   "CARTO",
+        "https://upload.wikimedia.org":      "Wikimedia Commons",
+    }
+    # Sitenin KENDI barindiricisi CSP'de gecmiyor ('self') ama listede
+    # olmasi dogru: kullanici acisindan bir ucuncu taraf.
+    MUAF = {"Vercel"}
+
+    # SATIRLAR TABLODAN OKUNUYOR, sayfanin tamamindan DEGIL. Ilk yazim
+    # "ad sayfada geciyor mu" diye bakiyordu ve UC SABOTAJ birden gecti:
+    # "Wikimedia Commons" ve "esm.sh" sayfanin metninde de aciklaniyor,
+    # "unpkg" ise tablonun ustundeki HTML yorumunda geciyor. Yani satir
+    # silinse bile kontrol yesil kaliyordu. Ayni tuzak bu depoda daha
+    # once de yasandi (href ile gorunen metin, title ile gorunen etiket).
+    tablo = re.search(r"<thead><tr><th>Sağlayıcı</th>.*?</table>", sayfa, re.S)
+    if not tablo:
+        return ["gizlilik.html: saglayici tablosu bulunamadi"]
+    satirlar = re.findall(r"<td>(.*?)</td>\s*<td>", tablo.group(0), re.S)
+    satirlar = [x.strip() for x in satirlar]
+
+    def listede(ad):
+        return any(ad in x for x in satirlar)
+
+    bulunan = set()
+    for konak, ad in AD.items():
+        if konak in csp:
+            bulunan.add(ad)
+            if not listede(ad):
+                s.append("gizlilik.html: %s CSP'de var ama TABLODA YOK "
+                         "(tarayici oraya gidiyor)" % ad)
+
+    # Ters yon: tabloda olup CSP'de olmayan -- fazla beyan.
+    for ad in sorted(set(AD.values())):
+        if ad in bulunan:
+            continue
+        if listede(ad):
+            s.append("gizlilik.html: %s tabloda ama CSP'de yok "
+                     "(artik cagrilmiyor)" % ad)
+
+    for ad in sorted(MUAF):
+        if not listede(ad):
+            s.append("gizlilik.html: %s tablodan dusmus" % ad)
+
+    return s
+
+
 def kombin_mi():
     """Cebimde kombini: "bu butceyle burada ne yenir".
 
@@ -2055,6 +2224,10 @@ def main():
     kayit("degismez: kurulum dosyalari depoda", kurulum_dosyalari_izleniyor_mu())
     kayit("degismez: kurulum belgesi eksiksiz",
           kurulum_belgesi_tam_mi())
+    kayit("degismez: harita kutuphanesi yerelde",
+          kutuphaneler_yerel_mi())
+    kayit("degismez: gizlilik listesi CSP ile tutuyor",
+          gizlilik_ucuncu_taraf_mi())
     kayit("degismez: donus adresi ve gunun tarihi", adres_ve_tarih_mi())
     kayit("degismez: sir sizmamis", sirlar_sizmis_mi())
 

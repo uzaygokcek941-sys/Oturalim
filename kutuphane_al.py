@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-"""supabase-js'i CDN'den alip app/lib/ altina YERELE yazar.
+"""Dis kutuphaneleri CDN'den alip app/lib/ altina YERELE yazar.
 
-    python kutuphane_al.py          # indirir, dogrular, yazar
+    python kutuphane_al.py          # ikisini de indirir, dogrular, yazar
+    python kutuphane_al.py leaflet  # yalniz Leaflet
     python kutuphane_al.py test     # aga cikmadan mantik kontrolu
+
+IKI KUTUPHANE: supabase-js (esm.sh) ve Leaflet (npm kayit defteri).
 
 NEDEN
 =====
@@ -38,11 +41,15 @@ Asagidaki dogrulama gecmeden dosya YAZILMIYOR:
 Biri tutmazsa betik hata veriyor ve VAR OLAN dosyaya dokunmuyor. Bozuk
 bir kutuphane yazmak, hic yazmamaktan kotu: giris sessizce olurdu.
 """
+import base64
 import hashlib
 import io
+import json
 import os
 import re
 import sys
+import tarfile
+import urllib.request
 
 # Surum SABIT. app/lib/supabase-js.js yer tutucusu hala CDN'e
 # yonlendiriyorsa oradaki surumle ayni olmali -- ayrisirsa indirmeden once
@@ -55,6 +62,43 @@ HEDEF = os.path.join(KOK, "app", "lib", "supabase-js.js")
 
 EN_AZ_BAYT = 80 * 1024          # gercegi ~250 KB; bunun altisi supheli
 EN_COK_BAYT = 4 * 1024 * 1024
+
+# ============================================================
+# LEAFLET
+#
+# Bu bolumun sebebi VARSAYIM DEGIL, YASANMIS: Leaflet CDN'den gelmeyince
+# kesfet ekraninin TAMAMI oluyordu (sifir kart, sayac "..."da donmus).
+# SRI o gun ise yaramadi, cunku SRI dosyanin DOGRU olup olmadigini
+# soyluyor -- GELIP GELMEDIGINI degil.
+#
+# NEDEN NPM, NEDEN unpkg DEGIL: kayit defteri her surum icin resmi bir
+# sha512 ozeti yayimliyor (dist.integrity). Tarball o ozetle
+# DOGRULANIYOR; yani indirilen sey npm'in yayimladigi seyle ayni olmadan
+# hicbir dosya yazilmiyor. unpkg ayni tarball'i servis ediyor ama ozeti
+# ayrica almak gerekirdi.
+#
+# Leaflet BSD-2-Clause. Lisans metni dosyanin kendi basliginda duruyor
+# ve oldugu gibi yaziliyor.
+# ============================================================
+L_SURUM = "1.9.4"
+L_KAYIT = "https://registry.npmjs.org/leaflet/%s" % L_SURUM
+L_DIZIN = os.path.join(KOK, "app", "lib")
+# Yalniz bunlar: harita cizimi icin gereken uc parca. Kaynak haritalari
+# (.map) ve TypeScript tanimlari ALINMIYOR -- yayina cikan bir seye
+# katkilari yok, yalniz depoyu sisirirlerdi.
+L_PARCALAR = {
+    "dist/leaflet.js":  "leaflet.js",
+    "dist/leaflet.css": "leaflet.css",
+    # LISANS METNI DE GELIYOR. BSD-2-Clause "telif bildirimi ve bu izin
+    # metni korunmali" diyor; kodu depoya kopyalayip lisansi birakmak
+    # sartin yarisini atlamak olurdu.
+    "LICENSE":          "leaflet-LICENSE.txt",
+}
+# CSS'in url() ile cagirdigi gorseller. Uygulama circleMarker kullaniyor
+# (isaretci ikonu degil), ama CSS onlari yine de istiyor ve eksikse
+# konsola 404 dusuyordu.
+L_GORSEL = "dist/images/"
+L_EN_AZ = 100 * 1024             # leaflet.js ~148 KB
 
 # Kalan dis ithalat: "from 'https://...'", "from '/v135/...'", "import('...')"
 DIS_ITHALAT = re.compile(
@@ -82,10 +126,88 @@ def dogrula(govde):
 
 
 def indir():
-    import urllib.request
     istek = urllib.request.Request(ADRES, headers={"User-Agent": "cebimde/1.0"})
     with urllib.request.urlopen(istek, timeout=60) as c:
         return c.read().decode("utf-8")
+
+
+# ---------- Leaflet ----------
+def _ag(adres):
+    istek = urllib.request.Request(adres, headers={"User-Agent": "cebimde/1.0"})
+    with urllib.request.urlopen(istek, timeout=90) as c:
+        return c.read()
+
+
+def ozet_tutuyor_mu(ham, integrity):
+    """npm'in `sha512-<base64>` bicimindeki resmi ozeti.
+
+    Ozet TUTMAZSA dosya yazilmiyor. Indirilen seyi koru korune yazmak,
+    kutuphaneyi CDN'den almanin en kotu halini -- dogrulanmamis kod --
+    yerele tasimak olurdu."""
+    if not integrity or not integrity.startswith("sha512-"):
+        return False
+    beklenen = integrity.split("-", 1)[1]
+    return base64.b64encode(hashlib.sha512(ham).digest()).decode() == beklenen
+
+
+def leaflet_dogrula(js, css):
+    s = []
+    if len(js) < L_EN_AZ:
+        s.append("leaflet.js cok kucuk (%d bayt)" % len(js))
+    if b"L.Map" not in js and b"Map=" not in js:
+        s.append("leaflet.js Map sinifini tasimiyor")
+    if b"circleMarker" not in js:
+        s.append("leaflet.js circleMarker tasimiyor (uygulama onu kullaniyor)")
+    if b"leaflet-container" not in css:
+        s.append("leaflet.css beklenen sinifi tasimiyor")
+    # ATIF BASLIGI KALMALI: BSD-2-Clause telif bildirimini istiyor.
+    # Ilk yazimda "Copyright" ariyordum ve dosya reddedildi -- Leaflet
+    # basligi "(c) 2010-2023 Vladimir Agafonkin" diye yaziyor. Kontrol
+    # yanlisti, dosya degil.
+    if b"Vladimir Agafonkin" not in js[:2000]:
+        s.append("leaflet.js atif basligi dusmus (BSD-2-Clause telif "
+                 "bildirimini istiyor)")
+    return s
+
+
+def leaflet_al():
+    """npm kayit defterinden Leaflet'i alip app/lib/ altina yazar."""
+    print("kayit defteri: %s" % L_KAYIT)
+    bilgi = json.loads(_ag(L_KAYIT).decode("utf-8"))
+    tarball = bilgi["dist"]["tarball"]
+    integrity = bilgi["dist"].get("integrity")
+    print("tarball: %s" % tarball)
+    ham = _ag(tarball)
+    if not ozet_tutuyor_mu(ham, integrity):
+        sys.exit("OZET TUTMADI (%s). Hicbir dosya YAZILMADI." % integrity)
+    print("ozet dogrulandi: %s" % integrity)
+
+    with tarfile.open(fileobj=io.BytesIO(ham), mode="r:gz") as t:
+        icerik = {}
+        for kaynak, hedef in L_PARCALAR.items():
+            u = t.extractfile("package/" + kaynak)
+            if u is None:
+                sys.exit("tarball'da %s yok" % kaynak)
+            icerik[hedef] = u.read()
+        gorseller = {}
+        for uye in t.getmembers():
+            if uye.isfile() and uye.name.startswith("package/" + L_GORSEL):
+                gorseller[os.path.basename(uye.name)] = t.extractfile(uye).read()
+
+    sorun = leaflet_dogrula(icerik["leaflet.js"], icerik["leaflet.css"])
+    if sorun:
+        for x in sorun:
+            print("  HATA: " + x)
+        sys.exit("DOGRULAMA GECMEDI. Hicbir dosya YAZILMADI.")
+
+    os.makedirs(os.path.join(L_DIZIN, "images"), exist_ok=True)
+    for ad, govde in icerik.items():
+        io.open(os.path.join(L_DIZIN, ad), "wb").write(govde)
+    for ad, govde in gorseller.items():
+        io.open(os.path.join(L_DIZIN, "images", ad), "wb").write(govde)
+    print("yazildi: app/lib/leaflet.js (%d bayt), leaflet.css (%d bayt), "
+          "%d gorsel" % (len(icerik["leaflet.js"]), len(icerik["leaflet.css"]),
+                         len(gorseller)))
 
 
 def kendini_kontrol_et():
@@ -123,7 +245,13 @@ def kendini_kontrol_et():
 
 
 def main():
-    if len(sys.argv) > 1 and sys.argv[1] == "test":
+    arg = sys.argv[1] if len(sys.argv) > 1 else ""
+    if arg == "leaflet":
+        leaflet_al()
+        print()
+        print("Simdi: python csp_uret.py   # unpkg.com CSP'den dusuyor")
+        return
+    if arg == "test":
         sorunlar = kendini_kontrol_et()
         for x in sorunlar:
             print("  HATA: " + x)
@@ -153,9 +281,13 @@ def main():
     print("sha384: %s" % ozet)
     print()
     print("kimlik.js zaten bu dosyayi ithal ediyordu; yer tutucu gitti,")
-    print("kutuphane artik ayni kaynaktan geliyor. Iki adim kaldi:")
-    print("    python csp_uret.py      # esm.sh CSP'den dusuyor")
-    print("    git add app/lib/supabase-js.js vercel.json && git commit")
+    print("kutuphane artik ayni kaynaktan geliyor.")
+    print()
+    leaflet_al()
+    print()
+    print("Iki adim kaldi:")
+    print("    python csp_uret.py      # esm.sh ve unpkg.com CSP'den dusuyor")
+    print("    git add app/lib vercel.json && git commit")
 
 
 if __name__ == "__main__":

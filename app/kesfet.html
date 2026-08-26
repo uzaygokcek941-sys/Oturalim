@@ -24,9 +24,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H"
-      crossorigin="anonymous" referrerpolicy="no-referrer">
+<link rel="stylesheet" href="lib/leaflet.css">
 <link rel="stylesheet" href="stil.css">
 <link rel="stylesheet" href="sahne.css">
 <script>document.documentElement.classList.add("js-sahne");/* Emniyet: sahne.js gelmezse (CDN degil ama betik hatasi, engel,
@@ -458,13 +456,19 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
   </div>
 </dialog>
 
-<!-- SRI: unpkg npm tarball'ini oldugu gibi servis ediyor. Ozetler tarball'dan
-     hesaplandi, tarball da kayit defterinin resmi sha512'siyle dogrulandi;
-     ayrica leafletjs.com'un yayimladigi sha256 degerleriyle karsilastirildi.
-     CDN ele gecirilirse tarayici dosyayi calistirmaz. -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH"
-        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<!-- LEAFLET YERELDEN. Onceden unpkg.com'dan SRI ozetiyle geliyordu ve
+     ozet DOGRU dosyayi garanti ediyordu; GELECEGINI degil. Fark bu depoda
+     yasandi: CDN cevap vermeyince kesfet ekraninin TAMAMI oldu -- sifir
+     kart, sayac "..."da donmus. SRI o gun hicbir sey yapamadi, cunku
+     sordugu soru baskaydi.
+
+     Dosya npm kayit defterinden aliniyor ve kayit defterinin RESMI
+     sha512 ozetiyle dogrulanmadan yazilmiyor (kutuphane_al.py). Yani
+     SRI'nin verdigi guvence duruyor, uzerine erisilebilirlik geliyor.
+
+     BSD-2-Clause: atif basligi dosyanin icinde, lisans metni
+     lib/leaflet-LICENSE.txt'te. -->
+<script src="lib/leaflet.js"></script>
 <script src="ortak.js" defer></script>
 <script src="sahne.js" defer></script>
 <script src="yapilandirma.js"></script>

@@ -54,7 +54,7 @@ BLOK = re.compile(r"<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>", re.S | re.I)
 # Calisma aninda gercekten kullanilan dis kaynaklar. Her biri kodda
 # aranabilir olsun diye yaninda nerede kullanildigi yazili.
 KAYNAK = {
-    "unpkg":    "https://unpkg.com",                  # Leaflet (js + css), SRI'li
+    "unpkg":    "https://unpkg.com",                  # Leaflet -- yerele alininca dusuyor
     "esm":      "https://esm.sh",                     # supabase-js (kimlik.js)
     "fontcss":  "https://fonts.googleapis.com",       # <link rel=stylesheet>
     "font":     "https://fonts.gstatic.com",          # woff2 dosyalari
@@ -67,6 +67,7 @@ KAYNAK = {
 EK_KAYNAK = []
 
 KUTUPHANE = os.path.join(KOK, "app", "lib", "supabase-js.js")
+LEAFLET = os.path.join(KOK, "app", "lib", "leaflet.js")
 
 
 def kutuphane_yerel_mi():
@@ -102,6 +103,23 @@ def cdn_esm():
     return [] if kutuphane_yerel_mi() else [KAYNAK["esm"]]
 
 
+def leaflet_yerel_mi():
+    """Leaflet app/lib/ altinda gercekten duruyor mu (kutuphane_al.py).
+
+    supabase-js'teki kuralin aynisi: dosya yoksa unpkg.com CSP'de KALMAK
+    ZORUNDA, yoksa harita sessizce olurdu. Dosya varsa CSP kendiliginden
+    daraliyor -- unpkg script-src, style-src ve img-src'nin ucunden birden
+    dusuyor."""
+    try:
+        return os.path.getsize(LEAFLET) > 100 * 1024
+    except Exception:
+        return False
+
+
+def cdn_unpkg():
+    return [] if leaflet_yerel_mi() else [KAYNAK["unpkg"]]
+
+
 def csp():
     k = KAYNAK
     ek = " ".join(EK_KAYNAK)
@@ -115,19 +133,19 @@ def csp():
         # form-action: veri sizdirmanin en ucuz yolu, enjekte edilmis bir
         # <form>'u disari gondermek.
         ("form-action", "'self'"),
-        ("script-src", " ".join(["'self'", k["unpkg"]] + cdn_esm() +
+        ("script-src", " ".join(["'self'"] + cdn_unpkg() + cdn_esm() +
                                 satir_ici_karmalar())),
-        ("style-src", " ".join(["'self'", "'unsafe-inline'", k["fontcss"], k["unpkg"]])),
+        ("style-src", " ".join(["'self'", "'unsafe-inline'", k["fontcss"]] +
+                               cdn_unpkg())),
         ("font-src", " ".join(["'self'", k["font"]])),
         # blob: -- resimHazirla() tuvalden uretilen onizlemeyi boyle veriyor.
-        # unpkg img-src'de de var: leaflet.css ikonlarina goreli yoldan
-        # basvuruyor (marker-icon.png, layers.png). Bugun kullanilan
-        # denetimler bunlari istemiyor (nokta olarak circleMarker var,
-        # katman denetimi yok) ama bir denetim eklendigi gun istek
-        # SESSIZCE engellenirdi. Script ve stil icin zaten guvenilen bir
-        # kaynak; resim icin de saymanin ek riski yok.
+        # unpkg YEREL LEAFLET'TE DUSUYOR: leaflet.css ikonlarina goreli
+        # yoldan basvuruyor (marker-icon.png, layers.png) ve o yol artik
+        # 'self'. Kutuphane yerele alinmadiysa liste eski haline donuyor,
+        # yoksa bir katman denetimi eklendigi gun istek sessizce
+        # engellenirdi.
         ("img-src", " ".join(["'self'", "data:", "blob:", k["supabase"],
-                              k["commons"], k["dosem"], k["unpkg"]])),
+                              k["commons"], k["dosem"]] + cdn_unpkg())),
         ("connect-src", " ".join(["'self'", k["supabase"], k["supaws"]] + cdn_esm())),
     ]
     metin = "; ".join(a + " " + b for a, b in yonergeler)

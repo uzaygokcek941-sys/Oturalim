@@ -406,7 +406,8 @@ def kendini_kontrol_et():
             # sinaniyor (asagida).
             ctx = t.new_context(service_workers="block")
 
-            def sayfa_ac(yolu, taklit=None, sahte_modul=False):
+            def sayfa_ac(yolu, taklit=None, sahte_modul=False,
+                         leafletsiz=False):
                 sf = ctx.new_page()
                 hata = []
                 sf.on("pageerror", lambda e: hata.append(str(e)[:120]))
@@ -419,6 +420,13 @@ def kendini_kontrol_et():
                 # girisli hal de sinanabiliyor.
                 def yonlendir(r):
                     u = r.request.url
+                    # LEAFLET ARTIK YEREL (app/lib/leaflet.js). Eskiden
+                    # "harita yok" hali unpkg istegi kesilerek olusuyordu;
+                    # kutuphane yerele alininca o hal kendiliginden
+                    # imkansizlasti ve zarif dusus yolu (.harita-yok
+                    # kutusu) SINANMAMIS kalacakti. Kesme burada.
+                    if leafletsiz and u.endswith("/lib/leaflet.js"):
+                        return r.abort()
                     # supabase-js KONTROLU ONCE: kutuphane artik yerel bir
                     # adresten (app/lib/supabase-js.js) geliyor, yani
                     # TABAN ile basliyor. Sira ters olsaydi taklit modul
@@ -1189,7 +1197,9 @@ def kendini_kontrol_et():
             sf.close()
 
             # 2) Harita YOKKEN kesfet calismali. Asil bulunan hata buydu.
-            sf, hata = sayfa_ac("/kesfet.html?il=06")
+            # Kutuphane yerelde durdugu icin istek ACIKCA kesiliyor:
+            # "yerel dosya bir gun bozulursa" hali de bu.
+            sf, hata = sayfa_ac("/kesfet.html?il=06", leafletsiz=True)
             kart = sf.eval_on_selector_all(".kart", "n => n.length")
             # Kutunun VARLIGI degil METNI olculuyor: bos bir kutu
             # kullaniciya haritanin neden gitigini soylemiyor ve
@@ -1449,7 +1459,12 @@ def kendini_kontrol_et():
             pwa_ctx.close()
 
             # 3) Harita VARKEN normal yol izlenmeli: erken donus olmamali.
-            sf, hata = sayfa_ac("/kesfet.html?il=06", LEAFLET_TAKLIT)
+            # GERCEK DOSYA KESILIYOR, yerine taklit konuyor. Taklit
+            # acilista `window.L` kuruyor; gercek lib/leaflet.js sonradan
+            # yuklenip UZERINE YAZIYORDU ve sayaclarin hicbiri dolmuyordu
+            # -- kontrol "L.map hic cagrilmadi" diye HAKLI olarak bagirdi.
+            sf, hata = sayfa_ac("/kesfet.html?il=06", LEAFLET_TAKLIT,
+                                leafletsiz=True)
             cagri = set(sf.evaluate("window.__cagri || []"))
             kart2 = sf.eval_on_selector_all(".kart", "n => n.length")
             yedek2 = sf.eval_on_selector_all(".harita-yok", "n => n.length")
