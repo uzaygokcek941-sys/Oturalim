@@ -35,6 +35,14 @@ on:
         description: "Menu gorsellerini OCR ile oku (NVIDIA_API_KEY gerekir)"
         type: boolean
         default: false
+      kutuphane:
+        description: "supabase-js'i yerele al (kutuphane_al.py)"
+        type: boolean
+        default: false
+      foto:
+        description: "Wikimedia Commons fotograflari (foto_cek.py)"
+        type: boolean
+        default: false
 
 concurrency:
   group: veri-turu
@@ -116,6 +124,28 @@ jobs:
           fi
           python menu_ocr.py tam
 
+      # ---- 3b. supabase-js'i yerele al -----------------------------
+      # app/lib/supabase-js.js bugun YER TUTUCU (1,4 KB) ve calisma
+      # aninda esm.sh'ten cekiyor. Iki sorun: dinamik import()
+      # integrity DESTEKLEMIYOR (yani gelen sey dogrulanmiyor) ve CDN
+      # tek ariza noktasi -- bu depoda Leaflet ile YASANDI, kesfet
+      # ekraninin tamami olmustu.
+      #
+      # Betik npm kayit defterinin resmi sha512 ozetiyle dogrulamadan
+      # hicbir sey yazmiyor. Yerele inince esm.sh hem CSP'den hem
+      # gizlilik tablosundan kendiliginden dusuyor.
+      - name: supabase-js yerele
+        if: inputs.kutuphane
+        run: python kutuphane_al.py
+
+      # ---- 3c. Commons fotograflari --------------------------------
+      # Serbest lisansli, ATIFLI. Google Maps fotograflari
+      # "Yapilmayacaklar" listesinde: yazarlarinin telifinde ve
+      # platforma lisansli.
+      - name: Commons fotograflari
+        if: inputs.foto
+        run: python foto_cek.py
+
       # ---- 4. Uygulama verisini yeniden uret -----------------------
       - name: Uygulama verisi
         run: |
@@ -166,4 +196,6 @@ jobs:
             echo "- OSM mekan: ${{ inputs.mekan }}"
             echo "- Tarama   : ${{ inputs.tarayici }}"
             echo "- OCR      : ${{ inputs.ocr }}"
+            echo "- Kutuphane: ${{ inputs.kutuphane }}"
+            echo "- Foto     : ${{ inputs.foto }}"
           } >> "$GITHUB_STEP_SUMMARY"
