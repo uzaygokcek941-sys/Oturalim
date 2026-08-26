@@ -266,8 +266,122 @@ def rapor(durum, adaylar):
             print("  %-46s %4d" % (d["website"][:46], d["kalem"]))
 
 
+# JS ile menu basan YEREL sayfa. Betigin butun varlik sebebi bu hal:
+# sunucunun gonderdigi HTML'de fiyat YOK, tarayici calistirinca VAR.
+# Fixture yerel, dis ag gerektirmiyor.
+# ESKI FIYAT bilerek IKI YERDE saklaniyor ve ikisi de EKRANDA YOK:
+#   (a) betigin kaynagindaki sayi (45)
+#   (b) display:none bir kutu (55)
+# Sayfanin GOSTERDIGI fiyat 85. Ham HTML okunsaydi ikisi de kaleme
+# donusurdu -- yani kullaniciya, mekanin ekranda yazmadigi bir fiyat.
+# inner_text yalniz GORUNENI veriyor. Fark bu yuzden onemli ve
+# kontrol bunu olcuyor.
+FIXTURE = """<!doctype html><meta charset="utf-8"><title>Deneme</title>
+<div id="eski" style="display:none">Filtre Kahve 55 TL</div>
+<div id="menu">Yukleniyor...</div>
+<script>
+var ESKI = 45;
+setTimeout(function(){
+  document.getElementById("menu").innerHTML =
+    "<p>Filtre Kahve " + (ESKI + 40) + " TL</p>" +
+    "<p>Latte 95 TL</p><p>Sahanda Yumurta 140 TL</p>";
+}, 300);
+</script>"""
+
+
+def _fixture_sunucusu():
+    """FIXTURE'i yerelde yayimlar; (taban_adres, kapat) dondurur."""
+    import http.server
+    import threading
+
+    class Islek(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            govde = FIXTURE.encode("utf-8")
+            self.send_response(404 if self.path == "/robots.txt" else 200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(govde)))
+            self.end_headers()
+            if self.path != "/robots.txt":
+                self.wfile.write(govde)
+
+        def log_message(self, *a):
+            pass
+
+    sunucu = http.server.HTTPServer(("127.0.0.1", 0), Islek)
+    threading.Thread(target=sunucu.serve_forever, daemon=True).start()
+    return "http://127.0.0.1:%d" % sunucu.server_port, sunucu.shutdown
+
+
+def tarayici_gercekten_okuyor_mu():
+    """JS ile basilan menuyu tarayici GERCEKTEN cikariyor mu?
+
+    Bu kontrol, betigin varlik sebebini sinar. Kapilarin (robots,
+    platform, alan adi) hepsi gecse bile ASIL IS calismiyorsa betik
+    ise yaramaz -- ve ilk yazimda tam olarak bu sinanmamisti:
+    fonksiyonlar tek tek denenmisti, ciKARMA hic denenmemisti.
+
+    Iki yon birden olculuyor:
+      HAM HTML'de fiyat YOK  -> menu_topla.py'nin bu sayfayi neden
+                                 kaciridigi gosteriliyor
+      TARAYICIDAN SONRA VAR  -> farki yaratan seyin tarayici oldugu
+
+    Playwright yoksa kontrol ATLANIYOR (sonuc None), catmiyor.
+    """
+    try:
+        import playwright.sync_api  # noqa: F401
+    except Exception:
+        return None
+
+    s = []
+    # (1) Ham HTML'de GERCEK fiyatlar YOK. menu_topla.py'nin gordugu
+    # sey bu ve o yuzden bu sayfayi "js" diye isaretleyip birakiyor.
+    #
+    # "hic fiyat yok" DENMIYOR: fixture bilerek eskimis fiyatlar
+    # tasiyor (gizli kutuda 55, betik kaynaginda 45) ve asil olcum
+    # onlarin SIZMAMASI. Aranan sey, EKRANDA GORUNEN fiyatlarin ham
+    # HTML'de bulunmamasi.
+    # 85 fixture'da SAYI OLARAK HIC GECMIYOR: betik onu hesapliyor
+    # (ESKI + 40). Yani o rakam ancak JS CALISTIRILIRSA ortaya cikar --
+    # kontrolun butun dayanagi bu. Dizgede aranmasinin sebebi: menu_cikar
+    # ile bakmak yetmiyordu, iki div tek satira dusunce ikinci fiyati
+    # zaten okumuyor ve bozuk bir fixture fark edilmeden geciyordu
+    # (sabotajla goruldu).
+    if "85" in FIXTURE:
+        s.append("fixture bozuk: 85 kaynakta duz yaziyor, JS'in fark "
+                 "yarattigi gosterilemez")
+    if 85.0 in {f for _, f in menu_cikar(FIXTURE)}:
+        s.append("fixture bozuk: ham HTML'den 85 cikiyor")
+
+    taban, kapat = _fixture_sunucusu()
+    try:
+        _robot_onbellek.clear()
+        satirlar, durum = tara([("Deneme", taban)])
+    finally:
+        kapat()
+        _robot_onbellek.clear()
+
+    if durum and durum[0]["sonuc"].startswith("hata"):
+        return ["tarayici fixture'i acamadi: %s" % durum[0]["sonuc"]]
+    adlar = [r["kalem"] for r in satirlar]
+    fiyatlar = sorted(float(r["fiyat"]) for r in satirlar)
+    if len(satirlar) != 3:
+        s.append("tarayicidan 3 kalem beklendi, %d geldi: %s"
+                 % (len(satirlar), adlar))
+    if fiyatlar and fiyatlar != [85.0, 95.0, 140.0]:
+        s.append("fiyatlar yanlis okundu: %s" % fiyatlar)
+    # EKRANDA OLMAYAN FIYAT SIZMAMALI: 45 betigin kaynaginda, 55 gizli
+    # bir kutuda duruyor ve mekan ikisini de GOSTERMIYOR.
+    for gizli in (45.0, 55.0):
+        if gizli in fiyatlar:
+            s.append("ekranda gorunmeyen fiyat kaleme donusmus: %s "
+                     "(ham HTML mi okunuyor?)" % gizli)
+    if satirlar and satirlar[0]["kaynak"] != "tarayici":
+        s.append("kaynak etiketi 'tarayici' degil: %s" % satirlar[0]["kaynak"])
+    return s
+
+
 def kendini_kontrol():
-    """Ag GEREKTIRMEZ. Kapilarin kendisi sinaniyor."""
+    """Kapilar ag GEREKTIRMEZ; cikarma yerel bir fixture ile sinanir."""
     s = []
 
     # gecerli_alan: veriye kacmis metinler elenmeli
@@ -312,7 +426,16 @@ def kendini_kontrol():
         if any(kotu in t for t in tabanlar):
             s.append("js_adaylari platform adresini elemiyor: %s" % kotu)
 
-    print("kendini kontrol: %s" % ("BASARISIZ" if s else "%d kontrol gecti" % 9))
+    # ASIL IS: JS ile basilan menu gercekten cikariliyor mu.
+    ek = tarayici_gercekten_okuyor_mu()
+    if ek is None:
+        print("not: playwright yok, tarayici cikarma kontrolu ATLANDI")
+        n = 9
+    else:
+        s += ek
+        n = 13
+
+    print("kendini kontrol: %s" % ("BASARISIZ" if s else "%d kontrol gecti" % n))
     for x in s:
         print("  HATA:", x)
     return s

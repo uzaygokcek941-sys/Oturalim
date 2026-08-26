@@ -48,8 +48,21 @@ yalnız `pilot` koşulmuş: `menu_ocr_kalem.csv` **8 satır, 1 mekan**.
 
     python menu_ocr.py tam
 
-Tavan: 293 → ~570 mekan (%0,82 → ~%1,6). Gerçek verim OCR'ın kaç menüyü
+**`tam`'ın kendi süzgeçlerinden sonra ne işleyeceği ölçüldü:**
+
+    ham OCR işaretli satır      422
+    şablon sayılıp atlanan       18   (aynı görsel 8 mekana atanmıştı)
+    menu_ocr.py'nin adayı       363   (236 tekil mekan)
+    işlenmiş                      1
+    `tam` bu turda işleyecek    362   (235 tekil mekan)
+
+Tavan: 293 → ~528 mekan (%0,82 → ~%1,5). Gerçek verim OCR'ın kaç menüyü
 okuyabildiğine bağlı ve **ölçülecek**, uydurulmayacak.
+
+Betik ölçek için hazır: aynı görseli birden çok mekana atanmışsa şablon
+sayıp atlıyor, işlenmiş kaynakları atlayıp kaldığı yerden devam ediyor.
+**Eksik olan tek şey `NVIDIA_API_KEY`** — bu makinede ne ortam
+değişkeninde ne `.env`'de var.
 
 **İnsan doğrulaması kalkmıyor.** OCR çıktısı doğrudan yayına girmiyor;
 5 uydurma vakası ölçülmüştü (bir mekanda sıra numaraları fiyat sanılmıştı).
@@ -83,8 +96,31 @@ Platform ve bozuk adresler elenince: **2.091 kayıt, 1.467 tekil alan adı.**
 
     python menu_tarayici.py tam
 
-> Bu ölçüm bu oturumda yapılamadı: sandbox tüm dış siteleri kesiyor
-> (Wikipedia dahil). Senin makinende koşacak.
+> Bu ölçüm bu oturumda yapılamadı: sandbox tüm dış siteleri kesiyor.
+> Doğrulandı, tahmin değil — `overpass-api.de`, `integrate.api.nvidia.com`
+> ve işletme siteleri hepsi `CONNECT tunnel failed, response 403`
+> veriyor. Senin makinende koşacak.
+
+**Ama çıkarmanın kendisi kanıtlandı.** Betiğin varlık sebebi — "JS ile
+basılan menüyü tarayıcı okuyabiliyor mu" — artık **yerel bir fixture**
+ile sınanıyor ve dış ağ gerektirmiyor (`python menu_tarayici.py test`).
+
+Fixture bilerek üç fiyat taşıyor ve ikisi **ekranda yok**:
+
+| Fiyat | Nerede | Ekranda |
+|---|---|---|
+| 45 ₺ | betiğin kaynağında (`var ESKI = 45`) | ❌ |
+| 55 ₺ | `display:none` bir kutuda | ❌ |
+| **85 ₺** | JS'in hesaplayıp bastığı (`ESKI + 40`) | ✅ |
+
+85 sayısı fixture'ın kaynağında **hiç geçmiyor** — ancak JS çalışırsa
+ortaya çıkıyor. Kontrol hem onun çıktığını hem 45/55'in **sızmadığını**
+ölçüyor: ham HTML okunsaydı kullanıcıya, mekanın ekranda yazmadığı bir
+fiyat gösterilirdi.
+
+Sabotajla doğrulandı: `inner_text` yerine ham HTML okumak, çizim
+beklemesini kaldırmak, fiyatı ölçeklemek ve fixture'ı bozmak — altısı da
+yakalanıyor.
 
 ### 1.3 Zincir yayılımı — sayıyı büyütür, ÖLÇÜMÜ BÜYÜTMEZ
 
@@ -347,7 +383,7 @@ Maliyet ve hazır olma durumuna göre:
 
 | # | İş | Maliyet | Beklenen | Durum |
 |---|---|---|---|---|
-| 1 | `python menu_ocr.py tam` | koşum | 283 mekan kuyrukta | **araç hazır, doğrulanmış** |
+| 1 | `python menu_ocr.py tam` | koşum + API anahtarı | **362 kaynak / 235 mekan** | araç hazır; `NVIDIA_API_KEY` gerekiyor |
 | 2 | `python menu_tarayici.py olc 30` | 10 dk | verim ölçümü | **araç bu commit'te** |
 | 3 | Verim %10+ ise `tam` | koşum | ≤1.467 site | 2'ye bağlı |
 | 4 | `python turkiye_cek.py` | koşum | 4 sosyal sütun | kod hazır |
