@@ -330,10 +330,11 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
       `topluluk.sql` çalıştırıldı (2026-08-26) — **veritabanı tarafı bitti**
 - [ ] `@cebimde` handle (Instagram + TikTok) — **bio ve ilk 3 içeriğin notu
       hazır** (`icerik_ilk3.md`); kalan tek şey hesabı açmak
-- [x] Vercel yayını — `main` birleştirildi (PR #1, 2026-08-26) ve marka
-      canlıda. **Sonraki 6 commit henüz `main`'e girmedi**: kategoriler,
-      çok bütçeli öneri, seviye adları, son doğrulanma, kampanya alanı,
-      kalem tarihi, konum haritası. Yayınlanması tek `main` birleştirmesi
+- [x] Vercel yayını — **hepsi canlıda** (2026-08-26). Önce PR #1 markayı
+      taşıdı, sonra 11 commit daha birleştirildi: kategoriler, çok bütçeli
+      öneri, seviye adları, son doğrulanma, kampanya alanı, kalem tarihi,
+      konum haritası, semt (ilçe + mahalle). Depoda `main` ile
+      `claude/repo-incelemesi-wlnrwo` arasında fark yok
 - [ ] `python kutuphane_al.py` — supabase-js'i yerele al (1 dk, `KURULUM.md`)
 - [ ] `python foto_cek.py` — Commons fotoğrafları (buradaki oturumda ağ kapalı)
 - [ ] Günde 1 içerik, gelen DM'e ilk 10 dakikada cevap
