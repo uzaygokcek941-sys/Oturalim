@@ -214,6 +214,23 @@ window.__SAHTE_VERI = {
         urun: "Latte", fiyat: 145, foto: "kul-1/1.jpg",
         olusturuldu: "2026-08-22T10:00:00Z",
         yazar_adi: null, yazar_ad: null, yazar_avatar: null }], error: null }),
+    /* FIYAT OYU OZETI. Onceden hic taklit edilmiyordu, yani guven
+       rozetinin OY dali gercek tarayicida HIC cizilmemisti. Uc kisi ve
+       son oy 2 gun once: esik gecildigi icin hem dagilim hem tarih
+       geliyor -- rozet "3 kisi ... — 2 gun once" demeli. */
+    /* Mekan ve FIYAT gercek olmali: oyKatmani ekranda YAZAN rakamin
+       satirini ariyor (yemekFiyati). Bambi Cafe'nin hesaplanan ogun
+       fiyati 243 TL; baska bir sayi yazarsak satir hic eslesmez ve
+    kontrol "rozet cizilmedi" derdi -- kod dogru olsa bile. */
+    fiyat_oy_ozeti: () => ({ data: [
+      { mekan_id: "node/6324460285", fiyat: 243, gecerli: 3, degisti: 0,
+        kisi: 3, son_gun: 2 },
+      /* IKINCI SATIR TARIHSIZ. Sunucu esigin altinda son_gun
+         dondurmuyor; istemci onu SIFIRA cevirirse rozet "bugün" der ve
+         elimizde olmayan bir tazeligi iddia eder. Sabotajla dogrulandi:
+         `+o.son_gun || 0` yazildiginda bu satir "bugün" cikiyor. */
+      { mekan_id: "node/4914653325", fiyat: 243, gecerli: 3, degisti: 0,
+        kisi: 3, son_gun: null }], error: null }),
     il_puanlari: () => ({ data: [], error: null }),
     /* Birakma SILMIYOR, durumu degistiriyor -- taklit de oyle davranmali,
        yoksa arayuz kontrolu gercekte olmayan bir davranisi dogrular. */
@@ -321,6 +338,20 @@ GIRISLI = [
   #   - KAPALI profilin yorumu duruyor ama adi "Bir kullanici"
   #   - menu katkisi kalemi ve fiyatiyla cikiyor, ADSIZ
   # "Yukleniyor" hala ekrandaysa akis hic cizilmemis demektir.
+  # GUVEN ROZETININ OY DALI + "son dogrulanma" tarihi. Urun tarifinin
+  # 5. maddesi rozetin yaninda tarih istiyor; oy tablosu bunun icin
+  # dogru kaynak ve tarih artik sunucudan geliyor (fiyat_oy_ozeti.son_gun).
+  ("isletme.html/oy-tarihi", "/isletme.html?il=34&id=node/6324460285", None,
+   ["hâlâ böyle", "2 gün önce"], ["kul-1"]),
+  # TARIHSIZ HAL: cumle tarihsiz de tam kalmali.
+  #
+  # ARANAN SEY ROZETIN KENDI BICIMI ("dedi — "), sayfada gecen herhangi
+  # bir tarih kelimesi DEGIL. Ilk yazimda "bugün" diye bakiyordum ve
+  # kontrol yanlis yerden patladi: goruntulenme sayaci da "· bugün 3"
+  # yaziyor. Ayni tuzak bu depoda daha once de yasandi (href ile gorunen
+  # metin, title ile gorunen etiket).
+  ("isletme.html/oy-tarihsiz", "/isletme.html?il=34&id=node/4914653325", None,
+   ["hâlâ böyle"], ["kul-1", "dedi — "]),
   ("topluluk.html", "/topluluk.html", None,
    ["Akis Kafe", "Deneme Kisi", "Akista gorunen yorum",
     "Gizli Yazar Kafe", "Bir kullanıcı", "Akis Menu", "Latte", "145"],

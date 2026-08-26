@@ -1300,6 +1300,30 @@ function sayiEkli(n){
    gruplu dönüyor, istemci de gösterdiği rakamın satırını seçiyor. */
 const OY_ESIK = 3;
 
+/* Gün sayısını okunur hale getirir: 0 -> "bugün", 3 -> "3 gün önce".
+
+   ÜRÜN TARİFİNİN İSTEDİĞİ ŞEY. Rozetin yanında "son doğrulanma"
+   yazması isteniyordu; oy tablosu bunun için doğru kaynak (birinin
+   BUGÜN "hâlâ böyle" demesi) ama tarih ekrana hiç gelmiyordu.
+
+   GÜN CİNSİNDEN, saat değil: saat kişiyi daraltır ve sorulan şey
+   "ne kadar taze", "saat kaçta" değil. Sunucu da gün döndürüyor
+   (fiyat_oy_ozeti.son_gun) -- biçim tek yerde. */
+function gunOnce(gun){
+  /* null/undefined/"" ONCE ELENIYOR. Number(null) SIFIR -- yani tarihi
+     hic olmayan bir oy "bugün" diye görünürdü ve rozet, elimizde
+     olmayan bir tazeliği iddia ederdi. Kontrol bunu yakaladı. */
+  if (gun == null || gun === "") return "";
+  const g = Math.floor(Number(gun));
+  if (!isFinite(g) || g < 0) return "";
+  if (g === 0) return "bugün";
+  if (g === 1) return "dün";
+  if (g < 30) return sayi(g) + " gün önce";
+  const ay = Math.round(g / 30);
+  if (ay < 12) return sayi(ay) + " ay önce";
+  return sayi(Math.round(g / 365)) + " yıl önce";
+}
+
 /* Oy özetinin okunabilir hali. Eşiğin altında SAYI VERİLMİYOR: iki
    kişinin oyu bir mekanın fiyatı hakkında hüküm değil (k-anonimlik,
    fiş eşiğiyle aynı desen) -- eşik yine katkı çağrısına dönüşüyor. */
@@ -1330,12 +1354,23 @@ function fiyatGuveni(m, harita, ozet, oy, bugun){
      (statik veri üzerinde) ve onu ağa bağlamak listeyi her açılışta
      bekletirdi. Sınır bilerek burada: kullanıcı uyarıyı görüyor. */
   const k = oyKarari(oy);
-  if (k === "degismis")
+  if (k === "degismis"){
+    const ne = gunOnce(oy.son_gun);
     return { sinif:"kirmizi", ad:"fiyat değişmiş",
-             neden: sayi(oy.degisti) + " kişi \"değişmiş\" dedi" };
-  if (k === "gecerli")
+             neden: sayi(oy.degisti) + " kişi \"değişmiş\" dedi" +
+                    (ne ? " — " + ne : "") };
+  }
+  if (k === "gecerli"){
+    /* TARIH VARSA YAZILIYOR: "3 kişi dedi" ne kadar taze olduğunu
+       söylemiyor; ürün tarifinin istediği şey tam olarak buydu.
+       Sunucu eşiğin altında tarih döndürmüyor (tek kişinin ne zaman oy
+       verdiğini ifşa ederdi), o yüzden yokluğu normal -- cümle
+       tarihsiz de tam kalıyor. */
+    const ne = gunOnce(oy.son_gun);
     return { sinif:"yesil", ad:GUVEN_ADI.yesil,
-             neden: sayi(oy.gecerli) + " kişi \"hâlâ böyle\" dedi" };
+             neden: sayi(oy.gecerli) + " kişi \"hâlâ böyle\" dedi" +
+                    (ne ? " — " + ne : "") };
+  }
 
   /* Fiş katmanı önce: kullanıcıdan gelen fiyat, kazınmış menüden daha
      güçlü bir kanıt -- mekanın ilan ettiği değil, fiilen ödenen tutar. */
@@ -2543,6 +2578,29 @@ function kendiniKontrolEt(){
        ONAYDAN GECMIS katki sayiliyor, gonderilen degil: gonderileni
        saymak seviyeyi kuyruga cop atarak yukseltilebilir yapardi.
        Fiyat oyu seviyeye GIRMIYOR -- tek dokunus ve onay kuyrugu yok. */
+    /* --- "son dogrulanma" (urun tarifi md.5) --- */
+    ["gun once bugun",      gunOnce(0),                              "bugün"],
+    ["gun once dun",        gunOnce(1),                                "dün"],
+    ["gun once uc gun",     gunOnce(3),                          "3 gün önce"],
+    ["gun once ay",         gunOnce(45),                           "2 ay önce"],
+    ["gun once yil",        gunOnce(400),                          "1 yıl önce"],
+    /* Sunucu esik altinda tarih DONDURMUYOR; yoklugu normal ve cumle
+       tarihsiz de tam kalmali. */
+    ["gun once null sus",   gunOnce(null),                                 ""],
+    ["gun once metin sus",  gunOnce("abc"),                                ""],
+    ["gun once negatif sus", gunOnce(-3),                                  ""],
+    ["rozet gerekcesinde tarih",
+      /3 kişi "hâlâ böyle" dedi — 2 gün önce/.test(
+        fiyatGuveni(_yok, GH, null, {kisi:3, gecerli:3, degisti:0, son_gun:2},
+                    g14).neden),                                         true],
+    ["rozet tarihsiz de tam",
+      /3 kişi "hâlâ böyle" dedi$/.test(
+        fiyatGuveni(_yok, GH, null, {kisi:3, gecerli:3, degisti:0}, g14).neden),
+                                                                         true],
+    ["degismis rozetinde de tarih",
+      /— dün/.test(fiyatGuveni(_kendi, GH, null,
+        {kisi:3, gecerli:0, degisti:3, son_gun:1}, g14).neden),          true],
+
     /* --- cok butceli oneri (urun tarifi md.11) ---
        Fixture ELLE: menude iki ana urun ve iki yan var, yani dort ikili
        kurulabiliyor ve basamaklarin gercekten AYRILDIGI gorulebiliyor. */

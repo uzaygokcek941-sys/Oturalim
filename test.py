@@ -2278,7 +2278,7 @@ def sql_kontrolleri():
               ("menu katkisi", "menu katkisi: 12 kontrolun hepsi gecti"),
               ("mekan fotografi", "mekan fotografi: 12 kontrolun hepsi gecti"),
               ("akran", "akran_test: 12 adimin hepsi gecti"),
-              ("fiyat oyu", "fiyat_oyu_test: 14 adimin hepsi gecti"),
+              ("fiyat oyu", "fiyat_oyu_test: 15 adimin hepsi gecti"),
               ("topluluk", "topluluk_test: 11 adimin hepsi gecti"))
              if imza not in cikti]
     if eksik:

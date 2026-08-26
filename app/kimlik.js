@@ -599,7 +599,11 @@ const Kimlik = {
       fiyat: o.fiyat == null ? null : +o.fiyat,
       gecerli: +o.gecerli || 0,
       degisti: +o.degisti || 0,
-      kisi: +o.kisi || 0
+      kisi: +o.kisi || 0,
+      /* SON OYUN YASI (gün). Eşiğin altında sunucu null döndürüyor ve
+         null KORUNUYOR -- `|| 0` yazsaydık tarihi olmayan oy "bugün"
+         diye görünürdü, yani elimizde olmayan bir tazelik iddiası. */
+      son_gun: o.son_gun == null ? null : +o.son_gun
     }));
   },
 
