@@ -1884,12 +1884,33 @@ def turler_ulasilabilir_mi():
                                     m.group(1), re.S):
             gruplar[ad] = set(re.findall(r'"([^"]+)"', govde))
 
+    # KATEGORI cipleri (kat:...) tur VE mutfak tasiyor; tur tarafi burada
+    # aciliyor. Acilmasaydi "kat:kahve" duz bir tur adi sanilir ve Kafe
+    # yalniz eski cip sayesinde ulasilabilir gorunurdu -- yani eski cip
+    # silindiginde kontrol yanlis yerden yesil kalirdi.
+    ortak_js = oku("app", "ortak.js")
+    kat, KATEGORI_AD = {}, {}
+    mk = re.search(r"const KATEGORI = \{(.*?)\n\};", ortak_js, re.S)
+    if mk:
+        for ad, govde in re.findall(r"(\w+):\s*\{(.*?)\}", mk.group(1), re.S):
+            mt = re.search(r"tur:\s*\[(.*?)\]", govde, re.S)
+            kat[ad] = re.findall(r'"([^"]+)"', mt.group(1)) if mt else []
+            ma = re.search(r'ad:\s*"([^"]+)"', govde)
+            KATEGORI_AD[ad] = ma.group(1) if ma else ad
+
     secilebilir = set()
-    for c in cipler:
-        if c.startswith("grup:"):
-            secilebilir |= gruplar.get(c[5:], set())
+
+    def ekle(sec):
+        if sec.startswith("grup:"):
+            secilebilir.update(gruplar.get(sec[5:], set()))
+        elif sec.startswith("kat:"):
+            for t in kat.get(sec[4:], []):
+                ekle(t)
         else:
-            secilebilir.add(c)
+            secilebilir.add(sec)
+
+    for c in cipler:
+        ekle(c)
 
     # Veride gecen turler.
     idx = json.loads(oku("app", "veri", "index.json"))
@@ -1906,6 +1927,17 @@ def turler_ulasilabilir_mi():
     for n, t in ulasilmaz:
         s.append("kesfet.html: '%s' turu hicbir ciple secilemiyor (%d mekan)"
                  % (t, n))
+
+    # TANIMLI HER KATEGORININ CIPI OLMALI. Bu ayri bir sart: Esnaf
+    # lokantasinin mekanlari (mutfagi turkish olan Restoranlar) Yemek
+    # cipiyle de listeye giriyor, yani "her tur ulasilabilir" kontrolu
+    # Esnaf cipi silinince bile yesil kaliyor -- sabotaj bunu gosterdi.
+    # Kategoriyi tanimlayip cipini koymamak, yazilmis ama hicbir yerden
+    # secilemeyen bir suzgec birakmak demek.
+    for ad in sorted(kat):
+        if ("kat:" + ad) not in cipler:
+            s.append("kesfet.html: '%s' kategorisi tanimli ama cipi yok"
+                     % KATEGORI_AD.get(ad, ad))
 
     # Ana ekranin kategorileri de kesfette karsiligini bulmali: ana
     # ekrandan kesfete gecen kullanici ayni secimi orada gormeli.

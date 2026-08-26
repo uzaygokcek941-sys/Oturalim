@@ -785,8 +785,8 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll(".canim-cip").forEach(c =>
     c.setAttribute("aria-pressed", String(canim.has(c.dataset.tur))));
 
-  /* Seçili kategorilerin tür kümesi. turUyar() ortak.js'te ve keşfet
-     ekranıyla aynı: "grup:eglence" burada da orada da aynı şeyi seçsin. */
+  /* Seçili kategorilerin ölçüt kümesi. mekanUyar() ortak.js'te ve keşfet
+     ekranıyla aynı: "kat:esnaf" burada da orada da aynı şeyi seçsin. */
   function seciliTurler(){
     const t = new Set();
     canim.forEach(x => x.split("|").forEach(v => t.add(v)));
@@ -836,7 +836,7 @@ document.addEventListener("DOMContentLoaded", () => {
            bir cemberden bakan hesap onu 2 gosterirdi. */
         zincir = zincirHaritasi(v.mekanlar);
         const civar = v.mekanlar.filter(m => uzaklikKm(m.lon, m.lat, lat, lon) < YAKIN_KM);
-        const konu  = turSet.size ? civar.filter(m => turUyar(turSet, m.tur)) : civar;
+        const konu  = turSet.size ? civar.filter(m => mekanUyar(turSet, m)) : civar;
 
         if (!konu.length){
           konumDugme.disabled = false;

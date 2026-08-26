@@ -385,19 +385,28 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
         <output id="butce-deger" for="butce">kapalı</output>
       </div>
       <div class="cipler" id="cipler">
-        <button class="cip" data-tur="Kafe" aria-pressed="false">Kafe</button>
-        <button class="cip" data-tur="Restoran" aria-pressed="false">Restoran</button>
-        <button class="cip" data-tur="Bar" aria-pressed="false">Bar</button>
-        <button class="cip" data-tur="Pub" aria-pressed="false">Pub</button>
-        <button class="cip" data-tur="Fast food" aria-pressed="false">Fast food</button>
-        <!-- DONDURMA cipi ana ekran dorde inerken eklendi. Oncesinde
-             hicbir cip bu turu secmiyordu; ana ekrandaki "Dondurma"
-             cipi kalkinca 395 dondurmaci aramanin disinda hicbir yoldan
-             ulasilamaz olurdu. -->
-        <button class="cip" data-tur="Dondurma" aria-pressed="false">Dondurma</button>
-        <button class="cip" data-tur="grup:eglence" aria-pressed="false">Eğlence</button>
-        <button class="cip" data-tur="Gece kulübü" aria-pressed="false">Gece kulübü</button>
-        <button class="cip" data-tur="Sinema" aria-pressed="false">Sinema</button>
+        <!-- KATEGORI CIPLERI. Her cip bir KATEGORI (ortak.js) ve olcut
+             hem TUR hem MUTFAK tasiyor.
+
+             ONCEDEN SUZGEC MUTFAGI HIC GORMUYORDU. Kahvalti, Tatli ve
+             Esnaf lokantasi `tur` alaninda yok, `mutfak` alaninda var --
+             yani bu uc kategori hicbir yoldan secilemiyordu. Esnaf
+             lokantasi 4.302 mekan, Gezilecek'ten (2.521) buyuk.
+
+             Duz tur cipleri (Kafe, Restoran, Bar...) KALKTI cunku
+             kategoriler onlari zaten kapsiyor ve iki kapi birakmak ayni
+             secimi iki isimle sunmak olurdu. Eski BAGLANTILAR calismaya
+             devam ediyor: mekanUyar duz tur adini hala taniyor,
+             yani "?tur=Kafe" tasiyan saha kartlari ve paylasilmis
+             adresler bozulmadi. -->
+        <button class="cip" data-tur="kat:kahve" aria-pressed="false">Kahve</button>
+        <button class="cip" data-tur="kat:yemek" aria-pressed="false">Yemek</button>
+        <button class="cip" data-tur="kat:kahvalti" aria-pressed="false">Kahvaltı</button>
+        <button class="cip" data-tur="kat:esnaf" aria-pressed="false">Esnaf lokantası</button>
+        <button class="cip" data-tur="kat:tatli" aria-pressed="false">Tatlı</button>
+        <button class="cip" data-tur="kat:hizli" aria-pressed="false">Fast food</button>
+        <button class="cip" data-tur="kat:icecek" aria-pressed="false">İçecek</button>
+        <button class="cip" data-tur="kat:gezilecek" aria-pressed="false">Gezilecek</button>
         <button class="cip" data-bayrak="bahce" aria-pressed="false">Bahçeli</button>
         <button class="cip" data-bayrak="wifi" aria-pressed="false">Wi-Fi</button>
         <button class="cip" data-bayrak="acik" aria-pressed="false">Şu an açık</button>

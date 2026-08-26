@@ -726,11 +726,78 @@ const TUR_GRUP = {
   yeme: new Set(["Kafe","Restoran","Fast food","Dondurma","Bar","Pub"])
 };
 
-function turUyar(secili, tur){
+/* ---------- kategoriler: tür VE mutfak ----------
+   BİR HATA DÜZELTİLDİ. "Kahvaltı, Tatlı ve Esnaf lokantası bu veride
+   yok" demiştim; yanlış alana bakmışım. Üçü de `tur` alanında değil
+   `mutfak` alanında duruyor ve sayıları küçük değil (81 il, sayım):
+
+       Kahvaltı  breakfast                            313
+       Tatlı     dessert, cake, ice_cream, waffle…    850
+       Esnaf     turkish, kebab, pide, soup…        4.302
+       Kahve     coffee_shop, tea + tur:Kafe       11.000
+
+   Esnaf lokantası, çip olarak koyduğum Gezilecek'ten (2.521) büyük.
+
+   ÖRTÜŞME SERBEST ve bilerek: bir kebapçı hem "Yemek" (tur:Restoran)
+   hem "Esnaf lokantası" (mutfak:kebab). Kullanıcının sorduğu şey tür
+   değil CANI NE ÇEKTİĞİ; bir mekan iki isteğe birden cevap verebilir.
+   Süzgeç birleşim (OR) aldığı için aynı mekan listede iki kez çıkmıyor. */
+const KATEGORI = {
+  kahvalti:  { ad:"Kahvaltı",        tur:[],                mutfak:["breakfast"] },
+  kahve:     { ad:"Kahve",           tur:["Kafe"],
+               mutfak:["coffee_shop","coffee","cafe","tea"] },
+  yemek:     { ad:"Yemek",           tur:["Restoran"],      mutfak:[] },
+  tatli:     { ad:"Tatlı",           tur:["Dondurma"],
+               mutfak:["dessert","cake","ice_cream","waffle","chocolate",
+                       "donut","bakery","baklava","patisserie","candy"] },
+  icecek:    { ad:"İçecek",          tur:["Bar","Pub"],     mutfak:[] },
+  hizli:     { ad:"Fast food",       tur:["Fast food"],     mutfak:[] },
+  esnaf:     { ad:"Esnaf lokantası", tur:[],
+               mutfak:["turkish","kebab","pide","soup","meyhane","lokanta"] },
+  gezilecek: { ad:"Gezilecek",       tur:["grup:eglence"],  mutfak:[] }
+};
+
+/* "kebab;barbecue;coffee_shop" -> Set. Küçük harfe çevriliyor: OSM
+   etiketleri çoğunlukla küçük ama hepsi değil. */
+function mutfaklar(m){
+  const k = new Set();
+  for (const x of String((m && m.mutfak) || "").toLowerCase().split(";")){
+    const y = x.trim();
+    if (y) k.add(y);
+  }
+  return k;
+}
+
+/* Bir mekan seçili ölçütlerden HERHANGİ birine uyuyor mu.
+
+   ÜÇ SEÇİCİ BİÇİMİ, hepsi geriye dönük uyumlu:
+     "Kafe"           düz tür adı        (eski bağlantılar, saha kartları)
+     "grup:eglence"   tür kümesi         (eski)
+     "kat:esnaf"      kategori — tür VE mutfak birlikte      (yeni)
+
+   İmza `tur` değil MEKAN alıyor: mutfak ölçütü tür adından okunamaz.
+   Eski adı (turUyar) bırakmadım -- iki kapı bırakmak, birinin mutfağı
+   görmediği bir çağrı yolu bırakmak olurdu. */
+function mekanUyar(secili, m){
+  const tur = m && m.tur;
+  let mut = null;
   for (const s of secili){
     if (s.slice(0, 5) === "grup:"){
       const g = TUR_GRUP[s.slice(5)];
       if (g && g.has(tur)) return true;
+    } else if (s.slice(0, 4) === "kat:"){
+      const k = KATEGORI[s.slice(4)];
+      if (!k) continue;
+      for (const t of k.tur){
+        if (t.slice(0, 5) === "grup:"){
+          const g = TUR_GRUP[t.slice(5)];
+          if (g && g.has(tur)) return true;
+        } else if (t === tur) return true;
+      }
+      if (k.mutfak.length){
+        if (mut === null) mut = mutfaklar(m);
+        for (const x of k.mutfak) if (mut.has(x)) return true;
+      }
     } else if (s === tur) return true;
   }
   return false;
@@ -1020,16 +1087,22 @@ function butceCumlesi(o, butce){
    ekran altı çiple iki satıra taşıyordu ve maketteki tek işli görüntüyü
    bozuyordu.
 
-   HANGİ DÖRDÜ, SAYIMLA (81 il, 35.852 mekan, turUyar ile):
+   HANGİ DÖRDÜ, SAYIMLA (81 il, 35.852 mekan, mekanUyar ile):
 
-       Restoran    14.587   %40,7
-       Kafe        10.815   %30,2
-       Fast food    6.091   %17,0
-       Gezilecek    2.521   %7,0     <- dördüncü
-       ---------------------------
-       Üst dört    34.014   %94,9
-       İçki         1.443   %4,0     <- düştü
-       Dondurma       395   %1,1     <- düştü
+       Yemek     (tur:Restoran)            14.587   %40,7
+       Kahve     (Kafe + coffee_shop, tea) 11.000   %30,7
+       Fast food (tur:Fast food)            6.091   %17,0
+       Esnaf     (turkish, kebab, pide…)    4.302   %12,0   <- dördüncü
+       ---------------------------------------------
+       Gezilecek                            2.521   %7,0
+       İçecek                               1.443   %4,0
+       Tatlı                                  850   %2,4
+       Kahvaltı                               313   %0,9
+
+   DÖRDÜNCÜ SIRA DEĞİŞTİ. Önce buraya Gezilecek yazmıştım, çünkü
+   "Esnaf lokantası bu veride yok" sanıyordum -- yanlış alana (`tur`)
+   bakmışım. Mutfak ekseni sayılınca Esnaf 4.302 çıktı ve Gezilecek'i
+   geçti. Gezilecek keşfet ekranında duruyor.
 
    Dört çip mekanların %94,9'unu kapsıyor. Seçim hevese göre değil; iki
    düşen çip birlikte %5,1.
@@ -1046,12 +1119,8 @@ function butceCumlesi(o, butce){
    Eğlence tarafı tek tek çip olamayacak kadar parçalı; keşfet ekranının
    zaten kullandığı "grup:eglence" değeri taşınıyor. Gece kulübü O
    GRUBUN İÇİNDE. */
-const CANIM = [
-  { ad:"Kafe",      tur:["Kafe"] },
-  { ad:"Restoran",  tur:["Restoran"] },
-  { ad:"Fast food", tur:["Fast food"] },
-  { ad:"Gezilecek", tur:["grup:eglence"] }
-];
+const CANIM = ["kahve", "yemek", "hizli", "esnaf"].map(k =>
+  ({ anahtar: k, ad: KATEGORI[k].ad, tur: ["kat:" + k] }));
 
 /* ============================================================
    FİYATIN DAYANAĞI: bu rakam kaç ölçümden geliyor?
@@ -2465,18 +2534,44 @@ function kendiniKontrolEt(){
        tasiyordu. Sayi burada SABITLENIYOR: besinciyi eklemek ekrani
        sessizce iki satira dondururdu. */
     ["kategori sayisi",        CANIM.length,                                   4],
-    ["kategori turleri tanimli",
+    ["kategori olcutleri tanimli",
       CANIM.every(k => k.tur.length &&
-        k.tur.every(t => t.slice(0,5) === "grup:"
-          ? !!TUR_GRUP[t.slice(5)] : TUR_GRUP.yeme.has(t) ||
-            TUR_GRUP.eglence.has(t))),                                      true],
-    /* Iki cipte birden gorunen tur, ayni mekani iki kez saydirirdi. */
-    ["kategoriler ortusmuyor",
-      (() => { const g = new Set();
-        for (const k of CANIM) for (const t of k.tur){
-          const uy = t.slice(0,5) === "grup:" ? [...TUR_GRUP[t.slice(5)]] : [t];
-          for (const x of uy){ if (g.has(x)) return false; g.add(x); }
-        } return true; })(),                                                true],
+        k.tur.every(t => t.slice(0,4) === "kat:" && !!KATEGORI[t.slice(4)])), true],
+    /* KATEGORININ her turu ve her mutfagi GERCEK olmali. Yanlis yazilmis
+       tek bir etiket, cipe basan kullaniciya sessizce bos liste verir. */
+    ["kategori turleri gercek",
+      Object.values(KATEGORI).every(k => k.tur.every(t =>
+        t.slice(0,5) === "grup:" ? !!TUR_GRUP[t.slice(5)]
+                                 : TUR_GRUP.yeme.has(t))),                   true],
+    ["kategorinin bos olani yok",
+      Object.values(KATEGORI).every(k => k.tur.length || k.mutfak.length),   true],
+    /* ORTUSME SERBEST -- ve bunu SINIYORUZ, cunku eski kural tam tersiydi
+       ("kategoriler ortusmuyor"). Bir kebapci hem Yemek hem Esnaf; iki
+       istege birden cevap veriyor. Suzgec birlesim aldigi icin ayni mekan
+       listede iki kez cikmiyor. */
+    ["kebapci hem yemek hem esnaf",
+      mekanUyar(["kat:yemek"], {tur:"Restoran", mutfak:"kebab"}) &&
+      mekanUyar(["kat:esnaf"], {tur:"Restoran", mutfak:"kebab"}),            true],
+    /* MUTFAK EKSENI: tur'u Restoran olan bir mekan, mutfagi breakfast ise
+       Kahvalti'ya da giriyor. Onceki suzgec tur'dan baska bir sey
+       gormedigi icin bu mekan hicbir kahvalti aramasinda cikmazdi. */
+    ["mutfaktan kahvalti",
+      mekanUyar(["kat:kahvalti"], {tur:"Restoran", mutfak:"turkish;breakfast"}), true],
+    ["mutfaksiz mekan kahvaltiya girmiyor",
+      mekanUyar(["kat:kahvalti"], {tur:"Restoran"}),                        false],
+    ["mutfak buyuk harfle de eslesiyor",
+      mekanUyar(["kat:tatli"], {tur:"Kafe", mutfak:"Ice_Cream"}),            true],
+    /* Tatli IKI EKSENDEN birden: tur:Dondurma da, mutfak:dessert de. */
+    ["dondurmaci turden tatliya giriyor",
+      mekanUyar(["kat:tatli"], {tur:"Dondurma"}),                            true],
+    /* ESKI BICIM CALISMAYA DEVAM ETMELI: saha kartlarindaki ve
+       paylasilmis baglantilardaki adresler "?tur=Kafe" tasiyor. */
+    ["duz tur adi hala calisiyor",
+      mekanUyar(["Kafe"], {tur:"Kafe"}),                                     true],
+    ["grup: hala calisiyor",
+      mekanUyar(["grup:eglence"], {tur:"Sinema"}),                           true],
+    ["bilinmeyen kategori sessizce eslesmiyor",
+      mekanUyar(["kat:yokboyle"], {tur:"Kafe"}),                            false],
 
     /* --- butce akranlari --- */
     ["akran butcesiz sus",     akranCumlesi({akran:5,mekan:2}, 0),           null],

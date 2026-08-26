@@ -834,7 +834,12 @@ def kendini_kontrol_et():
                 kon.wait_for_timeout(400)
                 return kon.inner_text("#konum-durum")
 
-            durum = _butce_ara("300", "Kafe")
+            # KATEGORI CIPI ARTIK "kat:..." tasiyor. Onceden duz tur adi
+            # ("Kafe") vardi; kategoriler tur VE mutfak eksenine gecince
+            # secici degisti ve bu satir 30 sn zaman asimina dustu --
+            # yani cipin anahtarini degistirdigimizi ilk soyleyen sey bu
+            # kontrol oldu.
+            durum = _butce_ara("300", "kat:kahve")
             m = re.search(r"([\d.]+) mekan, en yakın üçü", durum)
             if not m:
                 sorunlar.append("ana ekran: '%s' -- kac mekan icinden secildigi yazmiyor"
@@ -866,7 +871,9 @@ def kendini_kontrol_et():
                 # Secim kesfete tasinmali: kullanici butceyi ve kategoriyi
                 # bir kez sesin, iki kez degil.
                 hepsi = kon.eval_on_selector(".hepsi", "n => n.getAttribute('href')")
-                for parca in ("butce=300", "tur=Kafe"):
+                # Kategori adreste KODLANMIS geciyor: "kat:kahve" ->
+                # "kat%3Akahve". Iki nokta URL'de kacirilan bir karakter.
+                for parca in ("butce=300", "tur=kat%3Akahve"):
                     if parca not in (hepsi or ""):
                         sorunlar.append("ana ekran: '%s' kesfet baglantisinda yok (%s)"
                                         % (parca, hepsi))
@@ -875,7 +882,7 @@ def kendini_kontrol_et():
                 # OLCULEN mekanlar cikarilmadan onceki listeden aliniyor;
                 # 150 TL ile 700 TL ayni paydayi vermeli. Ayrisirsa ekran
                 # butceyi suzgec gibi gostermeye baslamis demektir.
-                d2 = _butce_ara("700", "Kafe")
+                d2 = _butce_ara("700", "kat:kahve")
                 m2 = re.search(r"([\d.]+) mekan, en yakın üçü", d2)
                 if m2 and int(m2.group(1).replace(".", "")) != toplam:
                     sorunlar.append("ana ekran: payda butceyle degisiyor (300 -> %d, "

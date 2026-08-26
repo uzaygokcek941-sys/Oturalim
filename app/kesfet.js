@@ -74,7 +74,7 @@ function aracYuksekligiOlc(){
 /* ---------- süzme ---------- */
 function suzulmus(){
   const l = mekanlar.filter(m => {
-    if (turler.size && !turUyar(turler, m.tur)) return false;
+    if (turler.size && !mekanUyar(turler, m)) return false;
     if (bayraklar.has("bahce") && !m.bahce) return false;
     if (bayraklar.has("wifi")  && !m.wifi)  return false;
     /* "Fiyati olan" cipi yemekFiyati'na bakiyor, m.menu varligina DEGIL.
