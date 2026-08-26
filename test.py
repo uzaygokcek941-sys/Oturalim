@@ -216,12 +216,34 @@ def veri_tutarli_mi():
     # Bu sayilar <meta description> ve og:description icinde, yani arama
     # sonucunda ve paylasilan baglantida gorunen ilk cumle. Kimse oraya
     # bakmiyor -- tam da bu yuzden kontrol gerekiyor.
+    dogru = "{:,}".format(toplam).replace(",", ".")
     for ad in sorted(glob.glob(os.path.join(KOK, "app", "*.html"))):
         h = io.open(ad, encoding="utf-8").read()
         for yazan in set(re.findall(r"(\d{2}\.\d{3}) mekan", h)):
             if yazan.replace(".", "") != str(toplam):
                 s.append("%s: metinde '%s mekan' yaziyor, gercek %s"
-                         % (os.path.basename(ad), yazan, "{:,}".format(toplam).replace(",", ".")))
+                         % (os.path.basename(ad), yazan, dogru))
+
+    # BELGELER DE ESKIYOR, ve kimse onlara bakmiyor. Kural app/*.html
+    # icin vardi; tasarim/decisions.md iki yerde "36.102 mekan" diyordu
+    # ve CEBIMDE.md bir yerde -- yani kontrol yazildiktan SONRA bile
+    # depoda uc yanlis rakam kalmisti. Ayni kural, daha genis kapi.
+    #
+    # DUZELTMEYI ANLATAN SATIR MUAF: "36.102 -> 35.852" yazan bir cumle
+    # eski sayiyi HATA OLARAK aniyor, iddia olarak degil. Olcut, DOGRU
+    # sayinin ayni satirda gecmesi.
+    for ad in ("CEBIMDE.md", "README.md", "KURULUM.md", "PLAY.md",
+               os.path.join("tasarim", "decisions.md")):
+        yol = os.path.join(KOK, ad)
+        if not os.path.exists(yol):
+            continue
+        for no, satir in enumerate(io.open(yol, encoding="utf-8"), 1):
+            if dogru in satir:
+                continue
+            for yazan in set(re.findall(r"(\d{2}\.\d{3}) mekan", satir)):
+                if yazan.replace(".", "") != str(toplam):
+                    s.append("%s:%d: '%s mekan' yaziyor, gercek %s"
+                             % (ad, no, yazan, dogru))
 
     # Anasayfadaki SABIT yedekler: JS kapaliyken gorunen sayi bunlar.
     ana = oku("app", "index.html")

@@ -139,7 +139,9 @@ Günde 1. Telefonla çek, kurgu yok. Kapanış çağrısı: **"Uygulamada hepsi 
 - [ ] Çekim ve yayın *(telefon senin)*
 
 ### Ürün — TAMAMLANDI (tarayıcıda doğrulandı)
-- [x] 81 il çekimi — **36.102 mekan** (eğlence dahil), hiçbir il eksik değil
+- [x] 81 il çekimi — **36.102 ham kayıt** (eğlence dahil), hiçbir il eksik
+      değil. Tekilleştirmeden sonra uygulamada **35.852 mekan** (aynı il +
+      aynı ad + ≤25 m kuralıyla 250 kayıt birleşti, aşağıda)
 - [x] `app_veri.py` ile il il JSON (`app/veri/<kod>.json` + `index.json`)
 - [x] Harita + liste ekranı (Leaflet, OSM/CARTO döşeme)
 - [x] Şehir seçici, tercih localStorage'da saklanıyor
@@ -292,7 +294,10 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
       `topluluk.sql` çalıştırıldı (2026-08-26) — **veritabanı tarafı bitti**
 - [ ] `@cebimde` handle (Instagram + TikTok) — **bio ve ilk 3 içeriğin notu
       hazır** (`icerik_ilk3.md`); kalan tek şey hesabı açmak
-- [ ] Vercel yayını
+- [x] Vercel yayını — `main` birleştirildi (PR #1, 2026-08-26) ve marka
+      canlıda. **Sonraki 6 commit henüz `main`'e girmedi**: kategoriler,
+      çok bütçeli öneri, seviye adları, son doğrulanma, kampanya alanı,
+      kalem tarihi, konum haritası. Yayınlanması tek `main` birleştirmesi
 - [ ] `python kutuphane_al.py` — supabase-js'i yerele al (1 dk, `KURULUM.md`)
 - [ ] `python foto_cek.py` — Commons fotoğrafları (buradaki oturumda ağ kapalı)
 - [ ] Günde 1 içerik, gelen DM'e ilk 10 dakikada cevap
@@ -411,6 +416,21 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
       doğrulandı.
 - [ ] Kart metni ve bırakma biçimi sahada denenmedi. `saha.py olc` sıfır
       sahiplenme gösteriyorsa metin değişmeden ikinci kümeye çıkılmamalı.
+      **Kod tarafı bitti**: 112 Kadıköy kartı üretilmeye hazır, basılması
+      için "hazır" denmesi bekleniyor.
+
+**Fazların durumu (2026-08-26):**
+
+| Faz | Ne | Durum |
+|---|---|---|
+| 0 | Şirket kararı — *gelir doğana kadar kurulmayacak* | Karar, kod değil. Yürürlükte; md.14'ü kapatan sebep bu |
+| 1 | Eksik bilgi katkı hattı | ✅ kod + SQL + onay + takip |
+| 2 | Yürüyüş kümeleri | ✅ `sahiplen.py` → `sahiplenme_kume.csv` |
+| 3 | Saha kartları | ✅ kod; **kart basılmadı** (sende) |
+| 4 | Sahiplenme kodu ve doğrulama | ✅ gerçek Postgres 16'da 11 davranış kontrolü |
+
+Yani **kod tarafında açık faz kalmadı.** Faz 3'ün açık ayağı fiziksel:
+kartın basılıp mekana bırakılması ve `saha.py olc` ile ölçülmesi.
 
 **Yayın yapılandırması:**
 - [x] `vercel.json` yalnızca çıktı klasörünü söylüyordu, hiç güvenlik başlığı
@@ -2381,7 +2401,7 @@ sabotajın 14'ü yakalanıyor.
 ### İşletme sayfasında konum: harita, yol tarifi, hesaplar
 
 Ölçüldü: **adresi olan mekan yalnız 9.397/35.852 (%26,2)**. Kalan
-**26.455 mekanda** koordinat, "burası nerede" sorusunun *tek* cevabı — ve
+**26.455'inde** koordinat, "burası nerede" sorusunun *tek* cevabı — ve
 sayfada hiç görünmüyordu. Tek şey "Çevresini haritada gör" diye keşfet
 ekranına giden bir bağlantıydı; yani mekanın kendi sayfası nerede
 olduğunu söylemiyordu.
