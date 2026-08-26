@@ -307,6 +307,14 @@ GIRISLI = [
    '.sekme-cubuk [data-sekme="yorum"]',
    ["Yorumlar", "Deneme Kisi", "28 · Öğretmen", "Sessiz ve ucuz",
     "Bir kullanıcı", "4,0"], ["kul-1"]),
+  # KONUM SEKMESI. Adresi olan mekan yalniz %26,2; kalan 26.455 mekanda
+  # haritadaki nokta "burasi nerede" sorusunun tek cevabi. Sinanan sey
+  # metnin varligi degil, BAGIN KOORDINATA gitmesi: yol tarifi adla
+  # aramaya duserse kullanici yanlis subeye gider.
+  ("isletme.html/konum", "/isletme.html?il=34&id=node/8223784325",
+   '.sekme-cubuk [data-sekme="bilgi"]',
+   ["Konum", "40.986810, 29.025530", "Yol tarifi", "Google'da ara",
+    "OpenStreetMap", "yazarlarının telifinde"], ["kul-1"]),
   ("profil.html", "/profil.html?k=deneme_kisi", None,
    ["Deneme Kisi", "@deneme_kisi", "28 · Öğretmen", "Yorum Kafe"],
    ["Yükleniyor", "kul-1", "Profil bulunamadı"]),
@@ -1259,6 +1267,73 @@ def kendini_kontrol_et():
             if len(yedek) < 30:
                 sorunlar.append("Leaflet yokken harita yerine aciklama konmuyor "
                                 "(kutu metni %d karakter)" % len(yedek))
+            sf.close()
+
+            # 2b) ISLETME SAYFASINDA KONUM HARITASI.
+            #
+            # Adresi olan mekan yalniz %26,2 (9.397/35.852); kalan
+            # 26.455 mekanda haritadaki nokta "burasi nerede" sorusunun
+            # TEK cevabi. Iki hal birden sinaniyor:
+            #   harita VARKEN  -> leaflet kabi ve isaret ciziliyor
+            #   harita YOKKEN  -> koordinat ve dis baglantilar duruyor
+            # Yalniz birine bakmak, ozelligi tamamen silen bir
+            # degisiklikten de gecerdi (kesfet haritasiyla ayni desen).
+            sf, hata = sayfa_ac("/isletme.html?il=34&id=node/8223784325")
+            sf.wait_for_timeout(900)
+            k = sf.evaluate("""() => ({
+              kap:    !!document.querySelector('#mekanHarita.leaflet-container'),
+              isaret: document.querySelectorAll('#mekanHarita path').length,
+              koord:  (document.getElementById('konumKoordinat')||{}).textContent||'',
+              tarif:  (document.querySelector('#konumBaglar a')||{}).href||''
+            })""")
+            if not k["kap"]:
+                sorunlar.append("isletme: konum haritasi kurulmadi")
+            if k["isaret"] < 1:
+                sorunlar.append("isletme: haritada mekanin isareti yok")
+            # KOORDINATIN KENDISI: harita cizilse de cizilmese de
+            # "burasi nerede" sorusunun bir cevabi ekranda kalmali.
+            if "40.986810, 29.025530" not in k["koord"]:
+                sorunlar.append("isletme: koordinat ekranda yazmiyor (%r)"
+                                % k["koord"][:60])
+            # YOL TARIFI KOORDINATA GITMELI. Adla aramaya duserse
+            # kullanici ayni adli baska bir subeye gider -- ve bag
+            # gorunuste calismaya devam ettigi icin fark edilmez.
+            if "destination=40.986810%2C29.025530" not in k["tarif"]:
+                sorunlar.append("isletme: yol tarifi koordinata gitmiyor (%r)"
+                                % k["tarif"][:80])
+            sf.close()
+
+            # HARITASIZ HALDE BASKA BIR MEKAN: node/8223784325 (Draft)
+            # MENUSUZ ve ilk yazimda "Leaflet yokken menu de cizilmiyor"
+            # diye HATA VERDI -- kod degil KONTROL yanlisti, olmayan bir
+            # menuyu ariyordu. Adana'daki bu mekanin menusu de,
+            # instagrami da var; yani "harita gitti, geri kalan duruyor"
+            # gercekten olculebiliyor.
+            sf, hata = sayfa_ac("/isletme.html?il=01&id=node/13068227666",
+                                leafletsiz=True)
+            sf.wait_for_timeout(700)
+            y = sf.evaluate("""() => ({
+              yedek: ((document.querySelector('#mekanHarita .harita-yok')||{})
+                        .innerText||'').trim(),
+              bag:   document.querySelectorAll('#konumBaglar a').length,
+              sosyal: document.querySelectorAll('#konumSosyal a').length,
+              koord: (document.getElementById('konumKoordinat')||{}).textContent||'',
+              menu:  document.querySelectorAll('#menuSatirlar li').length
+            })""")
+            if len(y["yedek"]) < 30:
+                sorunlar.append("isletme: Leaflet yokken harita yerine aciklama "
+                                "konmuyor (%d karakter)" % len(y["yedek"]))
+            if y["bag"] < 4:
+                sorunlar.append("isletme: Leaflet yokken dis harita baglantilari "
+                                "da kayboluyor (%d bag)" % y["bag"])
+            if y["sosyal"] == 0:
+                sorunlar.append("isletme: Leaflet yokken sosyal hesap dugmesi "
+                                "de kayboluyor")
+            if "36.772070, 35.792900" not in y["koord"]:
+                sorunlar.append("isletme: Leaflet yokken koordinat da yaziMIYOR "
+                                "(%r)" % y["koord"][:60])
+            if y["menu"] == 0:
+                sorunlar.append("isletme: Leaflet yokken menu de cizilmiyor")
             sf.close()
 
             # 2z) FIS ESIGI KESFET EKRANINDA DA GECERLI.

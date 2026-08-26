@@ -23,6 +23,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="lib/leaflet.css">
 <link rel="stylesheet" href="stil.css">
 <link rel="stylesheet" href="sahne.css">
 <script>document.documentElement.classList.add("js-sahne");/* Emniyet: sahne.js gelmezse (CDN degil ama betik hatasi, engel,
@@ -128,6 +129,39 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
   /* Kalemin kendi tarihi. Menu listesindeki .menu-kat ile ayni bicim:
      ikisi de adin altinda duran ikincil bir etiket. */
   .mk-ne{display:block;margin-top:2px;color:var(--metin-2);font-size:.8rem}
+  /* ---- konum ----
+     Adresi olan mekan yalniz %26,2. Kalan 26.455'inde haritadaki
+     nokta, "burasi nerede" sorusunun TEK cevabi. */
+  .konum{margin-top:var(--a5)}
+  .konum h2{margin:0 0 var(--a2)}
+  #mekanHarita{
+    height:220px; border-radius:var(--r-b); overflow:hidden;
+    background:var(--zemin-2); border:1px solid var(--cizgi);
+  }
+  /* Leaflet kendi z-index'ini 400-1000 arasinda kuruyor; sayfadaki
+     yapisik baslik ve perde onun USTUNDE kalmali. */
+  #mekanHarita.leaflet-container{z-index:0}
+  .konum-koordinat{
+    margin:var(--a3) 0 0; color:var(--metin-2); font-size:.9rem;
+    font-variant-numeric:tabular-nums;
+  }
+  .konum-baglar{display:flex;flex-wrap:wrap;gap:var(--a2);margin-top:var(--a3)}
+  /* Dokunma hedefi kurali stil.css'te (.dugme.kucuk, 44 px -- WCAG
+     2.5.8) ve burada TEKRARLANMIYOR: ayni kural tek yerde dursun.
+     Burada yalniz hizalama var. */
+  .konum-baglar .dugme{display:inline-flex;align-items:center}
+  /* Sosyal bagi ortak.js <a> olarak uretiyor (sosyalBag). Dugme
+     goruntusunu SPAN'a degil BAGIN KENDISINE veriyoruz: sarmalayici
+     bir span dugme gibi gorunur ama yalniz icindeki metin tiklanir --
+     dokunma hedefi gorunenden kucuk olurdu. */
+  #konumSosyal a{
+    display:inline-flex; align-items:center; min-height:44px;
+    padding:8px 16px; font-size:13px; border-radius:var(--r-s);
+    border:1px solid var(--cizgi); color:var(--metin);
+    text-decoration:none; background:var(--zemin-2);
+  }
+  #konumSosyal a:hover{border-color:var(--marka)}
+  .konum-not{margin:var(--a3) 0 0;color:var(--soluk);font-size:.85rem}
   .mk-fotolar{display:flex;flex-wrap:wrap;gap:var(--a2);margin-top:var(--a3)}
   .mk-fotolar a{display:block;width:96px;height:96px;border-radius:var(--r-s,6px);
     overflow:hidden;border:1px solid var(--cizgi)}
@@ -415,6 +449,26 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
     <div class="galeri-serit" id="galeriSerit"></div>
   </section>
 
+  <!-- KONUM. Adresi olan mekan %26,2; kalan 26.455'inde haritadaki
+       nokta "burasi nerede" sorusunun tek cevabi. O yuzden harita bilgi
+       listesinin USTUNDE.
+
+       Harita ISTEGE BAGLI (kesfet ile ayni kural): yuklenemezse yerine
+       ne oldugunu soyleyen kutu kaliyor, koordinat ve dis baglantilar
+       calismaya devam ediyor.
+
+       YORUMLAR KAZINMIYOR. Maps/Yandex/Instagram yorumlari yazarlarinin
+       telifinde ve platforma lisansli; buraya kopyalamak fotograflarla
+       ayni ihlal olurdu. Kullanici kaynaga gonderiliyor. -->
+  <section class="konum" id="konum" data-grup="bilgi" hidden>
+    <h2>Konum</h2>
+    <div id="mekanHarita"></div>
+    <p class="konum-koordinat" id="konumKoordinat"></p>
+    <div class="konum-baglar" id="konumBaglar"></div>
+    <div class="konum-baglar" id="konumSosyal"></div>
+    <p class="konum-not" id="konumNot"></p>
+  </section>
+
   <dl class="bilgi" id="bilgi" data-grup="bilgi"></dl>
   <!-- Fiyatin kac olcumden geldigi. Bilgi listesinde yalniz kisa etiket
        var ("56 subede ayni menu"); NEDEN onemli oldugu burada yaziyor. -->
@@ -635,6 +689,11 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
   <p><a class="dugme birincil" href="kesfet.html">Keşfet'e dön</a></p>
 </div>
 
+<!-- Leaflet YEREL (app/lib/leaflet.js, BSD-2-Clause; lisans metni
+     lib/leaflet-LICENSE.txt'te). Kesfet ile ayni dosya, ayni surum.
+     Bu sayfada harita ISTEGE BAGLI: yuklenemezse yerine koordinatin
+     kendisi ve dis harita baglantilari kaliyor. -->
+<script src="lib/leaflet.js"></script>
 <script src="yapilandirma.js"></script>
 <script src="ortak.js"></script>
 <!-- sahne.js EKSIKTI: sayfa sahne.css yukluyor ve js-sahne sinifini
@@ -816,6 +875,7 @@ function goster(m, ilAd){
   document.getElementById("govde").hidden = false;
   sayacCalistir(ID);
   fisKatmani(ID, m.ad, IL);
+  konumKatmani(m, ilAd);
   civarKatmani(m);
   oyKatmani(m, IL);
   sekmeleriKur();
@@ -1877,6 +1937,100 @@ async function fisKatmani(mekanId, mekanAd, ilKod){
    ============================================================ */
 let ilMekanlari = [];
 let zincir = null;
+
+/* ============================================================
+   Konum: harita + dis harita ve sosyal baglantilari
+
+   HARITA ISTEGE BAGLI. kesfet.js ile ayni kural ve ayni gerekce:
+   kutuphane yuklenemezse sayfanin geri kalani calismaya devam etmeli.
+   Burada dusus daha da onemli, cunku koordinatin KENDISI ekranda
+   yaziyor ve dis baglantilar haritaya hic ihtiyac duymuyor.
+   ============================================================ */
+let mHarita = null;
+
+function konumHaritasi(m){
+  const kutu = document.getElementById("mekanHarita");
+  /* typeof: L tanimsizken duz "if (!L)" ReferenceError firlatir --
+     korumanin kendisi cokerdi (kesfet.js'te olculmus hata). */
+  if (typeof L === "undefined"){
+    kutu.innerHTML = '<div class="harita-yok">' +
+      "<strong>Harita yüklenemedi</strong>" +
+      "<span>Bağlantı engellenmiş olabilir. Koordinat ve yol tarifi " +
+      "bağlantısı aşağıda duruyor.</span></div>";
+    return;
+  }
+  mHarita = L.map(kutu, {
+    zoomControl:false,
+    /* Tek nokta gosteriliyor; kaydirma ve yakinlastirma SAYFA
+       KAYDIRMASINI calmasin diye kapali. Buyutmek isteyen dis
+       haritaya gidiyor -- dugme hemen altinda. */
+    dragging:false, scrollWheelZoom:false, doubleClickZoom:false,
+    touchZoom:false, keyboard:false, attributionControl:true
+  }).setView([m.lat, m.lon], 16);
+
+  const koyuMu = () => (document.documentElement.dataset.tema ||
+    (matchMedia("(prefers-color-scheme: dark)").matches ? "koyu" : "acik")) === "koyu";
+  let dosem = null;
+  const dosemKur = () => {
+    if (dosem) mHarita.removeLayer(dosem);
+    dosem = L.tileLayer(
+      "https://{s}.basemaps.cartocdn.com/" + (koyuMu() ? "dark_all" : "light_all") +
+      "/{z}/{x}/{y}{r}.png",
+      { maxZoom:19, attribution:"&copy; OpenStreetMap &copy; CARTO" }).addTo(mHarita);
+  };
+  dosemKur();
+  /* Tema donunce dosem de donmeli; kesfet ile ayni izleyici. */
+  new MutationObserver(dosemKur).observe(document.documentElement,
+    { attributes:true, attributeFilter:["data-tema"] });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", dosemKur);
+
+  const stil = getComputedStyle(document.documentElement);
+  L.circleMarker([m.lat, m.lon], {
+    radius:9, weight:3,
+    color: stil.getPropertyValue("--marka").trim() || "#0a7",
+    fillColor: stil.getPropertyValue("--marka").trim() || "#0a7",
+    fillOpacity:.5
+    /* Ipucu balonu YOK: dokunmatikte "uzerine gelme" diye bir sey yok
+       ve mekanin adi zaten 200 px yukarida, sayfanin basliginda. */
+  }).addTo(mHarita);
+}
+
+function konumKatmani(m, ilAd){
+  if (!koordinatVar(m)) return;      /* koordinatsiz mekan: kutu hic cikmiyor */
+  const bol = document.getElementById("konum");
+  bol.hidden = false;
+  konumHaritasi(m);
+
+  /* Koordinat METIN olarak da yaziyor: harita cizilmese de "burasi
+     nerede" sorusunun bir cevabi kalsin. */
+  document.getElementById("konumKoordinat").textContent =
+    "Koordinat: " + koordinatYaz(m) + (m.adres ? "" : " (adres kayıtlı değil)");
+
+  document.getElementById("konumBaglar").innerHTML =
+    disHaritalar(m, ilAd).map(h =>
+      '<a class="dugme ' + (h.anahtar === "yol" ? "birincil" : "ikincil") +
+      ' kucuk" href="' + kacir(h.bag) + '" target="_blank" rel="noopener">' +
+      kacir(h.ad) + "</a>").join("");
+
+  /* SOSYAL HESAPLAR bilgi listesinde satir satir duruyordu; burada
+     dugme olarak da veriliyor cunku "yorumu kaynaginda oku" sorusunun
+     cevabi tam olarak bunlar. Ayni bagi ortak.js kuruyor (sosyalListe)
+     -- iki yerde iki turlu adres uretilmesin. */
+  const sos = sosyalListe(m);
+  const web = m.web ? guvenliBag(String(m.web)) : "";
+  document.getElementById("konumSosyal").innerHTML =
+    (web ? '<a class="dugme ikincil kucuk" href="' + kacir(web) +
+           '" target="_blank" rel="noopener">Kendi sitesi</a>' : "") +
+    sos.map(x => x.bag).join("");
+
+  /* NEDEN DIS BAGLANTI. Kullaniciya "yorumlar nerede" sorusunun cevabi
+     veriliyor ve neden burada olmadigi tek cumleyle yaziliyor. */
+  document.getElementById("konumNot").textContent =
+    "Yol tarifi koordinata gider; arama düğmeleri adla arar (mekanın " +
+    "harita kimliği elimizde yok, yanlış şubeye yollamayalım). " +
+    "Maps ve sosyal medya yorumlarını kaynağında okuyabilirsin — " +
+    "yazarlarının telifinde oldukları için buraya kopyalanmıyor.";
+}
 
 async function civarKatmani(m){
   const o = civarOzeti(m, ilMekanlari);

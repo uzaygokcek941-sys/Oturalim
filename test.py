@@ -1494,6 +1494,94 @@ def menu_listesi_mi():
                # True donuyordu, kayit onu BASARISIZ sayiyordu.
 
 
+def konum_paneli_mi():
+    """Isletme sayfasi mekanin NEREDE oldugunu soyluyor mu.
+
+    NEDEN: adresi olan mekan yalniz 9.397/35.852 (%26,2). Kalan
+    26.455 mekanda koordinat "burasi nerede" sorusunun TEK cevabi ve
+    sayfada bugune kadar hic gorunmuyordu -- yalniz "cevresini haritada
+    gor" diye kesfet ekranina bir bag vardi.
+
+    YORUMLAR KAZINMIYOR. Maps/Yandex/Instagram yorumlari yazarlarinin
+    telifinde ve platforma lisansli; buraya kopyalamak fotograflarla
+    ayni ihlal olurdu (CEBIMDE.md "Yapilmayacaklar"). Kullaniciyi
+    KAYNAGA gonderiyoruz ve sayfa bunu YAZIYOR -- sessizce yapilan bir
+    tercih, kullanicinin "yorumlar nerede" sorusunu cevapsiz birakirdi.
+    Kontrol o cumlenin varligini da ariyor.
+    """
+    s = []
+    okun = lambda *y: io.open(os.path.join(KOK, *y), encoding="utf-8").read()
+    ham = okun("app", "isletme.html")
+    js  = _js_yorumsuz(okun("app", "ortak.js"))
+
+    # (1) Kutuphane YEREL. unpkg'den cekmek hem CSP'yi genisletir hem
+    # sayfayi bir CDN'e baglar; kesfet ile ayni dosya kullaniliyor.
+    if '<script src="lib/leaflet.js">' not in ham:
+        s.append("isletme.html: konum haritasi icin yerel Leaflet yuklenmiyor")
+    if '<link rel="stylesheet" href="lib/leaflet.css">' not in ham:
+        s.append("isletme.html: leaflet.css yuklenmiyor "
+                 "(harita uslupsuz ve bozuk cizilir)")
+    if 'id="mekanHarita"' not in ham:
+        s.append("isletme.html: harita kabi yok")
+
+    # (2) HARITA ISTEGE BAGLI. typeof denetimi olmazsa korumanin
+    # KENDISI ReferenceError firlatir -- kesfet.js'te olculmus hata.
+    if 'typeof L === "undefined"' not in ham:
+        s.append("isletme.html: Leaflet yoksa sayfa cokuyor "
+                 "(typeof denetimi yok)")
+    if "harita-yok" not in ham:
+        s.append("isletme.html: harita yuklenemediginde yerine aciklama yok")
+
+    # (3) YOL TARIFI KOORDINATA, ARAMA ADLA. Ikisinin AYRI olmasi
+    # kuralin kendisi: Maps yer kimligi (place_id) elimizde yok, yani
+    # "bu mekanin sayfasi" diyemeyiz. Kural ortak.js'te tek yerde.
+    for ad in ("koordinatVar", "koordinatYaz", "disHaritalar", "aramaMetni"):
+        if ("function " + ad) not in js:
+            s.append("ortak.js: %s yok (konum kurali tek yerde durmali)" % ad)
+    # DUZ ARAMA YETMIYOR: ayni dizgi asagidaki kendi-kendini-kontrol
+    # blogunda BEKLENEN DEGER olarak da duruyor, yani DIS_HARITA'daki
+    # taban degistirilse bile arama gecerdi. Sabotajla goruldu.
+    # Onun yerine "yol" kaydinin KENDI tabanina bakiliyor.
+    yol_kaydi = re.search(r'anahtar:"yol".*?taban:"([^"]+)"', js, re.S)
+    if not yol_kaydi:
+        s.append("ortak.js: DIS_HARITA'da yol tarifi kaydi yok")
+    elif "maps/dir/" not in yol_kaydi.group(1):
+        s.append("ortak.js: yol tarifi bagi koordinata degil aramaya "
+                 "gidiyor: %s" % yol_kaydi.group(1))
+    # Koordinat denetimi TIP bakmali: veride dizgi gelirse toFixed
+    # catlar ve harita hic cizilmez.
+    if 'typeof m.lat === "number"' not in js:
+        s.append("ortak.js: koordinat denetimi tipe bakmiyor")
+
+    # (4) DIS BAGLAR https. Karisik icerik hem CSP'ye takilir hem
+    # baglantiyi aciga cikarir.
+    for esles in re.findall(r'taban:"([^"]+)"', js):
+        if not esles.startswith("https://"):
+            s.append("ortak.js: dis harita bagi https degil: %s" % esles)
+
+    # (5) NEDEN YORUM YOK, EKRANDA YAZIYOR MU.
+    #
+    # YORUMLAR SILINEREK ARANIYOR. Ilk hali duz "telifinde in ham" idi
+    # ve SABOTAJ GECTI: ayni kelime bolumun ustundeki HTML yorumunda da
+    # geciyor, yani kullaniciya gorunen cumle silinse bile kontrol
+    # gecerdi. Gizlilik tablosu kontrolunde de tam olarak bu olmustu.
+    gorunen = re.sub(r"<!--.*?-->", " ", ham, flags=re.S)
+    gorunen = re.sub(r"/\*.*?\*/", " ", gorunen, flags=re.S)
+    if "yazarlarının telifinde" not in gorunen:
+        s.append("isletme.html: yorumlarin neden kaynaginda okundugu "
+                 "EKRANDA yazmiyor")
+
+    # (6) YORUM KAZIYAN BIR SEY EKLENMEDI. Depoda Maps/Yandex yorum
+    # ucu aramak, kuralin kendisini kontrole cevirmek.
+    for yol in ("app/isletme.html", "app/ortak.js", "app/kesfet.js"):
+        d = okun(*yol.split("/"))
+        for kotu in ("maps.googleapis.com", "place/details",
+                     "reviews?", "api.yandex", "graph.facebook.com"):
+            if kotu in d:
+                s.append("%s: yorum/veri kaziyan uc bulundu (%s)" % (yol, kotu))
+    return s
+
+
 def harita_karti_mi():
     """Haritada acilan panel HARITAYI GOSTERIYOR ve tek kopya bilgi basiyor.
 
@@ -2327,6 +2415,7 @@ def main():
     kayit("degismez: kombin mekanin kendi menusunden", kombin_mi())
     kayit("degismez: mekan sayfasi menuyu gosteriyor", menu_listesi_mi())
     kayit("degismez: harita karti maketteki gibi", harita_karti_mi())
+    kayit("degismez: isletme sayfasi konumu gosteriyor", konum_paneli_mi())
     kayit("degismez: seviye onayli katkiyi sayiyor", seviye_mi())
     kayit("degismez: butce talebi ifsa etmiyor", butce_talebi_mi())
     kayit("degismez: kurulum dosyalari depoda", kurulum_dosyalari_izleniyor_mu())

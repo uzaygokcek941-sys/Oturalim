@@ -2377,3 +2377,79 @@ Birleştirmek ikisinden birini bozardı.
 
 **421 iç kontrol + 46 kontrol grubu geçiyor.** Bu turda yazılan 14
 sabotajın 14'ü yakalanıyor.
+
+### İşletme sayfasında konum: harita, yol tarifi, hesaplar
+
+Ölçüldü: **adresi olan mekan yalnız 9.397/35.852 (%26,2)**. Kalan
+**26.455 mekanda** koordinat, "burası nerede" sorusunun *tek* cevabı — ve
+sayfada hiç görünmüyordu. Tek şey "Çevresini haritada gör" diye keşfet
+ekranına giden bir bağlantıydı; yani mekanın kendi sayfası nerede
+olduğunu söylemiyordu.
+
+Bilgi sekmesine **Konum** kutusu geldi: harita (yerel Leaflet, keşfet ile
+aynı dosya), altında koordinatın kendisi, sonra bağlantılar.
+
+Harita **isteğe bağlı** — keşfetteki kuralın aynısı. Kütüphane
+yüklenemezse yerine ne olduğunu söyleyen kutu kalıyor; koordinat, yol
+tarifi ve hesap düğmeleri çalışmaya devam ediyor. Gerçek tarayıcıda iki
+hal birden ölçülüyor.
+
+Harita **kaydırılmıyor ve yakınlaştırılmıyor**: tek bir nokta gösteriyor
+ve sayfa kaydırmasını çalması, kazandırdığından çok götürürdü. Büyütmek
+isteyen dış haritaya gidiyor, düğme hemen altında.
+
+### "Yol tarifi" ile "ara" ayrı düğmeler, ve bu bilerek
+
+| Düğme | Neye gidiyor | Neden |
+|---|---|---|
+| Yol tarifi | `destination=<enlem>,<boylam>` | Koordinat elimizde, yanılma payı yok |
+| Google'da ara | ad + adres + il + koordinat | Maps yer kimliği (`place_id`) **elimizde yok** |
+| Yandex'te ara | aynı | aynı |
+| OpenStreetMap | `mlat`/`mlon` | Verinin geldiği yer |
+
+Arama düğmeleri "aç" demiyor, **"ara"** diyor. "Bu mekanın Maps sayfası"
+demek, aynı adlı başka bir şubeye yollandığında yalan olurdu — ve bağ
+görünüşte çalışmaya devam ettiği için fark edilmezdi. Aramaya koordinat
+da giriyor: ad tek başına "Bambi Cafe"yi Türkiye'de onlarca yere düşürüyor.
+
+### Yorumlar kazınmıyor — ve sayfa bunu yazıyor
+
+Maps, Yandex ve Instagram yorumları yazarlarının telifinde ve platforma
+lisanslı. Kopyalayıp burada yayımlama hakkımız yok; fotoğraflarda verilen
+kararın aynısı (CEBIMDE.md "Yapılmayacaklar"). Yapılabilecek dürüst şey
+kullanıcıyı **kaynağa göndermek** — yorumu orada, yazarının yayımladığı
+yerde okuyor. Cebimde'nin kendi yorumları ayrı ve zaten sayfada.
+
+Bu tercih **ekranda yazıyor**. Sessizce yapsaydık kullanıcının "yorumlar
+nerede" sorusu cevapsız kalırdı.
+
+### Sosyal hesap kapsamı: %0,8, ve sebebi bir veri boşluğu
+
+Sosyal hesabı olan mekan **304 (%0,8)** ve hepsi Instagram. Facebook, X,
+TikTok, YouTube **sıfır** — ama bu OSM'de yok demek değil:
+
+- `turkiye_cek.py` beş platformu da okuyor (`contact:facebook`,
+  `contact:twitter`, …) ve beş sütunu da yazıyor.
+- `app_veri.py` beşini de arıyor (`sosyal_adi("facebook", …)`).
+- **`turkiye_mekanlar.csv`'de o sütunlar yok**: dosya, kazıyıcının o
+  platformlar eklenmeden önceki sürümüyle üretilmiş.
+
+Yani eksik olan şey kod değil, veri: `python turkiye_cek.py` yeniden
+çalıştırılınca dört sütun kendiliğinden doluyor.
+
+### Kontrollerin kendi kusurları (yine ikisi sabotajla çıktı)
+
+- **"telifinde" araması gevşekti.** Kullanıcıya görünen cümle silindiği
+  hâlde kontrol geçti: aynı kelime bölümün üstündeki **HTML yorumunda**
+  da geçiyor. Gizlilik tablosunda tam olarak bu olmuştu. Artık yorumlar
+  silinerek aranıyor.
+- **"Yol tarifi koordinata gidiyor mu" araması kendi kendini
+  doğruluyordu.** Aranan dizgi (`maps/dir/?api=1&destination=`)
+  `ortak.js`'in *kendi kontrol bloğunda* beklenen değer olarak da
+  duruyor; tabanı aramaya çevirdiğimde kontrol yine geçti. Artık
+  `DIS_HARITA`'daki `yol` kaydının kendi tabanına bakılıyor.
+- **Haritasız hâl kontrolü olmayan bir menüyü arıyordu.** Seçtiğim mekan
+  (Draft) menüsüz ve kontrol "Leaflet yokken menü de çizilmiyor" diye
+  patladı — kod değil kontrol yanlıştı. Menüsü *ve* Instagram'ı olan bir
+  mekana geçildi; artık "harita gitti, geri kalan duruyor" gerçekten
+  ölçülüyor.

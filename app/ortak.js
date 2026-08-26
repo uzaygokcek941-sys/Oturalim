@@ -699,6 +699,74 @@ function sosyalListe(m){
     .filter(x => x.bag);
 }
 
+/* ---------- dış harita ve "yorumları kaynağında oku" ----------
+
+   İKİ AYRI ŞEY, ve ayrı adlandırılıyorlar:
+
+     yol tarifi  -> KOORDİNATA gidiyor. Yanılma payı yok; enlem-boylam
+                    zaten elimizde ve mekanın tek kesin verisi o.
+     arama       -> ADLA arıyor. Google Maps'in yer kimliği (place_id)
+                    ELİMİZDE YOK ve uydurulamaz; "bu mekanın Maps
+                    sayfası" demek, aynı adlı başka bir şubeye
+                    yollandığında yalan olurdu. O yüzden düğme "ara"
+                    diyor, "aç" demiyor.
+
+   YORUMLAR KAZINMIYOR. Google Maps, Yandex ve Instagram yorumları
+   yazarlarının telifinde ve platforma lisanslı; kopyalayıp burada
+   yayımlama hakkımız yok (CEBIMDE.md "Yapılmayacaklar", fotoğraflarla
+   aynı gerekçe). Yapılabilecek dürüst şey, kullanıcıyı KAYNAĞA
+   göndermek -- yorumu orada, yazarının yayımladığı yerde okuyor.
+   Cebimde'nin kendi yorumları ayrı ve zaten sayfada. */
+function koordinatVar(m){
+  return !!(m && typeof m.lat === "number" && typeof m.lon === "number" &&
+            isFinite(m.lat) && isFinite(m.lon) &&
+            Math.abs(m.lat) <= 90 && Math.abs(m.lon) <= 180);
+}
+
+/* Ekranda okunacak koordinat. Altı hane ~11 cm; daha fazlası veride
+   olmayan bir kesinlik iddia ederdi. */
+function koordinatYaz(m){
+  return koordinatVar(m) ? m.lat.toFixed(6) + ", " + m.lon.toFixed(6) : "";
+}
+
+/* Mekanı aramak için kullanılacak metin: ad + il. İl olmadan "Bambi
+   Cafe" Türkiye'de onlarca yere düşüyor. */
+function aramaMetni(m, ilAd){
+  return [m && m.ad, m && m.adres, ilAd].filter(Boolean).join(" ");
+}
+
+const DIS_HARITA = [
+  { anahtar:"yol",    ad:"Yol tarifi", tur:"tarif",
+    taban:"https://www.google.com/maps/dir/?api=1&destination=" },
+  { anahtar:"google", ad:"Google'da ara", tur:"arama",
+    taban:"https://www.google.com/maps/search/?api=1&query=" },
+  { anahtar:"yandex", ad:"Yandex'te ara", tur:"arama",
+    taban:"https://yandex.com.tr/harita/?text=" },
+  { anahtar:"osm",    ad:"OpenStreetMap", tur:"tarif",
+    taban:"https://www.openstreetmap.org/?mlat=" }
+];
+
+/* Dış harita bağlantıları. Koordinat yoksa BOŞ döner: "yol tarifi"
+   düğmesi nereye gideceğini bilmeden gösterilmemeli. */
+function disHaritalar(m, ilAd){
+  if (!koordinatVar(m)) return [];
+  const nokta = m.lat.toFixed(6) + "," + m.lon.toFixed(6);
+  const arama = aramaMetni(m, ilAd);
+  return DIS_HARITA.map(h => {
+    let adres;
+    if (h.anahtar === "osm")
+      adres = h.taban + m.lat.toFixed(6) + "&mlon=" + m.lon.toFixed(6) +
+              "#map=18/" + m.lat.toFixed(6) + "/" + m.lon.toFixed(6);
+    else if (h.tur === "tarif")
+      adres = h.taban + encodeURIComponent(nokta);
+    else
+      /* Aramaya KOORDİNAT DA giriyor: ad tek başına yanlış şubeye
+         düşürüyor, koordinat aramayı doğru mahalleye çiviliyor. */
+      adres = h.taban + encodeURIComponent(arama ? arama + " " + nokta : nokta);
+    return { anahtar:h.anahtar, ad:h.ad, tur:h.tur, bag:adres };
+  });
+}
+
 /* ---------- katkı doğrulama ----------
    Kullanıcıdan gelen eksik alan bilgisi. Onaya gitmeden ÖNCE burada eleniyor;
    yöneticiye ancak kullanılabilir biçimde olanlar ulaşsın.
@@ -2095,6 +2163,10 @@ function kendiniKontrolEt(){
     menu:[ {a:"Latte", f:95, k:"Kahve"},
            {a:"Lahmacun", f:120, k:"Kebap"},
            {a:"1 Alana 1 Bedava Kola", f:80, p:1} ] };
+  /* Konum fixture'i: koordinat ve adres ELLE yazildi, il dosyasindan
+     alinmadi -- gercek veriden okusa kontrol veriyle birlikte bozulurdu. */
+  const KNM = { id:"k1", ad:"Konum Kafe", tur:"Kafe",
+                adres:"Moda Caddesi 1", lat:40.99, lon:29.028 };
   const ONR_TEK = { id:"o2", ad:"Pastane", tur:"Kafe", tarih:"2026-08",
     kat:{ "Tatlı": { n:2, med:60 } },
     menu:[ {a:"TEK",  f:40, k:"Tatlı"},
@@ -2395,6 +2467,56 @@ function kendiniKontrolEt(){
       sosyalListe({insta:"a", tiktok:"b", x:"c"}).map(o => o.alan).join(","),
                                                                   "insta,x,tiktok"],
     ["sosyal liste bos mekan",  sosyalListe({}).length,                        0],
+
+    /* --- konum: harita ve dis baglantilar ---
+       Adresi olan mekan %26,2 (9.397/35.852). Kalan 26.455'te
+       koordinat "burasi nerede" sorusunun TEK cevabi, o yuzden
+       koordinat denetimi gevsek olamaz. */
+    ["koordinat var",       koordinatVar(KNM),                            true],
+    ["koordinatsiz mekan",  koordinatVar({ad:"X"}),                      false],
+    /* Metin "41.0" DEGIL sayi bekleniyor: veride dizgi gelirse
+       toFixed catlar ve harita hic cizilmez. */
+    ["koordinat metinse yok", koordinatVar({lat:"41", lon:"29"}),        false],
+    ["koordinat NaN'da yok",  koordinatVar({lat:NaN, lon:29}),           false],
+    /* Enlem 90'i, boylam 180'i asamaz. Bozuk bir satir haritayi
+       dunyanin disina goturur ve yol tarifi bagi anlamsizlasir. */
+    ["koordinat sinir disi yok", koordinatVar({lat:91, lon:29}),         false],
+    ["koordinat boylam siniri",  koordinatVar({lat:41, lon:181}),        false],
+    /* Alti hane ~11 cm. Daha fazlasi veride olmayan bir kesinlik
+       iddia ederdi. */
+    ["koordinat alti hane", koordinatYaz(KNM),              "40.990000, 29.028000"],
+    ["koordinatsizda bos",  koordinatYaz({ad:"X"}),                         ""],
+
+    /* YOL TARIFI KOORDINATA gidiyor: yanilma payi yok. */
+    ["yol tarifi koordinatla",
+      disHaritalar(KNM, "İstanbul").find(h => h.anahtar === "yol").bag,
+      "https://www.google.com/maps/dir/?api=1&destination=40.990000%2C29.028000"],
+    /* ARAMA ADLA arıyor ve KOORDINATI DA tasiyor: ad tek basina ayni
+       adli baska bir subeye dusuyor. Mekanin Maps yer kimligi (place_id)
+       ELIMIZDE YOK, o yuzden dugme "ara" diyor "ac" demiyor. */
+    ["arama adi ve ili tasiyor",
+      decodeURIComponent(
+        disHaritalar(KNM, "İstanbul").find(h => h.anahtar === "google").bag)
+        .includes("Konum Kafe Moda Caddesi 1 İstanbul"),                true],
+    ["arama koordinati da tasiyor",
+      decodeURIComponent(
+        disHaritalar(KNM, "İstanbul").find(h => h.anahtar === "google").bag)
+        .includes("40.990000,29.028000"),                              true],
+    ["dis harita dort bag",  disHaritalar(KNM, "İstanbul").length,          4],
+    /* Koordinat yoksa HIC BAG YOK: "yol tarifi" dugmesi nereye
+       gidecegini bilmeden gosterilmemeli. */
+    ["koordinatsiz mekanda bag yok", disHaritalar({ad:"X"}, "İstanbul").length, 0],
+    /* Hepsi https: karisik icerik hem CSP'ye takilir hem baglantiyi
+       aciga cikarir. */
+    ["dis baglar https",
+      disHaritalar(KNM, "İstanbul").every(h => h.bag.startsWith("https://")), true],
+    /* Ad ve adres ADRESE KACIRILARAK giriyor: kesme isareti ve bosluk
+       ham birakilirsa adres bozulur (Domino's, gercek veride var). */
+    ["arama metni kacirildi",
+      disHaritalar({lat:40.99, lon:29.028, ad:"Domino's & Co"}, "Ankara")
+        .find(h => h.anahtar === "google").bag.includes("%26"),         true],
+    ["arama metni ilsiz de calisiyor",
+      aramaMetni({ad:"Kafe"}, ""),                                    "Kafe"],
     ["yildiz 4 -> dort dolu",   (yildiz(4).match(/★/g) || []).length,          4],
     ["yildiz aria etiketi",     yildiz(4.5).includes('aria-label='),        true],
     ["yildiz null",             yildiz(null),                                 ""],
