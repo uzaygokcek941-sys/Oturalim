@@ -1,0 +1,51 @@
+{
+  "packageId": "com.cebimde.app",
+  "host": "cebimde.vercel.app",
+  "name": "Cebimde — cebindeki bütçeyle keşfet",
+  "launcherName": "Cebimde",
+  "display": "standalone",
+  "themeColor": "#ffffff",
+  "themeColorDark": "#0f172a",
+  "navigationColor": "#ffffff",
+  "navigationColorDark": "#0f172a",
+  "navigationDividerColor": "#0f172a",
+  "navigationDividerColorDark": "#0f172a",
+  "backgroundColor": "#ffffff",
+  "enableNotifications": false,
+  "startUrl": "/index.html",
+  "iconUrl": "https://cebimde.vercel.app/ikon/ikon-512.png",
+  "maskableIconUrl": "https://cebimde.vercel.app/ikon/ikon-maske-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "",
+    "alias": ""
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [
+    {
+      "name": "Keşfet",
+      "shortName": "Keşfet",
+      "url": "/kesfet.html",
+      "chosenIconUrl": "https://cebimde.vercel.app/ikon/ikon-192.png"
+    },
+    {
+      "name": "Fiyat paylaş",
+      "shortName": "Paylaş",
+      "url": "/paylas.html",
+      "chosenIconUrl": "https://cebimde.vercel.app/ikon/ikon-192.png"
+    }
+  ],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://cebimde.vercel.app/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "orientation": "default",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "appVersion": "1.0.0",
+  "minSdkVersion": 21
+}

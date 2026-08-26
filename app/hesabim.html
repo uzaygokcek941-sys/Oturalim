@@ -3,18 +3,29 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Hesabım — Oturalım</title>
+<title>Hesabım — Cebimde</title>
 <meta name="robots" content="noindex">
-<meta name="theme-color" content="#15110e">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2315110e'/%3E%3Cpath d='M20 16v12a12 12 0 0 0 24 0V16' stroke='%23f08a3c' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3Cpath d='M32 40v10' stroke='%23f08a3c' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="marka.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="ikon/ikon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cebimde">
+<meta name="mobile-web-app-capable" content="yes">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Karla:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="stil.css">
 <link rel="stylesheet" href="sahne.css">
-<script>document.documentElement.classList.add("js-sahne");</script>
+<script>document.documentElement.classList.add("js-sahne");/* Emniyet: sahne.js gelmezse (CDN degil ama betik hatasi, engel,
+   eksik <script>) perde acilmaz ve icerik KALICI gizli kalirdi.
+   2 sn sonra sinif kendiliginden kalkiyor; sahne.css o sinif
+   olmadan hicbir seyi gizlemiyor. Bir kez oldu: isletme.html
+   sahne.js'i hic yuklemiyordu. */
+setTimeout(function(){if(!window.__sahneHazir)document.documentElement.classList.remove("js-sahne");},2000);</script>
 <script>
-try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.dataset.tema=t;}catch(e){}
+try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dataset.tema=t;}catch(e){}
 </script>
 <style>
   .hesap-bas{display:flex;align-items:center;gap:var(--a4);flex-wrap:wrap;
@@ -26,6 +37,12 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   .hesap-bas h1{font-size:40px;line-height:1.15}
   .hesap-bas .posta{font-size:13px;color:var(--metin-3);margin-top:4px;word-break:break-all}
 
+  .seviye{margin-bottom:var(--a4);padding:var(--a4);border:1px solid var(--cizgi);
+     border-radius:var(--r);background:var(--zemin-2)}
+  .seviye-ad{font-family:var(--font-baslik);font-size:1.15rem;letter-spacing:-.01em}
+  .seviye-ad b{color:var(--vurgu)}
+  .seviye-not{margin-top:var(--a2);font-size:.95rem;line-height:1.55}
+  .seviye-dokum{margin-top:var(--a2);font-size:.85rem;color:var(--soluk);line-height:1.6}
   .sekmeler{display:flex;gap:var(--a1);padding:var(--a1);background:var(--zemin-3);
     border-radius:var(--r);margin-bottom:var(--a5);overflow-x:auto;scrollbar-width:none}
   .sekmeler::-webkit-scrollbar{display:none}
@@ -44,6 +61,11 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   .liste-satir .islem{display:flex;gap:var(--a2);align-items:center}
   .tutar-b{font-family:var(--font-baslik);font-size:16px;font-weight:600;color:var(--vurgu);
     font-variant-numeric:tabular-nums;white-space:nowrap}
+  /* Katkinin degeri metin, tutar degil: .tutar-b'nin nowrap'i uzun bir adres
+     ya da baglantiyi mobilde tasiriyordu. Kirilabilir ve genisligi sinirli. */
+  .katki-deger{font-family:var(--font-baslik);font-size:15px;font-weight:600;
+    color:var(--vurgu);max-width:min(22rem,60vw);overflow-wrap:anywhere;
+    text-align:right;line-height:1.35}
   .sil{width:44px;height:44px;display:grid;place-items:center;border-radius:var(--r-s);
     color:var(--metin-3);border:1px solid transparent}
   .sil:hover{color:var(--kirmizi);border-color:var(--kirmizi);background:var(--zemin-3)}
@@ -55,6 +77,31 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   .alanlar input{min-height:48px;padding:12px 16px;border-radius:var(--r);
     background:var(--zemin-3);border:1px solid var(--cizgi);color:var(--metin);font-size:16px}
   .kutu-ayri{margin-top:var(--a6);padding-top:var(--a5);border-top:1px solid var(--cizgi)}
+  .alanlar textarea{min-height:88px;padding:12px 16px;border-radius:var(--r);
+    background:var(--zemin-3);border:1px solid var(--cizgi);color:var(--metin);
+    font:inherit;font-size:16px;width:100%;resize:vertical}
+  .ipucu-kucuk{font-size:13px;color:var(--metin-3);line-height:1.5}
+  .yorum-metin{margin-top:8px;font-size:16px;line-height:1.55;color:var(--metin-2)}
+  .alt-baslik{font-size:20px;margin:var(--a6) 0 var(--a3)}
+  .mk-kucuk{display:block;width:44px;height:44px;border-radius:var(--r-s);
+    overflow:hidden;border:1px solid var(--cizgi);flex:0 0 auto}
+  .mk-kucuk img{width:100%;height:100%;object-fit:cover;display:block}
+  .yildiz{color:var(--vurgu);letter-spacing:1px;white-space:nowrap}
+  .ipucu-kucuk code{background:var(--zemin-3);padding:2px 6px;border-radius:4px;
+    word-break:break-all}
+  .avatar-satir{display:flex;gap:var(--a4);align-items:center}
+  .avatar-onizleme{
+    width:72px;height:72px;flex:0 0 auto;border-radius:50%;overflow:hidden;
+    background:var(--zemin-3);border:1px solid var(--cizgi);
+    display:grid;place-items:center;font-family:var(--font-baslik);
+    font-size:28px;font-weight:600;color:var(--metin-3);
+  }
+  .avatar-onizleme img{width:100%;height:100%;object-fit:cover;display:block}
+  .avatar-islem{display:grid;gap:8px;justify-items:start}
+  /* Dokunma hedefi en az 24x24 (WCAG 2.5.8); onay kutusu varsayilan
+     olarak daha kucuk geliyor. */
+  .onay-satir{display:flex;gap:var(--a3);align-items:flex-start}
+  .onay-satir input{width:24px;height:24px;min-height:24px;flex:0 0 auto;margin-top:2px}
   .kutu-ayri h2{font-size:20px;margin-bottom:var(--a3)}
   .tehlike{border:1px solid var(--kirmizi);border-radius:var(--r);padding:var(--a4);
     background:color-mix(in srgb,var(--kirmizi) 8%,transparent)}
@@ -71,13 +118,9 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
 
 <header class="ust">
   <div class="kap">
-    <a class="marka" href="index.html" aria-label="Oturalım ana sayfa">
-      <svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
-        <rect width="64" height="64" rx="14" fill="currentColor" opacity=".08"/>
-        <path d="M20 16v12a12 12 0 0 0 24 0V16" stroke="#f08a3c" stroke-width="5" stroke-linecap="round"/>
-        <path d="M32 40v10" stroke="#f08a3c" stroke-width="5" stroke-linecap="round"/>
-      </svg>
-      <span>Otur<em>alım</em></span>
+    <a class="marka" href="index.html" aria-label="Cebimde ana sayfa">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="mg" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#ffa03a"/><stop offset="1" stop-color="#f4690a"/></linearGradient></defs><g transform="rotate(-14 26 11)"><rect x="13" y="3.2" width="26" height="7.2" rx="2.2" fill="#00bfa6"/><rect x="11" y="6.6" width="28" height="7.2" rx="2.2" fill="#ffb74d"/></g><path d="M32 8c-9.6 0-17.4 7.5-17.4 16.8 0 8.8 5.9 15.1 12.9 23.8 1.9 2.4 4.5 5.6 4.5 5.6s2.6-3.2 4.5-5.6c7-8.7 12.9-15 12.9-23.8C49.4 15.5 41.6 8 32 8Z" fill="url(#mg)"/><circle cx="32" cy="25.4" r="9.1" fill="#fff"/><g stroke="#f4690a" stroke-width="1.75" stroke-linecap="round"><path d="M27.5 20.1v3.3M29.4 20.1v3.3M31.3 20.1v3.3"/><path d="M29.4 23.4v7.2"/><path d="M35.9 20.1v4.4" stroke-width="3.3"/><path d="M35.9 24.2v6.4"/></g></svg>
+      <span>Ceb<em>imde</em></span>
     </a>
     <nav class="menu" aria-label="Ana menü">
       <a href="index.html">Ana sayfa</a>
@@ -110,9 +153,21 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
           </button>
         </div>
 
+        <!-- Kullanici seviyesi. Sekmelerin USTUNDE: sekmeler tembel
+             yukleniyor ve seviye hangi sekmeye bastigina gore
+             degismemeli. Sayim ayri bir uctan geliyor (katkiOzetim). -->
+        <section class="seviye" id="seviye" hidden>
+          <p class="seviye-ad"><b id="seviyeAd"></b></p>
+          <p class="seviye-not" id="seviyeNot"></p>
+          <p class="seviye-dokum" id="seviyeDokum"></p>
+        </section>
+
         <div class="sekmeler" role="tablist" id="sekmeler">
           <button role="tab" type="button" aria-selected="true"  data-bolum="favoriler">Favorilerim</button>
           <button role="tab" type="button" aria-selected="false" data-bolum="paylasimlar">Paylaşımlarım</button>
+          <button role="tab" type="button" aria-selected="false" data-bolum="katkilar">Katkılarım</button>
+          <button role="tab" type="button" aria-selected="false" data-bolum="yorumlar">Yorumlarım</button>
+          <button role="tab" type="button" aria-selected="false" data-bolum="isletmeler">İşletmelerim</button>
           <button role="tab" type="button" aria-selected="false" data-bolum="ayarlar">Ayarlar</button>
         </div>
 
@@ -123,14 +178,84 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
 
         <section id="bolum-favoriler" data-giris="sicrama"></section>
         <section id="bolum-paylasimlar" hidden></section>
+        <section id="bolum-katkilar" hidden>
+          <div id="katki-liste"></div>
+          <div id="menu-katki-liste"></div>
+        </section>
+        <section id="bolum-yorumlar" hidden></section>
+        <section id="bolum-isletmeler" hidden></section>
 
         <section id="bolum-ayarlar" hidden>
+          <!-- Profil alanlarının HEPSİ isteğe bağlı. Yaşını yazmayan biri
+               yorum yazamasın demek, veriyi zorla toplamak olurdu; gizlilik
+               metnindeki "veri en aza indirildi" sözü bunu gerektiriyor.
+               Gerekçe veritabani/profil.sql başlığında da yazılı. -->
           <div class="alanlar">
+            <div class="avatar-satir">
+              <div class="avatar-onizleme" id="avatar-onizleme" aria-hidden="true">?</div>
+              <div class="avatar-islem">
+                <label class="dugme ikincil kucuk" for="avatar-alan" style="cursor:pointer">
+                  Fotoğraf seç
+                </label>
+                <input id="avatar-alan" type="file" accept="image/jpeg,image/png,image/webp"
+                       class="gizli" aria-label="Profil fotoğrafı">
+                <button class="dugme duz kucuk" id="avatar-sil" type="button" hidden>Kaldır</button>
+                <span class="ipucu-kucuk">JPEG, PNG veya WebP · en fazla 2 MB</span>
+              </div>
+            </div>
+
             <label>
               <span class="ad">Görünen adın</span>
               <input id="ad-alan" type="text" maxlength="60" placeholder="Örn. Ayşe">
             </label>
-            <button class="dugme" id="ad-kaydet" type="button" style="justify-self:start">Adı kaydet</button>
+
+            <label>
+              <span class="ad">Kullanıcı adın</span>
+              <input id="kadi-alan" type="text" maxlength="20" placeholder="ornek_ad"
+                     autocapitalize="none" autocorrect="off" spellcheck="false">
+              <span class="ipucu-kucuk">
+                Profil adresin: <code id="kadi-adres">profil.html?k=…</code><br>
+                3-20 karakter; küçük harf, rakam ve alt çizgi.
+              </span>
+            </label>
+
+            <label>
+              <span class="ad">Doğum yılın</span>
+              <input id="dogum-alan" type="number" min="1900" max="2100"
+                     inputmode="numeric" placeholder="1998">
+              <span class="ipucu-kucuk">
+                Yaşın değil doğum yılın saklanıyor — yaş her yıl eskir, doğum yılı
+                eskimez ve daha azını söyler. Yorumlarının yanında yaş olarak görünür.
+              </span>
+            </label>
+
+            <label>
+              <span class="ad">Mesleğin</span>
+              <input id="meslek-alan" type="text" maxlength="60" placeholder="Örn. Öğretmen">
+            </label>
+
+            <label>
+              <span class="ad">Kendini anlat</span>
+              <textarea id="kisilik-alan" maxlength="300" rows="3"
+                        placeholder="Örn. Sessiz köşe severim, kalabalık sevmem."></textarea>
+              <span class="ipucu-kucuk">En fazla 300 karakter.</span>
+            </label>
+
+            <label class="onay-satir">
+              <input id="acik-alan" type="checkbox">
+              <span>
+                <b>Profilim herkese açık olsun</b><br>
+                <span class="ipucu-kucuk">
+                  Kapatırsan yorumların mekan sayfalarında görünmeye devam eder ama
+                  <strong>adın olmadan</strong>. Profil sayfan da açılmaz.
+                </span>
+              </span>
+            </label>
+
+            <button class="dugme" id="profil-kaydet" type="button" style="justify-self:start">
+              Profili kaydet
+            </button>
+            <a class="ipucu-kucuk" id="profil-bak" href="#" style="justify-self:start">Profilime bak →</a>
           </div>
 
           <div class="kutu-ayri">
@@ -193,6 +318,41 @@ const tarihTR = d => new Date(d).toLocaleDateString("tr-TR",
   { day: "numeric", month: "long", year: "numeric" });
 
 /* ---------- favoriler ---------- */
+/* ---------- kullanici seviyesi ----------
+   Seviye bir SUS degil bir SAYIM: kac ONAYDAN GECMIS katki yaptin.
+   Kural ortak.js'te (seviyeHesapla / seviyeCumlesi); burasi yalniz
+   sayilari getirip basiyor.
+
+   Katki YOKSA kutu HIC CIKMIYOR. Yeni acilmis bir hesaba "Yeni seviye,
+   0 katki" diye bir rozet gostermek, bos bir ilerleme cubugundan baska
+   bir sey degil -- davet zaten paylas.html'de ve mekan sayfalarinda. */
+async function seviyeyiCiz(){
+  const kutu = document.getElementById("seviye");
+  if (!kutu) return;
+  let o = null;
+  try { o = await Kimlik.katkiOzetim(); } catch (e) { /* tablo yok, ag yok */ }
+  if (!o || (!o.onayli && !o.oy)){ kutu.hidden = true; return; }
+
+  const s = seviyeHesapla(o.onayli);
+  document.getElementById("seviyeAd").textContent = s.ad;
+  document.getElementById("seviyeNot").textContent = seviyeCumlesi(s);
+
+  /* Dokum: hangi katki turunden kac tane. Tek bir "12 katki" sayisi
+     neyin sayildigini soylemiyor ve kullanici dogrulayamiyor. Sifir
+     olan tur hic yazilmiyor. */
+  const parcalar = [
+    [o.fis, "fiyat paylaşımı"], [o.katki, "eksik bilgi"],
+    [o.yorum, "yorum"], [o.menu, "menü katkısı"], [o.foto, "fotoğraf"]
+  ].filter(x => x[0]).map(x => sayi(x[0]) + " " + x[1]);
+  /* Fiyat oyu AYRI yaziliyor: seviyeye girmiyor (tek dokunus, onay
+     kuyrugu yok) ama gorunmez de degil. */
+  const oySatiri = o.oy
+    ? sayi(o.oy) + " fiyat doğrulaman var (seviyeye girmiyor)" : "";
+  document.getElementById("seviyeDokum").textContent =
+    [parcalar.join(" · "), oySatiri].filter(Boolean).join(" — ");
+  kutu.hidden = false;
+}
+
 async function favorileriCiz(){
   const yuva = el("#bolum-favoriler");
   yuva.innerHTML = '<p class="bos"><strong>Yükleniyor…</strong></p>';
@@ -262,24 +422,303 @@ async function paylasimlariCiz(){
     }));
 }
 
+/* ---------- katkilarim ----------
+   Faz 1'de katki gonderilebiliyordu ama gonderen kisi ne oldugunu goremiyordu:
+   "kontrol edilince gorunecek" deyip ortada birakmak, katkiyi bir daha
+   yapmamanin en kisa yolu. Paylasimlarim ile ayni desende, tek farkla:
+   burada tutar yerine GONDERILEN DEGER gosteriliyor -- kisinin merak ettigi
+   sey kendi yazdigi seyin ne oldugu ve kabul edilip edilmedigi. */
+async function yorumlariCiz(){
+  const yuva = el("#bolum-yorumlar");
+  yuva.innerHTML = '<p class="bos"><strong>Yükleniyor…</strong></p>';
+  const liste = await Kimlik.yorumlarim();
+
+  if (!liste.length){
+    yuva.innerHTML =
+      '<p class="bos">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg>' +
+      "<strong>Henüz yorum yazmadın</strong>" +
+      "Gittiğin bir yeri anlat — fiyat \"kaça oturulur\" sorusunu cevaplıyor, " +
+      "yorum \"nasıl bir yer\" sorusunu." +
+      '<a class="dugme" style="margin-top:var(--a4)" href="kesfet.html">Keşfet\'e git</a></p>';
+    return;
+  }
+
+  yuva.innerHTML = liste.map(y => {
+    const d = DURUM_ETIKET[y.durum] || DURUM_ETIKET.bekliyor;
+    const sayfa = y.il && y.mekan_id
+      ? "isletme.html?il=" + encodeURIComponent(y.il) + "&id=" + encodeURIComponent(y.mekan_id)
+      : null;
+    return '<div class="liste-satir">' +
+      '<div class="bilgi"><h3>' +
+        (sayfa ? '<a href="' + kacir(sayfa) + '">' + kacir(y.mekan_ad) + "</a>" : kacir(y.mekan_ad)) +
+      "</h3>" +
+      '<div class="alt">' + yildiz(y.puan) +
+        "<span>" + tarihTR(y.olusturuldu) + "</span>" +
+        '<span class="rozet ' + d.sinif + '">' + d.ad + "</span></div>" +
+      (y.metin ? '<p class="yorum-metin">' + kacir(y.metin) + "</p>" : "") +
+      "</div>" +
+      /* Silme her durumda acik, katkidan FARKLI olarak: onaylanmis bir
+         yorum yayindaki bir kanidir ve kisi fikrini geri alabilmeli.
+         Bir mekana ikinci yorum yazmanin tek yolu da bu (tekil kisit). */
+      '<div class="islem">' +
+      '<button class="sil" type="button" data-ysil="' + y.id + '" aria-label="Yorumu sil">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button>' +
+      "</div></div>";
+  }).join("");
+
+  yuva.querySelectorAll("[data-ysil]").forEach(b =>
+    b.addEventListener("click", async () => {
+      b.disabled = true;
+      try { await Kimlik.yorumSil(Number(b.dataset.ysil)); await yorumlariCiz(); uyar("iyi", "Yorum silindi."); }
+      catch (e){ uyar("hata", e.message); b.disabled = false; }
+    }));
+}
+
+async function menuKatkilariCiz(){
+  const yuva = el("#menu-katki-liste");
+  const liste = await Kimlik.menuKatkilarim();
+  if (!liste.length){ yuva.innerHTML = ""; return; }
+
+  yuva.innerHTML = '<h2 class="alt-baslik">Menü katkılarım</h2>' +
+    liste.map(k => {
+      const d = DURUM_ETIKET[k.durum] || DURUM_ETIKET.bekliyor;
+      const sayfa = k.il && k.mekan_id
+        ? "isletme.html?il=" + encodeURIComponent(k.il) + "&id=" + encodeURIComponent(k.mekan_id)
+        : null;
+      const u = k.foto ? Kimlik.menuFotoAdresi(k.foto) : "";
+      return '<div class="liste-satir">' +
+        '<div class="bilgi"><h3>' +
+          (sayfa ? '<a href="' + kacir(sayfa) + '">' + kacir(k.mekan_ad) + "</a>" : kacir(k.mekan_ad)) +
+        "</h3>" +
+        '<div class="alt">' +
+          (k.urun ? "<span>" + kacir(k.urun) + "</span>" : "<span>menü fotoğrafı</span>") +
+          "<span>" + tarihTR(k.olusturuldu) + "</span>" +
+          '<span class="rozet ' + d.sinif + '">' + d.ad + "</span></div></div>" +
+        '<div class="islem">' +
+          (k.fiyat != null ? '<span class="katki-deger">' + tl(k.fiyat) + "</span>" : "") +
+          (u ? '<a data-resim href="' + kacir(u) + '" target="_blank" rel="noopener" class="mk-kucuk">' +
+               '<img src="' + kacir(u) + '" alt="" loading="lazy"></a>' : "") +
+          '<button class="sil" type="button" data-msil="' + k.id +
+          '" data-foto="' + kacir(k.foto || "") + '" aria-label="Menü katkısını sil">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button>' +
+        "</div></div>";
+    }).join("");
+
+  yuva.querySelectorAll("[data-msil]").forEach(b =>
+    b.addEventListener("click", async () => {
+      b.disabled = true;
+      try {
+        await Kimlik.menuKatkiSil(Number(b.dataset.msil), b.dataset.foto || null);
+        await menuKatkilariCiz();
+        uyar("iyi", "Menü katkısı silindi.");
+      } catch (e){ uyar("hata", e.message); b.disabled = false; }
+    }));
+}
+
+async function katkilariCiz(){
+  /* #bolum-katkilar'in KENDISINE yazmiyoruz: icinde iki ayri liste var
+     (eksik bilgi katkilari ve menu katkilari) ve innerHTML ikincisini
+     silerdi. */
+  const yuva = el("#katki-liste");
+  yuva.innerHTML = '<p class="bos"><strong>Yükleniyor…</strong></p>';
+  const liste = await Kimlik.katkilarim();
+
+  if (!liste.length){
+    yuva.innerHTML =
+      '<p class="bos">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>' +
+      "<strong>Henüz bilgi eklemedin</strong>" +
+      "Mekanların çoğunda saat ve telefon eksik. Bir yerdeysen, kapıda yazanı " +
+      "eklemek yarım dakika sürüyor." +
+      '<a class="dugme" style="margin-top:var(--a4)" href="kesfet.html">Keşfet\'e git</a></p>';
+    /* Katki listesi bos olsa da menu katkilari cizilmeli: ikisi ayri
+       tablo, biri bosken oteki dolu olabilir. Erken donus bu satiri
+       atliyordu. */
+    await menuKatkilariCiz();
+    return;
+  }
+
+  yuva.innerHTML = liste.map(k => {
+    const d = DURUM_ETIKET[k.durum] || DURUM_ETIKET.bekliyor;
+    /* KATKI_ALAN ortak.js'te; isletme sayfasi ve yonetim ayni etiketi
+       kullaniyor, uc yerde ayri isim olmasin. */
+    /* katkiAlaniVar: duz KATKI_ALAN[k.alan] mirasi da doner (alan="constructor"
+       -> Object). Kural ortak.js'te; burada da ayni kapidan gecilsin. */
+    const alanAd = (typeof katkiAlaniVar === "function" && katkiAlaniVar(k.alan))
+      ? KATKI_ALAN[k.alan] : k.alan;
+    const sayfa = k.il && k.mekan_id
+      ? "isletme.html?il=" + encodeURIComponent(k.il) + "&id=" + encodeURIComponent(k.mekan_id)
+      : null;
+    return '<div class="liste-satir">' +
+      '<div class="bilgi"><h3>' +
+        (sayfa ? '<a href="' + kacir(sayfa) + '">' + kacir(k.mekan_ad) + "</a>" : kacir(k.mekan_ad)) +
+      "</h3>" +
+      '<div class="alt"><span>' + kacir(alanAd) + "</span>" +
+        "<span>" + tarihTR(k.olusturuldu) + "</span>" +
+        '<span class="rozet ' + d.sinif + '">' + d.ad + "</span></div></div>" +
+      '<div class="islem"><span class="katki-deger">' + kacir(k.deger) + "</span>" +
+      (k.durum === "bekliyor"
+        ? '<button class="sil" type="button" data-ksil="' + k.id + '" aria-label="Katkıyı sil">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button>'
+        : "") +
+      "</div></div>";
+  }).join("");
+
+  yuva.querySelectorAll("[data-ksil]").forEach(b =>
+    b.addEventListener("click", async () => {
+      b.disabled = true;
+      try { await Kimlik.katkiSil(Number(b.dataset.ksil)); await katkilariCiz(); uyar("iyi", "Katkı silindi."); }
+      catch (e){ uyar("hata", e.message); b.disabled = false; }
+    }));
+
+  await menuKatkilariCiz();
+}
+
+/* ---------- işletmelerim (Faz 4) ----------
+   Sahiplik bir YETKI: kullanici neyi sahiplendigini ve o yetkinin ne
+   verdigini gorebilmeli. Gormedigi bir yetki, farkinda olmadan tasidigi
+   bir sorumluluktur. */
+async function isletmeleriCiz(){
+  /* BU EKRAN ARTIK LISTE CIZMIYOR. Sahiplik yonetimi isletmem.html'de:
+     orada sayfanin kac kisi tarafindan gorunduğu, neyin eksik oldugu ve
+     bilgileri duzeltme formu birlikte duruyor. Ayni listeyi iki yerde
+     cizmek, "aynı kural tek yerde dursun" kuralının ihlaliydi -- birinde
+     durum etiketini degistirip otekini unutmak bu depoda daha once oldu.
+
+     Sekme YINE DE duruyor: sahiplendigi mekan olan kullanici burada
+     "nereye gidecegim" sorusunun cevabini bulsun. Bos bir sekme yerine
+     bir sayi ve bir kapi. */
+  const yuva = el("#bolum-isletmeler");
+  yuva.innerHTML = '<p class="bos"><strong>Yükleniyor…</strong></p>';
+  let liste = [];
+  try { liste = await Kimlik.sahipliklerim(); } catch (e) {}
+  const aktif = liste.filter(o => o.durum === "aktif").length;
+
+  yuva.innerHTML =
+    '<p class="bos">' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg>' +
+    (aktif
+      ? "<strong>" + sayi(aktif) + " doğrulanmış işletmen var</strong>" +
+        "Sayfanı kaç kişi gördü, neyin eksik ve bilgileri nasıl " +
+        "güncellersin — hepsi işletme panelinde."
+      : "<strong>Sahiplendiğin işletme yok</strong>" +
+        "İşletmenin kapısına bıraktığımız kartta bir kod var. O kodu " +
+        "işletme panelinde girersen sayfa senin olur: eklediğin saat, " +
+        "telefon, adres ve site bilgisi sıraya girmeden yayına çıkar.") +
+    '<a class="dugme" style="margin-top:var(--a4)" href="isletmem.html">' +
+    (aktif ? "İşletme paneline git" : "İşletme paneli") + "</a></p>";
+}
+
 /* ---------- sekmeler ---------- */
 el("#sekmeler").addEventListener("click", e => {
   const b = e.target.closest("button[data-bolum]");
   if (!b) return;
   document.querySelectorAll("#sekmeler button").forEach(x =>
     x.setAttribute("aria-selected", String(x === b)));
-  ["favoriler","paylasimlar","ayarlar"].forEach(ad => {
+  ["favoriler","paylasimlar","katkilar","yorumlar","isletmeler","ayarlar"].forEach(ad => {
     el("#bolum-" + ad).hidden = ad !== b.dataset.bolum;
   });
   if (b.dataset.bolum === "favoriler")   favorileriCiz();
   if (b.dataset.bolum === "paylasimlar") paylasimlariCiz();
+  if (b.dataset.bolum === "katkilar")    katkilariCiz();
+  if (b.dataset.bolum === "yorumlar")    yorumlariCiz();
+  if (b.dataset.bolum === "isletmeler")  isletmeleriCiz();
 });
 
 /* ---------- ayarlar ---------- */
-el("#ad-kaydet").addEventListener("click", async () => {
-  try { await Kimlik.adDegistir(el("#ad-alan").value); kimligiYaz(); uyar("iyi", "Adın güncellendi."); }
+
+/* Profil alanlarını mevcut değerlerle doldur. Boş bir formu kaydetmek
+   yazdıklarını silerdi, o yüzden çizim önce. */
+function profiliYaz(){
+  const p = Kimlik.profil || {};
+  el("#ad-alan").value      = p.ad || "";
+  el("#kadi-alan").value    = p.kullanici_adi || "";
+  el("#dogum-alan").value   = p.dogum_yili || "";
+  el("#meslek-alan").value  = p.meslek || "";
+  el("#kisilik-alan").value = p.kisilik || "";
+  /* herkese_acik sütunu yoksa (profil.sql çalıştırılmamışsa) varsayılan
+     açık: kullanıcının profilini sessizce kapatmış görünmeyelim. */
+  el("#acik-alan").checked  = p.herkese_acik !== false;
+  avatarOnizle(p.avatar, p.ad);
+  const adres = "profil.html?k=" + encodeURIComponent(p.kullanici_adi || "");
+  el("#kadi-adres").textContent = p.kullanici_adi ? adres : "profil.html?k=…";
+  el("#profil-bak").href = adres;
+  el("#profil-bak").hidden = !p.kullanici_adi;
+}
+
+function avatarOnizle(yol, ad){
+  const kutu = el("#avatar-onizleme");
+  const adres = yol ? Kimlik.avatarAdresi(yol) : "";
+  kutu.textContent = "";
+  if (adres){
+    const g = document.createElement("img");
+    g.src = adres; g.alt = "";
+    kutu.appendChild(g);
+  } else {
+    kutu.textContent = basHarf(ad || (Kimlik.profil && Kimlik.profil.ad) || "");
+  }
+  el("#avatar-sil").hidden = !yol;
+}
+
+el("#avatar-alan").addEventListener("change", async e => {
+  const d = e.target.files && e.target.files[0];
+  if (!d) return;
+  /* Ölçüler istemcide de denetleniyor: 5 MB'lık bir dosyayı yükleyip
+     sunucuda reddedilmesini beklemek, bağlantıyı boşuna yorar. Asıl
+     karar yine sunucuda (kova sınırı + izin verilen türler). */
+  uyar("bilgi", "Yükleniyor…");
+  try {
+    await Kimlik.avatarYukle(d);
+    profiliYaz();
+    kimligiYaz();
+    uyar("iyi", "Fotoğrafın güncellendi.");
+  } catch (hata){
+    uyar("hata", hata.message);
+  } finally {
+    e.target.value = "";      /* aynı dosya tekrar seçilebilsin */
+  }
+});
+
+el("#avatar-sil").addEventListener("click", async () => {
+  try { await Kimlik.avatarSil(); profiliYaz(); kimligiYaz(); uyar("iyi", "Fotoğraf kaldırıldı."); }
   catch (e){ uyar("hata", e.message); }
 });
+
+el("#profil-kaydet").addEventListener("click", async () => {
+  const dugme = el("#profil-kaydet");
+  const kadi = el("#kadi-alan").value.trim().toLowerCase();
+  /* İstemci ön elemesi: sunucuya boşuna gitmesin ve hata mesajı alanın
+     yanında çıksın. Asıl kural veritabanında (profiller_*_check). */
+  if (kadi && !/^[a-z0-9_]{3,20}$/.test(kadi))
+    return uyar("hata", "Kullanıcı adı 3-20 karakter olmalı; yalnız küçük harf, rakam ve alt çizgi.");
+  const dogum = el("#dogum-alan").value.trim();
+  if (dogum){
+    const y = parseInt(dogum, 10);
+    const su = new Date().getFullYear();
+    if (!Number.isFinite(y) || y < 1900 || y > su - 13)
+      return uyar("hata", "Doğum yılını kontrol et. En az 13 yaşında olmalısın.");
+  }
+  dugme.disabled = true;
+  try {
+    await Kimlik.profilGuncelle({
+      ad:           el("#ad-alan").value,
+      kullaniciAdi: kadi,
+      dogumYili:    dogum,
+      meslek:       el("#meslek-alan").value,
+      kisilik:      el("#kisilik-alan").value,
+      herkeseAcik:  el("#acik-alan").checked
+    });
+    profiliYaz();
+    kimligiYaz();
+    uyar("iyi", "Profilin güncellendi.");
+  } catch (e){
+    uyar("hata", e.message);
+  } finally {
+    dugme.disabled = false;
+  }
+});
+
 
 el("#parola-kaydet").addEventListener("click", async () => {
   const p = el("#yeni-parola").value;
@@ -298,7 +737,7 @@ el("#silme-talebi").addEventListener("click", e => {
   e.preventDefault();
   const k = Kimlik.kullanici;
   location.href = "mailto:" + EPOSTA +
-    "?subject=" + encodeURIComponent("Oturalım hesap silme talebi") +
+    "?subject=" + encodeURIComponent("Cebimde hesap silme talebi") +
     "&body=" + encodeURIComponent(
       "Hesabımın ve favorilerimin silinmesini talep ediyorum.\n\n" +
       "Hesap e-postası: " + (k ? k.email : "") + "\n");
@@ -321,9 +760,13 @@ Kimlik.hazir.then(async acik => {
     return;
   }
   kimligiYaz();
+  profiliYaz();
   el("#yukleniyor").hidden = true;
   el("#icerik").hidden = false;
   await favorileriCiz();
+  /* Seviye favorilerden SONRA: ikisi de agdan geliyor ve favoriler
+     sayfanin ilk gorunen icerigi. */
+  await seviyeyiCiz();
 });
 </script>
 </body>

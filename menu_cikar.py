@@ -104,7 +104,7 @@ def menu_cikar(ham: str, max_ad_uzunluk: int = 60):
 def getir(url: str) -> str:
     r = subprocess.run(
         ["curl", "-sL", "--max-time", "30", "-A",
-         "Mozilla/5.0 (compatible; OturalimBot/0.1)", url],
+         "Mozilla/5.0 (compatible; CebimdeBot/0.1)", url],
         capture_output=True, text=True, encoding="utf-8", errors="replace")
     return r.stdout or ""
 
@@ -122,7 +122,10 @@ def main(urller):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
+    # "test" argumani da kontrolu kosuyor: test.py butun betikleri ayni
+    # bicimde ("python <betik>.py test") cagiriyor. Bu dosyanin kontrolu
+    # vardi ama farkli bicimdeydi, o yuzden CI'da hic kosmuyordu.
+    if len(sys.argv) < 2 or sys.argv[1] == "test":
         ornek = """<ul><li><a>Klasik Kahvalti</a><span>499.50 &#8378;</span></li>
                    <li><a>Menemen</a><span>369,50 TL</span></li>
                    <li><a>Sepete ekle</a><span>0 TL</span></li></ul>"""
@@ -136,6 +139,25 @@ if __name__ == "__main__":
                               ("5.000.000", 5000000.0), ("5.000", 5000.0),
                               ("1.234", 1234.0), ("85", 85.0)]:
             assert fiyata_cevir(ham) == beklenen, (ham, fiyata_cevir(ham), beklenen)
-        print("kendi kendini kontrol: TAMAM")
+        # Cok ayracli deger: SAYI deseni "1.234.56" gibi bir dizge
+        # URETEBILIYOR (uc haneli grup + iki haneli kuyruk) ve iki nokta
+        # birden binlik sayilip 123456 cikiyor -- dogru okuma 1234,56
+        # olurdu. Gercek veride ARANDI, uc kaynakta 0 kayit; ustelik
+        # app_veri UST_SINIR'i (2000 TL) boyle bir degeri zaten eler.
+        # Davranis kanit olmadan degistirilmiyor, ama SABITLENIYOR:
+        # ileride degisirse bilerek degissin.
+        assert fiyata_cevir("1.234.56") == 123456.0
+        assert fiyata_cevir("12.345.678") == 12345678.0
+
+        # Fiyat gibi gorunen ama menu kalemi olmayan satirlar elenmeli.
+        cop = menu_cikar("<li><span>Kargo Ucreti</span><span>49,90 TL</span></li>")
+        assert cop == [], cop
+        # Satir ici yerlesim: ad ve fiyat AYNI satirda.
+        tek = menu_cikar("<div>Adana Kebap 700,00 TL</div>")
+        assert tek == [("Adana Kebap", 700.0)], tek
+        # span/a icinde bolmemeli: "499.50<span>TL</span>" ikiye ayrilmasin.
+        bol = menu_cikar("<li><a>Latte</a><span>230.00<span>TL</span></span></li>")
+        assert bol == [("Latte", 230.0)], bol
+        print("kontrol gecti: fiyat bicimi, cop eleme, satir bolme")
     else:
         main(sys.argv[1:])

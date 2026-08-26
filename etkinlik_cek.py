@@ -71,7 +71,7 @@ def tarih_coz(s):
 
 def cek(sehir_id, tur_id):
     url = "%s?turIds=%s&sehirIds=%d" % (RSS, tur_id, sehir_id)
-    r = subprocess.run(["curl", "-s", "--max-time", "40", "-A", "Oturalim/0.1", url],
+    r = subprocess.run(["curl", "-s", "--max-time", "40", "-A", "Cebimde/0.1", url],
                        capture_output=True)
     if r.returncode != 0 or not r.stdout:
         return None
@@ -79,6 +79,21 @@ def cek(sehir_id, tur_id):
         return ET.fromstring(r.stdout)
     except ET.ParseError:
         return None
+
+
+def guvenli_bag(u):
+    """href'e konulabilir adres, degilse "".
+
+    Baglantilar UCUNCU TARAF RSS akislarindan geliyor ve olduklari gibi
+    app/veri/etkinlik.json'a yaziliyordu. Ana sayfa da onlari href yapiyor:
+    akisin verdigi "javascript:..." tiklanabilir bir baglanti olurdu.
+    Kural sayfa tarafinda da var (ortak.js guvenliBag) -- burasi verinin
+    icine hic girmemesi icin. Ayni ifade iki dilde; test.py ikisinin
+    ayrismadigini denetliyor."""
+    ham = (u or "").strip()
+    if not ham:
+        return ""
+    return ham if re.match(r"^https?://", ham, re.I) else ""
 
 
 def kayitlar(kok):
@@ -95,7 +110,7 @@ def kayitlar(kok):
             "ad": al("title"),
             "bas": bas,
             "tur": turler[0] if turler else "",
-            "link": al("link"),
+            "link": guvenli_bag(al("link")),
             "gorsel": (enc.get("url") or "") if enc is not None else "",
         })
     cikti.sort(key=lambda x: x["bas"])
@@ -118,11 +133,15 @@ def main(plakalar):
                 continue
             birlesik.extend(kayitlar(kok))
         # Ayni etkinlik birden fazla turde gorunebiliyor; link ile tekille.
+        # BOS link tekillestirmede kullanilmaz: guvenli_bag() kullanilamaz
+        # adresi "" yapiyor ve boyle olan butun etkinlikler tek bir kayda
+        # inerdi -- yani bir bicim denetimi sessizce VERI SILERDI.
         gorulen, k = set(), []
         for e in sorted(birlesik, key=lambda x: x["bas"]):
-            if e["link"] in gorulen:
+            anahtar = e["link"] or ("ad:" + e["ad"] + "|" + e["bas"])
+            if anahtar in gorulen:
                 continue
-            gorulen.add(e["link"])
+            gorulen.add(anahtar)
             k.append(e)
         if k:
             veri[p] = k
@@ -162,5 +181,81 @@ def main(plakalar):
           % (toplam, len(veri), yol, os.path.getsize(yol) / 1024))
 
 
+def kendini_kontrol_et():
+    """python etkinlik_cek.py test — aga cikmadan ayristirma mantigini dogrular.
+
+    Buradaki hatalarin hepsi SESSIZ: tarih cozulemezse kayit "gecmis"
+    sayilip atiliyor, plaka eslesmezse il atlaniyor. Ikisinde de dosya
+    yaziliyor, sadece icinde daha az sey oluyor.
+    """
+    # pubDate: saniyeli ve saniyesiz bicim, ikisi de RSS'te goruldu.
+    assert tarih_coz("Sat, 22 Aug 2026 19:00:00 +0300") == "2026-08-22T19:00:00+03:00"
+    assert tarih_coz("Sat, 22 Aug 2026 19:00 +0300")    == "2026-08-22T19:00:00+03:00"
+    assert tarih_coz("22 Aug 2026 19:00:00")            == "2026-08-22T19:00:00+03:00"
+    # Saniye gercekten okunmali: sabit 0 yazmak sessizce gecerdi.
+    assert tarih_coz("Sat, 22 Aug 2026 19:00:45 +0300") == "2026-08-22T19:00:45+03:00"
+    # Bozuk girdi None donmeli, catmamalı.
+    for kotu in ("", None, "yarin aksam", "Sat, 22 Zzz 2026 19:00:00 +0300"):
+        assert tarih_coz(kotu) is None, kotu
+
+    # Plaka -> sehir kimligi: 81 il, tekrar eden kimlik olmamali. Tekrar,
+    # iki ilin ayni akisi cekmesi demek.
+    assert len(SEHIR) == 81, len(SEHIR)
+    assert len(set(SEHIR.values())) == 81, "iki plaka ayni sehir kimligine bakiyor"
+    assert sorted(SEHIR) == ["%02d" % i for i in range(1, 82)], "plaka listesi eksik"
+
+    # kayitlar(): gecmis etkinlik yazilmaz, gelecek olan yazilir, sirali gelir.
+    gecmis = (datetime.now(TR) - timedelta(days=2)).strftime("%a, %d %b %Y %H:%M:%S +0300")
+    yakin  = (datetime.now(TR) + timedelta(days=2)).strftime("%a, %d %b %Y %H:%M:%S +0300")
+    uzak   = (datetime.now(TR) + timedelta(days=9)).strftime("%a, %d %b %Y %H:%M:%S +0300")
+    xml = ("<rss><channel>"
+           "<item><title>Gecmis</title><pubDate>%s</pubDate><link>a</link>"
+           "<category>Konser</category></item>"
+           "<item><title>Uzak</title><pubDate>%s</pubDate><link>b</link>"
+           "<category>Konser</category>"
+           "<enclosure url='http://x/y.jpg'/></item>"
+           "<item><title>Yakin</title><pubDate>%s</pubDate><link>c</link></item>"
+           "<item><title>Tarihsiz</title><pubDate>zzz</pubDate><link>d</link></item>"
+           "</channel></rss>") % (gecmis, uzak, yakin)
+    k = kayitlar(ET.fromstring(xml))
+    assert [e["ad"] for e in k] == ["Yakin", "Uzak"], k
+    assert k[1]["gorsel"] == "http://x/y.jpg", k[1]
+    assert k[0]["gorsel"] == "" and k[0]["tur"] == "", k[0]
+    # Test XML'indeki link'ler semasiz ("a","b"): kullanilamaz, "" olmali.
+    assert [e["link"] for e in k] == ["", ""], k
+
+    # Sema denetimi. Baglantilar ucuncu taraf akislarindan geliyor ve
+    # ana sayfa onlari href yapiyor; kacir() semaya bakmaz.
+    assert guvenli_bag("https://a.test/x") == "https://a.test/x"
+    assert guvenli_bag("HTTP://a.test")    == "HTTP://a.test"
+    assert guvenli_bag("  https://a.test  ") == "https://a.test"
+    for kotu in ("javascript:alert(1)", "JaVaScRiPt:alert(1)", "data:text/html,x",
+                 "vbscript:x", "//a.test/x", "a.test/x", "", None):
+        assert guvenli_bag(kotu) == "", kotu
+
+    # Tekillestirme: BOS link'ler tek kayda inmemeli. guvenli_bag() bozuk
+    # adresi "" yaptigi icin, link'e gore tekillestirmek bir bicim
+    # denetimini sessiz bir VERI SILME'ye cevirebilirdi.
+    xml2 = ("<rss><channel>"
+            "<item><title>Bir</title><pubDate>%s</pubDate><link>javascript:x</link></item>"
+            "<item><title>Iki</title><pubDate>%s</pubDate><link>vbscript:y</link></item>"
+            "</channel></rss>") % (yakin, uzak)
+    tek = kayitlar(ET.fromstring(xml2))
+    gorulen, kalan = set(), []
+    for e in sorted(tek, key=lambda x: x["bas"]):
+        a = e["link"] or ("ad:" + e["ad"] + "|" + e["bas"])
+        if a in gorulen:
+            continue
+        gorulen.add(a)
+        kalan.append(e)
+    assert [e["ad"] for e in kalan] == ["Bir", "Iki"], kalan
+
+    print("kontrol gecti: tarih cozme, 81 plaka eslesmesi, gecmis eleme, "
+          "baglanti semasi")
+    return True
+
+
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "test":
+        sys.exit(0 if kendini_kontrol_et() else 1)
     main(sys.argv[1:] or sorted(SEHIR))

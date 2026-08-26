@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bağlantı yok — Cebimde</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="marka.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="ikon/ikon-192.png">
+<link rel="stylesheet" href="stil.css">
+<style>
+  /* Bu sayfa TEK BASINA durmali. sahne.css, sahne.js ve ortak.js BILEREK
+     yok: cevrimdisi sayfasi, service worker'in onbellekten verebildigi
+     son savunma. Ne kadar az parcaya bagliysa o kadar guvenilir -- bir
+     parcasi onbellekte eksikse bu sayfa da acilmazdi ve kullanici
+     tarayicinin hata ekranini gorurdu. Google Play'in "cevrimdisiyken
+     bozuk gorunme" kurali tam olarak bunu istiyor. */
+  .kutu{max-width:34rem;margin:0 auto;padding:var(--a6) var(--a5);
+        min-height:100dvh;display:flex;flex-direction:column;
+        justify-content:center;gap:var(--a4);text-align:center}
+  .kutu svg{width:56px;height:56px;margin:0 auto;color:var(--vurgu)}
+  .kutu h1{font-size:1.6rem;margin:0}
+  .kutu p{margin:0;color:var(--soluk);line-height:1.6}
+  .dugmeler{display:flex;gap:var(--a3);justify-content:center;flex-wrap:wrap;
+            margin-top:var(--a3)}
+</style>
+</head>
+<body>
+<main class="kutu">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+       stroke-linecap="round" aria-hidden="true">
+    <path d="M2 8.8a16 16 0 0 1 20 0M5 12.5a11 11 0 0 1 14 0M8.5 16.2a6 6 0 0 1 7 0"/>
+    <path d="M12 20h.01"/><path d="m3 3 18 18"/>
+  </svg>
+  <h1>Bağlantı yok</h1>
+  <p>
+    Bu sayfa telefonunda saklanmıyor. İnternete bağlanınca yeniden dene —
+    daha önce açtığın şehirler bağlantı olmadan da açılıyor.
+  </p>
+  <div class="dugmeler">
+    <button class="dugme" type="button" id="tekrar">Tekrar dene</button>
+    <a class="dugme ikincil" href="index.html">Ana sayfa</a>
+  </div>
+</main>
+<script>
+/* Tek satir is: yeniden dene. Baglanti geri gelince KENDILIGINDEN
+   donuyor -- kullanicinin dugmeyi bulup basmasini beklemek, cevrimdisi
+   ekraninda gereksiz bir adim. */
+document.getElementById("tekrar").addEventListener("click", function(){
+  location.reload();
+});
+addEventListener("online", function(){ location.reload(); });
+</script>
+</body>
+</html>

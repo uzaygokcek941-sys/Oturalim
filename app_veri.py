@@ -13,12 +13,15 @@ oderim" sorusunun cevabi degil. Bu yuzden asiri uc fiyatlar atilir ve
 uygulamada ORTALAMA HESAP degil, MENU KALEMI ARALIGI gosterilir.
 """
 import csv
+import html
 import json
 import os
 import re
 from collections import defaultdict
 
-from fiyat_analiz import kategorile
+from fiyat_analiz import TABAN, TAVAN, kategorile, sadelestir, yiyecek_mi
+
+import veri_bicim   # il dosyasi bicimi tek yerde
 
 IL_KODU = {
     "Adana": "01", "Adiyaman": "02", "Afyonkarahisar": "03", "Agri": "04",
@@ -74,8 +77,24 @@ TUR_TR = {"cafe": "Kafe", "restaurant": "Restoran", "bar": "Bar",
           "aquarium": "Akvaryum", "gallery": "Sanat galerisi"}
 
 # Menu kalemi sayilabilecek makul araliklar (TL). Disari cikan degerler
-# perakende urun / hediye paketi / veri hatasidir.
-ALT_SINIR, UST_SINIR = 25, 2000
+# perakende urun / hediye paketi / veri hatasidir. Deger fiyat_analiz'den
+# geliyor: olcut da bu boru hatti da AYNI kalemleri gormeli, yoksa olcut
+# uygulamanin gostermedigi fiyatlardan hesaplanmis olur.
+ALT_SINIR, UST_SINIR = TABAN, TAVAN
+
+# --- Fiyatin yasi -------------------------------------------------------
+# Enflasyonda tarihsiz fiyat bir iddia degil, bir tahmindir. Toplayici
+# betikler (menu_topla, menu_pdf_tara, menu_ocr) artik her satira derleme
+# gununu yaziyor. Bu sabit YALNIZ o kolondan onceki satirlar icin:
+# tr_menu.csv'nin depoya girdigi gun. Kesin derleme gunu degil, UST SINIR --
+# veri o gunden once toplandi, sonra degil. Uydurmak yerine bildigimiz
+# siniri yaziyoruz.
+TARIHSIZ_TABAN = "2026-08-20"
+
+
+def _tarih(satir):
+    t = (satir.get("tarih") or "").strip()[:10]
+    return t if len(t) == 10 and t[4] == "-" else TARIHSIZ_TABAN
 
 # --- Tema demosu tespiti -------------------------------------------------
 # Cok sayida isletme hazir bir restoran temasi kurup ORNEK MENUYU HIC
@@ -124,6 +143,40 @@ def demo_menu_mu(kalemler, tur):
     return None
 
 
+def menu_degil_mi(kalemler):
+    """Bu liste bir menu DEGIL mi? Sebebini dondurur, menuyse None.
+
+    demo_menu_mu yapisal ize bakiyor (ayni fiyat, tekrar eden ad); bu ise
+    ICERIGE bakiyor: listede tek bir yiyecek ya da icecek adi geciyor mu?
+
+    NEDEN GEREKTI: kaziyici bazi sitelerde menu sayfasini degil baska bir
+    sayfayi bulmus, ya da menu diye baska bir sey satan bir listeyi. Olculdu,
+    367 menulu mekanin 41 tekilinde listenin TAMAMI menu disiydi:
+      Roxy Bar          -> kalem pil (marka adi ayni, site baska)
+      Turk Alman Kitabevi, Minoa -> kitap adlari
+      Ada Tesisleri     -> kupe, kolye
+      Feriye            -> sinema seansi adlari
+      Beltur (7 sube)   -> "Hafta Ici 600 TL" — mekan kirasi
+      Agora, Sakli Bahce -> cadirla konaklama fiyati
+      Oz Izmir Lokma    -> "300 Kisilik lokma" — toplu siparis
+    Bunlarin hicbiri "masada ne oderim"in cevabi degil ve hicbiri fiyat
+    iddiasi uretmiyordu; ama detay sayfasinda MENU basligi altinda
+    duruyorlardi. Baslik yalan soyluyordu.
+
+    yiyecek_mi() kullaniliyor, kategorile() degil: perakende ve paket
+    kapilari burada kapali. "1 KG Kol Boregi" bir porsiyon degildir ama
+    borekcinin gercek fiyatidir; "Kucuk Boy Pizza + Patates" tek urun
+    fiyati degildir ama pizzacinin gercek fiyatidir. Ikisi de kalir --
+    fiyat iddiasi zaten ayri kapidan (kat + ana urun kurali) geciyor.
+    """
+    if not kalemler:
+        return None
+    if any(yiyecek_mi(k["a"]) for k in kalemler):
+        return None
+    return "%d kalemin hicbiri yiyecek/icecek degil (\u00f6r. %s)" % (
+        len(kalemler), kalemler[0]["a"][:40])
+
+
 # Menu kalemi olmayan satir adlari
 COP_AD = re.compile(r"(kargo|teslimat|hediye|paket|abonelik|kupon|bagis|bağış|"
                     r"sepet|toplam|indirim)", re.I)
@@ -134,6 +187,144 @@ COP_AD = re.compile(r"(kargo|teslimat|hediye|paket|abonelik|kupon|bagis|bağış
 # kalibre, "4 Adet Pizzetta" gibi gercek menu kalemlerini de eler.
 ESYA = re.compile(r"(alışveriş çantası|termos|makinesi|fincan takım|bardak takım|"
                   r"hediye kart|öğütücü|demlik|tişört|kupa takım|filtre kağıd)", re.I)
+
+# Kalem adi degil, SAYFANIN KENDI YAZISI. Kaziyici fiyatin yanindaki etiketi
+# urun adi sanip almis: "Normal fiyat 540 TL", "Regular price 1.800 TL",
+# "55k kisi favoriledi! 70 TL". Kullaniciya menu diye gosterilen sey, o
+# sayfadaki arayuz metniydi.
+#
+# Tam ad eslesmesi (^...$) BILEREK: "Fiyat" atilir ama "Fiyatlı Kahvaltı"
+# kalir. Bu satirlar zaten oldugu gibi tekrar ediyor, parca eslesmesine
+# gerek yok ve parca eslesmesi gercek kalem adlarini yerdi.
+ARAYUZ_AD = re.compile(
+    r"^(fiyat[ıi]?|fiyat\s*:\s*\d*|ürün|ürün detayı|normal fiyat|satış fiyatı|"
+    r"güncel fiyat|indirimli fiyat|liste fiyatı|regular price|sale price|price|"
+    r"tüm fırsatlar|tüm ürünler|en çok satan(lar)?|tüm ürünlerde\s*\d*|"
+    r"(tüm özellikler\s*)?yıllık sadece|"
+    r"[\d.,]+\s*[km]?\s*kişi favoriledi!?)$", re.I)
+
+
+# Isletmenin KENDI sitesi degil, uzerinde durdugu PLATFORM. OSM'de 202 mekan
+# website etiketine bir sosyal medya ya da pazaryeri profili yazmis. O adresi
+# menu diye kazimak, baskasinin icerigini bu isletmeye yazmak demek:
+#
+#   shopier.com   -> Giresun'daki "Decorative Art World" ile Istanbul'daki
+#                    "Baba Sogus", ikisi de pazaryerinin katalogunu aldi
+#   trendyol.com  -> "NUT HUNTER"in menusu Trendyol'un arayuzuydu
+#                    ("55k kisi favoriledi!" bir urun adi degil)
+#
+# Alan adina bakiliyor, yola degil: "instagram.com/xkafe" bir profil,
+# "qrmenu.actdurum.com" ise A.C.T Durum'un KENDI QR menusu -- ikincisi
+# listede yok ve kalmasi dogru.
+PLATFORM = re.compile(
+    r"^(m\.|mobile\.)?(facebook|instagram|twitter|tiktok|youtube|linktr\.ee|"
+    r"linktree|shopier|google|goo\.gl|wixsite|blogspot|wordpress|yemeksepeti|"
+    r"getir|trendyol|foursquare|zomato|tripadvisor|yelp)\.", re.I)
+
+
+# OSM'de instagram dort ayri bicimde yaziliyor (olculdu, 306 kayit):
+#   ortakoyadana                                  164  duz kullanici adi
+#   https://www.instagram.com/guneyyildiziyumurtalik/  140  tam URL
+#   instagram.com/mandalinsound                     1  yolla
+#   @mangocoffee.tr                                 1  @ ile
+# Hepsi tek bicime indiriliyor: yalniz KULLANICI ADI saklaniyor, adres
+# gosterim aninda kuruluyor. Ham degeri tasimak, dort ayri bicimi dort
+# ayri yerde ayristirmak demekti.
+INSTAGRAM_AD = re.compile(r"^[A-Za-z0-9._]{1,30}$")
+
+
+def instagram_adi(ham):
+    """OSM contact:instagram degerinden kullanici adi. Cozulemezse None."""
+    v = (ham or "").strip()
+    if not v:
+        return None
+    v = re.sub(r"^https?://", "", v, flags=re.I)
+    v = re.sub(r"^www\.", "", v, flags=re.I)
+    v = re.sub(r"^(?:m\.)?instagram\.com/", "", v, flags=re.I)
+    v = v.split("?")[0].split("#")[0].strip("@ ")
+    # Yol parcasi kalmissa kullanici adi ilk parca ("x/reels" -> "x").
+    # Ama BASKA bir alan adiysa deger tamamen reddediliyor:
+    # "facebook.com/x" bir instagram kullanicisi degil, ve kirpilinca
+    # "facebook.com" diye gecerli gorunuyordu. Noktali kullanici adlari
+    # ("mangocoffee.tr") gecerli -- onlarda egik cizgi yok.
+    if "/" in v.strip("/"):
+        return None
+    v = v.strip("/")
+    return v if INSTAGRAM_AD.match(v) else None
+
+
+# Sosyal platformun alan adlari. Kullanici adi cozulurken KENDI alan
+# adi kirpiliyor; baska bir platformun adresi geldiyse deger tamamen
+# REDDEDILIYOR. Bunu yapmazsak "facebook.com/x" bir instagram kullanicisi
+# sanilip kirpiliyor ve "facebook.com" diye gecerli gorunuyordu (instagram
+# icin olculmus gercek bir hata).
+SOSYAL_ALAN = {
+    "insta":    (r"(?:m\.)?instagram\.com/",),
+    "facebook": (r"(?:m\.|web\.)?facebook\.com/", r"fb\.com/"),
+    "x":        (r"(?:mobile\.)?twitter\.com/", r"x\.com/"),
+    "tiktok":   (r"(?:m\.|www\.)?tiktok\.com/",),
+    "youtube":  (r"(?:m\.|music\.)?youtube\.com/", r"youtu\.be/"),
+}
+
+# Kullanici adi bicimleri platforma gore ayri: TikTok ve YouTube nokta ve
+# tire kabul ediyor, X yalniz alt cizgi ve en fazla 15 hane.
+SOSYAL_BICIM = {
+    "insta":    re.compile(r"^[A-Za-z0-9._]{1,30}$"),
+    "facebook": re.compile(r"^[A-Za-z0-9.\-]{3,60}$"),
+    "x":        re.compile(r"^[A-Za-z0-9_]{1,15}$"),
+    "tiktok":   re.compile(r"^[A-Za-z0-9._]{1,24}$"),
+    "youtube":  re.compile(r"^@?[A-Za-z0-9._\-]{1,40}$"),
+}
+
+
+def sosyal_adi(alan, ham):
+    """OSM sosyal etiketinden kullanici adi. Cozulemezse None.
+
+    YouTube'da kanal adresi "/channel/UC..." ya da "/c/ad" olabiliyor;
+    o bicimlerde kullanici adi cikarilamaz ve deger REDDEDILIYOR --
+    yanlis bir adres uretmektense hic gostermemek dogru.
+    """
+    v = (ham or "").strip()
+    if not v:
+        return None
+    v = re.sub(r"^https?://", "", v, flags=re.I)
+    v = re.sub(r"^www\.", "", v, flags=re.I)
+    for kalip in SOSYAL_ALAN.get(alan, ()):
+        v = re.sub("^" + kalip, "", v, flags=re.I)
+    v = v.split("?")[0].split("#")[0].strip("@ ")
+    if "/" in v.strip("/"):
+        return None            # yol parcasi kaldi: baska bir sey bu
+    v = v.strip("/")
+    bicim = SOSYAL_BICIM.get(alan)
+    return v if bicim and bicim.match(v) else None
+
+
+def platform_mu(url):
+    """Bu adres isletmenin kendi sitesi degil, bir platform profili mi?"""
+    u = re.sub(r"^https?://", "", (url or "").strip().lower())
+    u = re.sub(r"^www\.", "", u).split("/")[0]
+    return bool(u) and bool(PLATFORM.match(u + "."))
+
+
+def kalem_adi(ham):
+    """CSV'den gelen kalem adini gosterime hazir hale getirir.
+
+    HTML varligi cozuluyor: kaynak sitelerin bir kismi (WooCommerce)
+    adlari "6&#8217;li Macaron" diye veriyor ve o dizge kullaniciya
+    OLDUGU GIBI gorunuyordu. Olculdu: 59 kalem adinda cozulmemis varlik.
+    Siniflandirma zaten cozulmus metinle calisiyordu (fiyat_analiz.temizle),
+    yani ad ile kategori ayni kalemde ayri metinlere bakiyordu.
+
+    Kaynak betikte de duzeltildi; burasi bugunku veriyi yeniden
+    kazimadan duzeltiyor ve yeni bir kaynak ayni hatayi yaparsa tutuyor.
+    """
+    return re.sub(r"\s+", " ", html.unescape(ham or "")).strip(" =:-–—·\t")
+
+
+def kalem_atilir(ad):
+    """Bu ad bir menu kalemi adi degil mi? Iki kaynak da ayni kapidan gecsin."""
+    return (len(ad) < 3 or COP_AD.search(ad) or ESYA.search(ad)
+            or ARAYUZ_AD.match(ad))
 
 
 def menuleri_oku(yol="tr_menu.csv"):
@@ -146,13 +337,17 @@ def menuleri_oku(yol="tr_menu.csv"):
         return menu
     with f:
         for r in csv.DictReader(f):
-            ad = r["kalem"].strip(" =:-–—·\t")
+            if platform_mu(r.get("website")):
+                PLATFORM_ELENEN.add((r["il"], r["mekan"]))
+                continue
+            ad = kalem_adi(r["kalem"])
             fiyat = float(r["fiyat"])
             if not (ALT_SINIR <= fiyat <= UST_SINIR):
                 continue
-            if COP_AD.search(ad) or ESYA.search(ad) or len(ad) < 3:
+            if kalem_atilir(ad):
                 continue
-            menu[(r["il"], r["mekan"])].append({"a": ad, "f": fiyat})
+            menu[(r["il"], r["mekan"])].append(
+                {"a": ad, "f": fiyat, "t": _tarih(r)})
     return menu
 
 
@@ -184,7 +379,7 @@ def ek_menuler_oku(mekanlar, yollar=("menu_pdf_kalem.csv", "menu_ocr_kalem.csv")
     site_mekan, alan_mekan = {}, defaultdict(set)
     for m in mekanlar:
         u = (m.get("website") or "").strip()
-        if u:
+        if u and not platform_mu(u):
             site_mekan.setdefault(_site_anahtari(u), (m["il"], m["ad"]))
             alan_mekan[_alan_adi(u)].add((m["il"], m["ad"]))
     tekil_alan = {a: next(iter(v)) for a, v in alan_mekan.items() if len(v) == 1}
@@ -197,21 +392,23 @@ def ek_menuler_oku(mekanlar, yollar=("menu_pdf_kalem.csv", "menu_ocr_kalem.csv")
         with open(yol, encoding="utf-8") as f:
             for r in csv.DictReader(f):
                 u = r.get("website", "")
+                if platform_mu(u):
+                    continue
                 hedef = (site_mekan.get(_site_anahtari(u))
                          or tekil_alan.get(_alan_adi(u)))
                 if not hedef:
                     eslesmeyen.add(r.get("mekan", "?"))
                     continue
-                ad = r["kalem"].strip(" =:-–—·\t")
+                ad = kalem_adi(r["kalem"])
                 try:
                     fiyat = float(r["fiyat"])
                 except (ValueError, TypeError):
                     continue
                 if not (ALT_SINIR <= fiyat <= UST_SINIR):
                     continue
-                if COP_AD.search(ad) or ESYA.search(ad) or len(ad) < 3:
+                if kalem_atilir(ad):
                     continue
-                ek[hedef].append({"a": ad, "f": fiyat})
+                ek[hedef].append({"a": ad, "f": fiyat, "t": _tarih(r)})
     if eslesmeyen:
         print("ek menu: OSM mekaniyla eslesmeyen %d kayit (%s)"
               % (len(eslesmeyen), ", ".join(sorted(eslesmeyen)[:3])))
@@ -239,11 +436,99 @@ def kategori_dokumu(kalemler):
             "med": fiyatlar[(len(fiyatlar) - 1) // 2],   # alt medyan = gercek kalem
             "min": fiyatlar[0],
             "max": fiyatlar[-1],
+            # Kategorinin fiyat TOPLAMI. Mekanin ortalamasi bundan cikiyor:
+            # sum(top) / sum(n). Ortalamayi burada hesaplamiyoruz cunku hangi
+            # kategorilerin sayilacagina (icecek ve tatli haric) ortak.js
+            # karar veriyor; kurali iki dile birden kopyalamak, ikisinin
+            # ayrismasi demekti. Toplam ham veri, karar tek yerde kaliyor.
+            "top": round(sum(fiyatlar), 2),
         }
     return dokum
 
 
-ELENEN_DEMO = []          # rapor icin: (mekan, tur, sebep)
+# --- Ayni mekanin iki kaydi ---------------------------------------------
+# OSM'de bir isletme hem NOKTA (POI) hem ALAN (bina siniri) olarak
+# etiketlenebiliyor; ayrica ayni yeri iki kisi ayri ayri eklemis olabiliyor.
+# Ikisi de bize ayri mekan gibi geliyordu: haritada iki isaretci, listede
+# iki kart, sayilarda bir fazla.
+#
+# Olculdu: ayni ilde ayni ada sahip ve 20 m'den yakin 212 cift var; 40 m'ye
+# cikinca 300, 60 m'ye cikinca 351. Ama uzaklastikca YANLIS eslesme
+# basliyor -- "Starbucks" 54 m, "Burger King" 48 m, "Çay ocağı" 53 m:
+# bunlar gercekten ayri isletmeler olabilir. 25 m secildi: bu mesafede
+# ayni adi tasiyan iki kayit pratikte ayni yerdir.
+#
+# Ad karsilastirmasi TURKCE HARFE DUYARSIZ. Ilk yazimda tam eslesme
+# vardi ("Kahve Dünyası" ile "Kahve Dunyasi" ayri sayiliyordu) ve gerekce
+# "zincir subelerini birlestirmeyelim"di -- ama subeleri ayiran sey ad
+# degil 25 m sinirlari: iki sube hicbir zaman 25 m'de olmuyor.
+#
+# Olculdu: ayni mekan bir kez Turkce harflerle bir kez ASCII ile
+# girilmis 14 cift kaciyordu -- "Balikci Sabahattin" / "Balıkçı
+# Sabahattin" (21 m), "Balkan lokantasi" / "Balkan Lokantası" (3 m).
+KOPYA_METRE = 25
+
+
+def _metre(a, b):
+    """Iki kayit arasi mesafe (m). sahiplen.metre ile ayni haversine."""
+    from math import radians, sin, cos, asin, sqrt
+    dl = radians(b["lat"] - a["lat"])
+    dn = radians(b["lon"] - a["lon"])
+    h = (sin(dl / 2) ** 2 +
+         cos(radians(a["lat"])) * cos(radians(b["lat"])) * sin(dn / 2) ** 2)
+    return 6371000 * 2 * asin(sqrt(h))
+
+
+BILGI_ALANI = ("saat", "tel", "adres", "web", "menu", "bahce", "wifi", "mutfak")
+
+
+def _zenginlik(k):
+    return sum(1 for a in BILGI_ALANI if k.get(a))
+
+
+def kopyalari_birlestir(kayitlar):
+    """Ayni ad + <=25 m olan kayitlari tek kayda indirir.
+
+    Kalan kayit BILGISI COK OLAN. Esitlikte nokta (POI) tercih ediliyor:
+    alan kaydinin koordinati bina merkezidir, nokta isletmenin kendisini
+    gosterir. Yine esitse kimlik sirasi -- karar her calistirmada ayni olsun.
+
+    Dusen kaydin BOS OLMAYAN alanlari kalana tasiniyor: iki kayittan biri
+    telefonu, digeri saati tasiyor olabiliyor; birlestirme bilgi kaybetmemeli.
+    """
+    gruplar = defaultdict(list)
+    for k in kayitlar:
+        # casefold DEGIL sadelestir: "İ".casefold() birlesen nokta
+        # birakiyor ve "KISMETİM" ile "Kısmetim" ayri gorunuyordu.
+        # Kural fiyat_analiz'de, tek yerde.
+        gruplar[sadelestir(k["ad"]).strip()].append(k)
+
+    kalan, birlesen = [], 0
+    for grup in gruplar.values():
+        if len(grup) == 1:
+            kalan.extend(grup)
+            continue
+        # En iyi kayit once: birlestirme hedefi hep o olsun.
+        grup.sort(key=lambda k: (-_zenginlik(k),
+                                 0 if k["id"].startswith("node/") else 1,
+                                 k["id"]))
+        alinan = []
+        for k in grup:
+            for hedef in alinan:
+                if _metre(hedef, k) <= KOPYA_METRE:
+                    for alan, deger in k.items():
+                        if alan not in hedef and deger not in (None, "", 0):
+                            hedef[alan] = deger
+                    birlesen += 1
+                    break
+            else:
+                alinan.append(k)
+        kalan.extend(alinan)
+    return kalan, birlesen
+
+
+ELENEN = []               # rapor icin: (mekan, tur, sebep)
+PLATFORM_ELENEN = set()   # rapor icin: (il, mekan) -- platform profili
 
 
 def mekan_kaydi(m, menu):
@@ -259,24 +544,80 @@ def mekan_kaydi(m, menu):
     # Tema demosu ise menunun TAMAMI dusuyor. Guvenilmeyen fiyati yanlis
     # gostermektense hic gostermemek dogru: uygulama "hesapli yer" vaat
     # ediyor, sahte ucuzluk en kotu hata.
-    sebep = demo_menu_mu(tum_kalemler, tur_tr) if tum_kalemler else None
+    sebep = (demo_menu_mu(tum_kalemler, tur_tr)
+             or menu_degil_mi(tum_kalemler)) if tum_kalemler else None
     if sebep:
-        ELENEN_DEMO.append((m["ad"], tur_tr, sebep))
+        ELENEN.append((m["ad"], tur_tr, sebep))
         tum_kalemler = []
 
     # Kategori dokumu TAM listeden: kayda giren 40 kalem en ucuzlar oldugu icin
     # onlardan hesaplanan kirilim sistematik olarak asagi kayardi.
-    kalemler = sorted(tum_kalemler, key=lambda x: x["f"])[:40]
+    #
+    # HER KATEGORIDEN EN UCUZ KALEM DE GIRIYOR. Olculdu: "Cebimde
+    # kombini" fiyati gosterilebilen 163 mekanin yalniz 47'sinde
+    # kurulabiliyordu ve tikanan 116'nin 99'u Domino's idi -- pizzalarin
+    # hepsi (~480 TL) en ucuz 40'in disinda kaliyor, listede yalniz
+    # garnitur ve icecek duruyordu. Yani mekanin ANA URUNU kayda hic
+    # girmiyordu.
+    #
+    # Ayni carpiklik kullaniciya da gorunuyordu: detay paneli "en ucuz
+    # 40 kalem, 35-165 TL" yazip ustunde "yemek ~480 TL" gosteriyordu.
+    #
+    # Kural MEKANIN ANA URUNUNE BAKMIYOR: "hangi kategori ana urun"
+    # karari ortak.js'te (anaKategoriler) ve onu buraya kopyalamak ayni
+    # kurali iki dilde tutmak olurdu. Bunun yerine mekanik bir kural --
+    # HER kategoriden en ucuz kalem listede. Ana urun de dahil olmak
+    # zorunda, cunku o da bir kategori.
+    _sirali = sorted(tum_kalemler, key=lambda x: x["f"])
+    kalemler = _sirali[:40]
+    _sec = {id(k) for k in kalemler}
+    _gorulen = set()
+    for k in _sirali:                       # ucuzdan pahaliya
+        kat = kategorile(k["a"])[0]
+        if not kat or kat in _gorulen:
+            continue
+        _gorulen.add(kat)
+        if id(k) not in _sec:
+            kalemler.append(k)
+            _sec.add(id(k))
+    kalemler.sort(key=lambda x: x["f"])
     kayit = {
         "id": m["osm_id"],
-        "ad": m["ad"],
+        # OSM'de 12 mekan adi bas/son bosluklu girilmis ("Canikli ").
+        # Gorunumde fark etmiyor ama kopya birlestirmesi ve siralama ada
+        # gore calisiyor; bosluk oralarda sessizce ayirt edici oluyor.
+        "ad": " ".join(m["ad"].split()),
         "tur": tur_tr,
-        "lat": round(float(m["lat"]), 6),
-        "lon": round(float(m["lon"]), 6),
+        # 5 basamak ~1,1 m. 6 basamak (~11 cm) haritada bir isaretci icin
+        # anlamsiz hassasiyet ve 81 dosyada bedava yer kapliyor: yalniz
+        # Istanbul'da gzip sonrasi 16 KB. Kesfet ekrani da anasayfa onerisi
+        # de kilometre olceginde calisiyor.
+        "lat": round(float(m["lat"]), 5),
+        "lon": round(float(m["lon"]), 5),
     }
-    for anahtar, deger in (("mutfak", m["mutfak"]), ("tel", m["telefon"]),
+    # Telefon alanina telefon OLMAYAN sey yazilmis kayitlar var: "0",
+    # "Köfteci Yusuf". Sayfada "Telefon: Köfteci Yusuf" diye gorunuyordu
+    # ve sahiplen.py o mekani "telefonu var" sayip ARAMA listesine
+    # koyuyordu. En az 7 rakam araniyor -- Turkiye'de en kisa gecerli
+    # numara (alan kodsuz sabit hat) 7 haneli.
+    tel = m["telefon"] if len(re.sub(r"\D", "", m["telefon"] or "")) >= 7 else ""
+
+    for anahtar, deger in (("mutfak", m["mutfak"]), ("tel", tel),
                            ("web", m["website"]), ("saat", m["saatler"]),
-                           ("adres", m["adres"])):
+                           ("adres", m["adres"]),
+                           # Instagram TOPLANIYORDU ama uygulamaya hic
+                           # ulasmiyordu. Olculdu: 194 mekanin instagrami
+                           # var ve sitesi YOK -- yani o isletmelere hem
+                           # sayfalarinda hem saha kartinda "sosyal medya
+                           # baginiz yok" diyorduk, elimizde dururken.
+                           ("insta", instagram_adi(m.get("instagram"))),
+                           # Diger platformlar. CSV'de sutun YOKSA (eski
+                           # cekim) m.get() bos doner ve alan hic yazilmaz;
+                           # boru hatti eski veriyle de calisiyor.
+                           ("facebook", sosyal_adi("facebook", m.get("facebook"))),
+                           ("x",        sosyal_adi("x",        m.get("x"))),
+                           ("tiktok",   sosyal_adi("tiktok",   m.get("tiktok"))),
+                           ("youtube",  sosyal_adi("youtube",  m.get("youtube")))):
         if deger:
             kayit[anahtar] = deger
     if m["bahce"] == "yes":
@@ -284,9 +625,48 @@ def mekan_kaydi(m, menu):
     if m["wifi"] in ("wlan", "yes"):
         kayit["wifi"] = 1
     if kalemler:
-        kayit["menu"] = kalemler
+        # Mekanin fiyat tarihi = kalemlerin EN ESKISI. Bir menude 39 kalem
+        # dun, biri gecen yil derlendiyse o menu bir yillik: yeni kalem
+        # eskisini tazelemiyor. Kullaniciya soylenen sey en kotu hal olmali.
+        #
+        # Ay hassasiyeti: gun bilgisi ekranda hicbir karar degistirmiyor
+        # ("14 Agustos" ile "20 Agustos" arasinda kullanici icin fark yok)
+        # ve 81 dosyada bedava yer kapliyor.
+        kayit["tarih"] = min(k["t"] for k in tum_kalemler)[:7]
+        # Kalemin KATEGORISI de yaziliyor ("Pizza", "Kola / gazli").
+        #
+        # NEDEN: "Cebimde kombini" -- 300 TL ile bu mekanda ne yenir --
+        # ana urun ile icecegi AYIRT EDEBILMEYI gerektiriyor. Kategori
+        # yalniz kat[] toplamlarindaydi, tek tek kalemlerde yoktu; yani
+        # tarayici "bu satir pizza mi kola mi" diyemiyordu.
+        #
+        # Kural PYTHON'DA KALIYOR (fiyat_analiz.kategorile). Tarayiciya
+        # kopyalamak, ayni sozlugu iki dilde tutmak demekti -- kat[]
+        # toplamlarinin burada uretilmesinin gerekcesiyle ayni.
+        #
+        # Kategorilenemeyen kalemde alan HIC YAZILMIYOR: null yazmak 81
+        # dosyada bedava yer kaplardi ve "bilinmiyor" ile "yok" ayrimini
+        # bozmazdi.
+        kayit["menu"] = []
+        for k in kalemler:
+            kalem = {"a": k["a"], "f": k["f"]}
+            kat = kategorile(k["a"])[0]
+            if kat:
+                kalem["k"] = kat
+            kayit["menu"].append(kalem)
         kayit["min"] = kalemler[0]["f"]
         kayit["max"] = kalemler[-1]["f"]
+        # Liste kirpildiysa GERCEK kalem sayisi da yaziliyor.
+        #
+        # Neden: "menu" en ucuz 40 kalem, "kat" ise TAM listeden. Ikisi ayri
+        # ayri dogru ama arayuz "40 kalem · 35-165 TL" yazip ustunde
+        # "yemek ~480 TL" gosterince celisiyordu -- kullanici menusunde en
+        # pahali kalemi 165 TL olan bir yerde 480 TL iddiasi goruyor.
+        # Olculdu: 367 menulu mekanin 131'inde (%36) kat medyani, gosterilen
+        # menunun max'ini asiyor. Arayuz artik aralgin neyin araligi
+        # oldugunu soyleyebilsin diye sayi buraya yaziliyor.
+        if len(tum_kalemler) > len(kalemler):
+            kayit["kalem_n"] = len(tum_kalemler)
         dokum = kategori_dokumu(tum_kalemler)
         if dokum:
             kayit["kat"] = dokum
@@ -316,19 +696,65 @@ def main():
     for anahtar, kalemler in ek_menuler_oku(mekanlar).items():
         menu[anahtar].extend(kalemler)
     for anahtar, kalemler in menu.items():
-        gorulen, tekil = set(), []
+        gorulen, tekil = {}, []
         for k in kalemler:
             imza = (k["a"], k["f"])
             if imza not in gorulen:
-                gorulen.add(imza)
+                gorulen[imza] = k
                 tekil.append(k)
+            else:
+                # Ayni kalem iki kaynakta: TAZE tarih kazanir. Kalemi ikinci
+                # kez eklemiyoruz ama yasini gunceliyoruz -- ayni fiyat daha
+                # yeni bir taramada da gorulduyse, o fiyat o gun de gecerliydi.
+                onceki = gorulen[imza]
+                if k["t"] > onceki["t"]:
+                    onceki["t"] = k["t"]
         menu[anahtar] = tekil
     print("menu kalemi: %d -> %d (ek kaynaklar dahil, tekillenmis)"
           % (once, sum(len(v) for v in menu.values())))
 
+    # --- Zincir menusunun subeye uygulanmasi ---------------------------
+    # Menu anahtari (il, mekan adi). Yani bir sube, KENDI sitesini
+    # bildirmemis olsa bile ayni ildeki ayni adli mekanin menusunu aliyor.
+    # Kural bugune kadar hic yazilmamisti; olculdu:
+    #
+    #   menu alan mekan            401
+    #     kendi sitesini bildiren  184
+    #     ADINDAN dolayi alan      217   (%54)
+    #
+    # Daha siki bir kural denendi ve BIRAKILDI: "gruptaki butun bildirimler
+    # tek alan adinda uzlassin". Istanbul'daki 52 Kahve Dunyasi subesini
+    # dusuruyordu, cunku Ataturk Kitapligi'ndaki sube kutuphanenin sitesiyle
+    # etiketlenmis. Gercek bir zinciri, tek bir OSM etiketi yuzunden
+    # elemek olurdu; yayilmanin bugun urettigi yanlis eslesme olculemedi
+    # (yayilan adlarin hepsi gercek zincir: Domino's, Kahve Dunyasi,
+    # Papa John's, Cajun Corner, Pizzabulls...).
+    #
+    # O yuzden davranis degismedi ama GORUNUR oldu: sayi her calistirmada
+    # basiliyor. Adindan menu alan mekan orani firlarsa, kaziyici jenerik
+    # bir ada takilmis demektir.
+    ad_menusu = kendi_sitesi = 0
+    for m in mekanlar:
+        if (m["il"], m["ad"]) not in menu:
+            continue
+        if m.get("website") and not platform_mu(m["website"]):
+            kendi_sitesi += 1
+        else:
+            ad_menusu += 1
+
     iller = defaultdict(list)
     for m in mekanlar:
         iller[m["il"]].append(mekan_kaydi(m, menu))
+
+    # Kopya kayitlar il icinde birlestiriliyor: ayni isletme iki il dosyasinda
+    # olamaz, il disina bakmanin anlami yok ve karsilastirma karesel.
+    kopya = 0
+    for il in iller:
+        iller[il], n = kopyalari_birlestir(iller[il])
+        kopya += n
+    if kopya:
+        print("ayni mekanin ikinci kaydi (ad ayni, <=%d m): %d kayit birlestirildi"
+              % (KOPYA_METRE, kopya))
 
     os.makedirs("app/veri", exist_ok=True)
     dizin = []
@@ -339,9 +765,11 @@ def main():
             continue
         kayitlar.sort(key=lambda r: r["ad"].casefold())
         yol = f"app/veri/{kod}.json"
-        with open(yol, "w", encoding="utf-8") as f:
-            json.dump({"il": IL_ADI.get(il, il), "mekanlar": kayitlar},
-                      f, ensure_ascii=False, separators=(",", ":"))
+        # Bicim veri_bicim.py'de: yogun alanlar sutunlu, seyrek alanlar
+        # indeksli. Olculdu (Istanbul): ham 1733 -> 1325 KB, gzip 396 -> 322.
+        # Kodlayici bilinmeyen bir alan gorurse HATA veriyor -- yeni bir alan
+        # eklendiginde sessizce kaybolmasin diye.
+        veri_bicim.yaz(yol, IL_ADI.get(il, il), kayitlar)
         # Konumdan il bulmak icin merkez. Ortalama degil medyan: tek bir
         # yanlis etiketlenmis mekan merkezi denize kaydirmasin.
         enler = sorted(r["lat"] for r in kayitlar)
@@ -356,13 +784,22 @@ def main():
     with open("app/veri/index.json", "w", encoding="utf-8") as f:
         json.dump({"varsayilan": "06", "iller": dizin}, f, ensure_ascii=False)
 
-    if ELENEN_DEMO:
+    if ELENEN:
         print()
-        print("tema demosu olarak elenen menu: %d mekan" % len(ELENEN_DEMO))
-        for ad, tur, sebep in ELENEN_DEMO[:12]:
+        print("menusu tumden elenen mekan: %d" % len(ELENEN))
+        for ad, tur, sebep in ELENEN[:12]:
             print("  %-30s %-12s %s" % (ad[:30], tur, sebep))
-        if len(ELENEN_DEMO) > 12:
-            print("  ... %d tane daha" % (len(ELENEN_DEMO) - 12))
+        if len(ELENEN) > 12:
+            print("  ... %d tane daha" % (len(ELENEN) - 12))
+
+    if PLATFORM_ELENEN:
+        print("platform profili (kendi sitesi degil), menusu alinmadi: %d mekan"
+              % len(PLATFORM_ELENEN))
+        for il, ad in sorted(PLATFORM_ELENEN)[:6]:
+            print("  %-12s %s" % (il, ad))
+
+    print("zincir menusu: %d mekan kendi sitesinden, %d mekan AD eslesmesinden"
+          % (kendi_sitesi, ad_menusu))
 
     toplam = sum(d["n"] for d in dizin)
     assert len(dizin) == 81, f"81 il bekleniyordu, {len(dizin)} yazildi"
@@ -392,6 +829,128 @@ def kendini_kontrol_et():
     # 250g paket porsiyon degil: hic kategoriye girmemeli
     assert "Filtre kahve" not in d, d
     assert d["Kebap"]["med"] == 700.0 and d["Ayran"]["med"] == 60.0
+
+    # Fiyatin yasi: kolonsuz eski satir tabana duser, kolonlu satir kendi
+    # tarihini tasir. Tarih uydurulmuyor -- bilinmeyen icin bildigimiz UST
+    # SINIR yaziliyor.
+    assert _tarih({"tarih": "2026-03-14"}) == "2026-03-14"
+    assert _tarih({"tarih": "2026-03-14T09:22:00Z"}) == "2026-03-14"
+    assert _tarih({}) == TARIHSIZ_TABAN
+    assert _tarih({"tarih": ""}) == TARIHSIZ_TABAN
+    assert _tarih({"tarih": "bozuk"}) == TARIHSIZ_TABAN
+
+    # Arayuz metni kalem adi degildir; gercek ad bozulmadan kalir.
+    for a in ("Normal fiyat", "Regular price", "FİYATI", "Ürün",
+              "55k kişi favoriledi!", "Tüm Fırsatlar"):
+        assert kalem_atilir(a), a
+    for a in ("Fiyatlı Kahvaltı", "Adana Kebap", "Tüm Kahveler Filtre Seti"):
+        assert not kalem_atilir(a), a
+
+    # Listenin menu OLDUGU da dogrulaniyor.
+    assert menu_degil_mi([{"a": "Roxy AA Alkaline Pil", "f": 160.0},
+                          {"a": "Raisa Drop Earrings", "f": 190.0}])
+    assert menu_degil_mi([{"a": "Hafta İçi", "f": 600.0}])
+    assert not menu_degil_mi([{"a": "Roxy AA Alkaline Pil", "f": 160.0},
+                              {"a": "Adana Kebap", "f": 700.0}])
+    assert not menu_degil_mi([{"a": "1 KG KIYMALI KOL BÖREĞİ", "f": 900.0}])
+    assert menu_degil_mi([]) is None
+
+    # Kopya kayit birlestirme: bilgi kaybetmeden, dogru kaydi birakarak.
+    a = {"id": "node/1", "ad": "X", "lat": 39.9, "lon": 32.85, "tel": "111"}
+    b = {"id": "way/2",  "ad": "X", "lat": 39.9, "lon": 32.850001, "saat": "24/7"}
+    kalan, n = kopyalari_birlestir([a, b])
+    assert n == 1 and len(kalan) == 1, (n, kalan)
+    assert kalan[0]["tel"] == "111" and kalan[0]["saat"] == "24/7", kalan[0]
+    # Esitlikte NOKTA kalir: alan kaydinin koordinati bina merkezi.
+    assert kalan[0]["id"] == "node/1", kalan[0]["id"]
+
+    # Bilgisi cok olan kalir, kimlik tipi ne olursa olsun.
+    a = {"id": "node/1", "ad": "X", "lat": 39.9, "lon": 32.85}
+    b = {"id": "way/2",  "ad": "X", "lat": 39.9, "lon": 32.850001,
+         "tel": "111", "saat": "24/7"}
+    kalan, _ = kopyalari_birlestir([a, b])
+    assert kalan[0]["id"] == "way/2", kalan[0]["id"]
+
+    # Uzaktaki ayni adli mekan AYRI kalir: zincir subesi kopya degildir.
+    uzak = [{"id": "node/1", "ad": "X", "lat": 39.9, "lon": 32.85},
+            {"id": "node/2", "ad": "X", "lat": 39.91, "lon": 32.85}]   # ~1,1 km
+    kalan, n = kopyalari_birlestir(uzak)
+    assert n == 0 and len(kalan) == 2, (n, kalan)
+
+    # Farkli adlar birlesmez, ayni noktada olsalar bile.
+    ayri = [{"id": "node/1", "ad": "X", "lat": 39.9, "lon": 32.85},
+            {"id": "node/2", "ad": "Y", "lat": 39.9, "lon": 32.85}]
+    assert kopyalari_birlestir(ayri)[1] == 0
+
+    # Turkce harf farki ayni mekani ayirmamali: gercek veride 14 cift
+    # boyle kaciyordu.
+    for a1, a2 in (("Balıkçı Sabahattin", "Balikci Sabahattin"),
+                   ("KISMETİM", "Kısmetim"),
+                   ("Kardeş büfe", "Kardes bufe")):
+        c = [{"id": "node/1", "ad": a1, "lat": 39.9, "lon": 32.85},
+             {"id": "node/2", "ad": a2, "lat": 39.9, "lon": 32.85001}]
+        assert kopyalari_birlestir(c)[1] == 1, (a1, a2)
+
+    # Sonuc calistirma sirasindan bagimsiz olmali.
+    karisik = list(reversed(uzak))
+    assert sorted(k["id"] for k in kopyalari_birlestir(karisik)[0]) == ["node/1", "node/2"]
+
+    # Kalem adi: HTML varligi cozulmeli, bosluk sadelesmeli.
+    assert kalem_adi("Sevgililer Günü 6&#8217;lı Macaron") == "Sevgililer Günü 6’lı Macaron"
+    assert kalem_adi("A&#038;B") == "A&B"
+    assert kalem_adi("  iki   bosluk  ") == "iki bosluk"
+    assert kalem_adi("= Kola =") == "Kola"
+    assert kalem_adi(None) == ""
+
+    # Instagram: OSM'de dort ayri bicimde yaziliyor, hepsi tek bicime
+    # inmeli. Baska bir alan adi reddedilmeli -- "facebook.com/x"
+    # kirpilinca "facebook.com" diye gecerli bir kullanici adi gorunuyordu.
+    for ham, bekle in (
+            ("ortakoyadana", "ortakoyadana"),
+            ("https://www.instagram.com/guneyyildizi/", "guneyyildizi"),
+            ("instagram.com/mandalinsound", "mandalinsound"),
+            ("@mangocoffee.tr", "mangocoffee.tr"),
+            ("https://instagram.com/abc?igsh=1", "abc"),
+            ("https://m.instagram.com/x/reels", None),
+            ("http://facebook.com/x", None),
+            ("instagram.com/", None),
+            ("a b c", None), ("", None), (None, None)):
+        assert instagram_adi(ham) == bekle, (ham, instagram_adi(ham), bekle)
+
+    # Diger platformlar. Her biri KENDI alan adini kirpiyor; baska bir
+    # platformun adresi geldiyse deger tamamen reddediliyor -- instagram
+    # icin olculmus gercek hata buydu ("facebook.com/x" -> "facebook.com").
+    for alan, ham, bekle in (
+            ("facebook", "https://facebook.com/kafemiz",      "kafemiz"),
+            ("facebook", "fb.com/kafemiz",                    "kafemiz"),
+            ("facebook", "kafemiz",                           "kafemiz"),
+            ("facebook", "https://instagram.com/kafemiz",         None),
+            ("x",        "https://twitter.com/kafe",           "kafe"),
+            ("x",        "https://x.com/kafe",                 "kafe"),
+            ("x",        "@kafe",                              "kafe"),
+            ("x",        "cok_uzun_bir_kullanici_adi",            None),  # X 15 hane
+            ("tiktok",   "https://tiktok.com/@kafe.tr",     "kafe.tr"),
+            ("tiktok",   "@kafe.tr",                        "kafe.tr"),
+            ("youtube",  "https://youtube.com/@kanal",        "kanal"),
+            # Kanal adresinden kullanici adi CIKARILAMAZ; yanlis bir adres
+            # uretmektense hic gostermemek dogru.
+            ("youtube",  "https://youtube.com/channel/UCabc",     None),
+            ("youtube",  "https://youtube.com/c/kanal",           None),
+            ("insta",    "https://instagram.com/abc",           "abc"),
+            ("facebook", "", None), ("x", None, None),
+            ("bilinmeyen", "abc", None)):
+        assert sosyal_adi(alan, ham) == bekle, (alan, ham, sosyal_adi(alan, ham), bekle)
+
+    # Platform profili isletmenin kendi sitesi degildir.
+    for u in ("https://www.shopier.com/x", "https://trendyol.com",
+              "instagram.com/xkafe", "https://m.facebook.com/y",
+              "https://www.instagram.com/", "https://tripadvisor.com.tr/a"):
+        assert platform_mu(u), u
+    # ...ama isletmenin KENDI alan adindaki QR menusu platform degildir.
+    for u in ("https://qrmenu.actdurum.com", "https://dominos.com.tr",
+              "https://kahvedunyasi.com", "", None,
+              "https://instagramcafe.com.tr"):
+        assert not platform_mu(u), u
 
     # Site eslestirme: OSM etiketi yollu, tarama kaydi kok adres olabiliyor
     assert _site_anahtari("https://www.A.com/menu/") == "a.com/menu"

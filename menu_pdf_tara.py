@@ -14,11 +14,16 @@ API'siz cikar (PyMuPDF). Metin katmani yoksa veya menu bir fotografsa
     python menu_pdf_tara.py ozet      birikmis bulgunun dokumu
     python menu_pdf_tara.py test      kendini kontrol
 
+Sertifika dogrulamasi acik gelir. Sertifikasi bozuk sitelerden de indirmek
+gerekiyorsa --guvensiz eklenir; indirilen icerik fiyat verisine donustugu
+icin bu bayrak sessiz degil, uyararak calisir.
+
 Yeniden calistirilabilir: islenen siteler menu_pdf_bulgu.csv'den okunup
 atlanir, uzun tarama yarida kesilse de bastan baslamaz.
 """
 import asyncio
 import csv
+import datetime
 import io
 import os
 import re
@@ -245,8 +250,10 @@ def yaz_bulgu(b):
 
 
 def yaz_kalem(satir, url, kalemler):
-    _ekle(KALEM, ["mekan", "il", "website", "kaynak_url", "kalem", "fiyat"],
-          [[satir["mekan"], satir.get("il", ""), satir["website"], url, ad, f]
+    # tarih: fiyatin derlendigi gun. Bkz. menu_topla.ALANLAR.
+    _ekle(KALEM, ["mekan", "il", "website", "kaynak_url", "kalem", "fiyat", "tarih"],
+          [[satir["mekan"], satir.get("il", ""), satir["website"], url, ad, f,
+            datetime.date.today().isoformat()]
            for ad, f in kalemler])
 
 
@@ -257,14 +264,18 @@ def islenmis():
         return {r["website"] for r in csv.DictReader(f)}
 
 
-async def calistir(satirlar):
+async def calistir(satirlar, guvensiz=False):
     kilit = asyncio.Lock()
     sinir = asyncio.Semaphore(ESZAMANLI)
     sayac = {"n": 0}
 
     async with async_playwright() as p:
         tarayici = await p.chromium.launch()
-        async with httpx.AsyncClient(verify=False) as istemci:
+        # Dogrulama varsayilan olarak ACIK. Onceden verify=False sabitti:
+        # buradan inen PDF ve gorseller dogrudan fiyat verisine donusuyor,
+        # yani araya giren biri menuyu degistirebilirdi. Sertifikasi
+        # gecmis siteler icin --guvensiz var ama sessiz degil.
+        async with httpx.AsyncClient(verify=not guvensiz) as istemci:
             async def tek(s):
                 async with sinir:
                     b = await site_isle(tarayici, istemci, s, kilit)
@@ -360,7 +371,7 @@ def liste_kaynagi(yol="taranmamis.txt"):
              "website": u, "kaynak": "js"} for u in adresler]
 
 
-def main(kip):
+def main(kip, guvensiz=False):
     if kip == "liste":
         hepsi = liste_kaynagi()
     else:
@@ -374,15 +385,20 @@ def main(kip):
     if not kalan:
         print("islenecek site yok")
         return
-    asyncio.run(calistir(kalan))
+    asyncio.run(calistir(kalan, guvensiz))
     ozetle()
 
 
 if __name__ == "__main__":
-    kip = sys.argv[1] if len(sys.argv) > 1 else "pilot"
+    args = [a for a in sys.argv[1:] if a != "--guvensiz"]
+    guvensiz = "--guvensiz" in sys.argv[1:]
+    kip = args[0] if args else "pilot"
     if kip == "test":
         sys.exit(0 if kendini_kontrol_et() else 1)
     elif kip == "ozet":
         ozetle()
     else:
-        main(kip)
+        if guvensiz:
+            print("UYARI: sertifika dogrulamasi KAPALI. Inen menu icerigi "
+                  "degistirilmis olabilir; cikan fiyatlara guvenme.")
+        main(kip, guvensiz)

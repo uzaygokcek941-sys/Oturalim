@@ -1,0 +1,104 @@
+# Butun kontrolleri her itmede kosturur.
+#
+# Neden gerekli: depoda 60'tan fazla calisir kontrol vardi ama hepsi elle
+# calistiriliyordu -- betikler icin "python <betik>.py test", tarayici icin
+# sayfayi "?test=1" ile acmak. Pratikte kimse acmiyor, yani kontroller
+# yazildiklari gun disinda hicbir seyi korumuyordu.
+name: Kontroller
+
+# push YALNIZ main'de. Onceden filtresizdi ve bir dal PR'a baglandiginda
+# AYNI COMMIT ICIN IKI KOSUM birden basliyordu (biri push, biri
+# pull_request). Ikisi ayni isi yapiyor, ayni runner havuzu icin
+# yarisiyor ve suresi ikiye katliyor: olculdu -- yalniz Chromium
+# indirme adimi 40 dakikayi asti, oysa yarissiz kosum 7 dakikada
+# bitiyordu. concurrency onlari birlestiremiyor cunku github.ref
+# farkli (refs/heads/... ile refs/pull/N/merge).
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Ayni dal icin ust uste itmelerde eskisini iptal et.
+concurrency:
+  group: kontroller-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # Kazima betikleri bu paketleri MODUL DUZEYINDE import ediyor, o yuzden
+      # saf mantik kontrolleri icin bile gerekiyorlar.
+      #
+      # pillow SONRADAN EKLENDI. Bu is akisi ilk kez kostugunda
+      # ikon_uret.py "Pillow kurulu degil" diye dustu -- yani ikon
+      # ureticisinin kontrolleri CI'da HIC kosmamisti. Betik zarifce
+      # duruyordu ama zarif durus, kontrolun kosmasi demek degil.
+      - name: Bagimliliklar
+        run: pip install --quiet httpx pymupdf playwright qrcode pillow
+
+      # Chromium ARTIK INDIRILIYOR (~130 MB, onbelleklenmis). Onceden
+      # indirilmiyordu ve test_sayfa.py sessizce atlaniyordu; o kontrol
+      # baska hicbir seyin goremedigi bir hatayi buldu (Leaflet CDN'den
+      # gelmeyince kesfet ekraninin TAMAMI oluyordu). Bir kontrolu
+      # CI'da atlamak, olmamasiyla ayni sey.
+      - name: Tarayici onbellegi
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}
+      - name: Chromium
+        run: python -m playwright install --with-deps chromium
+
+      # Postgres ARTIK KURULUYOR. Onceden SQL davranis kontrolleri
+      # (veritabani/sahiplenme_test.sql) yalnizca elle kosuyordu ve
+      # pratikte hic kosmuyordu: supabase_taklit.sql'de eksik bir grant
+      # yuzunden dosya 6. adimda patliyor, yani 11 kontrolun ALTISI
+      # sessizce atlaniyordu. Ustelik 2. adim yanlis sebepten geciyordu.
+      # ubuntu-latest'te postgres kurulu geliyor, ek indirme yok.
+      - name: Postgres
+        run: |
+          sudo systemctl stop postgresql 2>/dev/null || true
+          ls -d /usr/lib/postgresql/*/bin || {
+            echo "::error::Kosucuda postgres yok; SQL kontrolleri atlanirdi."
+            exit 1
+          }
+
+      # "--tam": ATLANDI da hata. Yerelde bir kontrolu atlamak makul
+      # (herkeste Postgres/Chromium olmayabilir), CI'da degil -- bu depoda
+      # SQL kontrolleri tam da oyle aylarca kosmadan durdu.
+      - name: Kontroller
+        run: python test.py --tam
+
+      # Depodaki veri, boru hattinin BUGUN uretecegi veriyle ayni olmali.
+      # test.py ciktinin kendi ICINDE tutarli oldugunu dogruluyor; bu adim
+      # ciktinin KAYNAKLA tutarli oldugunu dogruluyor. Ikisi ayri sey:
+      # betigi degistirip veriyi yeniden uretmeyi unutmak, tam da bu
+      # denetim sirasinda birkac kez oldu ve her seferinde sessiz kaldi.
+      # Uc betik toplam ~2,5 saniye; ucuz bir kural.
+      - name: Veri boru hattindan yeniden uretilebiliyor
+        run: |
+          python app_veri.py > /dev/null
+          python fiyat_analiz.py > /dev/null
+          python vitrin_uret.py > /dev/null
+          if ! git diff --exit-code --stat; then
+            echo "::error::Depodaki veri boru hattinin urettiginden farkli."
+            echo "Duzeltmek icin: python app_veri.py && python fiyat_analiz.py && python vitrin_uret.py"
+            exit 1
+          fi

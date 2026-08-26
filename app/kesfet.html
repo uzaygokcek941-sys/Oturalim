@@ -3,23 +3,38 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Keşfet — Oturalım</title>
-<meta name="description" content="Bütçene, türüne, bahçesine ve şu an açık olup olmadığına göre mekan bul. 36.102 mekan, 81 il.">
-<meta property="og:title" content="Keşfet — Oturalım">
-<meta property="og:description" content="Bütçene göre mekan bul. 36.102 mekan, 81 il.">
+<title>Keşfet — Cebimde</title>
+<meta name="description" content="Bütçene, türüne, bahçesine ve şu an açık olup olmadığına göre mekan bul. 35.852 mekan, 81 il.">
+<meta property="og:title" content="Keşfet — Cebimde">
+<meta property="og:description" content="Bütçene göre mekan bul. 35.852 mekan, 81 il.">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="tr_TR">
-<meta name="theme-color" content="#15110e">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2315110e'/%3E%3Cpath d='M20 16v12a12 12 0 0 0 24 0V16' stroke='%23f08a3c' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3Cpath d='M32 40v10' stroke='%23f08a3c' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E">
+<meta property="og:image" content="og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="marka.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="ikon/ikon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cebimde">
+<meta name="mobile-web-app-capable" content="yes">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Karla:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="lib/leaflet.css">
 <link rel="stylesheet" href="stil.css">
 <link rel="stylesheet" href="sahne.css">
-<script>document.documentElement.classList.add("js-sahne");</script>
+<script>document.documentElement.classList.add("js-sahne");/* Emniyet: sahne.js gelmezse (CDN degil ama betik hatasi, engel,
+   eksik <script>) perde acilmaz ve icerik KALICI gizli kalirdi.
+   2 sn sonra sinif kendiliginden kalkiyor; sahne.css o sinif
+   olmadan hicbir seyi gizlemiyor. Bir kez oldu: isletme.html
+   sahne.js'i hic yuklemiyordu. */
+setTimeout(function(){if(!window.__sahneHazir)document.documentElement.classList.remove("js-sahne");},2000);</script>
 <script>
-try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.dataset.tema=t;}catch(e){}
+try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dataset.tema=t;}catch(e){}
 </script>
 <style>
   body{overflow:hidden}                    /* uygulama ekranı: sayfa değil, panel kayar */
@@ -69,21 +84,35 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   .butce-kutu label{font-size:13px;font-weight:600;color:var(--metin-3);white-space:nowrap}
   .butce-kutu output{font-weight:700;font-size:16px;color:var(--vurgu);
     font-variant-numeric:tabular-nums;white-space:nowrap;min-width:74px;text-align:right}
-  input[type=range]{flex:1;min-width:60px;height:22px;appearance:none;background:none;cursor:pointer}
+  /* Yukseklik 22 -> 44. Cizgi ve topuz AYNI kaliyor (ikisinin kendi
+     olculeri var); buyuyen sey yalniz DOKUNMA ALANI. Onceden kutu 44 px,
+     kaydiricinin kendisi 22 px'ti: parmagin ortadaki dar bandi tutturmasi
+     gerekiyordu. WCAG 2.5.8 en az 24x24 istiyor, telefonda 44 makul olan. */
+  input[type=range]{flex:1;min-width:60px;height:44px;appearance:none;background:none;cursor:pointer}
   input[type=range]::-webkit-slider-runnable-track{height:5px;border-radius:3px;background:var(--cizgi-2)}
   input[type=range]::-moz-range-track{height:5px;border-radius:3px;background:var(--cizgi-2)}
   input[type=range]::-webkit-slider-thumb{
-    appearance:none;width:19px;height:19px;border-radius:50%;background:var(--vurgu);
+    appearance:none;width:19px;height:19px;border-radius:50%;background:var(--marka);
     border:3px solid var(--zemin);margin-top:-8px;box-shadow:var(--golge-1);
   }
   input[type=range]::-moz-range-thumb{
     width:19px;height:19px;border:3px solid var(--zemin);border-radius:50%;
-    background:var(--vurgu);box-shadow:var(--golge-1);
+    background:var(--marka);box-shadow:var(--golge-1);
   }
+
+  /* akran satiri: arac cubugunun bir parcasi, kart degil. Rozet gibi
+     durmasi yanlis olurdu -- bu bir olcum, bir rozet degil. */
+  .akran{flex:1 1 100%;margin:0;font-size:13px;line-height:1.5;
+    color:var(--metin-2);padding:2px 2px 0}
+  .akran b{color:var(--metin);font-weight:650}
 
   /* ---- gövde: liste + harita ---- */
   .govde{
     display:grid;grid-template-columns:minmax(340px,440px) 1fr;
+    /* SATIR BELIRLI OLMALI. Ortulu `auto` satirda cocugun height:100%
+       degeri cozulemiyordu; tarayici icerige donuyor ve harita
+       ekranin 4,4 katina cikiyordu (olculdu: 2194 px / 497 px). */
+    grid-template-rows:minmax(0,1fr);
     height:calc(100dvh - var(--ust-yukseklik) - var(--arac-yukseklik,116px));
   }
   .liste{overflow-y:auto;border-right:1px solid var(--cizgi);overscroll-behavior:contain}
@@ -110,6 +139,17 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
     font-family:var(--font-baslik);font-size:16px;font-weight:600;color:var(--vurgu);
     white-space:nowrap;font-variant-numeric:tabular-nums;
   }
+  /* Eskimis fiyat: rakam duruyor ama kesinligini kaybediyor. Bir yildan
+     eskisi zaten hic gosterilmiyor (ortak.js FIYAT_SON_AY). */
+  .kart .tutar.eski{color:var(--metin-3)}
+  .kart .tutar .eski-not{font-size:11px;color:var(--sari);margin-left:4px;
+    font-weight:700;letter-spacing:.02em}
+  /* Zincir menusunden gelen fiyat. Olculdu: fiyati gosterilen 163 mekan
+     yalniz 53 farkli isletme; 94'u Domino's subesi. Isaret ROZET DEGIL,
+     rakamin kendisinin isareti -- "eski" ile ayni gerekce: kartta zaten
+     uc rozet var. */
+  .kart .tutar .zincir-not{font-size:11px;color:var(--metin-3);margin-left:4px;
+    font-weight:700;letter-spacing:.02em}
   .kart .meta{display:flex;gap:var(--a2);flex-wrap:wrap;align-items:center;margin-top:var(--a2)}
   .kart .meta > span{font-size:13px;color:var(--metin-3)}
 
@@ -121,7 +161,10 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   }
   .daha:hover{border-color:var(--vurgu);color:var(--vurgu)}
 
-  #harita{background:var(--zemin-2);height:100%}
+  /* min-height:0 grid cocugunun kucuImesine izin veriyor: varsayilan
+     `auto` deger, icerigi tasiyan bir cocugun satiri asmasina yol
+     aciyor. */
+  #harita{background:var(--zemin-2);height:100%;min-height:0}
   .leaflet-container{background:var(--zemin-2);font:inherit}
   .leaflet-popup-content-wrapper,.leaflet-popup-tip{
     background:var(--yuzey);color:var(--metin);border:1px solid var(--cizgi);
@@ -167,6 +210,14 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
     box-shadow:var(--golge-3);max-height:86dvh;overflow:hidden;
   }
   dialog#detay::backdrop{background:rgba(0,0,0,.66);backdrop-filter:blur(3px)}
+  /* HARITA GORUNUMUNDE PERDE HAFIF. Olculdu: panel 390x844 ekranda 554
+     px yer kapliyor ve ustunde 290 px harita KALIYOR -- ama %66 siyah
+     ve 3 px bulanikligin ardinda, yani isaretciler secilmiyor. Maketteki
+     ekranda kart haritanin uzerinde duruyor ve harita net. Modal
+     kaliyor (odak tuzagi, Esc); degisen yalniz perdenin agirligi. */
+  dialog#detay[data-uzerinde="harita"]::backdrop{
+    background:rgba(15,23,42,.24); backdrop-filter:none;
+  }
   .d-bas{padding:var(--a5) var(--a5) var(--a4);border-bottom:1px solid var(--cizgi);position:relative}
   .d-bas h2{font-size:20px;padding-right:48px;line-height:1.2}
   .d-kapat{
@@ -225,16 +276,47 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   .odenen-bas b{font-family:var(--font-baslik);font-size:20px;font-weight:600;
     color:var(--metin);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
   .odenen p{font-size:13px;color:var(--metin-2);line-height:1.55;margin-top:var(--a2)}
+  /* Esik altindaki hal: ayni kutu ama IDDIASIZ. Yesil cerceve "olculdu"
+     diyor; burada olculmus bir sey yok, kac fis kaldigi var. */
+  .odenen.az{border-color:var(--cizgi);background:var(--zemin-2)}
+  .odenen.az p{margin-top:0}
+  /* Harita yerine gecen kutu: Leaflet gelmediginde. Ayni alani kapliyor
+     ki yerlesim kaymasin. */
+  .harita-yok{height:100%;min-height:200px;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:var(--a2);padding:var(--a5);
+    text-align:center;background:var(--zemin-3);color:var(--metin-3)}
+  .harita-yok strong{color:var(--metin);font-size:15px}
+  .harita-yok span{font-size:13px;max-width:34ch;line-height:1.5}
   .uyari{
     margin-top:var(--a4);padding:var(--a3) var(--a4);border-radius:var(--r-s);
     background:var(--zemin-3);border-left:3px solid var(--vurgu);
     font-size:13px;color:var(--metin-3);line-height:1.55;
   }
+  /* Eskimis fiyat: sari serit. Rakam hala dogru olabilir ama kullanici
+     kac aylik bir sayiya baktigini gormeli. Bir yildan eskisi zaten
+     gosterilmiyor (ortak.js FIYAT_SON_AY). */
+  .uyari.eski{border-left-color:var(--sari);color:var(--metin-2)}
+  /* Zincir menusu: rakam dogru ama SUBEYE OZEL DEGIL. Sari degil notr
+     bir serit -- bu bir uyari degil, bir kaynak aciklamasi. */
+  .uyari.zincir{border-left-color:var(--cizgi-2);color:var(--metin-2)}
+  /* Kombin: menunun ustunde, rakamlari one cikan tek satir. Rozet degil
+     cumle, cunku tasidigi sey iki kalem adi ve bir toplam. */
+  .kombin{
+    margin:var(--a3) 0 var(--a2);padding:var(--a3) var(--a4);
+    border-radius:var(--r-s);background:var(--vurgu-los);
+    font-size:14px;line-height:1.6;color:var(--metin-2);
+    font-variant-numeric:tabular-nums;
+  }
+  .kombin b{color:var(--metin)}
   @media (max-width:620px){
     dialog#detay{
       max-width:none;width:100%;margin:0 0 auto;position:fixed;bottom:0;top:auto;
       border-radius:var(--r-b) var(--r-b) 0 0;max-height:90dvh;
     }
+    /* HARITA GORUNUMUNDE KART KISA. Olculdu: panel 554 px ile harita
+       alaninin (295-792) tamamini ortuyordu. Simdi ustunde harita
+       kaliyor; panelin icerigi kendi icinde kayiyor. */
+    dialog#detay[data-uzerinde="harita"]{ max-height:min(56dvh,520px) }
     .d-alt{padding-bottom:max(var(--a4),env(safe-area-inset-bottom))}
     .d-alt .dugme{flex:1 1 140px}
   }
@@ -245,18 +327,15 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
 
 <header class="ust">
   <div class="kap">
-    <a class="marka" href="index.html" aria-label="Oturalım ana sayfa">
-      <svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
-        <rect width="64" height="64" rx="14" fill="currentColor" opacity=".08"/>
-        <path d="M20 16v12a12 12 0 0 0 24 0V16" stroke="#f08a3c" stroke-width="5" stroke-linecap="round"/>
-        <path d="M32 40v10" stroke="#f08a3c" stroke-width="5" stroke-linecap="round"/>
-      </svg>
-      <span>Otur<em>alım</em></span>
+    <a class="marka" href="index.html" aria-label="Cebimde ana sayfa">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="mg" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#ffa03a"/><stop offset="1" stop-color="#f4690a"/></linearGradient></defs><g transform="rotate(-14 26 11)"><rect x="13" y="3.2" width="26" height="7.2" rx="2.2" fill="#00bfa6"/><rect x="11" y="6.6" width="28" height="7.2" rx="2.2" fill="#ffb74d"/></g><path d="M32 8c-9.6 0-17.4 7.5-17.4 16.8 0 8.8 5.9 15.1 12.9 23.8 1.9 2.4 4.5 5.6 4.5 5.6s2.6-3.2 4.5-5.6c7-8.7 12.9-15 12.9-23.8C49.4 15.5 41.6 8 32 8Z" fill="url(#mg)"/><circle cx="32" cy="25.4" r="9.1" fill="#fff"/><g stroke="#f4690a" stroke-width="1.75" stroke-linecap="round"><path d="M27.5 20.1v3.3M29.4 20.1v3.3M31.3 20.1v3.3"/><path d="M29.4 23.4v7.2"/><path d="M35.9 20.1v4.4" stroke-width="3.3"/><path d="M35.9 24.2v6.4"/></g></svg>
+      <span>Ceb<em>imde</em></span>
     </a>
     <nav class="menu" aria-label="Ana menü">
       <a href="index.html">Ana sayfa</a>
       <a href="kesfet.html" aria-current="page">Keşfet</a>
       <a href="paylas.html" class="gizle-kucuk">Fiyat paylaş</a>
+      <a href="topluluk.html" class="gizle-kucuk">Topluluk</a>
       <a href="hakkinda.html" class="gizle-kucuk">Hakkında</a>
       <span data-kimlik-menu></span>
       <button class="tema-dugme" data-tema-dugme type="button" aria-label="Temayı değiştir">
@@ -270,6 +349,16 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
 <div class="arac" id="arac">
   <div class="kap">
     <div class="arac-satir">
+      <!-- Bu ekranin H1'I HIC YOKTU; baslik siralamasi dogrudan kart
+           h3'lerine atliyordu. Iki somut sonucu var:
+           (1) ekran okuyucu kullanicisi basliklarla gezer, sayfanin ne
+               oldugunu soyleyen tek bir baslik bulamiyordu;
+           (2) sitenin INDEKSLENEN ana ekraninda h1 yok.
+           Gorsel olarak yer kaplamiyor (.gizli), ama secili sehirle
+           guncelleniyor -- sabit bir metin, sehir degistiginde yalan
+           soylerdi. -->
+      <h1 class="gizli" id="baslik">Mekanları keşfet</h1>
+
       <div class="ara-sar">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         <input class="ara" id="ara" type="search" placeholder="Mekan, mutfak veya sokak ara…" aria-label="Mekan ara">
@@ -301,6 +390,11 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
         <button class="cip" data-tur="Bar" aria-pressed="false">Bar</button>
         <button class="cip" data-tur="Pub" aria-pressed="false">Pub</button>
         <button class="cip" data-tur="Fast food" aria-pressed="false">Fast food</button>
+        <!-- DONDURMA cipi ana ekran dorde inerken eklendi. Oncesinde
+             hicbir cip bu turu secmiyordu; ana ekrandaki "Dondurma"
+             cipi kalkinca 395 dondurmaci aramanin disinda hicbir yoldan
+             ulasilamaz olurdu. -->
+        <button class="cip" data-tur="Dondurma" aria-pressed="false">Dondurma</button>
         <button class="cip" data-tur="grup:eglence" aria-pressed="false">Eğlence</button>
         <button class="cip" data-tur="Gece kulübü" aria-pressed="false">Gece kulübü</button>
         <button class="cip" data-tur="Sinema" aria-pressed="false">Sinema</button>
@@ -308,9 +402,18 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
         <button class="cip" data-bayrak="wifi" aria-pressed="false">Wi-Fi</button>
         <button class="cip" data-bayrak="acik" aria-pressed="false">Şu an açık</button>
         <button class="cip" data-bayrak="menu" aria-pressed="false">Fiyatı olan</button>
+        <!-- "Fisi olan" ile "Fiyati olan" AYNI SEY DEGIL: biri isletmenin
+             ilan ettigi menu fiyati, oteki gidenlerin fiilen odedigi
+             tutar. Ikisini tek cipte toplamak, kullanicinin
+             dogrulayamadigi bir karisim uretirdi. -->
+        <button class="cip" data-bayrak="fis" aria-pressed="false">Fişi olan</button>
         <button class="cip sifirla" id="sifirla" hidden>Filtreleri temizle</button>
       </div>
     </div>
+
+    <!-- Butce akranlari. Butce girilmeden hic gorunmuyor: bos bir
+         "0 kisi" satiri hem yer kapliyor hem cesaret kiriyor. -->
+    <p class="akran" id="akran" hidden></p>
   </div>
 </div>
 
@@ -358,7 +461,19 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   </div>
 </dialog>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- LEAFLET YERELDEN. Onceden unpkg.com'dan SRI ozetiyle geliyordu ve
+     ozet DOGRU dosyayi garanti ediyordu; GELECEGINI degil. Fark bu depoda
+     yasandi: CDN cevap vermeyince kesfet ekraninin TAMAMI oldu -- sifir
+     kart, sayac "..."da donmus. SRI o gun hicbir sey yapamadi, cunku
+     sordugu soru baskaydi.
+
+     Dosya npm kayit defterinden aliniyor ve kayit defterinin RESMI
+     sha512 ozetiyle dogrulanmadan yazilmiyor (kutuphane_al.py). Yani
+     SRI'nin verdigi guvence duruyor, uzerine erisilebilirlik geliyor.
+
+     BSD-2-Clause: atif basligi dosyanin icinde, lisans metni
+     lib/leaflet-LICENSE.txt'te. -->
+<script src="lib/leaflet.js"></script>
 <script src="ortak.js" defer></script>
 <script src="sahne.js" defer></script>
 <script src="yapilandirma.js"></script>

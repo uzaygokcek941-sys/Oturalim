@@ -3,21 +3,36 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>İşletme — Oturalım</title>
-<meta name="description" content="Bu işletmenin Oturalım'daki sayfası.">
+<title>İşletme — Cebimde</title>
+<meta name="description" content="Bu işletmenin Cebimde'daki sayfası.">
 <meta name="robots" content="index, follow">
 <meta property="og:type" content="business.business">
 <meta property="og:locale" content="tr_TR">
-<meta name="theme-color" content="#15110e">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2315110e'/%3E%3Cpath d='M20 16v12a12 12 0 0 0 24 0V16' stroke='%23f08a3c' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3Cpath d='M32 40v10' stroke='%23f08a3c' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E">
+<meta property="og:image" content="og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="marka.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="ikon/ikon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cebimde">
+<meta name="mobile-web-app-capable" content="yes">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Karla:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="stil.css">
 <link rel="stylesheet" href="sahne.css">
-<script>document.documentElement.classList.add("js-sahne");</script>
+<script>document.documentElement.classList.add("js-sahne");/* Emniyet: sahne.js gelmezse (CDN degil ama betik hatasi, engel,
+   eksik <script>) perde acilmaz ve icerik KALICI gizli kalirdi.
+   2 sn sonra sinif kendiliginden kalkiyor; sahne.css o sinif
+   olmadan hicbir seyi gizlemiyor. Bir kez oldu: isletme.html
+   sahne.js'i hic yuklemiyordu. */
+setTimeout(function(){if(!window.__sahneHazir)document.documentElement.classList.remove("js-sahne");},2000);</script>
 <script>
-try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.dataset.tema=t;}catch(e){}
+try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dataset.tema=t;}catch(e){}
 </script>
 <style>
   .kunye{display:flex;flex-wrap:wrap;gap:var(--a2);align-items:baseline;margin-bottom:var(--a2)}
@@ -47,6 +62,224 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
   .fis h2{margin:0 0 var(--a2)}
   .fis p{margin:0 0 var(--a3)}
 
+  /* civar: fisin kardesi ama sorusu farkli -- fis "burasi kaca oturur",
+     civar "buranin etrafinda ne var". Ayni cerceve, ayri kutu. */
+  .civar{border-top:1px solid var(--cizgi);padding-top:var(--a4);margin-top:var(--a4)}
+  .civar h2{margin:0 0 var(--a2)}
+  .civar p{margin:0 0 var(--a3)}
+  .civar-sayilar{display:flex;flex-wrap:wrap;gap:var(--a3) var(--a5);
+                 margin:0 0 var(--a3);padding:0;list-style:none}
+  .civar-sayilar div{display:flex;flex-direction:column;gap:2px}
+  .civar-sayilar b{font-size:1.35rem;font-weight:650;line-height:1.1}
+  .civar-sayilar span{font-size:.85rem;color:var(--soluk)}
+  .civar-tur{display:flex;flex-wrap:wrap;gap:var(--a2);margin:0 0 var(--a3);
+             padding:0;list-style:none}
+  .civar-tur li{font-size:.86rem;color:var(--soluk);
+                border:1px solid var(--cizgi);border-radius:99px;
+                padding:2px var(--a3)}
+
+  /* katki formu: eksik listesinin ALTINDA duruyor, cunku okuyan kisi neyin
+     eksik oldugunu tam o an gormus oluyor. Ayri sayfaya tasimak arayi aciyor. */
+  .katki{border-top:1px solid var(--cizgi);margin-top:var(--a4);padding-top:var(--a4)}
+  .katki p{margin:0 0 var(--a3)}
+  .katki-satir{display:flex;flex-wrap:wrap;gap:var(--a2)}
+  /* 44 px: dokunma hedefi. Onceden hicbir olcu yoktu ve select tarayici
+     varsayilaninda 23 px kaliyordu -- WCAG 2.5.8'in istedigi 24'un ALTINDA.
+     Bu form supabase-js gelmeden acilmadigi icin testlerde hic olculmemisti;
+     kutuphane yerele alininca form her kosumda aciliyor ve olcu ortaya cikti.
+     Butce kaydiricisinda da ayni sey yasanmisti (22 px). */
+  .katki-satir select,
+  .katki-satir input{min-height:44px}
+  .katki-satir select{flex:0 0 11rem}
+  .katki-satir input{flex:1 1 13rem;min-width:0}
+  .katki-not{font-size:.88rem;color:var(--soluk);margin-top:var(--a2)}
+  .katki-not.kotu{color:var(--vurgu)}
+
+  /* ---- fotograf seridi ---- */
+  .galeri{margin:var(--a4) 0}
+  /* Yatay serit: telefonda bir izgara ekranin yarisini yerdi, oysa
+     fotograf burada ana icerik degil. */
+  .galeri-serit{display:flex;gap:var(--a2);overflow-x:auto;padding-bottom:6px;
+    scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
+  .galeri-kutu{flex:0 0 auto;width:min(78vw,320px);scroll-snap-align:start;
+    border-radius:var(--r-s,6px);overflow:hidden;border:1px solid var(--cizgi);
+    background:var(--zemin-3,#eee);position:relative;display:block}
+  .galeri-kutu > a{display:block;position:relative}
+  .galeri-kutu img{width:100%;height:200px;object-fit:cover;display:block}
+  /* Atif: CC BY / CC BY-SA yazar ve lisans gostermeyi ZORUNLU kiliyor.
+     Gorsel olarak kucuk ama SILINEMEZ -- gostermeyen kullanim lisansi
+     ihlal eder. */
+  .galeri-atif{font-size:.7rem;line-height:1.35;padding:5px 7px;
+    color:var(--soluk);background:var(--zemin-3,#f4f4f4)}
+  .galeri-atif a{color:inherit}
+  .galeri-rozet{position:absolute;top:6px;left:6px;font-size:.68rem;
+    letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;
+    border-radius:999px;background:var(--marka);color:var(--vurgu-metin,#fff)}
+  .mfoto{border-top:1px solid var(--cizgi);padding-top:var(--a4);margin-top:var(--a4)}
+  #mfOnizleme{width:72px;height:72px;object-fit:cover;border-radius:var(--r-s,6px);
+    border:1px solid var(--cizgi)}
+
+  /* ---- kullanici menu katkilari ---- */
+  .mkatki{border-top:1px solid var(--cizgi);padding-top:var(--a4);margin-top:var(--a4)}
+  .mkatki h2{margin:0 0 var(--a2)}
+  .mk-kalem{display:flex;justify-content:space-between;gap:var(--a3);
+    padding:6px 0;border-bottom:1px solid var(--cizgi)}
+  .mk-kalem b{white-space:nowrap}
+  .mk-fotolar{display:flex;flex-wrap:wrap;gap:var(--a2);margin-top:var(--a3)}
+  .mk-fotolar a{display:block;width:96px;height:96px;border-radius:var(--r-s,6px);
+    overflow:hidden;border:1px solid var(--cizgi)}
+  .mk-fotolar img{width:100%;height:100%;object-fit:cover;display:block}
+  .mk-foto{display:flex;gap:var(--a2);align-items:center;flex-wrap:wrap;
+    margin-top:var(--a3)}
+  #mkOnizleme{width:72px;height:72px;object-fit:cover;border-radius:var(--r-s,6px);
+    border:1px solid var(--cizgi)}
+
+  /* ---- yorumlar ---- */
+  .yorumlar{border-top:1px solid var(--cizgi);padding-top:var(--a4);margin-top:var(--a4)}
+  .yorum-baslik{display:flex;gap:var(--a3);align-items:baseline;flex-wrap:wrap}
+  .yorum-baslik h2{margin:0}
+  .yildiz{color:var(--vurgu);letter-spacing:1px;white-space:nowrap}
+  .y-kayit{display:flex;gap:var(--a3);padding:var(--a3) 0;
+    border-top:1px solid var(--cizgi)}
+  .y-kayit:first-of-type{border-top:0}
+  .y-avatar{width:40px;height:40px;flex:0 0 auto;border-radius:50%;overflow:hidden;
+    background:var(--zemin-3,#eee);border:1px solid var(--cizgi);
+    display:grid;place-items:center;font-weight:700;font-size:1rem;color:var(--soluk)}
+  .y-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+  .y-govde{min-width:0;flex:1}
+  .y-ust{display:flex;gap:var(--a2);align-items:baseline;flex-wrap:wrap}
+  .y-ust b{font-size:.95rem}
+  .y-ust span:not(.yildiz){font-size:.82rem;color:var(--soluk)}
+  .y-metin{margin:4px 0 0;font-size:.95rem;line-height:1.55}
+  /* Puan secici: yildizlar DUGME, cunku tiklanabilir olduklari
+     gorunmeli ve klavyeyle gezilebilmeli. */
+  .puan-sec{display:flex;gap:4px;margin-bottom:var(--a3)}
+  .puan-sec button{
+    min-width:44px;min-height:44px;font-size:1.5rem;line-height:1;
+    color:var(--cizgi);background:none;border:0;cursor:pointer;
+    border-radius:var(--r-s,6px);
+  }
+  .puan-sec button[aria-pressed="true"]{color:var(--vurgu)}
+  .puan-sec button:focus-visible{outline:2px solid var(--vurgu);outline-offset:2px}
+  #yorumMetin{width:100%;min-height:76px;padding:10px 12px;font:inherit;
+    border:1px solid var(--cizgi);border-radius:var(--r-s,6px);
+    background:var(--zemin-3,#fff);color:inherit;resize:vertical}
+  /* Dogrulanmis isletme: rozet, katki formuyla ayni hizada dursun ama
+     onun gibi bir EYLEM gibi gorunmesin -- bu bir DURUM bildirimi. */
+  .sahiplik-rozet{border-top:1px solid var(--cizgi);margin-top:var(--a4);
+    padding-top:var(--a4);display:flex;flex-direction:column;gap:var(--a1)}
+  .sahiplik-rozet strong{color:var(--yesil,#3f7d2e)}
+  .sahiplik-rozet span{font-size:.9rem;color:var(--soluk)}
+  .sahiplik-form input{text-transform:uppercase;letter-spacing:.12em;
+    font-family:ui-monospace,monospace}
+
+  /* Kullanicidan gelen alan isaretli duruyor: kaynak dipnotu "hepsi OSM'den"
+     diyor, isaretlemezsek o cumle yalan olur. */
+  .bilgi dd .kaynak-katki{font-size:.72rem;letter-spacing:.06em;
+     text-transform:uppercase;color:var(--soluk);margin-left:.5rem}
+  /* Fiyatin kac olcumden geldigi. "kullanicidan" isaretiyle ayni bicim:
+     ikisi de rakamin KAYNAGINI soyluyor, ikisi de rakamin kendisi kadar
+     one cikmamali. */
+  .bilgi dd .kaynak-zincir{font-size:.72rem;letter-spacing:.06em;
+     text-transform:uppercase;color:var(--soluk);margin-left:.5rem}
+  #guven{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;
+     margin-top:var(--a2)}
+  .oy{margin-top:var(--a4);padding:var(--a4);border:1px solid var(--cizgi);
+      border-radius:var(--r);background:var(--zemin-2)}
+  .oy p{font-size:.95rem;line-height:1.55}
+  .oy-dugmeler{display:flex;gap:var(--a3);flex-wrap:wrap;margin-top:var(--a3)}
+  /* Dokunma hedefi 44 px: .dugme zaten min-height tasiyor, burada
+     yalniz dar ekranda yan yana sikismasinlar diye esit paylasiyorlar. */
+  .oy-dugmeler .dugme{flex:1 1 140px}
+  .oy-not{margin-top:var(--a3);font-size:.85rem;color:var(--soluk);min-height:1.2em}
+  .oy-not.kotu{color:var(--kirmizi)}
+  .guven-neden{font-size:.85rem;color:var(--soluk)}
+  .kombin{margin-top:var(--a3);padding:var(--a3) var(--a4);
+     border-radius:var(--r-s);background:var(--vurgu-los);
+     font-size:.95rem;line-height:1.6;font-variant-numeric:tabular-nums}
+  .kombin b{color:var(--metin)}
+  .dayanak{font-size:.85rem;color:var(--soluk);line-height:1.55;
+     margin-top:var(--a3);padding-left:var(--a3);
+     border-left:2px solid var(--cizgi-2)}
+
+  /* SEKMELER -- maketteki bicim: yatay serit, etkin olan turuncu yazi
+     ve turuncu alt cizgi. Dokunma hedefi 44 px (WCAG 2.5.8). */
+  .sekme-cubuk{
+    display:flex; gap:var(--a5); margin-top:var(--a5);
+    border-bottom:1px solid var(--cizgi); overflow-x:auto;
+    scrollbar-width:none;
+  }
+  .sekme-cubuk::-webkit-scrollbar{ display:none }
+  .sekme-cubuk button{
+    flex:0 0 auto; min-height:44px; padding:0 2px var(--a2);
+    background:none; border:0; border-bottom:3px solid transparent;
+    color:var(--metin-2); font-size:1rem; font-weight:600;
+    white-space:nowrap; transition:var(--hiz) var(--egri);
+  }
+  .sekme-cubuk button:hover{ color:var(--metin) }
+  .sekme-cubuk button[aria-selected="true"]{
+    color:var(--vurgu); border-bottom-color:var(--marka);
+  }
+  /* Gorunurluk SEKMEYE gore. Bolumler kendi "hidden" durumlarini
+     korumaya devam ediyor: bir bolum icerigi yoksa zaten gizli ve
+     sekme onu geri getirmiyor. */
+  #govde[data-sekme="menu"]  [data-grup]:not([data-grup="menu"]),
+  #govde[data-sekme="yorum"] [data-grup]:not([data-grup="yorum"]),
+  #govde[data-sekme="foto"]  [data-grup]:not([data-grup="foto"]),
+  #govde[data-sekme="bilgi"] [data-grup]:not([data-grup="bilgi"]){
+    display:none !important;
+  }
+
+  .sekme-bos{margin-top:var(--a5);color:var(--soluk);font-size:.95rem}
+
+  /* MENU LISTESI -- maketteki satir duzeni: ad solda, fiyat sagda.
+     Fotograf YOK: veride kalemlerin fotograf alani hic bulunmuyor. */
+  /* KAPAK -- maketteki fotograf serit. Tam genislik degil: sayfanin
+     geri kalani .kap icinde ve kenardan kenara bir gorsel, alttaki
+     metin sutunuyla hizasiz durur. */
+  .kapak{
+    margin:0 0 var(--a4); border-radius:var(--r-b); overflow:hidden;
+    background:var(--zemin-2); position:relative;
+  }
+  .kapak img{
+    display:block; width:100%; height:clamp(160px,32vw,240px);
+    object-fit:cover;
+  }
+  /* Atif fotografin USTUNDE degil ALTINDA: uzerine yazmak, koyu bir
+     fotografta okunmaz bir satir birakirdi ve lisans metni okunmak
+     zorunda. */
+  .kapak figcaption{
+    padding:6px 10px; font-size:.72rem; line-height:1.35;
+    color:var(--metin-2); background:var(--yuzey-us);
+  }
+  .kapak figcaption a{color:inherit}
+
+  .menu-liste{margin-top:var(--a5)}
+  .menu-liste h2{margin:0 0 var(--a2)}
+  .menu-not{margin:0 0 var(--a4);color:var(--metin-2);font-size:.92rem}
+  .menu-liste ul{list-style:none;margin:0;padding:0}
+  .menu-liste li{
+    display:flex; align-items:baseline; gap:var(--a4);
+    padding:var(--a3) 0; border-bottom:1px solid var(--cizgi);
+  }
+  .menu-liste li:last-child{border-bottom:0}
+  /* Ad SARIYOR, kirpilmiyor: kalemlerin %16'sinin adi 34 harften uzun ve
+     kirpmak kullanicinin ne aldigini gizlemek olurdu. */
+  .menu-ad{flex:1 1 auto; min-width:0; overflow-wrap:anywhere}
+  .menu-kat{display:block;margin-top:2px;color:var(--metin-2);font-size:.8rem}
+  /* Fiyat sutunu HIZALI: tabular-nums olmadan rakamlarin genisligi
+     degisiyor ve sag kenar titriyor. */
+  .menu-fiyat{
+    flex:0 0 auto; font-weight:700; font-variant-numeric:tabular-nums;
+    white-space:nowrap;
+  }
+  .menu-fiyat.yok{font-weight:500;color:var(--metin-2)}
+  /* Butce ustundeki kalem SOLUYOR ama SILINMIYOR: menude duruyor,
+     kullanici gormeye devam etmeli. Renk tek basina bilgi tasimasin
+     diye satirin baslik ozniteliginde de yaziyor. */
+  .menu-liste li.asiyor .menu-ad,
+  .menu-liste li.asiyor .menu-fiyat{color:var(--metin-2)}
+  .menu-hepsi{margin-top:var(--a4)}
   .sahiplen{display:inline-block;margin-top:var(--a4)}
   .kaynak{font-size:.85rem;color:var(--soluk);margin-top:var(--a5);
           border-top:1px solid var(--cizgi);padding-top:var(--a3)}
@@ -54,40 +287,266 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
 </head>
 <body>
 
+<!-- Basligin .kap sarmalayicisi EKSIKTI ve bu sayfa 12 sayfanin
+     tek istisnasiydi: marka ile menu bitisik yaziliyordu
+     ("CebimdeKesfet Hakkinda"), logo hic yoktu. Koyu temada goze
+     carpmiyordu; acik temaya gecince ilk bakista goruldu. -->
 <header class="ust">
-  <a class="marka" href="index.html">Oturalım</a>
-  <nav><a href="kesfet.html">Keşfet</a> <a href="hakkinda.html">Hakkında</a></nav>
+  <div class="kap">
+    <a class="marka" href="index.html" aria-label="Cebimde ana sayfa">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="mg" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#ffa03a"/><stop offset="1" stop-color="#f4690a"/></linearGradient></defs><g transform="rotate(-14 26 11)"><rect x="13" y="3.2" width="26" height="7.2" rx="2.2" fill="#00bfa6"/><rect x="11" y="6.6" width="28" height="7.2" rx="2.2" fill="#ffb74d"/></g><path d="M32 8c-9.6 0-17.4 7.5-17.4 16.8 0 8.8 5.9 15.1 12.9 23.8 1.9 2.4 4.5 5.6 4.5 5.6s2.6-3.2 4.5-5.6c7-8.7 12.9-15 12.9-23.8C49.4 15.5 41.6 8 32 8Z" fill="url(#mg)"/><circle cx="32" cy="25.4" r="9.1" fill="#fff"/><g stroke="#f4690a" stroke-width="1.75" stroke-linecap="round"><path d="M27.5 20.1v3.3M29.4 20.1v3.3M31.3 20.1v3.3"/><path d="M29.4 23.4v7.2"/><path d="M35.9 20.1v4.4" stroke-width="3.3"/><path d="M35.9 24.2v6.4"/></g></svg>
+      <span>Ceb<em>imde</em></span>
+    </a>
+    <nav class="menu" aria-label="Ana menü">
+      <a href="kesfet.html">Keşfet</a>
+      <a href="topluluk.html" class="gizle-kucuk">Topluluk</a>
+      <a href="hakkinda.html" class="gizle-kucuk">Hakkında</a>
+    </nav>
+  </div>
 </header>
 
-<main class="kap" id="govde" hidden>
+<main class="kap" id="govde" data-sekme="menu" hidden>
+
+  <!-- KAPAK. Makette mekan ekraninin ustunu fotograf dolduruyor.
+       Fotografi olmayan mekanda bolum HIC cikmiyor: gri bir yer
+       tutucu "burada bir sey var" izlenimi verirdi. Sekmeye BAGLI
+       DEGIL -- basligin bir parcasi, hangi sekme acik olursa olsun
+       yerinde duruyor. -->
+  <figure class="kapak" id="kapak" hidden>
+    <img id="kapakResim" alt="">
+    <figcaption id="kapakAtif" hidden></figcaption>
+  </figure>
   <div class="kunye">
     <h1 id="ad"></h1>
     <span class="tur" id="tur"></span>
   </div>
   <p id="nerede" class="soluk"></p>
+  <!-- Fiyat guven skoru. Yesil: mekanin kendi menusu ya da uc fisten
+       dogrulanmis. Sari: zincir menusunden ya da eskimis. Kirmizi:
+       olculmus fiyat yok. Renk TEK BASINA bilgi tasimiyor -- yaninda
+       metin ve gerekce var. -->
+  <p id="guven" hidden></p>
+  <!-- Sosyal fiyat dogrulama: tek dokunus. Kutu YALNIZ ekranda gosterilecek
+       bir rakam varken aciliyor -- olmayan bir fiyat icin "hala gecerli mi"
+       diye sormak anlamsiz olurdu. -->
+  <section class="oy" id="oyKutu" hidden data-grup="menu">
+    <p id="oyOzet"></p>
+    <div class="oy-dugmeler">
+      <button type="button" class="dugme ikincil" id="oyEvet">Hâlâ böyle</button>
+      <button type="button" class="dugme ikincil" id="oyHayir">Değişmiş</button>
+    </div>
+    <p class="oy-not" id="oyNot"></p>
+  </section>
   <p id="sayac" class="soluk" hidden></p>
 
-  <dl class="bilgi" id="bilgi"></dl>
+  <!-- SEKMELER. Maketteki duzen: ad -> sekmeler -> icerik. Bolumler
+       yerlerinde duruyor; sekme yalnizca hangi grubun gorunecegini
+       soyluyor (main[data-sekme]). DOM yeniden kurulmadi, cunku
+       bolumlerin kimliklerini sorgulayan onlarca JS satiri var. -->
+  <p class="sekme-bos" id="sekmeBos" hidden></p>
+  <div class="sekme-cubuk" role="tablist" aria-label="Mekan bilgileri">
+    <button role="tab" type="button" data-sekme="menu"  aria-selected="true">Menü</button>
+    <button role="tab" type="button" data-sekme="yorum" aria-selected="false">Yorumlar</button>
+    <button role="tab" type="button" data-sekme="foto"  aria-selected="false">Fotoğraflar</button>
+    <button role="tab" type="button" data-sekme="bilgi" aria-selected="false">Bilgi</button>
+  </div>
 
-  <section class="fis" id="fis" hidden>
+  <!-- Fotograflar. Uc kaynak: dogrulanmis isletme sahibi, kullanici ve
+       Wikimedia Commons. Commons ATIFSIZ gosterilmiyor -- lisansi ihlal
+       ederdi. Google Maps vb. BURAYA GIRMIYOR: o fotograflar
+       yazarlarinin telifinde ve platforma lisansli, yayimlama hakkimiz
+       yok (CEBIMDE.md "Yapilmayacaklar"). -->
+  <section class="galeri" id="galeri" hidden data-grup="foto">
+    <div class="galeri-serit" id="galeriSerit"></div>
+  </section>
+
+  <dl class="bilgi" id="bilgi" data-grup="bilgi"></dl>
+  <!-- Fiyatin kac olcumden geldigi. Bilgi listesinde yalniz kisa etiket
+       var ("56 subede ayni menu"); NEDEN onemli oldugu burada yaziyor. -->
+  <p class="dayanak" id="dayanak" data-grup="menu" hidden></p>
+  <!-- Cebimde kombini: menude YAZAN iki kalemle "bu butceyle ne yenir".
+       Kurulamiyorsa hic cikmiyor. -->
+  <p class="kombin" id="kombin" data-grup="menu" hidden></p>
+
+  <!-- MENU LISTESI. Maketteki "Menuleri Gor" ekrani. Bu bolum sayfada
+       HIC YOKTU: 7.335 fiyatli kalem veride duruyor ama ekranda
+       gorunmuyordu. Fotograf yok cunku veride yok (bkz. betik). -->
+  <section class="menu-liste" id="menuListe" data-grup="menu" hidden>
+    <h2>Menü</h2>
+    <p class="menu-not" id="menuNot"></p>
+    <ul id="menuSatirlar"></ul>
+    <button type="button" class="dugme ikincil menu-hepsi" id="menuHepsi" hidden></button>
+  </section>
+
+  <section class="fis" id="fis" hidden data-grup="menu">
     <h2>Buraya gidenler ne ödemiş</h2>
     <p id="fisOzet"></p>
     <a class="dugme ikincil" id="fisEkle" href="paylas.html">Ödediğini ekle</a>
   </section>
 
-  <section class="eksik" id="eksik" data-giris="perde">
+  <!-- Bu civar. MAHALLE ADI YOK cunku veride yok: 35.852 mekanin
+       yalniz 49'unun adresinden mahalle adi ayristirilabiliyor (%0,14).
+       Yaricap olculebilir bir sey, mahalle adi ise uydurma olurdu.
+       "Cevresine gore pahali" da DEMIYORUZ: menu fiyati bilinen mekan
+       %0,81 ve 500 m'de en az uc fiyatli komsusu olan mekan %4,16 --
+       uc ornekten cikan bir medyana dayanip fiyat iddiasi kurmak,
+       uydurma seviyeden farksiz olurdu. Gosterilen sey KAPSAM. -->
+  <section class="civar" id="civar" hidden data-grup="bilgi">
+    <h2 id="civarBaslik">Bu civarda</h2>
+    <ul class="civar-sayilar" id="civarSayilar"></ul>
+    <ul class="civar-tur" id="civarTur"></ul>
+    <p id="civarNot"></p>
+    <a class="dugme ikincil" id="civarBag" href="kesfet.html">Çevresini haritada gör</a>
+  </section>
+
+  <!-- Mekan fotografi ekleme. Menu fotografindan AYRI: orada aranan sey
+       okunabilirlik, burada aranan sey ICINDE INSAN OLMAMASI. Bir kafenin
+       salonunu ceken kullanici orada oturan insanlari da ceker; onlar
+       fotograflanmayi kabul etmedi. -->
+  <section class="mfoto" id="mekanFoto" data-giris="perde" hidden data-grup="foto">
+    <form class="katki" id="mfForm">
+      <p><strong>Buranın fotoğrafı var mı?</strong> Bahçesini, salonunu ya da
+        cephesini çek. Kontrol edildikten sonra sayfada görünür.</p>
+      <div class="mk-foto">
+        <label class="dugme ikincil kucuk" for="mfDosya" style="cursor:pointer">
+          Fotoğraf seç
+        </label>
+        <input id="mfDosya" type="file" accept="image/*" class="gizli"
+               aria-label="Mekan fotoğrafı">
+        <button class="dugme duz kucuk" id="mfSil" type="button" hidden>Kaldır</button>
+        <img id="mfOnizleme" alt="" hidden>
+      </div>
+      <input id="mfAciklama" type="text" maxlength="200" placeholder="Kısa açıklama (isteğe bağlı)"
+             aria-label="Fotoğraf açıklaması" style="margin-top:var(--a3);width:100%">
+      <p class="katki-not" id="mfNot">
+        Konum ve cihaz bilgisi (EXIF) yüklenmeden önce siliniyor.
+        <strong>İçinde tanınabilir insan olmamasına dikkat et</strong> — orada
+        oturanlar fotoğraflanmayı kabul etmedi.
+      </p>
+      <button class="dugme" id="mfGonder" type="submit">Gönder</button>
+    </form>
+  </section>
+
+  <!-- Menü katkıları. paylasimlar bir HESAP taşıyor ("3 kişi, 850 ₺"),
+       burası bir LİSTE FİYATI ("Latte 95 ₺"). Ayrı sorular, ayrı bölümler.
+       Gösterilen ortalamaya GİRMİYOR: o hesap fiyat_analiz.py'de, Python'da
+       yapılıyor; aynı kuralı tarayıcıda ikinci kez yazmak iki dilde iki
+       doğru demekti. -->
+  <section class="mkatki" id="menuKatki" data-giris="perde" hidden data-grup="menu">
+    <h2>Kullanıcıların eklediği fiyatlar</h2>
+    <p class="katki-not" id="mkNot0"></p>
+    <div id="mkListe"></div>
+
+    <form class="katki" id="mkForm" hidden>
+      <p><strong>Menüyü görüyor musun?</strong> Bir kalemi yaz ya da menünün
+        fotoğrafını çek. Kontrol edildikten sonra bu sayfada görünür.</p>
+      <div class="katki-satir">
+        <input id="mkUrun" type="text" maxlength="80" placeholder="Ürün (örn. Latte)"
+               aria-label="Ürün adı">
+        <input id="mkFiyat" type="number" min="1" max="100000" step="0.5"
+               inputmode="decimal" placeholder="Fiyat ₺" aria-label="Fiyat">
+      </div>
+      <div class="mk-foto">
+        <label class="dugme ikincil kucuk" for="mkFoto" style="cursor:pointer">
+          Fotoğraf ekle
+        </label>
+        <!-- capture yok: kullanici galeriden de secebilmeli. accept
+             yalniz ipucu; asil denetim kimlik.js ve kovanin kendisinde. -->
+        <input id="mkFoto" type="file" accept="image/*" class="gizli"
+               aria-label="Menü fotoğrafı">
+        <button class="dugme duz kucuk" id="mkFotoSil" type="button" hidden>Kaldır</button>
+        <img id="mkOnizleme" alt="" hidden>
+      </div>
+      <p class="katki-not" id="mkNot">
+        Fotoğraftaki konum ve cihaz bilgisi (EXIF) yüklenmeden önce siliniyor.
+        İnsan yüzü ve kişisel bilgi olmamasına dikkat et.
+      </p>
+      <button class="dugme" id="mkGonder" type="submit">Gönder</button>
+    </form>
+  </section>
+
+  <!-- Yorumlar FİYATTAN AYRI duruyor. Fiş bir ÖLÇÜM taşıyor (850 ₺,
+       3 kişi), yorum bir KANI. İkisini karıştırmak ortalamanın içine
+       kanı katmak olurdu; yorumun puanı fiyat hesabına girmiyor. -->
+  <section class="yorumlar" id="yorumlar" data-giris="perde" hidden data-grup="yorum">
+    <div class="yorum-baslik">
+      <h2>Yorumlar</h2>
+      <span id="yorumPuan"></span>
+    </div>
+    <div id="yorumListe"></div>
+
+    <form class="katki" id="yorumForm" hidden>
+      <p><strong>Buraya gittin mi?</strong> Nasıl bir yer olduğunu yaz.
+        Yorumun kontrol edildikten sonra bu sayfada görünür.</p>
+      <div class="puan-sec" role="radiogroup" aria-label="Puanın">
+        <button type="button" data-puan="1" aria-pressed="false" aria-label="1 yıldız">★</button>
+        <button type="button" data-puan="2" aria-pressed="false" aria-label="2 yıldız">★</button>
+        <button type="button" data-puan="3" aria-pressed="false" aria-label="3 yıldız">★</button>
+        <button type="button" data-puan="4" aria-pressed="false" aria-label="4 yıldız">★</button>
+        <button type="button" data-puan="5" aria-pressed="false" aria-label="5 yıldız">★</button>
+      </div>
+      <label class="gizli" for="yorumMetin">Yorumun</label>
+      <textarea id="yorumMetin" maxlength="400" rows="3"
+                placeholder="Örn. Sabah sessiz, akşam kalabalık. Bahçesi güzel."></textarea>
+      <p class="katki-not" id="yorumNot"></p>
+      <button class="dugme" id="yorumGonder" type="submit">Gönder</button>
+    </form>
+  </section>
+
+  <section class="eksik" id="eksik" data-giris="perde" data-grup="bilgi">
     <h2>Bu sayfada eksik olanlar</h2>
     <p id="eksikGiris"></p>
     <ul id="eksikListe"></ul>
+
+    <form class="katki" id="katkiForm" hidden>
+      <p><strong>Buradaysan, biliyorsundur.</strong> Kapıda yazan bilgiyi ekle;
+         kontrol ettikten sonra bu sayfada görünür.</p>
+      <div class="katki-satir">
+        <select id="katkiAlan" aria-label="Hangi bilgiyi ekliyorsun"></select>
+        <input id="katkiDeger" type="text" maxlength="200" autocomplete="off"
+               aria-label="Bilgi" required>
+        <button class="dugme birincil kucuk" type="submit" id="katkiGonder">Ekle</button>
+      </div>
+      <p class="katki-not" id="katkiNot"></p>
+    </form>
+
+    <!-- Sahiplenme (Faz 4). Uc hal var ve ucu de bu bolumde:
+         (a) mekan sahiplenilmis  -> rozet, form yok
+         (b) kart kodu var        -> kod formu
+         (c) kod yok              -> WhatsApp yolu (Faz 2'den kalan) -->
+    <div id="sahiplikRozet" class="sahiplik-rozet" hidden>
+      <strong>✓ İşletme doğruladı</strong>
+      <span>Bu sayfadaki bilgileri işletmenin kendisi güncelleyebiliyor.</span>
+    </div>
+
+    <form class="katki sahiplik-form" id="sahiplikForm" hidden>
+      <p><strong>Kapına bir kart bıraktıysak</strong>, üstündeki 8 haneli kodu
+         yaz. Sayfa senin olsun: eklediğin saat, telefon, adres ve site
+         bilgisi sıraya girmeden yayına çıksın.</p>
+      <div class="katki-satir">
+        <input id="sahiplikKod" type="text" maxlength="12" autocomplete="off"
+               inputmode="latin" spellcheck="false"
+               placeholder="Karttaki kod" aria-label="Sahiplenme kodu" required>
+        <button class="dugme birincil kucuk" type="submit" id="sahiplikGonder">Doğrula</button>
+      </div>
+      <p class="katki-not" id="sahiplikNot"></p>
+    </form>
+
     <a class="dugme birincil sahiplen" id="sahiplenDugme" hidden>Bu işletme benim</a>
     <p id="sahiplenNot" class="soluk" style="margin-top:var(--a2);font-size:.9rem"></p>
+    <p class="soluk" style="margin-top:var(--a3);font-size:.9rem">
+      Zaten sahiplendiysen <a href="isletmem.html">işletme paneline</a> git:
+      sayfanı kaç kişi gördü, neyin eksik, tek yerden.
+    </p>
   </section>
 
   <p class="kaynak">
     Bu sayfadaki bilgiler
     <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap katkıcılarından</a>
     (ODbL) geliyor ve eksik olabilir. Sayfa, kamuya açık veriden otomatik
-    oluşturulmuştur. <a href="gizlilik.html">Düzeltme ve kaldırma talebi</a>.
+    oluşturulmuştur. <strong>kullanıcıdan</strong> diye işaretli satırlar
+    ziyaretçilerin eklediği, tarafımızdan kontrol edilmiş bilgilerdir.
+    <a href="gizlilik.html">Düzeltme ve kaldırma talebi</a>.
   </p>
 </main>
 
@@ -99,7 +558,19 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
 
 <script src="yapilandirma.js"></script>
 <script src="ortak.js"></script>
-<script>
+<!-- sahne.js EKSIKTI: sayfa sahne.css yukluyor ve js-sahne sinifini
+     ekliyor, yani [data-giris] bolumu perdeyle kapali basliyor -- ama
+     perdeyi acacak betik yoktu. Sonuc: "Bu sayfada eksik olanlar"
+     bolumu HER ZIYARETCIDE gorunmez kaliyordu. Sayfanin cekirdegi o. -->
+<script src="sahne.js" defer></script>
+<script type="module">
+import Kimlik from "./kimlik.js";
+/* Modul oldu: katki formu icin oturum lazim ve Kimlik ES modulu.
+   ortak.js klasik betik olarak once calisiyor, global'leri (seviye, kacir,
+   sayi, katkiSorunu) burada aynen okunabiliyor.
+   Sayac ve fis katmani kendi istemcilerini kurmaya devam ediyor -- calisan
+   ve dogrulanmis yol, Faz 1'in isi degil. */
+
 /* Isletme sayfasi.
    Il kodu URL'de gelir (?il=34). Baglantilari biz uretiyoruz, hep dolu.
    ponytail: 36 bin kayitlik global id->il dizini kurulmadi; ~900 KB'lik
@@ -129,32 +600,107 @@ const YEME_ICME = new Set(["Restoran","Kafe","Fast food","Bar","Pub","Dondurma",
 function eksikleriBul(m){
   return Object.keys(EKSIK).filter(k => {
     if (k === "menu") return YEME_ICME.has(m.tur) && m.min == null;
+    /* "Site / sosyal medya" SOSYAL HESAPLARI da sayiyor. Olculdu: 194
+       mekanin instagrami var ve sitesi yok; onlara "sosyal medya baginiz
+       yok" demek, elimizde duran bilgiyi yok saymakti. Turkiye'de
+       kafelerin cogu menuyu ve saati zaten instagramda yayimliyor.
+       Liste ortak.js'te (sosyalListe): yeni bir platform eklendiginde
+       burasi kendiliginden sayar, elle guncellenmesi gereken ikinci bir
+       yer olmaz. */
+    if (k === "web") return !m.web && !sosyalListe(m).length;
     return !String(m[k] == null ? "" : m[k]).trim();
   });
 }
 
 function goster(m, ilAd){
-  document.title = m.ad + " — Oturalım";
+  document.title = m.ad + " — Cebimde";
   document.getElementById("ad").textContent  = m.ad;
   document.getElementById("tur").textContent = m.tur;
   document.getElementById("nerede").textContent =
     [m.adres, ilAd].filter(Boolean).join(" · ");
 
-  const sv = seviye(m);
+  const sv = seviye(m), dy = fiyatDayanagi(m, zincir);
+  /* Guven rozeti basligin altinda: sayfaya gelen kullanici tek bir
+     mekana bakiyor, rakamin ne kadar saglam oldugunu once gormeli.
+     Fis ozeti ag'dan sonra geliyor; rozet o zaman tazeleniyor
+     (guvenTazele). */
+  guvenTazele(m, null);
+  /* Sema yoksa https varsayiliyor. "javascript:..." gibi bir deger http ile
+     baslamadigi icin "https://javascript:..." olur ve zararsiz kalir --
+     kacir() ayrica tirnak kaciriyor. */
+  /* Kural ortak.js'te (webBagi): kesfet detay paneli de ayni baglantiyi
+     kuruyor ve ikisi ayrisirsa biri kirik adres uretir -- oyle oldu. */
+  const bag = webBagi;
+  /* Ucuncu sutun: alan anahtari. Kullanicidan gelen deger isaretlensin diye
+     var; kaynak dipnotu "hepsi OSM'den" diyor, isaretsiz birakmak onu
+     yanlisa cevirirdi. */
   const satirlar = [
-    ["Tür",     m.tur],
-    ["Mutfak",  m.mutfak],
-    ["Saatler", m.saat],
-    ["Telefon", m.tel],
-    ["Adres",   m.adres],
+    ["Tür",     kacir(m.tur || ""),          null],
+    /* mutfakYaz ortak.js'te: kesfet detay paneli de ayni metni
+       gosteriyor, ikisi ayrisirsa ayni mekan iki sayfada iki turlu
+       okunur. Onceden burada HAM deger vardi ("burger;coffee_shop"),
+       kesfette ise virgullu hali. */
+    ["Mutfak",  kacir(mutfakYaz(m.mutfak)),   null],
+    ["Saatler", kacir(m.saat || ""),         "saat"],
+    ["Telefon", kacir(m.tel || ""),          "tel"],
+    ["Adres",   kacir(m.adres || ""),        "adres"],
+    ["Site",    m.web ? bag(String(m.web)) : "", "web"],
+    /* Sosyal medya: adres GOSTERIM ANINDA kuruluyor, veride yalniz
+       kullanici adi var. Kural ortak.js'te (sosyalBag) -- kesfet detay
+       paneli de ayni listeyi kuruyor; iki yerde iki turlu olmasin.
+       Sema denetimi de orada: kacir() semaya bakmaz ve deger kullanici
+       katkisindan da gelebiliyor. */
+    ...sosyalListe(m).map(x => [x.ad, x.bag, "sosyal"]),
     /* yalniz OLCULEN fiyat gosterilir. Mutfaktan tahmin edilen "hesapli",
-       asagidaki "fiyat bilgisi yok" satiriyla ayni sayfada celisiyordu. */
-    ["Fiyat",   sv && sv.olculdu ? sv.ad : ""],
-    ["Bahçe",   m.bahce ? "var" : ""],
-    ["Wi-Fi",   m.wifi  ? "var" : ""]
+       asagidaki "fiyat bilgisi yok" satiriyla ayni sayfada celisiyordu.
+
+       RAKAMIN YANINDA NEYE DAYANDIGI: olculdu, fiyati gosterilen 163
+       mekan yalniz 53 farkli isletme ve 94'u tek bir zincirin subesi.
+       Ayni ilde cok subeli 113 mekanin hicbirinde subeler arasi fiyat
+       farki yok -- yani tek kazima 56 olcum gibi duruyordu. Tek fisi
+       mekanin fiyati saymakla ayni hata (FIS_ESIK). */
+    ["Fiyat",   sv && sv.olculdu
+      ? kacir(sv.ad) + (dy && dy.sinif === "zincir"
+          ? ' <span class="kaynak-zincir">' + kacir(dy.ad) + "</span>" : "")
+      : "", null],
+    ["Bahçe",   m.bahce ? "var" : "",        null],
+    ["Wi-Fi",   m.wifi  ? "var" : "",        null]
   ].filter(s => s[1]);
   document.getElementById("bilgi").innerHTML = satirlar.map(s =>
-    "<div><dt>" + kacir(s[0]) + "</dt><dd>" + kacir(String(s[1])) + "</dd></div>").join("");
+    "<div><dt>" + kacir(s[0]) + "</dt><dd>" + s[1] +
+    (s[2] && m._katki && m._katki.has(s[2])
+      ? '<span class="kaynak-katki">kullanıcıdan</span>' : "") +
+    "</dd></div>").join("");
+
+  /* Zincir menusunden gelen fiyatta tam cumle. "Kendi menusunden"
+     halinde SUSULUYOR: her mekan sayfasina "bu fiyat kendi menusunden"
+     yazmak, hicbir sey soylemeyen bir satiri 35.852 kez basmak olurdu.
+     Satir yalniz kullanicinin bilmediginde YANILACAGI halde cikiyor. */
+  const dSatir = document.getElementById("dayanak");
+  if (dy && dy.sinif === "zincir"){
+    dSatir.textContent = dayanakCumlesi(dy);
+    dSatir.hidden = false;
+  } else {
+    dSatir.textContent = "";
+    dSatir.hidden = true;
+  }
+
+  /* Kombin. Butce URL'den geliyor (?butce=): kullanici ana ekranda ya
+     da kesfette bir rakam yazdiysa mekan sayfasi da onu bilmeli --
+     yoksa ayni soruyu ucuncu kez sormus oluruz. */
+  const _b = butceOku(new URLSearchParams(location.search).get("butce"));
+  const kmb = kombinKur(m, _b);
+  const kmbKutu = document.getElementById("kombin");
+  if (kmb){
+    kmbKutu.innerHTML = "<b>" + kacir(_b ? tl(_b) + " ile" : "En ucuz öğün") +
+      ":</b> " + kombinCumlesi(kmb, _b);
+    kmbKutu.hidden = false;
+  } else {
+    kmbKutu.textContent = "";
+    kmbKutu.hidden = true;
+  }
+
+  menuListesi(m, _b);
 
   const eksik = eksikleriBul(m);
   const giris = document.getElementById("eksikGiris");
@@ -163,13 +709,15 @@ function goster(m, ilAd){
     giris.innerHTML = '<span class="tamam">Bu sayfada eksik bir şey görünmüyor.</span>';
   } else {
     giris.textContent =
-      "Oturalım kullanıcıya yalnızca doğrulayabildiğini önerir. Aşağıdaki " +
+      "Cebimde kullanıcıya yalnızca doğrulayabildiğini önerir. Aşağıdaki " +
       eksik.length + " bilgi bizde olmadığı için bu işletme bazı aramalarda hiç çıkmıyor.";
     liste.innerHTML = eksik.map(k =>
       "<li><b>" + kacir(EKSIK[k][0]) + "</b><span>" + kacir(EKSIK[k][1]) + "</span></li>").join("");
   }
 
-  const no = (window.OTURALIM || {}).sahiplenmeWhatsapp || "";
+  sahiplikKatmani(m);
+
+  const no = (window.CEBIMDE || {}).sahiplenmeWhatsapp || "";
   const dugme = document.getElementById("sahiplenDugme");
   const not   = document.getElementById("sahiplenNot");
   if (no){
@@ -183,9 +731,230 @@ function goster(m, ilAd){
     not.textContent = "Düzeltme talebi için gizlilik sayfasındaki iletişim adresini kullanabilirsin.";
   }
 
+  katkiFormu(m, eksik);
   document.getElementById("govde").hidden = false;
   sayacCalistir(ID);
   fisKatmani(ID, m.ad, IL);
+  civarKatmani(m);
+  oyKatmani(m, IL);
+  sekmeleriKur();
+  yorumKatmani(ID, m.ad, IL);
+  menuKatkiKatmani(ID, m.ad, IL);
+  galeriKatmani(ID, m.ad, IL);
+}
+
+/* ============================================================
+   Eksik bilgi katkisi
+
+   Ulasilamayan isletme sayisi 30.393 (%84,8): ne webi, ne sosyal medyasi,
+   ne telefonu var, yani
+   onlara uzaktan sorulamiyor. Bilgiyi bilen tek kisi o an orada oturan
+   kullanici; form bu yuzden mekanin KENDI sayfasinda, eksik listesinin
+   hemen altinda duruyor.
+
+   Onay sart: yanlis saat, saat olmamasindan kotudur -- "su an acik" suzgeci
+   kullaniciyi kapali mekana yollar.
+   ============================================================ */
+const KATKI_IPUCU = {
+  /* Turkce ornekler: kullanicinin dogal yazdigi bicim artik okunuyor,
+     ipucu da onu gostersin. Ingilizce kisaltma (Mo-Su) hala calisiyor. */
+  saat:  "Örnek: 09:00-23:00 · Hergün 10:00-22:00 · Pazartesi-Cuma 09:00-18:00 · 24/7",
+  tel:   "Örnek: 0312 123 45 67",
+  adres: "Cadde ve numara yeter.",
+  web:   "Tam bağlantı: instagram.com/… ya da site adresi."
+};
+
+/* Onaylanmis katkilar OSM verisinin uzerine DEGIL, bosluguna yaziliyor.
+   Ezme yetkisi dogrulanmis isletme sahibinde olmali; katkida degil. */
+function katkiBirlestir(m, liste){
+  m._katki = new Set();
+  for (const k of liste || []){
+    /* KATKI_ALAN ile ayni gerekce: miras alanlar ("constructor") gecmesin. */
+    if (!Object.prototype.hasOwnProperty.call(KATKI_IPUCU, k.alan)) continue;
+    if (!String(m[k.alan] == null ? "" : m[k.alan]).trim()){
+      m[k.alan] = k.deger;                       // liste yeniden eskiye: ilki kalir
+      m._katki.add(k.alan);
+    }
+  }
+  return m;
+}
+
+async function katkilariUygula(m){
+  m._katki = new Set();
+  if (!Kimlik.acik) return;
+  try {
+    await Kimlik.hazir;
+    katkiBirlestir(m, await Kimlik.onaylanmisKatkilar(m.id));
+  } catch (e) { /* tablo yok ya da ag yok: sayfa OSM verisiyle calisir */ }
+}
+
+/* ============================================================
+   Isletme sahipligi (Faz 4)
+
+   Kod SAHADA elden veriliyor; ne kanitladigi veritabani/sahiplenme.sql'in
+   basinda yazili: fiziksel olarak orada bulunmak, tapu degil. Bu yuzden
+   yetki sinirli (yalniz olgusal alanlar) ve sahiplik geri alinabilir.
+
+   Uc hal:
+     (a) mekan sahiplenilmis -> rozet, form yok
+     (b) giris yapilmis      -> kod formu (QR'dan geldiyse kod dolu gelir)
+     (c) giris yok           -> girise yonlendir, KODU KAYBETME
+   ============================================================ */
+const KOD_ANAHTAR = "cebimde.sahiplenme.";
+
+async function sahiplikKatmani(m){
+  const rozet = document.getElementById("sahiplikRozet");
+  const form  = document.getElementById("sahiplikForm");
+  const kutu  = document.getElementById("sahiplikKod");
+  const not   = document.getElementById("sahiplikNot");
+  if (!Kimlik.acik) return;         /* kimlik kurulu degil: hic gosterme */
+
+  /* Karttaki QR isletme sayfasina ?kod=... ile geliyor. Kodu adres
+     cubugunda birakmiyoruz: tarayici gecmisinde ve paylasilan baglantida
+     kalir, oysa tek kullanimlik bir sir. */
+  const P = new URLSearchParams(location.search);
+  const kartKodu = (P.get("kod") || "").trim();
+  if (kartKodu){
+    P.delete("kod");
+    history.replaceState(null, "", location.pathname +
+      (P.toString() ? "?" + P : "") + location.hash);
+  }
+
+  /* Once istemci kurulsun: hazir beklenmeden yapilan sorgu sessizce
+     bos doner ve mekan "sahiplenilmemis" gorunur. */
+  try { await Kimlik.hazir; } catch (e) { return; }
+
+  let sahipli = null;
+  try { sahipli = await Kimlik.mekanSahiplenilmis(m.id); }
+  catch (e) { return; }
+  /* null = sahiplenme kurulu degil. Form da rozet de gosterilmiyor. */
+  if (sahipli === null) return;
+
+  if (sahipli){
+    rozet.hidden = false;
+    return;                          /* (a) */
+  }
+
+  if (!Kimlik.girisli){
+    /* (c) Giris sayfasina giderken kodu YANIMIZDA goturuyoruz; donuste
+       kullanici kodu bir daha yazmasin. */
+    if (kartKodu){
+      /* Kod GIRIS ADRESINE KONMUYOR. Tek kullanimlik bir sir; oraya
+         yazilsa tarayici gecmisine ve paylasilan baglantiya girerdi.
+         sessionStorage aynı sekmede yasiyor, donuste okunuyor. */
+      try { sessionStorage.setItem(KOD_ANAHTAR + m.id, kartKodu); } catch (e) {}
+      const donus = location.pathname + "?" +
+        new URLSearchParams({ il: IL, id: m.id });
+      form.hidden = false;
+      kutu.value = kartKodu;
+      kutu.disabled = true;
+      not.innerHTML = 'Kodu aldık. <a href="giris.html?donus=' +
+        encodeURIComponent(donus) + '">Giriş yap</a>, sayfa senin olsun.';
+      document.getElementById("sahiplikGonder").disabled = true;
+    }
+    return;
+  }
+
+  form.hidden = false;              /* (b) */
+  /* Giristen donduysek kod sessionStorage'da bekliyor. Okunur okunmaz
+     siliniyor: tek kullanimlik ve isi bitti. */
+  let bekleyen = null;
+  try {
+    bekleyen = sessionStorage.getItem(KOD_ANAHTAR + m.id);
+    if (bekleyen) sessionStorage.removeItem(KOD_ANAHTAR + m.id);
+  } catch (e) {}
+  if (kartKodu || bekleyen) kutu.value = kartKodu || bekleyen;
+
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+    const dugme = document.getElementById("sahiplikGonder");
+    dugme.disabled = true;
+    not.className = "katki-not";
+    not.textContent = "Kontrol ediliyor…";
+    try {
+      await Kimlik.sahiplikTalep(kutu.value);
+      form.hidden = true;
+      rozet.hidden = false;
+      /* Sahiplik katki formunun davranisini degistiriyor (artik kuyruga
+         girmiyor), o yuzden metni de guncelliyoruz. */
+      const kn = document.getElementById("katkiNot");
+      if (kn) kn.textContent =
+        "Sayfa artık senin: eklediğin bilgi sıraya girmeden yayına çıkıyor.";
+    } catch (err){
+      not.className = "katki-not kotu";
+      not.textContent = err.message;
+      dugme.disabled = false;
+    }
+  });
+}
+
+async function katkiFormu(m, eksik){
+  const form = document.getElementById("katkiForm");
+  /* Kimlik kurulu degilse form hic gorunmez: calismayan bir kutu
+     gostermek, hic gostermemekten kotu. */
+  if (!Kimlik.acik) return;
+
+  /* Kimlik.acik yalniz YAPILANDIRMANIN dolu oldugunu soyluyor -- istemcinin
+     gercekten kurulup kurulmadigini degil. supabase-js CDN'den geliyor ve
+     gelmeyebiliyor (Leaflet'te tam olarak bu oldu, kesfet ekraninin
+     TAMAMINI goturmustu). O halde form gorunuyor, kullanici dolduruyor,
+     Kimlik.girisli false oldugu icin de "giris yap" diye OLU bir giris
+     sayfasina firlatiliyordu. Ust satirdaki kuralin kendisi bunu yasakliyor;
+     burada eksik uygulanmis. */
+  try { if (!(await Kimlik.hazir)) return; } catch (e) { return; }
+
+  /* menu BILEREK disarida: fiyatin hatti paylas.html + fis katmani.
+     Ayni veriyi iki yerden toplamak iki ayri dogruya yol acar. */
+  const alanlar = eksik.filter(k => Object.prototype.hasOwnProperty.call(KATKI_IPUCU, k));
+  if (!alanlar.length) return;
+
+  const sec = document.getElementById("katkiAlan");
+  const gir = document.getElementById("katkiDeger");
+  const not = document.getElementById("katkiNot");
+  const dug = document.getElementById("katkiGonder");
+
+  sec.innerHTML = alanlar.map(k =>
+    '<option value="' + kacir(k) + '">' + kacir(KATKI_ALAN[k]) + "</option>").join("");
+
+  const ipucu = () => {
+    not.classList.remove("kotu");
+    not.textContent = KATKI_IPUCU[sec.value] || "";
+    gir.value = "";
+  };
+  sec.addEventListener("change", ipucu);
+  ipucu();
+
+  const donus = "isletme.html?il=" + encodeURIComponent(IL) + "&id=" + encodeURIComponent(ID);
+  Kimlik.izle(d => { dug.textContent = d.girisli ? "Ekle" : "Giriş yap ve ekle"; });
+
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+    if (!Kimlik.girisli){
+      location.href = "giris.html?donus=" + encodeURIComponent(donus);
+      return;
+    }
+    const alan = sec.value, deger = gir.value.trim();
+    /* Dogrulama ortak.js'te: saat kurali acikMi()'nin kendisiyle olculuyor,
+       burada ikinci bir kural yazmak ikisini ayristirirdi. */
+    const sorun = katkiSorunu(alan, deger);
+    if (sorun){ not.textContent = sorun; not.classList.add("kotu"); gir.focus(); return; }
+
+    dug.disabled = true;
+    const eskiMetin = dug.textContent;
+    dug.textContent = "Gönderiliyor…";
+    try {
+      await Kimlik.katkiGonder({ mekanId: ID, il: IL, mekanAd: m.ad, alan, deger });
+      form.innerHTML = '<p><strong>Teşekkürler, aldım.</strong> ' +
+        "Kontrol ettikten sonra bu sayfada görünecek.</p>";
+    } catch (hata) {
+      not.textContent = hata.message;
+      not.classList.add("kotu");
+      dug.disabled = false;
+      dug.textContent = eskiMetin;
+    }
+  });
+
+  form.hidden = false;
 }
 
 if (!ID || !IL || IL === "00"){
@@ -193,10 +962,22 @@ if (!ID || !IL || IL === "00"){
 } else {
   fetch("veri/" + encodeURIComponent(IL) + ".json")
     .then(r => r.ok ? r.json() : Promise.reject(r.status))
-    .then(d => {
+    .then(async ham => {
+      const d = ilCoz(ham);            /* sikistirilmis bicim: veri_bicim.py */
       const m = (d.mekanlar || []).find(x => x.id === ID);
-      if (m) goster(m, d.il);
-      else document.getElementById("hata").hidden = false;
+      if (!m){ document.getElementById("hata").hidden = false; return; }
+      /* Katkilar cizimden ONCE uygulaniyor: bilgi listesi, eksik paneli ve
+         katki formu ayni m nesnesini okuyor. Sonradan yamamak, sayfanin bir
+         yerinde "telefon yok" derken otekinde telefon gostermek demekti. */
+      await katkilariUygula(m);
+      /* Ilin tamami civar kutusu icin duruyor: mekanin cevresinde ne
+         oldugunu bilmenin baska yolu yok, koordinatlar yalniz burada. */
+      ilMekanlari = d.mekanlar || [];
+      /* Zincir haritasi il listesinden cikiyor: fiyatin kac subede AYNI
+         oldugunu bilmenin baska yolu yok. Il yuklenmeden hesaplanamaz,
+         o yuzden burada. */
+      zincir = zincirHaritasi(ilMekanlari);
+      goster(m, d.il);
     })
     .catch(() => { document.getElementById("hata").hidden = false; });
 }
@@ -205,28 +986,716 @@ if (!ID || !IL || IL === "00"){
    Fiyatin kaynagi menu degil, GIDEN INSAN. Menu fiyati bir kalemin fiyati;
    fis "3 kisi gittik, 850 verdik" diyor -- kullanicinin sordugu soru bu.
 
-   ESIK KURALI: ortalama ancak 3 fisten sonra gosteriliyor. Iki sebep:
-   (1) tek fis bir kisinin o gunku secimidir, mekanin fiyati degil;
-   (2) k-anonimlik -- tek fis, tanidigi biri tarafindan kisiye baglanabilir.
-   Esigin altinda sayi gizlenip KAC FIS KALDIGI soyleniyor; boylece esik
-   kendisi katki cagrisina donusuyor. */
-const FIS_ESIK = 3;
+   ESIK KURALI VE CUMLE KURULUSU ARTIK ORTAK.JS'TE (FIS_ESIK, fisOzeti).
+   Burada tanimliyken kesfet ekrani esikten habersizdi ve TEK FISTEN
+   "kisi basi ~X TL" basiyordu -- yani bu sayfanin gizledigi seyi oteki
+   sayfa yayimliyordu. Ayni kural iki yerde yasayamaz.
 
-/* Saf: fis listesi -> gosterilecek cumle. Ayri duruyor cunku esik mantigi
-   sessizce bozulursa ya kisiyi ifsa ederiz ya da katki cagrisi kaybolur. */
-function fisOzeti(l){
-  if (!l || !l.length)
-    return "Buranın fiyatını kimse yazmamış. Gittiysen ödediğini yaz — " +
-           "bir sonraki kişi kazık yemeden gitsin.";
-  if (l.length < FIS_ESIK)
-    return "Şu ana kadar " + sayi(l.length) + " fiş var. " +
-           (FIS_ESIK - l.length) + " tane daha gelince ortalama burada görünecek.";
-  const kb = l.map(p => Number(p.tutar) / Math.max(1, p.kisi)).sort((x, y) => x - y);
-  const o = kb.length >> 1;
-  const medyan = Math.round(kb.length % 2 ? kb[o] : (kb[o - 1] + kb[o]) / 2);
-  const kisi = new Set(l.map(p => p.kullanici).filter(Boolean)).size;
-  return "Kişi başı ~" + tl(medyan) + " · " +
-         (kisi ? sayi(kisi) + " kişinin " : "") + sayi(l.length) + " fişinden.";
+   Ozet SUNUCUDAN geliyor: {fis, kisi, medyan}. Kisi sayimi orada, cunku
+   `kullanici` sutunu tarayiciya kapali (sema.sql "Sutun yetkisi"). */
+
+/* ============================================================
+   Fotograflar
+
+   Uc kaynak, uc ayri guven seviyesi:
+     sahip     -> dogrulanmis isletme sahibi. Dogrudan yayinda; sahiplik
+                  SAHADA, elden verilen kodla kazaniliyor.
+     kullanici -> giden biri cekti. Onaydan gecer.
+     commons   -> Wikimedia. Serbest lisansli ama ATIF ZORUNLU.
+
+   ATIF SILINEMEZ. CC BY ve CC BY-SA, yazar adini ve lisansi gostermeyi
+   sart kosuyor; gostermeyen kullanim lisansi ihlal eder. Bu yuzden
+   commons satiri atifsiz CIZILMIYOR -- veritabani kisiti da atifsiz
+   satiri kabul etmiyor, iki kapi da kapali.
+
+   Google Maps ve benzeri kaynaklar buraya GIRMIYOR: o fotograflar
+   yazarlarinin telifinde ve platforma lisansli, kendi sitemizde
+   yayimlama hakkimiz yok. CEBIMDE.md "Yapilmayacaklar" listesinde
+   yazili bir karar.
+   ============================================================ */
+const KAYNAK_ROZET = { sahip: "işletmeden", commons: "" , kullanici: "" };
+
+/* Bir fotograf GOSTERILEBILIR mi. Kural TEK YERDE: kapak da, serit de
+   ayni suzgecten geciyor. Ikisi ayri yazilsaydi, atifsiz bir commons
+   fotografi seritte gizlenip kapakta gosterilebilirdi. */
+function kapaklikMi(f){
+  if (!f) return null;
+  const adres = f.adres || Kimlik.mekanFotoAdresi(f.yol);
+  if (!adres) return null;
+  const commons = f.kaynak === "commons";
+  /* Commons ATIFSIZ cizilmiyor: eksikse fotografi hic gostermiyoruz.
+     Atifsiz gostermek, lisansi ihlal etmek olurdu. */
+  if (commons && !(f.yazar && f.lisans && f.kaynak_bag)) return null;
+  return { adres, commons };
+}
+
+function fotoKutusu(f){
+  const uygun = kapaklikMi(f);
+  if (!uygun) return "";
+  const adres = uygun.adres, commons = uygun.commons;
+
+  const rozet = KAYNAK_ROZET[f.kaynak]
+    ? '<span class="galeri-rozet">' + kacir(KAYNAK_ROZET[f.kaynak]) + "</span>" : "";
+  const atif = commons
+    ? '<div class="galeri-atif">' + kacir(f.yazar) + " · " +
+      '<a href="' + kacir(guvenliBag(f.kaynak_bag)) + '" target="_blank" rel="noopener">' +
+      kacir(f.lisans) + "</a> · Wikimedia Commons</div>"
+    : (f.aciklama ? '<div class="galeri-atif">' + kacir(f.aciklama) + "</div>" : "");
+
+  /* IC ICE <a> OLMAZ. Ilk yazimda atif (icinde lisans baglantisi olan bir
+     div) fotograf baglantisinin ICINE konmustu; ic ice bagi HTML kabul
+     etmiyor ve tarayici yapiyi BOLUYOR -- kutu sayisi 3 yerine 4 cikti,
+     atif blogu disari tasti. Simdi bag yalniz RESMI sariyor, atif kardes.
+
+     Commons fotografi KAYNAK SAYFASINA baglaniyor (lisans oradan
+     dogrulanabilsin); yuklenen fotograf yalniz buyutuluyor. */
+  const hedef = commons ? guvenliBag(f.kaynak_bag) : adres;
+  return '<div class="galeri-kutu" data-resim>' +
+    '<a href="' + kacir(hedef) + '" target="_blank" rel="noopener">' +
+      rozet +
+      '<img src="' + kacir(adres) + '" alt="' + kacir(f.aciklama || "") +
+      '" loading="lazy">' +
+    "</a>" + atif +
+  "</div>";
+}
+
+/* Kapak: listenin ilk UYGUN karesi. Sirasi galeriyle ayni (en yeni
+   once), yani seritte ilk gorunen fotograf kapakta da o. */
+function kapagiCiz(liste, mekanAd){
+  const bol = document.getElementById("kapak");
+  if (!bol) return;
+  const f = (liste || []).find(x => kapaklikMi(x));
+  if (!f){ bol.hidden = true; return; }
+  const u = kapaklikMi(f);
+  const im = document.getElementById("kapakResim");
+  im.src = u.adres;
+  /* alt metni ACIKLAMADAN geliyor; yoksa mekanin adi. Bos birakmak,
+     ekran okuyucuya fotografi hic anlatmamak olurdu. */
+  im.alt = f.aciklama || (mekanAd + " fotoğrafı");
+  const atif = document.getElementById("kapakAtif");
+  if (u.commons){
+    /* Lisans baglantisi KAPAKTA DA duruyor: fotograf buyudu diye atif
+       kaybolamaz. */
+    atif.innerHTML = kacir(f.yazar) + " · " +
+      '<a href="' + kacir(guvenliBag(f.kaynak_bag)) + '" target="_blank" ' +
+      'rel="noopener">' + kacir(f.lisans) + "</a> · Wikimedia Commons";
+    atif.hidden = false;
+  } else if (f.kaynak === "sahip"){
+    atif.textContent = "işletmeden";
+    atif.hidden = false;
+  } else {
+    atif.textContent = "";
+    atif.hidden = true;
+  }
+  bol.hidden = false;
+}
+
+async function galeriKatmani(mekanId, mekanAd, ilKod){
+  const bol = document.getElementById("galeri");
+  const serit = document.getElementById("galeriSerit");
+  const ekle = document.getElementById("mekanFoto");
+
+  if (!Kimlik.acik) return;
+  try { if (!(await Kimlik.hazir)) return; } catch (e) { return; }
+
+  async function ciz(){
+    const l = await Kimlik.mekanFotograflari(mekanId);
+    const html = l.map(fotoKutusu).filter(Boolean).join("");
+    serit.innerHTML = html;
+    bol.hidden = !html;
+    kapagiCiz(l, mekanAd);
+  }
+  await ciz();
+
+  /* Ekleme formu: giris sarti yok, dugme metni durumu soyluyor. */
+  const alan = document.getElementById("mfDosya");
+  const onizle = document.getElementById("mfOnizleme");
+  const fsil = document.getElementById("mfSil");
+  const not = document.getElementById("mfNot");
+  const dug = document.getElementById("mfGonder");
+  const form = document.getElementById("mfForm");
+  let yol = null, onizlemeAdresi = "";
+
+  const donus = "isletme.html?il=" + encodeURIComponent(ilKod) +
+                "&id=" + encodeURIComponent(mekanId);
+  Kimlik.izle(d => { dug.textContent = d.girisli ? "Gönder" : "Giriş yap ve ekle"; });
+  ekle.hidden = false;
+
+  function temizle(){
+    yol = null;
+    if (onizlemeAdresi){ URL.revokeObjectURL(onizlemeAdresi); onizlemeAdresi = ""; }
+    onizle.hidden = true; onizle.removeAttribute("src");
+    fsil.hidden = true; alan.value = "";
+  }
+
+  alan.addEventListener("change", async e => {
+    const d = e.target.files && e.target.files[0];
+    if (!d) return;
+    if (!Kimlik.girisli){
+      not.textContent = "Fotoğraf eklemek için önce giriş yap.";
+      not.classList.add("kotu"); alan.value = ""; return;
+    }
+    not.classList.remove("kotu");
+    not.textContent = "Fotoğraf hazırlanıyor…";
+    try {
+      yol = await Kimlik.mekanFotoYukle(d);
+      onizlemeAdresi = URL.createObjectURL(d);
+      onizle.src = onizlemeAdresi; onizle.hidden = false; fsil.hidden = false;
+      not.textContent = "Fotoğraf eklendi. Konum ve cihaz bilgisi silindi.";
+    } catch (hata){
+      temizle();
+      not.textContent = hata.message; not.classList.add("kotu");
+    }
+  });
+  fsil.addEventListener("click", temizle);
+
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+    if (!Kimlik.girisli){
+      location.href = "giris.html?donus=" + encodeURIComponent(donus);
+      return;
+    }
+    if (!yol){
+      not.textContent = "Önce bir fotoğraf seç.";
+      not.classList.add("kotu"); return;
+    }
+    dug.disabled = true;
+    const eski = dug.textContent;
+    dug.textContent = "Gönderiliyor…";
+    try {
+      await Kimlik.mekanFotoGonder({
+        mekanId, il: ilKod, mekanAd, yol,
+        aciklama: document.getElementById("mfAciklama").value
+      });
+      /* Isletme sahibinin fotografi DOGRUDAN yayinda (tetikleyici); o
+         yuzden gonderdikten sonra seridi yeniden ciziyoruz -- sahibi
+         kendi fotografini aninda gormeli. */
+      await ciz();
+      form.innerHTML = '<p><strong>Teşekkürler, aldım.</strong> ' +
+        "Kontrol ettikten sonra bu sayfada görünecek.</p>";
+    } catch (hata){
+      not.textContent = hata.message; not.classList.add("kotu");
+      dug.disabled = false; dug.textContent = eski;
+    }
+  });
+}
+
+/* ============================================================
+   Menü katkıları
+
+   paylasimlar bir HESAP tasiyor ("3 kisi, 850 TL"); burasi bir LISTE
+   FIYATI ("Latte 95 TL"). Ayri sorular.
+
+   GOSTERILEN ORTALAMAYA GIRMIYOR. O hesap fiyat_analiz.py'de, Python'da
+   yapiliyor: kategori ayrimi, ana urun orani, alt sinirlar. Ayni kurali
+   tarayicida ikinci kez yazmak, iki dilde iki dogru demekti -- bu depoda
+   en pahali hatalar tam olarak oyle cikti. Onaylanan kalemler AYRI
+   duruyor; sonraki veri uretiminde boru hattina disaridan besleniyor.
+   ============================================================ */
+async function menuKatkiKatmani(mekanId, mekanAd, ilKod){
+  const bol  = document.getElementById("menuKatki");
+  const yuva = document.getElementById("mkListe");
+  const form = document.getElementById("mkForm");
+  const not0 = document.getElementById("mkNot0");
+
+  if (!Kimlik.acik) return;
+  /* Kimlik.acik yalniz YAPILANDIRMANIN dolu oldugunu soyluyor; istemcinin
+     kurulup kurulmadigini degil. Calismayan bir kutu gostermek, hic
+     gostermemekten kotu (katki formunda olculmus hata). */
+  try { if (!(await Kimlik.hazir)) return; } catch (e) { return; }
+
+  async function ciz(){
+    const l = await Kimlik.mekanMenuKatkilari(mekanId);
+    const kalemler = l.filter(k => k.urun && k.fiyat != null);
+    const fotolar  = l.filter(k => k.foto);
+    not0.textContent = l.length
+      ? "Buraya gidenlerin eklediği fiyatlar. İşletmenin kendi yayımladığı " +
+        "menüden ayrı duruyor ve ortalama hesabına girmiyor."
+      : "Buranın menüsünü kimse eklememiş.";
+    yuva.innerHTML =
+      kalemler.map(k =>
+        '<div class="mk-kalem"><span>' + kacir(k.urun) + "</span><b>" +
+        tl(k.fiyat) + "</b></div>").join("") +
+      (fotolar.length
+        ? '<div class="mk-fotolar">' + fotolar.map(k => {
+            const u = Kimlik.menuFotoAdresi(k.foto);
+            return u ? '<a data-resim href="' + kacir(u) + '" target="_blank" rel="noopener">' +
+                       '<img src="' + kacir(u) + '" alt="Menü fotoğrafı" loading="lazy">' +
+                       "</a>" : "";
+          }).join("") + "</div>"
+        : "");
+    bol.hidden = false;
+  }
+  await ciz();
+
+  const urun  = document.getElementById("mkUrun");
+  const fiyat = document.getElementById("mkFiyat");
+  const not   = document.getElementById("mkNot");
+  const dug   = document.getElementById("mkGonder");
+  const alan  = document.getElementById("mkFoto");
+  const onizle= document.getElementById("mkOnizleme");
+  const fsil  = document.getElementById("mkFotoSil");
+  let fotoYolu = null;
+  let onizlemeAdresi = "";
+
+  const donus = "isletme.html?il=" + encodeURIComponent(ilKod) +
+                "&id=" + encodeURIComponent(mekanId);
+  Kimlik.izle(d => { dug.textContent = d.girisli ? "Gönder" : "Giriş yap ve ekle"; });
+  form.hidden = false;
+
+  function fotoTemizle(){
+    fotoYolu = null;
+    if (onizlemeAdresi){ URL.revokeObjectURL(onizlemeAdresi); onizlemeAdresi = ""; }
+    onizle.hidden = true; onizle.removeAttribute("src");
+    fsil.hidden = true;
+    alan.value = "";
+  }
+
+  alan.addEventListener("change", async e => {
+    const d = e.target.files && e.target.files[0];
+    if (!d) return;
+    if (!Kimlik.girisli){
+      not.textContent = "Fotoğraf eklemek için önce giriş yap.";
+      not.classList.add("kotu");
+      alan.value = "";
+      return;
+    }
+    not.classList.remove("kotu");
+    not.textContent = "Fotoğraf hazırlanıyor…";
+    try {
+      /* Yukleme SIMDI yapiliyor, gonderirken degil: kullanici formu
+         doldururken beklemesin ve resmin gercekten yuklendigini gonder
+         tusuna basmadan gorsun. Vazgecerse dosya kovada kaliyor ama
+         hicbir kayda bagli degil -- yoneticinin gordugu liste yalniz
+         tabloya bakiyor. */
+      fotoYolu = await Kimlik.menuFotoYukle(d);
+      onizlemeAdresi = URL.createObjectURL(d);
+      onizle.src = onizlemeAdresi;
+      onizle.hidden = false;
+      fsil.hidden = false;
+      not.textContent = "Fotoğraf eklendi. Konum ve cihaz bilgisi silindi.";
+    } catch (hata){
+      fotoTemizle();
+      not.textContent = hata.message;
+      not.classList.add("kotu");
+    }
+  });
+
+  fsil.addEventListener("click", fotoTemizle);
+
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+    if (!Kimlik.girisli){
+      location.href = "giris.html?donus=" + encodeURIComponent(donus);
+      return;
+    }
+    const u = urun.value.trim();
+    const f = fiyat.value.trim();
+    /* Ya kalem (ad + fiyat BIRLIKTE), ya fotograf. Ayni kural
+       veritabaninda da var (menu_katkilari_dolu_check); buradaki
+       eleme yalnizca hatayi alanin yaninda gostermek icin. */
+    if (!fotoYolu && !(u && f)){
+      not.textContent = "Ürün adı ve fiyatını birlikte yaz ya da bir fotoğraf ekle.";
+      not.classList.add("kotu");
+      return;
+    }
+    if ((u && !f) || (!u && f)){
+      not.textContent = "Ürün adı ve fiyatı birlikte olmalı.";
+      not.classList.add("kotu");
+      return;
+    }
+    if (f){
+      const n = Number(f);
+      if (!Number.isFinite(n) || n <= 0 || n > 100000){
+        not.textContent = "Fiyat 0 ile 100.000 ₺ arasında olmalı.";
+        not.classList.add("kotu");
+        return;
+      }
+    }
+    dug.disabled = true;
+    const eski = dug.textContent;
+    dug.textContent = "Gönderiliyor…";
+    try {
+      await Kimlik.menuKatkiGonder({
+        mekanId, il: ilKod, mekanAd,
+        urun: u || null, fiyat: f || null, foto: fotoYolu
+      });
+      form.innerHTML = '<p><strong>Teşekkürler, aldım.</strong> ' +
+        "Kontrol ettikten sonra bu sayfada görünecek.</p>";
+    } catch (hata){
+      not.textContent = hata.message;
+      not.classList.add("kotu");
+      dug.disabled = false;
+      dug.textContent = eski;
+    }
+  });
+}
+
+/* ============================================================
+   Yorumlar
+
+   FIYATTAN AYRI. Fis bir OLCUM tasiyor (850 TL, 3 kisi), yorum bir KANI.
+   Yorumun puani fiyat hesabina GIRMIYOR -- ortalamanin icine kani
+   katmak, iki ayri sorunun cevabini birbirine karistirmakti.
+
+   ONAY SART. Sebep katkilar'dakiyle ayni degil: orada mesele yanlis
+   bilgi, burada hakaret ve karalama. Tek kisilik bir yapida bunun tek
+   savunmasi on onaydir (veritabani/yorum.sql basligi).
+   ============================================================ */
+function yorumKarti(y){
+  const ad = y.yazar_ad || (y.yazar_adi ? "@" + y.yazar_adi : "Bir kullanıcı");
+  const ozet = profilOzeti(y);
+  const res = Kimlik.avatarAdresi(y.yazar_avatar);
+  /* Profilini kapatanin YORUMU gorunur, ADI gorunmez (mekan_yorumlari):
+     yorum mekana ait bir bilgi, kisiye ait olan sey ad ve fotograf.
+     Adi yoksa profil baglantisi da yok. */
+  const adHTML = y.yazar_adi
+    ? '<a href="profil.html?k=' + encodeURIComponent(y.yazar_adi) + '">' + kacir(ad) + "</a>"
+    : kacir(ad);
+  return '<article class="y-kayit">' +
+    '<div class="y-avatar" aria-hidden="true">' +
+      (res ? '<img src="' + kacir(res) + '" alt="">' : kacir(basHarf(ad))) +
+    "</div>" +
+    '<div class="y-govde"><div class="y-ust"><b>' + adHTML + "</b>" +
+      (ozet ? "<span>" + kacir(ozet) + "</span>" : "") +
+      yildiz(y.puan) +
+      "<span>" + kacir(tarihYaz(y.olusturuldu)) + "</span></div>" +
+      (y.metin ? '<p class="y-metin">' + kacir(y.metin) + "</p>" : "") +
+    "</div></article>";
+}
+
+function tarihYaz(t){
+  const d = new Date(t);
+  return isNaN(d) ? "" : d.toLocaleDateString("tr-TR", { year:"numeric", month:"long" });
+}
+
+async function yorumKatmani(mekanId, mekanAd, ilKod){
+  const bol  = document.getElementById("yorumlar");
+  const yuva = document.getElementById("yorumListe");
+  const bas  = document.getElementById("yorumPuan");
+  const form = document.getElementById("yorumForm");
+
+  if (!Kimlik.acik) return;
+  /* Kimlik.acik yalniz YAPILANDIRMANIN dolu oldugunu soyluyor. Istemci
+     gercekten kuruldu mu, ancak hazir beklenince belli oluyor -- katki
+     formunda ayni hata olmustu: calismayan bir kutu gostermek, hic
+     gostermemekten kotu. */
+  try { if (!(await Kimlik.hazir)) return; } catch (e) { return; }
+
+  async function ciz(){
+    const l = await Kimlik.mekanYorumlari(mekanId);
+    /* Ortalama ancak YORUM_ESIK'ten sonra: tek yorum bir egilim degil,
+       o gunku bir kanidir. Esik ortak.js'te, fis esigiyle ayni kural.
+       Esigin altinda SAYI gosterilip ortalama gizleniyor. */
+    if (l.length >= YORUM_ESIK){
+      const ort = l.reduce((t, y) => t + Number(y.puan), 0) / l.length;
+      bas.innerHTML = yildiz(ort) + " <span>" +
+        kacir(ort.toFixed(1).replace(".", ",")) + " · " + sayi(l.length) + " yorum</span>";
+    } else if (l.length){
+      bas.innerHTML = "<span>" + sayi(l.length) + " yorum · ortalama " +
+        (YORUM_ESIK - l.length) + " yorum sonra</span>";
+    } else {
+      bas.textContent = "";
+    }
+    yuva.innerHTML = l.length
+      ? l.map(yorumKarti).join("")
+      : '<p class="katki-not">Buraya kimse yorum yazmamış. İlk sen yaz.</p>';
+    bol.hidden = false;
+  }
+  await ciz();
+
+  /* Puan secici. Zorunlu alan: puansiz yorum siralanamaz. */
+  let puan = 0;
+  const dugmeler = [...form.querySelectorAll("[data-puan]")];
+  function puanYaz(){
+    dugmeler.forEach(d =>
+      d.setAttribute("aria-pressed", String(+d.dataset.puan <= puan)));
+  }
+  dugmeler.forEach(d => d.addEventListener("click", () => {
+    puan = +d.dataset.puan;
+    puanYaz();
+    document.getElementById("yorumNot").textContent = "";
+  }));
+
+  const not = document.getElementById("yorumNot");
+  const dug = document.getElementById("yorumGonder");
+  const donus = "isletme.html?il=" + encodeURIComponent(ilKod) +
+                "&id=" + encodeURIComponent(mekanId);
+  Kimlik.izle(d => { dug.textContent = d.girisli ? "Gönder" : "Giriş yap ve yaz"; });
+  form.hidden = false;
+
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+    if (!Kimlik.girisli){
+      location.href = "giris.html?donus=" + encodeURIComponent(donus);
+      return;
+    }
+    if (!puan){
+      not.textContent = "Önce bir puan seç.";
+      not.classList.add("kotu");
+      return;
+    }
+    const metin = document.getElementById("yorumMetin").value.trim();
+    if (metin && metin.length < 3){
+      not.textContent = "Yorum en az 3 karakter olmalı ya da boş bırak.";
+      not.classList.add("kotu");
+      return;
+    }
+    dug.disabled = true;
+    const eski = dug.textContent;
+    dug.textContent = "Gönderiliyor…";
+    try {
+      await Kimlik.yorumGonder({ mekanId, il: ilKod, mekanAd, puan, metin });
+      form.innerHTML = '<p><strong>Teşekkürler, aldım.</strong> ' +
+        "Kontrol ettikten sonra bu sayfada görünecek.</p>";
+    } catch (hata){
+      not.textContent = hata.message;
+      not.classList.add("kotu");
+      dug.disabled = false;
+      dug.textContent = eski;
+    }
+  });
+}
+
+/* Rozet IKI KEZ ciziliyor: once fissiz (sayfa hemen dolsun), sonra fis
+   ozeti agdan gelince yeniden. Uc fis gelmis bir mekan menusu olmasa da
+   YESIL -- ve o bilgi ancak agdan sonra biliniyor. Tek cizimde biraksak
+   fisle dogrulanmis mekan kirmizi kalirdi.
+
+   Mekan nesnesi saklaniyor cunku ikinci cizim fisKatmani'nden geliyor ve
+   orada m yok. */
+let _guvenMekan = null;
+
+/* Fis ozeti ve oy ozeti AYRI ZAMANLARDA geliyor; ikisi de rozeti
+   etkiliyor. Son degerler saklanmasa, oy gelince fis unutulurdu (ya da
+   tersi) ve rozet iki agdan hangisi once dondugune gore degisirdi. */
+let _sonFisOzeti = null, _sonOyOzeti = null;
+
+function guvenTazele(m, ozet, oy){
+  if (m) _guvenMekan = m;
+  if (ozet !== undefined) _sonFisOzeti = ozet;
+  if (oy !== undefined) _sonOyOzeti = oy;
+  const kutu = document.getElementById("guven");
+  if (!kutu || !_guvenMekan) return;
+  const g = fiyatGuveni(_guvenMekan, zincir, _sonFisOzeti, _sonOyOzeti);
+  kutu.innerHTML = guvenRozeti(g) +
+    (g && g.neden ? ' <span class="guven-neden">' + kacir(g.neden) + "</span>" : "");
+  kutu.hidden = false;
+}
+
+/* ---------- menu listesi ----------
+   Kalemler FIYATA GORE ARTAN siralaniyor: uygulamanin sorusu "burada ne
+   yenir" degil "bu parayla ne yenir", ve ucuzdan pahaliya sira o soruyu
+   ilk satirda cevapliyor. Fiyatsiz kalem en sona gidiyor -- rakami
+   olmayan bir satir listeyi bolmemeli.
+
+   Ilk 12 kalem aciliyor: mekan basina ortanca 34 kalem var (en cok 50)
+   ve 50 satirlik bir liste sayfanin altindaki fis, civar ve katki
+   bolumlerini ekranin cok asagisina itiyordu. */
+const MENU_ILK = 12;
+
+function menuSatiri(k, butce){
+  const asiyor = butce > 0 && k.f != null && k.f > butce;
+  const fiyat = k.f != null ? tl(k.f) : "fiyat yok";
+  return '<li class="' + (asiyor ? "asiyor" : "") + '"' +
+    (asiyor ? ' title="' + kacir(tl(butce)) + " bütçenin üstünde" + '"' : "") +
+    '><span class="menu-ad">' + kacir(k.a || "") +
+    (k.k ? '<span class="menu-kat">' + kacir(k.k) + "</span>" : "") +
+    '</span><span class="menu-fiyat' + (k.f == null ? " yok" : "") + '">' +
+    kacir(fiyat) + "</span></li>";
+}
+
+function menuListesi(m, butce){
+  const bol = document.getElementById("menuListe");
+  const mn  = (m.menu || []).slice();
+  if (!mn.length){ bol.hidden = true; return; }
+
+  /* Fiyatsiz kalem en sona. Number.MAX_VALUE yerine ayri dal:
+     karsilastirmayi rakama cevirmek fiyatsiz kalemi "cok pahali"
+     yapardi ve butce sayimina da oyle girerdi. */
+  mn.sort((a, b) => {
+    if (a.f == null && b.f == null) return 0;
+    if (a.f == null) return 1;
+    if (b.f == null) return -1;
+    return a.f - b.f;
+  });
+
+  /* Butce cumlesi SAYIYA dayaniyor, tahmine degil: kac kalemin fiyati
+     bu butcenin altinda, o yaziliyor. */
+  const fiyatli = mn.filter(k => k.f != null).length;
+  const not = document.getElementById("menuNot");
+  const parca = [sayi(mn.length) + " kalem"];
+  if (fiyatli < mn.length) parca.push(sayi(fiyatli) + " tanesinin fiyatı yazıyor");
+  if (butce > 0){
+    const girer = mn.filter(k => k.f != null && k.f <= butce).length;
+    parca.push(tl(butce) + " ile " + sayi(girer) + " kalem alınabiliyor");
+  }
+  const yas = fiyatYasEtiketi(m);
+  if (yas) parca.push(yas.ad);
+  not.textContent = parca.join(" · ") + ".";
+
+  const satirlar = document.getElementById("menuSatirlar");
+  const dugme = document.getElementById("menuHepsi");
+  let acik = false;
+  function yaz(){
+    const gosterilen = acik ? mn : mn.slice(0, MENU_ILK);
+    satirlar.innerHTML = gosterilen.map(k => menuSatiri(k, butce)).join("");
+    if (mn.length <= MENU_ILK){ dugme.hidden = true; return; }
+    /* Kalan sayi DUGMEDE yaziyor: "hepsini goster" tek basina kac
+       satirin gizlendigini soylemiyor. */
+    dugme.hidden = false;
+    dugme.textContent = acik
+      ? "İlk " + sayi(MENU_ILK) + " kalemi göster"
+      : "Kalan " + sayi(mn.length - MENU_ILK) + " kalemi göster";
+    dugme.setAttribute("aria-expanded", String(acik));
+  }
+  dugme.onclick = () => { acik = !acik; yaz(); };
+  yaz();
+  bol.hidden = false;
+}
+
+/* ---------- sekmeler ----------
+   Marka maketindeki mekan ekraninin duzeni: ad -> sekmeler -> icerik.
+
+   BOLUMLER YERINDE DURUYOR, gorunurlugu CSS sekmeye gore kesiyor
+   (#govde[data-sekme]). DOM'u yeniden kurmak, bolumlerin kimliklerini
+   sorgulayan onlarca satiri bozardi.
+
+   BOS SEKME SESSIZ KALMIYOR. Bir grubun butun bolumleri gizliyse
+   (mekanin yorumu yok, fotografi yok) sekmeye basan kullanici bos bir
+   ekran gorurdu ve "yuklenmedi mi" diye dusunurdu. Sekme degisince
+   sayiliyor ve gerekce yaziliyor. */
+const SEKME_BOS = {
+  menu:  "Bu mekanın menüsü henüz yok. Menüyü görüyorsan bir kalemini yazabilirsin.",
+  yorum: "Bu mekana henüz yorum yazılmamış.",
+  foto:  "Bu mekanın fotoğrafı henüz yok.",
+  bilgi: "Bu mekan hakkında gösterilecek ek bilgi yok."
+};
+
+function sekmeyiSec(ad){
+  const govde = document.getElementById("govde");
+  if (!govde) return;
+  govde.dataset.sekme = ad;
+  document.querySelectorAll('.sekme-cubuk [role="tab"]').forEach(d => {
+    const secili = d.dataset.sekme === ad;
+    d.setAttribute("aria-selected", String(secili));
+    d.tabIndex = secili ? 0 : -1;
+  });
+  /* Gruptaki bolumlerden GORUNUR olan var mi. `hidden` yetmiyor:
+     bolum icerigi bosken de DOM'da duruyor. */
+  const dolu = [...document.querySelectorAll('[data-grup="' + ad + '"]')]
+    .some(b => !b.hidden);
+  const bos = document.getElementById("sekmeBos");
+  if (bos){
+    bos.textContent = dolu ? "" : (SEKME_BOS[ad] || "");
+    bos.hidden = dolu;
+  }
+}
+
+function sekmeleriKur(){
+  const cubuk = document.querySelector(".sekme-cubuk");
+  if (!cubuk) return;
+  /* BOLUMLER SONRADAN ACILIYOR. Fis, civar, yorum ve fotograf ag'dan
+     geliyor; menu kombini de goster()'in ilerleyen satirlarinda
+     yaziliyor. Ilk yazimda "bos sekme" satiri bir kez, kurulum aninda
+     hesaplaniyordu ve MENU sekmesi doluyken bile "menusu yok" diyordu
+     -- ekranda hem o cumle hem de kombin kutusu yan yana duruyordu.
+
+     Gozlemci `hidden` degisimini izliyor ve satiri tazeliyor. */
+  const govde = document.getElementById("govde");
+  if (govde && window.MutationObserver){
+    new MutationObserver(kayitlar => {
+      /* KENDI YAZDIGIMIZ DEGISIKLIK SAYILMIYOR. sekmeyiSec() bos-sekme
+         satirinin `hidden` degerini yaziyor; o satir da #govde'nin
+         icinde. Ilk yazimda gozlemci kendi ciktisini gorup tekrar
+         tetikliyordu ve sayfa SONSUZ DONGUYE giriyordu -- ekran
+         goruntusu 30 sn'de zaman asimina dustu, kontrol boyle yakaladi. */
+      if (kayitlar.every(k => k.target.id === "sekmeBos")) return;
+      sekmeyiSec(govde.dataset.sekme || "menu");
+    }).observe(govde, { attributes:true, attributeFilter:["hidden"],
+                        subtree:true });
+  }
+  cubuk.addEventListener("click", e => {
+    const d = e.target.closest("[role=tab]");
+    if (d) sekmeyiSec(d.dataset.sekme);
+  });
+  /* Ok tuslariyla gezinme: ARIA sekme deseninin sart kosdugu davranis.
+     Sekmeye Tab ile gelen kullanici oklarla digerlerine gecebilmeli. */
+  cubuk.addEventListener("keydown", e => {
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    const hepsi = [...cubuk.querySelectorAll("[role=tab]")];
+    const su = hepsi.findIndex(d => d.getAttribute("aria-selected") === "true");
+    const yeni = (su + (e.key === "ArrowRight" ? 1 : hepsi.length - 1)) % hepsi.length;
+    e.preventDefault();
+    sekmeyiSec(hepsi[yeni].dataset.sekme);
+    hepsi[yeni].focus();
+  });
+  sekmeyiSec("menu");
+}
+
+/* ---------- sosyal fiyat dogrulama ----------
+   "Bu fiyat hala gecerli mi" -- tek dokunus.
+
+   KUTU YALNIZ RAKAM VARKEN ACILIYOR: olmayan bir fiyat icin dogrulama
+   istemek, kullaniciya cevaplayamayacagi bir soru sormak olurdu.
+
+   OY EKRANDA GORULEN FIYATA VERILIYOR ve o rakam satira yaziliyor;
+   menu tazelenip fiyat degisirse eski oylar yeni rakami dogrulamis
+   sayilmiyor (sunucu da fiyata gore gruplu donuyor). */
+let _oyFiyat = null;
+
+async function oyKatmani(m, ilKod){
+  const kutu = document.getElementById("oyKutu");
+  if (!kutu) return;
+  const f = yemekFiyati(m);
+  if (f == null) return;                 /* gosterilecek rakam yok */
+  const K = window.Kimlik;
+  if (!K || !K.acik) return;             /* giris sistemi kapali */
+  _oyFiyat = f;
+
+  const ozet = document.getElementById("oyOzet");
+  const not = document.getElementById("oyNot");
+
+  async function tazele(){
+    let satirlar = null;
+    try { satirlar = await K.fiyatOyOzeti([m.id]); }
+    catch (e) { /* fiyat_oyu.sql kurulu degil: kutu hic cikmasin */ }
+    if (satirlar == null){ kutu.hidden = true; return; }
+    /* EKRANDA GOSTERILEN rakamin satiri seciliyor. Baska bir fiyata
+       verilmis oylar bu rakami dogrulamiyor. */
+    const o = satirlar.find(x => x.mekanId === m.id && x.fiyat === f) || null;
+    ozet.textContent = oyCumlesi(o);
+    kutu.hidden = false;
+    /* Rozet oyla birlikte degisiyor: uc kisi "degismis" derse rakam
+       kirmiziya donuyor. */
+    guvenTazele(null, _sonFisOzeti, o);
+    return o;
+  }
+
+  await tazele();
+
+  async function oyVer(gecerli){
+    if (!K.girisli){
+      location.href = "giris.html?donus=" + encodeURIComponent(location.href);
+      return;
+    }
+    const dugmeler = kutu.querySelectorAll("button");
+    dugmeler.forEach(d => { d.disabled = true; });
+    not.textContent = "Gönderiliyor…";
+    not.classList.remove("kotu");
+    try {
+      await K.fiyatOyuVer({ mekanId: m.id, il: ilKod, fiyat: _oyFiyat, gecerli });
+      not.textContent = "Teşekkürler, sayıldı.";
+      await tazele();
+    } catch (hata){
+      not.textContent = hata.message;
+      not.classList.add("kotu");
+      dugmeler.forEach(d => { d.disabled = false; });
+    }
+  }
+
+  document.getElementById("oyEvet").addEventListener("click", () => oyVer(true));
+  document.getElementById("oyHayir").addEventListener("click", () => oyVer(false));
 }
 
 async function fisKatmani(mekanId, mekanAd, ilKod){
@@ -238,61 +1707,123 @@ async function fisKatmani(mekanId, mekanAd, ilKod){
               "&il=" + encodeURIComponent(ilKod) +
               "&mekanId=" + encodeURIComponent(mekanId);
 
-  let l = [];
-  const a = window.OTURALIM || {};
-  if (a.supabaseUrl && a.supabaseAnahtar){
+  let o = null;
+  try {
+    await Kimlik.hazir;
+    o = await Kimlik.fisOzeti(mekanId);
+  } catch (e) { /* ag yok, tablo yok: davet yine gorunsun */ }
+
+  ozet.textContent = fisOzeti(o);
+  /* Fis esigi gecildiyse mekan artik YESIL: menusu olmasa bile fiyati
+     giden insanlar dogrulamis oluyor. Skorun buyume yolu bu. */
+  guvenTazele(null, o);
+  bol.hidden = false;
+}
+
+/* ============================================================
+   Bu civar — "mahalle statusu"
+
+   Fis katmani "burasi kaca oturur" diyor; bu kutu bir ust soruyu
+   cevapliyor: "buranin etrafinda ne var". Ag mekanigi olmasinin sebebi
+   ikinci yarisi -- civardaki mekanlarin kacinin fiyati BILINMIYOR,
+   ekranda yaziyor ve katki cagrisi tam oraya dusuyor. Genel bir
+   "katkida bulun" cagrisi degil, kullanicinin o an baktigi sokak.
+
+   Yaricap ve gerekceler ortak.js civarOzeti()'nde. Mahalle ADI yok
+   cunku veride yok (35.852 mekanda 49 tane, %0,14).
+   ============================================================ */
+let ilMekanlari = [];
+let zincir = null;
+
+async function civarKatmani(m){
+  const o = civarOzeti(m, ilMekanlari);
+  if (!o) return;                       /* tenha yer: uydurulacak bir sey yok */
+
+  const bol   = document.getElementById("civar");
+  const metre = o.yaricap >= 1000 ? (o.yaricap / 1000) + " km" : o.yaricap + " m";
+  document.getElementById("civarBaslik").textContent =
+    "Bu civarda — " + metre + " çevresi";
+
+  /* Fis ozeti: cografya istemcide, toplam sunucuda (akran.sql).
+     akran.sql kurulu degilse null doner ve kutu fissiz cizilir. */
+  let cf = null;
+  if (o.idler.length){
     try {
-      const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.45.4");
-      const sb = createClient(a.supabaseUrl, a.supabaseAnahtar,
-        { auth:{ persistSession:false } });
-      const { data } = await sb.from("paylasimlar")
-        .select("tutar,kisi,tarih,kullanici")
-        .eq("mekan_id", mekanId).eq("durum", "onaylandi")
-        .order("tarih", { ascending:false }).limit(200);
-      l = data || [];
-    } catch (e) { /* ag yok, tablo yok: davet yine gorunsun */ }
+      await Kimlik.hazir;
+      cf = await Kimlik.civarFisOzeti(o.idler);
+    } catch (e) { /* ag yok, fonksiyon yok: kutunun geri kalani yine dogru */ }
   }
 
-  ozet.textContent = fisOzeti(l);
+  const kutular = [
+    ["<b>" + sayi(o.yakin) + "</b><span>mekan</span>"],
+    ["<b>" + sayi(o.fiyatli) + "</b><span>fiyatı biliniyor</span>"]
+  ];
+  /* Fis sayisi esigi gecmeden tutar yazilmiyor -- kural fisGoster()'de,
+     mekanin kendi kutusuyla ayni. Civar daha genis bir kume oldugu icin
+     esigi gevsetmek cazip; gevsetilmiyor, cunku esik k-anonimlik icin
+     ve tek fisli bir civar da tek kisidir. */
+  if (fisGoster(cf))
+    kutular.push(["<b>" + tl(cf.medyan) + "</b><span>kişi başı, " +
+                  sayi(cf.fis) + " fişten</span>"]);
+
+  document.getElementById("civarSayilar").innerHTML =
+    kutular.map(k => "<div>" + k[0] + "</div>").join("");
+
+  document.getElementById("civarTur").innerHTML =
+    o.turler.map(t => "<li>" + kacir(t[0]) + " · " + sayi(t[1]) + "</li>").join("");
+
+  /* Katki cagrisi SAYIYLA: "fiyat ekle" demek soyut, "bu civarda 31
+     mekanin fiyati yok" degil. Hepsi biliniyorsa cagri yapilmiyor --
+     olmayan bir eksigi istemek guveni goturur. */
+  const eksik = o.yakin - o.fiyatli;
+  document.getElementById("civarNot").textContent = eksik > 0
+    ? "Bu civardaki " + sayi(eksik) + " mekanın fiyatı bilinmiyor. " +
+      "Birine gittiysen ödediğini yaz — çevrende oturan herkes görsün."
+    : "Bu civardaki mekanların hepsinin fiyatı biliniyor.";
+
+  document.getElementById("civarBag").href =
+    "kesfet.html?il=" + encodeURIComponent(IL) +
+    "&mekan=" + encodeURIComponent(m.id);
+
   bol.hidden = false;
 }
 
 /* ---------- goruntulenme sayaci ----------
    "Sayfani bu ay 47 kisi gordu" cumlesi butun satis anlatisini tasiyor, o
-   yuzden sayi sisirilebilir olmamali. Tekillik veritabaninda: (mekan, gun,
-   cihaz) birincil anahtar -- sayfayi 40 kez yenilemek sayiyi artirmiyor.
+   yuzden sayi sisirilebilir olmamali.
 
-   KVKK: cihaz kimligi HER GUN yenileniyor. Ayni kisinin iki gunku ziyareti
-   birbirine baglanamaz; kalici ziyaretci kimligi tutulmuyor.
+   ONCEDEN BOYLE DEGILDI: cihaz kimligini BURASI uretiyor (crypto.randomUUID)
+   ve dogrudan tabloya yaziyordu. Yani sayiyi belirleyen sey istemcinin
+   sozuydu; rastgele uuid ureten bir dongu istedigi mekani sisirebilirdi.
+   Simdi istemci kimlik GONDERMIYOR: mekan_goruldu() sunucuda, istegin kendi
+   basliklarindan (IP + tarayici + gun + tuz) bir iz turetiyor. Gerekce ve
+   kalan sinirlar veritabani/sayac.sql basinda yazili.
+
+   Yan kazanc: tarayicida artik hicbir sey saklanmiyor, localStorage'daki
+   cihaz kimligi tamamen kalkti.
 
    Yapilandirma bos ya da tablo kurulmamissa hicbir sey olmuyor: sayfa
    normal calisiyor, satir gizli kaliyor. Sifir gosterilmiyor -- "0 kisi
    bakti" hem cesaret kirici hem de "calismiyor" ile ayirt edilemez. */
-const SAYAC_ANAHTAR = "oturalim.cihaz";
-
-function gunlukCihaz(){
-  const bugun = new Date().toISOString().slice(0, 10);
-  try {
-    const k = JSON.parse(localStorage.getItem(SAYAC_ANAHTAR) || "{}");
-    if (k.gun === bugun && k.id) return k.id;
-    const id = crypto.randomUUID();
-    localStorage.setItem(SAYAC_ANAHTAR, JSON.stringify({ gun:bugun, id }));
-    return id;
-  } catch (e) { return null; }        /* localStorage kapaliysa sayma */
-}
-
 async function sayacCalistir(mekanId){
-  const a = window.OTURALIM || {};
-  if (!a.supabaseUrl || !a.supabaseAnahtar) return;
-  const cihaz = gunlukCihaz();
-  if (!cihaz) return;
   try {
-    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.45.4");
-    const sb = createClient(a.supabaseUrl, a.supabaseAnahtar,
-      { auth:{ persistSession:false } });
+    await Kimlik.hazir;
+    const sb = Kimlik.istemci();
+    if (!sb) return;
 
-    /* Ayni gun ikinci kez bakinca cakisir; hata degil, beklenen durum. */
-    await sb.from("goruntulenme").insert({ mekan_id:mekanId, cihaz });
+    /* Ayni gun ikinci kez bakinca sunucuda cakisir; hata degil, beklenen
+       durum -- fonksiyon sessizce hicbir sey yapmiyor.
+
+       BUTCE BANDI da gidiyor: isletme sahibinin panelindeki tek ozgun
+       sayi "bana bakanlar hangi butceyle ariyordu". TAM TUTAR DEGIL
+       BANT -- sayac satiri (mekan, gun, cihaz) uclusu ve oraya tam
+       rakam yazmak ucluyu daha ayirt edici yapardi.
+
+       Butce URL'den okunuyor; girilmemisse null gidiyor ve dagilima
+       hic girmiyor ("bilinmiyor" ile "farketmez" ayri seyler). */
+    const _bant = butceBandi(new URLSearchParams(location.search).get("butce"));
+    await sb.rpc("mekan_goruldu",
+                 { p_mekan_id:mekanId, p_butce_bandi:_bant });
 
     const { data, error } = await sb.rpc("mekan_sayaci", { p_mekan_id:mekanId });
     if (error || !data || !data.length) return;
@@ -321,23 +1852,55 @@ async function sayacCalistir(mekanId){
   const hata = t.filter(x =>
     JSON.stringify(eksikleriBul(x[0]).sort()) !== JSON.stringify(x[1].slice().sort()));
 
-  /* Fis esigi: altinda SAYI SIZDIRMAMALI (k-anonimlik), ustunde medyan
-     kisi basina gore olmali. Ucu de sessizce bozulabilecek yerler. */
-  const f = (n, tutar, kisi, kul) => Array.from({length:n},
-    (_, i) => ({ tutar, kisi, kullanici: kul ? "k" + (i % kul) : null }));
-  const fisT = [
-    [/kimse yazmamış/.test(fisOzeti([])),                    "bos -> davet"],
-    [/2 tane daha/.test(fisOzeti(f(1, 300, 1))),             "1 fis -> 2 daha lazim"],
-    [!/₺/.test(fisOzeti(f(2, 300, 1))),                      "esik alti tutar sizdirmiyor"],
-    [/300/.test(fisOzeti(f(3, 300, 1))),                     "3 fis -> medyan cikiyor"],
-    [/150/.test(fisOzeti(f(3, 300, 2))),                     "medyan KISI BASINA"],
-    [/2 kişinin 4 fişinden/.test(fisOzeti(f(4, 300, 2, 2))), "tekil katkici sayilir"]
+  /* Katki birlestirme: bos alan dolar, DOLU alan ezilmez, eksik listesi
+     bunun ardindan kuculur. Ucu de sessizce bozulabilecek yerler --
+     ezilme olursa dogrulanmis bilgiyi kullanici katkisi siliyor demektir. */
+  const kb = (m, l) => katkiBirlestir(m, l);
+  const katkiT = [
+    [kb({tur:"Kafe"}, [{alan:"tel", deger:"0312"}]).tel === "0312",  "bos alan dolar"],
+    [kb({tur:"Kafe", tel:"0111"}, [{alan:"tel", deger:"0312"}]).tel === "0111",
+                                                                     "dolu alan EZILMEZ"],
+    [!kb({tur:"Kafe", tel:"0111"}, [{alan:"tel", deger:"0312"}])._katki.has("tel"),
+                                                                     "ezilmeyen alan isaretlenmez"],
+    [kb({tur:"Kafe"}, [{alan:"tel", deger:"yeni"}, {alan:"tel", deger:"eski"}]).tel === "yeni",
+                                                                     "en yeni katki kazanir"],
+    [kb({tur:"Kafe"}, [{alan:"menu", deger:"100"}]).menu === undefined,
+                                                                     "tanimsiz alan yazilmaz"],
+    [eksikleriBul(kb({tur:"Kafe", saat:"a", adres:"b", min:1},
+                     [{alan:"tel", deger:"0312"}, {alan:"web", deger:"a.com"}])).length === 0,
+                                                                     "katki eksik listesini kucultur"],
+    [kb({tur:"Kafe"}, null)._katki.size === 0,                       "bos liste sorun degil"]
   ].filter(x => !x[0]);
 
-  if ((hata.length || fisT.length) && location.hash === "#kontrol")
-    document.body.insertAdjacentHTML("afterbegin",
-      '<pre style="margin:0;padding:12px;background:#5b1a1a;color:#fff">BASARISIZ: ' +
-      hata.map(h => h[2]).concat(fisT.map(x => x[1])).join(", ") + "</pre>");
+  /* Fis esigi: altinda SAYI SIZDIRMAMALI (k-anonimlik), ustunde medyan
+     kisi basina gore olmali. Ucu de sessizce bozulabilecek yerler. */
+  /* Ozet artik SUNUCUDAN geliyor: {fis, kisi, medyan}. Medyanin kisi
+     basina olmasi sema.sql'de (tutar / greatest(kisi,1)); burada sinanan
+     sey ESIK davranisi ve cumlenin kurulusu. */
+  const f = (fis, medyan, kisi) => ({ fis, medyan, kisi: kisi || 0 });
+  const fisT = [
+    [/kimse yazmamış/.test(fisOzeti(null)),                  "ozet yok -> davet"],
+    [/kimse yazmamış/.test(fisOzeti(f(0, null))),            "0 fis -> davet"],
+    [/2 tane daha/.test(fisOzeti(f(1, 300))),                "1 fis -> 2 daha lazim"],
+    [!/₺/.test(fisOzeti(f(2, 300))),                         "esik alti tutar sizdirmiyor"],
+    [/300/.test(fisOzeti(f(3, 300))),                        "3 fis -> medyan cikiyor"],
+    [/2 kişinin 4 fişinden/.test(fisOzeti(f(4, 300, 2))),    "tekil katkici sayilir"],
+    [!/kişinin/.test(fisOzeti(f(4, 300, 0))),                "kisi sayisi yoksa uydurmuyor"]
+  ].filter(x => !x[0]);
+
+  /* Basarida da yaziyor, sadece hatada degil. Sebep: sessiz gecen bir
+     kontrol ile SILINMIS bir kontrol disaridan ayirt edilemiyordu --
+     test_tarayici.mjs "hic cikti yok" gordugunde ikisini de gecti sayiyordu.
+     ortak.js ve kesfet.js zaten boyle davraniyor. */
+  if (location.hash !== "#kontrol") return;
+  const tumu = hata.map(h => h[2])
+    .concat(fisT.map(x => x[1])).concat(katkiT.map(x => x[1]));
+  const gecen = t.length + 7 + 7 - tumu.length;
+  document.body.insertAdjacentHTML("afterbegin",
+    '<pre style="margin:0;padding:12px;color:#fff;background:' +
+    (tumu.length ? "#5b1a1a" : "#1d3a17") + '">' +
+    (tumu.length ? "BASARISIZ: " + tumu.join(", ")
+                 : gecen + " kontrol gecti (eksik bulucu + fis + katki)") + "</pre>");
 
 })();
 </script>

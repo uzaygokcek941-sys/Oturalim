@@ -12,12 +12,17 @@ yazmayan menude "fiyat yok" dedi, alakasiz gorselde bos dizi dondurdu.
     python menu_ocr.py tam     hepsi, kaldigi yerden devam eder
     python menu_ocr.py test    kendini kontrol
 
+Sertifika dogrulamasi acik gelir. Sertifikasi bozuk sitelerden de
+indirmek gerekiyorsa --guvensiz eklenir; bu YALNIZ indirmeleri etkiler,
+API anahtarini tasiyan baglanti her zaman dogrulanir.
+
 Her fiyat kaynak URL'siyle kaydedilir; supheli bir deger cikarsa insan
 ayni gorsele bakip dogrulayabilir.
 """
 import base64
 import collections
 import csv
+import datetime
 import io
 import json
 import os
@@ -251,8 +256,11 @@ def yaz(mekan, site, url, kalemler):
     with io.open(CIKTI, "a", encoding="utf-8", newline="") as f:
         y = csv.writer(f)
         if yeni:
-            y.writerow(["mekan", "website", "kaynak_url", "kalem", "fiyat", "model"])
-        y.writerows([[mekan, site, url, ad, fiyat, MODEL] for ad, fiyat in kalemler])
+            y.writerow(["mekan", "website", "kaynak_url", "kalem", "fiyat",
+                        "model", "tarih"])
+        bugun = datetime.date.today().isoformat()   # bkz. menu_topla.ALANLAR
+        y.writerows([[mekan, site, url, ad, fiyat, MODEL, bugun]
+                     for ad, fiyat in kalemler])
 
 
 def kendini_kontrol_et():
@@ -298,7 +306,7 @@ def kendini_kontrol_et():
     return True
 
 
-def main(kip):
+def main(kip, guvensiz=False):
     if not os.path.exists(BULGU):
         sys.exit("%s yok — once: python menu_pdf_tara.py pilot" % BULGU)
     with io.open(BULGU, encoding="utf-8") as f:
@@ -329,22 +337,38 @@ def main(kip):
 
     k = anahtar()
     basarili = toplam_kalem = 0
-    with httpx.Client(verify=False) as istemci:
+    # IKI AYRI ISTEMCI, bilerek.
+    #
+    # Onceden tek istemci vardi ve verify=False'ti; ayni istemci hem menu
+    # gorselini indiriyor hem de API anahtarini "Authorization: Bearer" ile
+    # NVIDIA'ya gonderiyordu. Yani anahtar, sertifikasi dogrulanmayan bir
+    # baglanti uzerinden gidiyordu. Sertifikasi bozuk birkac restoran
+    # sitesini kurtarmak icin odenecek bedel bu degil.
+    #
+    # api: DOGRULAMA HER ZAMAN ACIK, secenegi yok -- anahtari tasiyan taraf.
+    # indirme: varsayilan acik; --guvensiz ile kapatilabiliyor, cunku kucuk
+    #   isletme sitelerinin bir kisminda sertifika suresi gecmis oluyor.
+    #   Kapatildiginda indirilen icerik degistirilmis olabilir ve o icerik
+    #   fiyat verisine donusuyor, o yuzden sessizce degil uyarilarak.
+    with httpx.Client() as api, httpx.Client(verify=not guvensiz) as indirme:
+        if guvensiz:
+            print("UYARI: indirmelerde sertifika dogrulamasi KAPALI. Gelen "
+                  "icerik degistirilmis olabilir; cikan fiyatlara guvenme.")
         for i, r in enumerate(kalan, 1):
             url = r["kaynak_url"]
             etiket = "[%2d/%d] %-24s" % (i, len(kalan), r["mekan"][:24])
             try:
-                veri, mime, pdf, hata = gorsel_indir(istemci, url)
+                veri, mime, pdf, hata = gorsel_indir(indirme, url)
                 if hata:
                     print("%s indirilemedi: %s" % (etiket, hata))
                     continue
                 # Once notr kapi: gorselde yazi var mi? Yoksa fiyat sormak
                 # modeli uydurmaya davet ediyor (Adanali vakasi).
-                if not yazi_var_mi(istemci, k, veri, mime):
+                if not yazi_var_mi(api, k, veri, mime):
                     print("%s gorselde yazi yok (yemek fotografi), atlandi" % etiket)
                     time.sleep(BEKLE)
                     continue
-                kalemler = kalemleri_dogrula(json_ayikla(oku(istemci, k, veri, mime)))
+                kalemler = kalemleri_dogrula(json_ayikla(oku(api, k, veri, mime)))
                 if pdf and kalemler:
                     kalemler, uyari = pdf_metniyle_dogrula(pdf, kalemler)
                     if uyari:
@@ -371,7 +395,9 @@ def main(kip):
 
 
 if __name__ == "__main__":
-    kip = sys.argv[1] if len(sys.argv) > 1 else "pilot"
+    args = [a for a in sys.argv[1:] if a != "--guvensiz"]
+    guvensiz = "--guvensiz" in sys.argv[1:]
+    kip = args[0] if args else "pilot"
     if kip == "test":
         sys.exit(0 if kendini_kontrol_et() else 1)
-    main(kip)
+    main(kip, guvensiz)

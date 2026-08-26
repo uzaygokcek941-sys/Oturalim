@@ -3,19 +3,30 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Giriş — Oturalım</title>
-<meta name="description" content="Oturalım hesabına giriş yap veya yeni hesap aç. Favori mekanlarını kaydet, fiyat paylaşımlarını takip et.">
+<title>Giriş — Cebimde</title>
+<meta name="description" content="Cebimde hesabına giriş yap veya yeni hesap aç. Favori mekanlarını kaydet, fiyat paylaşımlarını takip et.">
 <meta name="robots" content="noindex">
-<meta name="theme-color" content="#15110e">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2315110e'/%3E%3Cpath d='M20 16v12a12 12 0 0 0 24 0V16' stroke='%23f08a3c' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3Cpath d='M32 40v10' stroke='%23f08a3c' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="marka.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="ikon/ikon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cebimde">
+<meta name="mobile-web-app-capable" content="yes">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Karla:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="stil.css">
 <link rel="stylesheet" href="sahne.css">
-<script>document.documentElement.classList.add("js-sahne");</script>
+<script>document.documentElement.classList.add("js-sahne");/* Emniyet: sahne.js gelmezse (CDN degil ama betik hatasi, engel,
+   eksik <script>) perde acilmaz ve icerik KALICI gizli kalirdi.
+   2 sn sonra sinif kendiliginden kalkiyor; sahne.css o sinif
+   olmadan hicbir seyi gizlemiyor. Bir kez oldu: isletme.html
+   sahne.js'i hic yuklemiyordu. */
+setTimeout(function(){if(!window.__sahneHazir)document.documentElement.classList.remove("js-sahne");},2000);</script>
 <script>
-try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.dataset.tema=t;}catch(e){}
+try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dataset.tema=t;}catch(e){}
 </script>
 <style>
   .kimlik-kap{max-width:440px;margin-inline:auto}
@@ -77,13 +88,9 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
 
 <header class="ust">
   <div class="kap">
-    <a class="marka" href="index.html" aria-label="Oturalım ana sayfa">
-      <svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
-        <rect width="64" height="64" rx="14" fill="currentColor" opacity=".08"/>
-        <path d="M20 16v12a12 12 0 0 0 24 0V16" stroke="#f08a3c" stroke-width="5" stroke-linecap="round"/>
-        <path d="M32 40v10" stroke="#f08a3c" stroke-width="5" stroke-linecap="round"/>
-      </svg>
-      <span>Otur<em>alım</em></span>
+    <a class="marka" href="index.html" aria-label="Cebimde ana sayfa">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="mg" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#ffa03a"/><stop offset="1" stop-color="#f4690a"/></linearGradient></defs><g transform="rotate(-14 26 11)"><rect x="13" y="3.2" width="26" height="7.2" rx="2.2" fill="#00bfa6"/><rect x="11" y="6.6" width="28" height="7.2" rx="2.2" fill="#ffb74d"/></g><path d="M32 8c-9.6 0-17.4 7.5-17.4 16.8 0 8.8 5.9 15.1 12.9 23.8 1.9 2.4 4.5 5.6 4.5 5.6s2.6-3.2 4.5-5.6c7-8.7 12.9-15 12.9-23.8C49.4 15.5 41.6 8 32 8Z" fill="url(#mg)"/><circle cx="32" cy="25.4" r="9.1" fill="#fff"/><g stroke="#f4690a" stroke-width="1.75" stroke-linecap="round"><path d="M27.5 20.1v3.3M29.4 20.1v3.3M31.3 20.1v3.3"/><path d="M29.4 23.4v7.2"/><path d="M35.9 20.1v4.4" stroke-width="3.3"/><path d="M35.9 24.2v6.4"/></g></svg>
+      <span>Ceb<em>imde</em></span>
     </a>
     <nav class="menu" aria-label="Ana menü">
       <a href="index.html">Ana sayfa</a>
@@ -100,6 +107,29 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
 <main id="ana" class="bolum">
   <div class="kap" data-giris="iris">
     <div class="kimlik-kap">
+
+      <!-- Baglanti sorunu. AYRI bir kutu, cunku "kurulu degil" ile
+           "su an acilamiyor" kullanici icin bambaska iki sey: birincisinde
+           yapacak is site sahibinde, ikincisinde beklemekten baska bir sey
+           yok. Yayindaki sitede kurulum metnini gostermek hem YANLIS hem de
+           kullaniciyi erisemedigi bir dosyaya yolluyordu. -->
+      <div id="agyok" hidden>
+        <h1 style="font-size:40px;margin-bottom:var(--a4)">Giriş şu an açılamıyor</h1>
+        <div class="kapali-kutu">
+          <h2>Ne oldu</h2>
+          <p class="ipucu">
+            Giriş için gereken bir dosya yüklenemedi. Genellikle geçici bir
+            bağlantı sorunudur — internetin yavaşsa ya da ağın bazı adresleri
+            engelliyorsa olur. Hesabında bir sorun yok.
+          </p>
+          <p class="ipucu">
+            Sitenin geri kalanı normal çalışıyor: mekan arama, harita,
+            filtreler ve fiyatlar giriş gerektirmiyor.
+          </p>
+          <button class="dugme" type="button" id="tekrar">Tekrar dene</button>
+          <a class="dugme ikincil" href="kesfet.html">Mekanlara dön</a>
+        </div>
+      </div>
 
       <div id="kapali" hidden>
         <h1 style="font-size:40px;margin-bottom:var(--a4)">Giriş sistemi henüz kurulu değil</h1>
@@ -178,6 +208,14 @@ try{var t=localStorage.getItem("oturalim.tema");if(t)document.documentElement.da
           <p class="ipucu" style="margin-top:var(--a2)">
             Yalnızca e-posta ve parola saklanıyor; ad isteğe bağlı.
             Ayrıntı: <a href="gizlilik.html">aydınlatma metni</a>.
+          </p>
+          <!-- Isletme sahibine AYRI KAPI. Ayni kimlik sistemi, ayri
+               akis: kart elindeki kisi buradan girince kodu da ayni
+               formda girip mekanini devralabiliyor. -->
+          <p class="ipucu" style="margin-top:var(--a3)">
+            <strong>İşletme sahibi misin?</strong>
+            <a href="isletme-giris.html">İşletme girişi</a> — karttaki kodla
+            sayfanı devral, bilgilerini sıraya girmeden güncelle.
           </p>
         </div>
       </div>
@@ -278,7 +316,10 @@ el("#form").addEventListener("submit", async e => {
   try {
     if (kip === "giris"){
       await Kimlik.giris(eposta, parola);
-      location.href = P.get("donus") || "hesabim.html";
+      /* donus ADRES olarak kullaniliyor; denetimi ortak.js'te (guvenliDonus).
+         Denetimsiz hali javascript: URL'ini calistiriyordu -- hem de tam
+         giris yapildiktan sonra, jeton okunabilir haldeyken. */
+      location.href = guvenliDonus(P.get("donus")) || "hesabim.html";
 
     } else if (kip === "kayit"){
       const sonuc = await Kimlik.kayit(eposta, parola, el("#ad").value);
@@ -309,9 +350,16 @@ el("#form").addEventListener("submit", async e => {
 });
 
 /* açılış */
+el("#tekrar").addEventListener("click", () => location.reload());
+
 Kimlik.hazir.then(acik => {
-  el("#kapali").hidden = acik;
-  el("#acik").hidden = !acik;
+  /* Uc hal, uc AYRI ekran. Kimlik.sorun ikisini ayirt ediyor:
+     "yapilandirma" -> anahtar bos, site sahibinin yapacagi is var
+     "ag"           -> anahtar dolu ama supabase-js gelmedi */
+  const agSorunu = !acik && Kimlik.sorun === "ag";
+  el("#agyok").hidden  = !agSorunu;
+  el("#kapali").hidden = acik || agSorunu;
+  el("#acik").hidden   = !acik;
   if (!acik) return;
 
   /* Parola sıfırlama bağlantısıyla gelindiyse doğrudan yenileme kipi.
@@ -321,7 +369,7 @@ Kimlik.hazir.then(acik => {
     return;
   }
   if (Kimlik.girisli){
-    location.href = P.get("donus") || "hesabim.html";
+    location.href = guvenliDonus(P.get("donus")) || "hesabim.html";
     return;
   }
   kipUygula(P.get("kip") === "kayit" ? "kayit" : "giris");
