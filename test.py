@@ -1784,6 +1784,7 @@ def overpass_denemesi_mi():
     METIN DEGIL DAVRANIS: httpx taklit ediliyor ve fonksiyon gercekten
     kosuluyor."""
     import importlib
+    import tempfile
     s = []
     try:
         FC = importlib.import_module("foto_cek")
@@ -1902,7 +1903,6 @@ def overpass_denemesi_mi():
     #     Wikimedia'nin hiz siniri; onu Overpass'a uygulamak sunucuyu
     #     saniyede uc kez sorgulamak demekti. main() GERCEKTEN kosuluyor
     #     -- gecici bir dizinde, ciktilari depoya dusmesin diye.
-    import tempfile
     gunluk, zaman = [], _SahteZaman()
     eski_httpx = sys.modules.get("httpx")
     eski_zaman, eski_dizin = FC.time, os.getcwd()
@@ -1927,6 +1927,54 @@ def overpass_denemesi_mi():
         s.append("foto_cek.main: iller arasi en uzun bekleme %s sn; Overpass "
                  "olcusu %s sn (0,34 Wikimedia'nin, Overpass'in degil)"
                  % (max(zaman.uykular), FC.OVERPASS_BEKLEME))
+
+    # (j) TURUN BUTCESI: tek ilin butcesi TURU KURTARMIYOR. 81 il x 420 sn
+    #     = 9,4 saat, oysa veri.yml'nin is siniri 300 DAKIKA. Kosucu turu
+    #     ortasinda kesse CSV HIC yazilmazdi -- yani yeni kapatilan kopuk
+    #     halka geri gelirdi. Betik kendi durup yarim turu YAZMALI.
+    gunluk, zaman = [], _SahteZaman()
+    eski_httpx = sys.modules.get("httpx")
+    eski_zaman, eski_dizin = FC.time, os.getcwd()
+    # Her istek turun butcesi kadar suruyor: ilk ilden sonra butce dolar.
+    sys.modules["httpx"] = _sahte_httpx([], gunluk, zaman, FC.TUR_BUTCESI)
+    FC.time = zaman
+    yazi = ""
+    iller = ["TR-06", "TR-34", "TR-35", "TR-16", "TR-07"]
+    try:
+        with tempfile.TemporaryDirectory() as td:
+            os.symlink(os.path.join(eski_dizin, "app"), os.path.join(td, "app"))
+            os.chdir(td)
+            with io.StringIO() as tampon, contextlib.redirect_stdout(tampon):
+                FC.main(iller)
+                yazi = tampon.getvalue()
+            # YARIM TUR YARIM YAZILMALI: kesilen tur CSV'yi hic yazmazsa
+            # kopuk halka geri gelir.
+            if not os.path.exists(os.path.join(td, "mekan_foto.csv")):
+                s.append("foto_cek.main: tur butcesi dolunca mekan_foto.csv "
+                         "yazilmadi; yarim tur da yazilmali")
+    except SystemExit as e:
+        s.append("foto_cek.main: tur butcesi dolunca cikti (%s); yarim tur "
+                 "yazilmali, tur bitirilmemeli" % e)
+    except Exception as e:
+        s.append("foto_cek.main (tur butcesi) kosulamadi: %s: %s"
+                 % (type(e).__name__, e))
+    finally:
+        os.chdir(eski_dizin)
+        FC.time = eski_zaman
+        if eski_httpx is None:
+            sys.modules.pop("httpx", None)
+        else:
+            sys.modules["httpx"] = eski_httpx
+    if len(gunluk) >= len(iller):
+        s.append("foto_cek.main: tur butcesi dolduktan sonra da soruldu "
+                 "(%d il icin %d istek); is akisinin 300 dk siniri asilir"
+                 % (len(iller), len(gunluk)))
+    # SESSIZ KESILME OLMAZ: kesilen turun sayisi tam sayi gibi okunur.
+    if "BUTCESI DOLDU" not in yazi:
+        s.append("foto_cek.main: tur butcesi dolunca sessizce kesildi; "
+                 "kalan iller yazilmiyor")
+    if "EKSIK" not in yazi:
+        s.append("foto_cek.main: yarim tur 'EKSIK' demeden yaziliyor")
     return s
 
 

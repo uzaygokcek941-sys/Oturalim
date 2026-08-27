@@ -86,6 +86,19 @@ EN_COK_BEKLEME = 60
 # ikinci bir aynaya sorulup birakiliyor.
 IL_BUTCESI = 420
 
+# TURUN TOPLAM BUTCESI (saniye). Tek ilin butcesi TURU KURTARMIYOR:
+# 81 il x 420 sn = 9,4 saat, oysa veri.yml'nin is siniri 300 DAKIKA.
+# Kosucu turu tam ortasinda kesse betik CSV'yi HIC yazamazdi -- yani
+# daha yeni kapattigimiz kopuk halka geri gelirdi.
+#
+# Butce dolunca kalan iller "cekilemedi" sayiliyor ve ozet zaten "Sayilar
+# EKSIK" yaziyor. Bu depoda kural: basarisizligi sayiya cevirme. Yarim
+# tur yarim yaziliyor, tam gibi degil.
+#
+# 200 dakika: 300'luk isin geri kalani (uygulama verisi, kontroller,
+# dala yazma) icin pay birakiyor.
+TUR_BUTCESI = 200 * 60
+
 # Secicileri turkiye_cek.py ve eglence_cek.py'den ALIYORUZ, kopyalamiyoruz:
 # uc yerde uc ayri liste, birinin guncellenip otekilerin unutulmasi demekti.
 # (import modul duzeyinde: iki betik de aga cikmadan import edilebiliyor.)
@@ -436,7 +449,15 @@ def main(kodlar):
           % len(bizim), flush=True)
 
     hepsi, bizde_olan, basarisiz = [], 0, []
+    tur_baslangic = time.monotonic()
     for sira, kod in enumerate(kodlar, 1):
+        if time.monotonic() - tur_baslangic >= TUR_BUTCESI:
+            kalan = list(kodlar[sira - 1:])
+            basarisiz.extend(kalan)
+            print("TUR BUTCESI DOLDU (%d dk): kalan %d il taranmadi. "
+                  "Yarim tur yarim yaziliyor -- ozet EKSIK diyecek."
+                  % (TUR_BUTCESI // 60, len(kalan)), flush=True)
+            break
         yol = os.path.join("ham", kod + ".json")
         try:
             if os.path.exists(yol):

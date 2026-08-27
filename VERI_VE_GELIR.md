@@ -428,6 +428,17 @@ yalnız **zaman aşımını** kesiyor. İkisi de sabotajla ayrı ayrı
 doğrulandı: bütçe kontrolünü silmek 9 istek/1800 sn gösteriyor, bütçeyi
 10 sn'ye indirmek 429 turunu 3 istekte kesiyor.
 
+**Ve il bütçesi turu kurtarmıyor.** 81 il × 420 sn = 9,4 saat; `veri.yml`
+işinin sınırı **300 dakika**. Koşucu turu tam ortasında kesse betik
+CSV'yi **hiç yazamazdı** — yani daha yeni kapatılan kopuk halka geri
+gelirdi. Tur bütçesi 200 dakika: dolunca kalan iller "çekilemedi"
+sayılıyor, **yarım tur yarım yazılıyor** ve özet "Sayılar EKSİK" diyor.
+
+Bu ikincisinin sabotajı asıl önemlisiydi: kesilmeyi bırakıp **kalan
+illeri `basarisiz`'a yazmamak** hiçbir hata vermiyor, yalnızca yarım
+turu tam tur gibi gösteriyordu. "Başarısızlığı sayıya çevirme" kuralının
+tam da yasakladığı şey.
+
 ---
 
 ## 4 — Yorumlar
