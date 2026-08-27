@@ -91,9 +91,35 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
   /* KAYDIRICI. Dolu tarafi marka turuncusu, bos tarafi gri, tutamak
      beyaz + turuncu halka -- makette birebir boyle. Yukseklik 28px:
      WCAG 2.5.8 dokunma hedefi (tutamak 26px ve serit onu tasiyor). */
+  /* 28 -> 44 px, AMA DUZEN KIPIRDAMADAN. Olculdu: denetim 28x277'ydi,
+     yani parmakla surukleme hedefi 44 px'in altindaydi.
+
+     Yuksekligi buyutmek tek basina IZI ASAGI KAYDIRIYOR: tarayici
+     8 px'lik izi kutunun icinde dikey ORTALIYOR, kutu 28'den 44'e
+     cikinca iz de 8 px asagi iniyor. Ust kenar bosluguyla o 8 px geri
+     alindi; alt kenar boslugu -16 px, boylece AKISA KATKI 28 px kaliyor
+     ve altindaki metin hic oynamiyor.
+
+     display:block DE GEREKTI ve sebebi olcumle cikti. <input type=range>
+     varsayilan olarak SATIR ICI: bir satir kutusunda duruyor, dikey
+     kenar bosluklari akisi etkilemiyor ve kutu buyuyunce satir kutusu
+     buyuyup altini itiyor. Once margin-bottom:-8 yazdim, alttaki metin
+     yine de 555'ten 563'e kaydi; -16 yaptim ve HICBIR SEY DEGISMEDI --
+     yani negatif bosluk hic islemiyordu. Blok yapilinca kenar
+     bosluklari normal calisiyor. Kagit uzerinde dogru olan sayi
+     tarayicida yanlisti; olcum soyledi.
+
+     -1 px de olcumle bulundu, hesapla degil: blok yapmak satir
+     kutusunun bosunu (~7 px) da kaldiriyor, yani -8 fazla cekiyordu.
+     Uc sayi da (44 / merkez / alttaki metnin yeri) tarayicida
+     dogrulandi.
+
+     Tutamagin margin-top'u IZE gore, kutuya gore degil -- o yuzden
+     dokunulmadi. */
   .cep-kaydirici{
     -webkit-appearance:none; appearance:none;
-    width:100%; margin-top:var(--a4); height:28px; background:none;
+    display:block; width:100%; height:44px; background:none;
+    margin-top:calc(var(--a4) - 8px); margin-bottom:-1px;
     cursor:pointer;
   }
   .cep-kaydirici::-webkit-slider-runnable-track{

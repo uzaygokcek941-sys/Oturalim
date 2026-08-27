@@ -195,8 +195,11 @@ img,svg{display:block;max-width:100%}
 [hidden]{display:none!important}
 .gizli{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
   clip:rect(0 0 0 0);white-space:nowrap;border:0}
+/* 42 -> 44. Iki piksel, ama bu bag KLAVYEYLE gezen icin ilk duraktir
+   ve mutlak konumlu oldugu icin buyumesi hicbir seyi itmiyor. */
 .atla{position:absolute;left:-999px;top:8px;z-index:9999;background:var(--marka);
-  color:var(--vurgu-metin);padding:8px 16px;border-radius:var(--r-s);font-weight:700;text-decoration:none}
+  color:var(--vurgu-metin);padding:8px 16px;border-radius:var(--r-s);font-weight:700;
+  text-decoration:none;min-height:44px;display:inline-flex;align-items:center}
 .atla:focus{left:8px}
 .kap{width:100%;max-width:var(--olcu);margin-inline:auto;padding-inline:clamp(16px,4vw,32px)}
 .sayi{font-variant-numeric:tabular-nums}
@@ -211,9 +214,12 @@ header.ust{
   border-bottom:1px solid var(--cizgi);
 }
 header.ust > .kap{display:flex;align-items:center;gap:var(--a4);width:100%}
+/* min-height 44: olculdu, marka bagi 26x106'ydi ve her sayfanin ust
+   cubugunda duruyor -- yani uygulamanin EN COK gorunen bagi. Ust cubuk
+   zaten daha yuksek, o yuzden buyumesi duzeni degistirmiyor (olculdu). */
 .marka{display:flex;align-items:center;gap:8px;font-family:var(--font-baslik);
   font-size:20px;font-weight:600;letter-spacing:-.03em;color:var(--metin);
-  text-decoration:none;flex:0 0 auto}
+  text-decoration:none;flex:0 0 auto;min-height:44px}
 .marka:hover{color:var(--metin)}
 .marka em{color:var(--vurgu);font-style:normal}
 .marka svg{width:26px;height:26px;flex:0 0 auto}
