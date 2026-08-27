@@ -23,6 +23,10 @@ on:
       adres:
         description: "Sinanacak adres"
         default: "https://oturalim.vercel.app"
+      incele:
+        description: "Tam inceleme raporu da uret (canli_incele.py)"
+        type: boolean
+        default: false
 
 concurrency:
   group: canli-tur
@@ -62,5 +66,23 @@ jobs:
             echo "### Canli tur"
             echo '```'
             cat tur.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # RAPOR, KAPI DEGIL. canli_test.py sartlari siniyor ve dusuyor;
+      # bu betik 16 sayfayi gezip NE GORDUGUNU yaziyor, hicbir seyi
+      # "basarisiz" saymiyor. O yuzden ayri ve ISTEGE BAGLI: her sabah
+      # 16 sayfa gezmek gereksiz, ama insan "her seyi incele" dediginde
+      # tek dugme.
+      - name: Tam inceleme
+        if: inputs.incele
+        run: |
+          set -o pipefail
+          python canli_incele.py "${{ inputs.adres || 'https://oturalim.vercel.app' }}" \
+            | tee incele.log
+          {
+            echo "### Tam inceleme"
+            echo '```'
+            cat incele.log
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
