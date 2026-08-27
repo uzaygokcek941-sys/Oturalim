@@ -310,9 +310,37 @@ def lisans_serbest_mi(kisa_ad):
 
 
 def _temiz_yazar(ham):
-    """Commons yazar alani HTML tasiyor ("<a href=...>Ad</a>"); metne indir."""
+    """Commons yazar alani HTML tasiyor ("<a href=...>Ad</a>"); metne indir.
+
+    HIC ISIM DUSURULMUYOR ve bu kural burada mutlak: atif ZORUNLU, yani
+    temizlik bir ismi kirpiyorsa temizlik degil IHLAL olur. Asagidaki iki
+    kural yalnizca ISIM OLMAYAN parcalari atiyor.
+
+    Olculdu (27 Agustos, 84 satirlik gercek tur): 3 satir (%3,6) kirliydi
+    ve ucu de ayri desendi:
+      "Agora_vue_generale.jpg: Didier Laroche derivative work: IgnisFatuus"
+      "Unknown authorUnknown author"
+      "Sevki Balmumcu as an exhibition house in 1933, Paul Bonatz ..."
+    Ucuncusu KIRLI DEGIL: Commons'ta o alan gercekten boyle yazilmis,
+    icinde iki gercek isim var. Ona DOKUNULMUYOR."""
     v = re.sub(r"<[^>]+>", "", ham or "")
     v = re.sub(r"\s+", " ", v).strip()
+
+    # 1) DOSYA ADI ONEKI. Commons'un "derivative work" kalibi ozgun
+    #    dosyanin ADIYLA basliyor: "X.jpg: Ali derivative work: Veli".
+    #    Dosya adi bir YAZAR DEGIL; sonrasi oldugu gibi kaliyor, yani
+    #    turetme zincirindeki iki isim de duruyor.
+    v = re.sub(r"^[^\s:]+\.(?:jpe?g|png|webp|gif|tiff?):\s*", "", v, flags=re.I)
+
+    # 2) BIREBIR IKIYE KATLANMIS METIN. Commons bazi kaliplarda ayni adi
+    #    hem bagda hem metinde donduruyor ve etiketler silinince
+    #    yapisiyor: "Unknown authorUnknown author".
+    #    KOSUL DAR TUTULDU: tam ikiye katlanmis ve yarisi en az 4 karakter.
+    #    Genis bir kural gercek bir adi yarilayabilirdi.
+    n = len(v)
+    if n >= 8 and n % 2 == 0 and v[: n // 2] == v[n // 2:]:
+        v = v[: n // 2]
+
     return v[:200] or None
 
 
@@ -629,6 +657,21 @@ def kendini_kontrol_et():
     # Yazar alani HTML tasiyor.
     assert _temiz_yazar('<a href="/wiki/User:X" title="X">Ali Veli</a>') == "Ali Veli"
     assert _temiz_yazar("  Ali   Veli  ") == "Ali Veli"
+    # GERCEK TURDAN CIKAN UC DESEN.
+    # Dosya adi oneki atiliyor, IKI ISIM DE kaliyor.
+    assert _temiz_yazar("Agora.jpg: Didier Laroche derivative work: IgnisFatuus") \
+        == "Didier Laroche derivative work: IgnisFatuus"
+    # Birebir ikiye katlanmis metin tekilleniyor.
+    assert _temiz_yazar("Unknown authorUnknown author") == "Unknown author"
+    # ... ama katlanmamis metne DOKUNULMUYOR.
+    assert _temiz_yazar("Ali Veli") == "Ali Veli"
+    assert _temiz_yazar("AhmetMehmet") == "AhmetMehmet"
+    # Kisa tekrar YARILANMIYOR: "Bora" gercek bir ad olabilir.
+    assert _temiz_yazar("BoBo") == "BoBo"
+    # Icinde iki gercek isim gecen uzun aciklama OLDUGU GIBI kaliyor.
+    uzun = ("Şevki Balmumcu as an exhibition house in 1933, "
+            "Paul Bonatz as an opera house in 1948")
+    assert _temiz_yazar(uzun) == uzun
     assert _temiz_yazar("") is None and _temiz_yazar(None) is None
 
     # kayit_kur: ATIF EKSIKSE SATIR DUSER. Veritabani da ayni kisiti
