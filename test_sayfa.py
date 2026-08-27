@@ -1486,6 +1486,83 @@ def kendini_kontrol_et():
                 # de calistigini gormeli.
                 ctx.clear_permissions()
 
+            # 2e) KARTTA GERCEK FOTOGRAF.
+            #
+            # "Ekranda resimler olsun" istendi. Yuva (2d) fotograf
+            # yokken bile dolu; burada sinanan sey FOTOGRAF VARKEN
+            # gercekten cizilip cizilmedigi. Kesfet listesi il basina
+            # TEK istekle cekiyor (kimlik.ilFotograflari), mekan mekan
+            # sormak 2.360 istek olurdu.
+            #
+            # UC DURUM BIRDEN, cunku yalniz "resim cikti mi" demek
+            # onaylanmamis fotografi de gecirirdi:
+            #   node/13527199437  onayli kullanici fotografi -> CIKMALI
+            #   node/4622731261   onayli commons fotografi   -> CIKMALI
+            #                     ve ATFI (yazar + lisans) tasimali
+            #   node/13121418022  ONAYLANMAMIS               -> CIKMAMALI
+            foto_taklit = (
+                'window.__SAHTE_VERI = { oturum:null, tablolar:{ mekan_fotolari:['
+                '{ id:1, mekan_id:"node/13527199437", il:"06", yol:"kul-1/a.jpg",'
+                '  adres:null, kaynak:"kullanici", yazar:null, lisans:null,'
+                '  durum:"onaylandi", olusturuldu:"2026-08-20T10:00:00Z" },'
+                '{ id:2, mekan_id:"node/4622731261", il:"06", yol:null,'
+                '  adres:"/og.png", kaynak:"commons", yazar:"Ali Veli",'
+                '  lisans:"CC BY-SA 4.0",'
+                '  durum:"onaylandi", olusturuldu:"2026-08-21T10:00:00Z" },'
+                '{ id:3, mekan_id:"node/13121418022", il:"06", yol:"kul-1/c.jpg",'
+                '  adres:null, kaynak:"kullanici", yazar:null, lisans:null,'
+                '  durum:"bekliyor", olusturuldu:"2026-08-22T10:00:00Z" }'
+                '] }, rpc:{} };')
+            fsf, _h = sayfa_ac("/kesfet.html?il=06", foto_taklit, sahte_modul=True)
+            fsf.wait_for_timeout(1800)
+            f = fsf.evaluate("""() => {
+              const al = id => {
+                const k = document.querySelector('.kart[data-id="' + id + '"]');
+                if (!k) return null;
+                const g = k.querySelector('.kart-gorsel');
+                const r = g && g.querySelector('img');
+                return { resim: !!r,
+                         src: r ? r.getAttribute('src') : "",
+                         alt: r ? (r.getAttribute('alt') || "") : "",
+                         baslik: r ? (r.getAttribute('title') || "") : "",
+                         simge: !!(g && g.querySelector('svg')) };
+              };
+              return { kullanici: al('node/13527199437'),
+                       commons:   al('node/4622731261'),
+                       bekleyen:  al('node/13121418022') };
+            }""")
+            fsf.close()
+            for ad in ("kullanici", "commons", "bekleyen"):
+                if not f[ad]:
+                    sorunlar.append("kesfet foto: %s karti bulunamadi" % ad)
+            if f["kullanici"] and not f["kullanici"]["resim"]:
+                sorunlar.append("kesfet foto: onayli kullanici fotografi karta "
+                                "cizilmiyor -- liste hala fotografsiz")
+            if f["commons"]:
+                if not f["commons"]["resim"]:
+                    sorunlar.append("kesfet foto: onayli commons fotografi karta "
+                                    "cizilmiyor")
+                else:
+                    # ATIF ZORUNLU (CC BY / CC BY-SA). 56 pikselde gorunur
+                    # yazi sigmiyor; atif alt ve title ile tasiniyor ve
+                    # gorunur hali mekan sayfasinda. Kaybolursa BURASI yanar.
+                    a = f["commons"]["alt"] + " " + f["commons"]["baslik"]
+                    if "Ali Veli" not in a or "CC BY-SA" not in a:
+                        sorunlar.append(
+                            "kesfet foto: commons fotografi ATIFSIZ cikiyor "
+                            "(alt=%r title=%r)"
+                            % (f["commons"]["alt"][:60], f["commons"]["baslik"][:40]))
+            if f["bekleyen"] and f["bekleyen"]["resim"]:
+                sorunlar.append("kesfet foto: ONAYLANMAMIS fotograf listede "
+                                "gosteriliyor -- onay akisi delinmis")
+            # Simge her uc kartta da duruyor: resim yuklenemezse altindan
+            # o cikacak (inline onerror CSP yuzunden calismaz, bu yuzden
+            # yedek KATMAN halinde).
+            for ad in ("kullanici", "commons", "bekleyen"):
+                if f[ad] and not f[ad]["simge"]:
+                    sorunlar.append("kesfet foto: %s kartinda yedek simge yok; "
+                                    "resim dusunce yuva bosalir" % ad)
+
             # 2b) ISLETME SAYFASINDA KONUM HARITASI.
             #
             # Adresi olan mekan yalniz %26,2 (9.397/35.852); kalan

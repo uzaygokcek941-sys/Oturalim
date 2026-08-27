@@ -284,6 +284,10 @@ function resimHatalariniGizle(hedef){
   (hedef || document).addEventListener("error", olay => {
     const g = olay.target;
     if (!g || g.tagName !== "IMG") return;
+    /* YEDEKLI RESIM: kabı değil KENDİNİ gizler. Kart görsel yuvasında
+       resmin altında kategori simgesi duruyor; kabı gizlemek kutuyu
+       yok eder ve kartı zıplatırdı. */
+    if (g.hasAttribute("data-yedekli")){ g.hidden = true; return; }
     /* Yalnız işaretlenmiş resimler: site kendi svg/logolarını gizlemesin. */
     const kap = g.closest("[data-resim]");
     if (kap) kap.hidden = true;
@@ -981,17 +985,46 @@ function anaKategori(m){
   return null;
 }
 
-/* Kartın 56x56 görsel yuvası. Bugün her zaman simge; `m.foto` geldiği
-   gün aynı yuvaya <img> giriyor ve kart düzeni değişmiyor. */
-function kartGorselHTML(m){
+/* Kartın 56x56 görsel yuvası: fotoğraf varsa fotoğraf, yoksa simge.
+
+   ATIF. Commons fotoğrafları serbest lisanslı ama ATIF ZORUNLU (CC BY /
+   CC BY-SA). 56 pikselin içine yazar adı ve lisans sığmıyor, o yüzden:
+   küçük resimde atıf `alt` ve `title` ile taşınıyor, GÖRÜNÜR hâli ise
+   bir dokunuş ötedeki mekan sayfasında duruyor. Bu bir KARAR, ihmal
+   değil -- ve sıkılaştırmak gerekirse tek yer burası.
+
+   `sahip` ve `kullanici` fotoğrafları bizim gösterme hakkımız olan
+   fotoğraflar; onlarda atıf yükümlülüğü yok, alt metni yine mekanın
+   adını söylüyor.
+
+   YÜKLENEMEYEN RESİM GİZLENMİYOR, burada gizlenemez de: ortak.js'in
+   resimHatalariniGizle'si `[data-resim]` kabını gizliyor ve o kap
+   burada YUVANIN KENDİSİ olurdu -- kutu kaybolur, kart zıplardı.
+   Onun yerine <img> hata alınca kendini gizliyor ve altındaki simge
+   ortaya çıkıyor: yuva her hâlükârda dolu. */
+function kartGorselHTML(m, foto){
   const k = anaKategori(m);
-  /* aria-hidden: simge adın YANINDA duruyor ve aynı şeyi söylüyor.
-     Ekran okuyucuya iki kez okutmak, listeyi iki katına çıkarırdı. */
-  return '<span class="kart-gorsel" data-kat="' + (k || "yok") + '" aria-hidden="true">' +
+  const simge =
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" ' +
-    'stroke-linecap="round" stroke-linejoin="round">' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
     (KATEGORI_SIMGE[k] || '<circle cx="12" cy="12" r="7"/>') +
-    "</svg></span>";
+    "</svg>";
+  let resim = "";
+  if (foto && foto.adres){
+    const atif = foto.kaynak === "commons" && foto.yazar
+      ? "Fotoğraf: " + foto.yazar + (foto.lisans ? " (" + foto.lisans + ")" : "")
+      : "";
+    const metin = (m && m.ad ? m.ad : "") + (atif ? " — " + atif : "");
+    resim = '<img src="' + kacir(foto.adres) + '" alt="' + kacir(metin) + '"' +
+            (atif ? ' title="' + kacir(atif) + '"' : "") +
+            /* data-yedekli: yuklenemezse KENDINI gizler ve altindaki
+               simge ortaya cikar. Inline onerror KULLANILAMAZ --
+               script-src 'unsafe-inline' tasimiyor, tarayici o
+               ozniteligi sessizce calistirmazdi. */
+            ' loading="lazy" decoding="async" data-yedekli>';
+  }
+  return '<span class="kart-gorsel" data-kat="' + (k || "yok") + '">' +
+    simge + resim + "</span>";
 }
 
 /* "kebab;barbecue;coffee_shop" -> Set. Küçük harfe çevriliyor: OSM

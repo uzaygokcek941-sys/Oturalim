@@ -195,7 +195,16 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
     background:var(--zemin-3);color:var(--metin-2);
   }
   .kart-gorsel svg{width:26px;height:26px}
-  .kart-gorsel img{width:100%;height:100%;object-fit:cover;display:block}
+  /* FOTOGRAF SIMGENIN USTUNE biniyor, yerini almiyor: resim
+     yuklenemezse (data-yedekli ile) kendini gizliyor ve altindaki
+     simge ortaya cikiyor. Yuva hicbir durumda bos kalmiyor ve kart
+     ziplamiyor -- olculer resimden bagimsiz. */
+  .kart-gorsel{position:relative}
+  .kart-gorsel img{
+    position:absolute;inset:0;width:100%;height:100%;
+    object-fit:cover;display:block;
+  }
+  .kart-gorsel img[hidden]{display:none}
   /* Secili kartta yuva da vurguya donuyor: gozun karti bulmasi kolaylassin. */
   .kart[aria-current="true"] .kart-gorsel{background:var(--vurgu-los);color:var(--vurgu)}
   /* Cok dar ekranda yuva kuculuyor ama KAYBOLMUYOR: 44 px hala

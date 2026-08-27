@@ -50,7 +50,18 @@ saha_liste.csv
 # "mekan_foto.sql" satiri veritabani/mekan_foto.sql SEMA dosyasini da
 # kapsadi, dosya hic itilmedi ve kurulum eksik kaldi. Uretilen dosyanin
 # adi da ayrildi (foto_ekle.sql), boylece cakisma tekrar edemez.
-/mekan_foto.csv
+#
+# mekan_foto.csv ARTIK IZLENIYOR (asagida ! ile geri aliniyor).
+# KOPUK HALKA: foto_cek.py GitHub kosucusunda 48 dakika kostu, dosyayi
+# yazdi ve git onu YOK SAYDI -- veri dalinda ne csv ne sql vardi, yani
+# tur her seferinde bos donuyor gibi gorunuyordu. Icinde sir yok:
+# Commons'un acik lisansli dosya adlari, yazar ve lisans bilgisi.
+# Sonucun gorunmesi, turun ANLAMI.
+!/mekan_foto.csv
+
+# foto_ekle.sql IZLENMIYOR ve sebebi ayri: bu dosya Supabase'e ELLE
+# yapistirilan bir betik, yani bir CIKTI degil bir ARA ADIM. Sayilar
+# csv'de duruyor.
 /foto_ekle.sql
 
 # Android imzalama anahtari. ASLA depoya girmez: bu dosya + parolasi,

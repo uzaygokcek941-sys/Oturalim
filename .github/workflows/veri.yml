@@ -168,9 +168,29 @@ jobs:
       # Serbest lisansli, ATIFLI. Google Maps fotograflari
       # "Yapilmayacaklar" listesinde: yazarlarinin telifinde ve
       # platforma lisansli.
+      # KOPUK HALKAYI KAPATAN ADIM. Bu tur bir kez 48 dakika kostu ve
+      # sonucu KAYBOLDU: mekan_foto.csv .gitignore'daydi, dala hicbir
+      # sey yazilmadi ve tur "bos dondu" gibi gorundu. Artik csv
+      # izleniyor ve sayilar is akisi ozetine de yaziliyor -- kosumun
+      # ne buldugu, dala bakmadan gorunuyor.
+      #
+      # foto_ekle.sql IZLENMIYOR ve izlenmemeli: o dosya Supabase'e
+      # ELLE yapistirilan bir ara adim. Bugunku duvar da bu -- betik
+      # veritabanina kendi yazamiyor, cunku bunun icin service_role
+      # anahtari gerekirdi ve o anahtar bu depoya ASLA girmiyor.
       - name: Commons fotograflari
         if: inputs.foto
-        run: python foto_cek.py
+        run: |
+          python foto_cek.py
+          {
+            echo "### Commons fotograflari"
+            if [ -f mekan_foto.csv ]; then
+              echo "- Satir: $(( $(wc -l < mekan_foto.csv) - 1 ))"
+            else
+              echo "- mekan_foto.csv URETILMEDI"
+            fi
+            echo "- foto_ekle.sql Supabase SQL Editor'e ELLE yapistirilmali."
+          } >> "$GITHUB_STEP_SUMMARY"
 
       # ---- 4. Uygulama verisini yeniden uret -----------------------
       # csp_uret.py gizlilik tablosunu DA yeniden yaziyor: supabase-js

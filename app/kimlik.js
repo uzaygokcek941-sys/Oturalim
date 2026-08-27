@@ -759,6 +759,43 @@ const Kimlik = {
     return (data && data.publicUrl) || "";
   },
 
+  /* IL BASINA TOPLU FOTOGRAF -- kesfet listesi icin.
+     Mekan mekan sormak 2.360 istek demekti; il basina TEK istek
+     gidiyor, tipki onaylanmisPaylasimlar gibi. Ayni desen: liste once
+     ciziliyor, cevap gelince yeniden ciziliyor.
+
+     YENI SQL GEREKMIYOR: RLS zaten "durum = 'onaylandi'" satirlarini
+     herkese aciyor ve sutun yetkisi bu alanlari kapsiyor
+     (veritabani/mekan_foto.sql). Yeni bir RPC eklemek, kullanicidan
+     elle SQL calistirmasini istemek olurdu. */
+  async ilFotograflari(il){
+    if (!sb || !il) return [];
+    const { data, error } = await sb.from("mekan_fotolari")
+      .select("mekan_id, yol, adres, kaynak, yazar, lisans, kaynak_bag")
+      .eq("durum", "onaylandi")
+      .eq("il", il)
+      .order("olusturuldu", { ascending: false })
+      .limit(3000);
+    if (error){ console.error("il fotograflari:", error.message); return []; }
+    return data || [];
+  },
+
+  /* Fotograf KAYDINDAN gosterilebilir adres.
+     mekanFotoAdresi(yol) ile KARISTIRILMAMALI ve ayri adi bunun icin:
+     o bir DEPOLAMA YOLU aliyor, bu bir KAYIT aliyor. Ilk yazimda ayni
+     adi kullanmistim ve nesne icinde ayni anahtari iki kez tanimlamak
+     oncekini SESSIZCE eziyordu -- isletme, hesabim ve yonetim
+     sayfalarinin hepsi yol gecirir ve hicbiri artik calismazdi.
+
+     Iki bicim var, ayrimi kaynak degil ALANIN KENDISI belirliyor:
+     Commons kaydi tam adresi `adres` sutununda tasiyor, yuklenen
+     fotograf ise kovadaki `yol`u. */
+  fotoGosterimAdresi(f){
+    if (!f) return "";
+    if (f.adres) return f.adres;
+    return this.mekanFotoAdresi(f.yol);
+  },
+
   async mekanFotolarim(){
     if (!sb || !oturum) return [];
     const { data, error } = await sb.from("mekan_fotolari")

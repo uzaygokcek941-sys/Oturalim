@@ -147,7 +147,7 @@ function kartHTML(m){
     (secili === m.id ? ' aria-current="true"' : "") + ">" +
     /* GORSEL YUVASI. Kural ortak.js'te: bugun kategori simgesi,
        fotograf geldigi gun ayni yuvaya <img>. */
-    kartGorselHTML(m) + '<div class="kart-icerik">' +
+    kartGorselHTML(m, fotoHaritasi.get(m.id)) + '<div class="kart-icerik">' +
     /* GUVEN NOKTASI adin yaninda, KISA halde: liste 2.300 karta kadar
        cikiyor ve her karta "fiyat yok" yazmak listeyi ayni cumleyle
        doldururdu. Renk tek basina bilgi tasimiyor -- aria-label ve
@@ -362,6 +362,37 @@ async function paylasimlariYukle(il){
     if (!p.mekan_id) return;            // kimliksiz kayit eslenemiyor
     if (!paylasimHaritasi.has(p.mekan_id)) paylasimHaritasi.set(p.mekan_id, []);
     paylasimHaritasi.get(p.mekan_id).push(p);
+  });
+}
+
+/* ---------- kart fotograflari ----------
+
+   Mekan basina EN IYI TEK fotograf. Kesfet listesi bugune kadar hic
+   fotograf gostermiyordu: il dosyalari statik ve fotograflar
+   Supabase'de. Mekan mekan sormak 2.360 istek demekti -- il basina TEK
+   istek gidiyor, paylasimlarla ayni desen ve ayni cizim yolu.
+
+   SIRA: sahip > kullanici > commons. Isletme sahibinin fotografi mekani
+   en iyi temsil eden ve yayimlama hakki en net olandir; ayni siralama
+   mekan_fotograflari RPC'sinde de var. */
+let fotoHaritasi = new Map();
+const FOTO_SIRA = { sahip: 0, kullanici: 1, commons: 2 };
+
+async function fotograflariYukle(il){
+  fotoHaritasi = new Map();
+  const K = window.Kimlik;
+  if (!K || !K.acik || !K.ilFotograflari) return;
+  await K.hazir;
+  const liste = await K.ilFotograflari(il);
+  liste.forEach(f => {
+    if (!f.mekan_id) return;
+    const adres = K.fotoGosterimAdresi(f);
+    if (!adres) return;                 /* adresi cozulemeyen kayit gosterilmez */
+    const eski = fotoHaritasi.get(f.mekan_id);
+    const s = FOTO_SIRA[f.kaynak] != null ? FOTO_SIRA[f.kaynak] : 9;
+    if (!eski || s < eski.s)
+      fotoHaritasi.set(f.mekan_id, { s: s, adres: adres, kaynak: f.kaynak,
+                                     yazar: f.yazar, lisans: f.lisans });
   });
 }
 
@@ -972,6 +1003,9 @@ function ilYukle(kod, ilkAcilis){
     /* Fisler ile akran satiri AYNI ile ait: il degisince ikisi birden
        yenilenmezse ekranda Ankara listesi + Izmir akrani kalirdi. */
     paylasimlariYukle(kod).then(() => { ciz(false); akranYaz(); });
+    /* Fotograflar AYRI cagri ve ayri cizim: paylasimlar gec gelirse
+       fotograf onu beklemesin, biri patlarsa oteki yine gelsin. */
+    fotograflariYukle(kod).then(() => ciz(false));
     limit = SAYFA;
     secili = null;
     ciz(true);

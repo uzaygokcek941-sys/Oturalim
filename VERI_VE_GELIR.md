@@ -351,6 +351,43 @@ geçmiyor, `facebook.com/x` bir Instagram kullanıcısı sayılmıyor).
 
 ---
 
+## 3b — Fotoğraf: keşfet listesi artık gösteriyor
+
+**Ölçüm önce.** Keşfet listesi bugüne kadar hiç fotoğraf göstermiyordu:
+il dosyaları statik, fotoğraflar Supabase'de ve liste hiç Supabase'e
+çıkmıyordu. Kart başına sormak 2.360 istek demekti.
+
+**Çözüm mimari değil, var olan desen.** `onaylanmisPaylasimlar(il)`
+zaten il başına TEK istek atıyor ve cevap gelince liste yeniden
+çiziliyor. Fotoğraf da aynı yoldan: `ilFotograflari(il)`. Yeni SQL
+gerekmedi — RLS `durum = 'onaylandi'` satırlarını zaten herkese açıyor
+ve sütun yetkisi bu alanları kapsıyor.
+
+Sıra **sahip > kullanıcı > commons**; işletme sahibinin fotoğrafı
+mekanı en iyi temsil eden ve yayımlama hakkı en net olandır.
+
+### Commons turunun kopuk halkası — ÖLÇÜLDÜ
+
+`foto_cek.py` "hiç koşmadı" sanılıyordu. **Koştu**: 26–27 Ağustos'ta
+GitHub koşucusunda 48 dakika. Ama `mekan_foto.csv` ve `foto_ekle.sql`
+`.gitignore`'daydı, yani her tur dosyayı üretip **kaybediyordu** — veri
+dalında ne CSV ne SQL vardı ve tur boş dönmüş gibi görünüyordu.
+
+İkisi ayrıldı: **`mekan_foto.csv` artık izleniyor** (içinde sır yok,
+Commons'un açık lisanslı dosya adları), `foto_ekle.sql` izlenmiyor
+çünkü o bir çıktı değil **elle yapıştırılan bir ara adım**.
+
+**Bugünkü duvar bu:** betik Supabase'e kendi yazamıyor, çünkü bunun için
+`service_role` anahtarı gerekirdi ve o anahtar bu depoya asla girmiyor.
+Yani Commons fotoğrafları bir insanın SQL Editor'e yapıştırmasını
+bekliyor. Beklenen kapsam da düşük: mekanların **%93'ü yeme-içme** ve
+Commons orada boş.
+
+**Ölçekleyen yol kullanıcı yüklemesi.** O hat uçtan uca çalışıyor ve
+karta kadar bağlı.
+
+---
+
 ## 4 — Yorumlar
 
 **Google Maps, Yandex ve Instagram yorumları kazınmıyor. Bu bir eksiklik
