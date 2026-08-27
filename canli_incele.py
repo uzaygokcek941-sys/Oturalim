@@ -90,6 +90,12 @@ def _sayfayi_incele(ctx, taban, yol, ad):
         r["ms"] = int((_t.monotonic() - t0) * 1000)
 
         r["baslik"] = (sayfa.title() or "").strip()
+        # SON ADRES. "giris ister" sayfalari giris yoksa yonlendiriyor;
+        # ilk raporumda bunu gormedigim icin giris.html'i uc ayri sayfa
+        # adiyla olcup uc kez ayni "hatayi" yazdim.
+        son = sayfa.url.replace(taban, "")
+        if son.split("?")[0] != yol.split("?")[0]:
+            r["yonlendi"] = son
         r.update(sayfa.evaluate("""() => {
             if (!document.body) return {yonlendirdi: true, aciklama: 0,
                      h1: 1, gorsel: 0, altsiz: 0, kucuk_hedef: 0,
@@ -112,9 +118,36 @@ def _sayfayi_incele(ctx, taban, yol, ad):
             }
             return {
               aciklama: meta ? (meta.content || '').length : 0,
-              h1: document.querySelectorAll('h1').length,
+              // YALNIZ GORUNEN h1. Ilk yazimda hepsini sayiyordum ve
+              // giris.html'de "3 h1" diye rapor ettim -- oysa uc panel
+              // basligi var (giris / kayit / sifre sifirlama) ve ayni
+              // anda YALNIZ BIRI gorunuyor. Gizli bir basligi ihlal
+              // saymak, olmayan bir hatayi rapor etmektir.
+              h1: [...document.querySelectorAll('h1')]
+                    .filter(e => e.getClientRects().length > 0).length,
               gorsel: gorsel.length,
-              altsiz: gorsel.filter(i => !(i.alt || '').trim()).length,
+              // alt="" BOS DEGIL, KARARDIR: WCAG suslemeli gorseli boyle
+              // isaretliyor ve ekran okuyucu onu ATLIYOR. Eksik olan
+              // sey alt ozniteliginin HIC OLMAMASI.
+              altsiz: gorsel.filter(i => !i.hasAttribute('alt')).length,
+              alt_bos: gorsel.filter(i => i.hasAttribute('alt') &&
+                                          !i.alt.trim()).length,
+              // 44 px'i GECMEYEN denetimlerin ne oldugunu da yaz;
+              // sayi tek basina duzeltilemez, secici duzeltilebilir.
+              kucuk_ne: (() => {
+                const c = [];
+                for (const e of document.querySelectorAll(
+                       'button, a, select, input:not([type=hidden]), [role=button]')){
+                  const b = e.getBoundingClientRect();
+                  if (b.width === 0 && b.height === 0) continue;
+                  if (e.tagName === 'A' &&
+                      getComputedStyle(e).display === 'inline') continue;
+                  if (b.height < 44)
+                    c.push((e.id ? '#' + e.id : e.tagName.toLowerCase()) +
+                           ':' + Math.round(b.height));
+                }
+                return c.slice(0, 6);
+              })(),
               kucuk_hedef: kucuk,
               lang: document.documentElement.lang || '',
               // document.body NULL olabiliyor: hesabim.html giris
@@ -219,10 +252,11 @@ def main():
         if r.get("kirik"):
             satir += ["istek: " + k for k in r["kirik"]]
         if r.get("altsiz"):
-            satir.append("alt metni olmayan gorsel: %d/%d"
+            satir.append("alt OZNITELIGI OLMAYAN gorsel: %d/%d"
                          % (r["altsiz"], r["gorsel"]))
         if r.get("kucuk_hedef"):
-            satir.append("44 px'ten kisa dokunma hedefi: %d" % r["kucuk_hedef"])
+            satir.append("44 px'ten kisa: %d -> %s"
+                         % (r["kucuk_hedef"], ", ".join(r.get("kucuk_ne", []))))
         if r.get("h1") != 1:
             satir.append("h1 sayisi: %s (1 olmali)" % r.get("h1"))
         if not r.get("aciklama"):
@@ -231,6 +265,9 @@ def main():
             satir.append("html lang: %r" % r.get("lang"))
         if r.get("tasma"):
             satir.append("yatay tasma: %s px" % r["tasma"])
+        if r.get("yonlendi"):
+            satir.append("YONLENDIRDI -> %s (asagidaki olcumler O sayfanin)"
+                         % r["yonlendi"])
         if satir:
             temiz = False
             print("\n  %s (%s)" % (r["ad"], r["yol"]))
