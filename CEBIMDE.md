@@ -2516,6 +2516,16 @@ kalıyor, tarayıcı ham URL yazıyor. Çözülemeyen bağ — gönderi adresi
 `instagram.com/p/…`, kanal kimliği `youtube.com/channel/UC…` — sessizce
 düşüyor. Çelişkide **OSM kazanıyor**: etiketi bir insan yazmış.
 
+**Ve bu kaynak neredeyse hiç koşamayacaktı.** `site_isle` bağı topluyor
+ama `islenmis()` aynı siteyi iki kez taramıyor; ölçüldü: 2.294 JS
+sitesinin 2.372'si menü için zaten taranmış, `bu turda islenecek
+site: 0`. Yazılan şey, çalıştırılması imkânsız bir kod yolu olacaktı.
+Ayrı ve **hafif** bir tur eklendi (`menu_pdf_tara.py sosyal`): menü
+bağını takip etmiyor, PDF indirmiyor, yalnız sayfayı açıp `<a href>`
+okuyor, ve kendi günlüğüne bakarak yarıda kalırsa devam ediyor.
+Kontrol artık bunu da sınıyor — "toplama çalıştırılabilir mi" sorusu,
+"toplama doğru mu" sorusundan önce geliyor.
+
 Bu iş `sosyal_adi`'da ölçülmüş bir kusur da açığa çıkardı: alt alan
 adları tek tek yazılıydı (`m.`, `web.`, `mobile.`, `music.`) ve listede
 olmayan **`tr-tr.facebook.com` reddediliyordu** — Türkiye'deki

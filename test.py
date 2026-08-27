@@ -1790,6 +1790,21 @@ def site_sosyal_mi():
         async def new_page(self):
             return _Sayfa()
 
+    # (b0) TOPLAMA CALISTIRILABILIR MI. En pahali hata bu olurdu:
+    # site_isle sosyal bag topluyor AMA islenmis() ayni siteyi iki kez
+    # taramiyor. Olculdu -- 2.294 js sitesinin 2.372'si menu icin
+    # taranmis ve "bu turda islenecek site: 0". Yani toplama, hicbir
+    # zaman kosmayacak bir kod yolu olacakti. Ayri bir "sosyal" kipi
+    # var ve KENDI gunlugune bakiyor.
+    for ad in ("sosyal_isle", "sosyal_islenmis", "sosyal_turu"):
+        if not hasattr(MT, ad):
+            s.append("menu_pdf_tara: sosyal turu yok (%s) -- toplama "
+                     "islenmis() yuzunden hic kosamaz" % ad)
+    if hasattr(MT, "main"):
+        import inspect
+        if '"sosyal"' not in inspect.getsource(MT.main):
+            s.append("menu_pdf_tara.main 'sosyal' kipini tanimiyor")
+
     gecici = tempfile.mkdtemp()
     eski = (MT.SOSYAL, MT.BULGU, MT.KALEM)
     MT.SOSYAL = os.path.join(gecici, "sosyal.csv")
@@ -1828,6 +1843,46 @@ def site_sosyal_mi():
         s.append("site_isle kosulamadi: %s: %s" % (type(e).__name__, e))
     finally:
         MT.SOSYAL, MT.BULGU, MT.KALEM = eski
+        MT._robot_onbellek.clear()
+        shutil.rmtree(gecici, ignore_errors=True)
+
+    # (c) SOSYAL KIPI: gunluge yaziyor mu (yoksa her kosuda bastan
+    # baslar) ve robots kapisi orada da gecerli mi.
+    gecici = tempfile.mkdtemp()
+    eski = (MT.SOSYAL, MT.SOSYAL_LOG)
+    MT.SOSYAL = os.path.join(gecici, "s.csv")
+    MT.SOSYAL_LOG = os.path.join(gecici, "log.csv")
+    MT._robot_onbellek.clear()
+    MT._robot_onbellek["https://xkafe.test"] = True
+    MT._robot_onbellek["https://yasakli.test"] = False
+    try:
+        n = asyncio.run(MT.sosyal_isle(
+            _Tarayici(), {"mekan": "X", "il": "34",
+                          "website": "https://xkafe.test"}, asyncio.Lock()))
+        if n != 2:
+            s.append("sosyal turu: 2 bag beklenirken %d" % n)
+        if MT.sosyal_islenmis() != {"https://xkafe.test"}:
+            s.append("sosyal turu gunluge yazmiyor; her kosuda bastan baslar")
+
+        class _Catlayan:
+            async def new_page(self):
+                raise AssertionError("robots YASAKLARKEN sayfa acildi")
+
+        MT.sosyal_isle  # noqa -- asagida cagriliyor
+        asyncio.run(MT.sosyal_isle(
+            _Catlayan(), {"mekan": "Y", "il": "34",
+                          "website": "https://yasakli.test"}, asyncio.Lock()))
+        with io.open(MT.SOSYAL_LOG, encoding="utf-8") as f:
+            son = list(csv.DictReader(f))[-1]
+        if son["durum"] != "robots-yasak":
+            s.append("sosyal turu robots yasagini gunluge yazmiyor: %r"
+                     % son["durum"])
+    except AssertionError as e:
+        s.append("sosyal turu: %s" % e)
+    except Exception as e:
+        s.append("sosyal turu kosulamadi: %s: %s" % (type(e).__name__, e))
+    finally:
+        MT.SOSYAL, MT.SOSYAL_LOG = eski
         MT._robot_onbellek.clear()
         shutil.rmtree(gecici, ignore_errors=True)
     return s

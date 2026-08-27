@@ -31,6 +31,10 @@ on:
         description: "Site taramasi (menu_pdf_tara.py) — sosyal bag + menu, ~2 saat"
         type: boolean
         default: false
+      sosyal:
+        description: "Sosyal bag turu (menu_pdf_tara.py sosyal) — hafif, ~1 saat"
+        type: boolean
+        default: false
       ocr:
         description: "Menu gorsellerini OCR ile oku (NVIDIA_API_KEY gerekir)"
         type: boolean
@@ -74,8 +78,9 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ runner.os }}
 
+      # Iki tur da gercek tarayici istiyor.
       - name: Chromium
-        if: inputs.tarayici
+        if: inputs.tarayici || inputs.sosyal
         run: python -m playwright install --with-deps chromium
 
       # ---- 1. OSM mekan cekimi -------------------------------------
@@ -114,6 +119,21 @@ jobs:
       - name: Site/menu taramasi
         if: inputs.tarayici
         run: python menu_pdf_tara.py tam
+
+      # ---- 2b. Sosyal bag turu (AYRI VE HAFIF) --------------------
+      # AYRI OLMAK ZORUNDA. site_isle sosyal bag topluyor ama
+      # islenmis() ayni siteyi iki kez taramiyor: olculdu, 2.294 js
+      # sitesinin 2.372'si menu icin taranmis ve "bu turda islenecek
+      # site: 0". Yani toplama, hicbir zaman kosmayacak bir kod yolu
+      # olarak kalirdi. Bu kip KENDI gunlugune bakiyor
+      # (menu_site_sosyal_log.csv) ve yarim kalirsa devam ediyor.
+      #
+      # HAFIF: menu bagini takip etmiyor, PDF indirmiyor, gorsel
+      # okumuyor. Bir sayfa acilip <a href> listesi okunuyor --
+      # baskasinin sunucusuna binen yuk kucuk.
+      - name: Sosyal bag turu
+        if: inputs.sosyal
+        run: python menu_pdf_tara.py sosyal
 
       # ---- 3. Gorsel/PDF menuler (OCR) -----------------------------
       # Anahtar GITHUB SECRETS'ta. Depoya ASLA girmiyor (.gitignore).
@@ -205,6 +225,7 @@ jobs:
             echo "### Veri turu"
             echo "- OSM mekan: ${{ inputs.mekan }}"
             echo "- Tarama   : ${{ inputs.tarayici }}"
+            echo "- Sosyal   : ${{ inputs.sosyal }}"
             echo "- OCR      : ${{ inputs.ocr }}"
             echo "- Kutuphane: ${{ inputs.kutuphane }}"
             echo "- Foto     : ${{ inputs.foto }}"

@@ -39,6 +39,11 @@ KAYNAK = "tr_menu_ozet.csv"
 BULGU = "menu_pdf_bulgu.csv"
 KALEM = "menu_pdf_kalem.csv"
 SOSYAL = "menu_site_sosyal.csv"
+# Sosyal turunun KENDI gunlugu. Neden ayri: menu_site_sosyal.csv yalniz
+# BULUNAN baglari tasiyor, yani "bakildi, yoktu" ile "hic bakilmadi"
+# birbirinden ayirt edilemiyor. Gunluk her ziyaret edilen siteye bir
+# satir yaziyor; tur yarim kalirsa kaldigi yerden devam ediyor.
+SOSYAL_LOG = "menu_site_sosyal_log.csv"
 
 # ISLETMENIN KENDI SITESINDE KENDI VERDIGI SOSYAL BAG.
 #
@@ -358,6 +363,93 @@ def yaz_kalem(satir, url, kalemler):
            for ad, f in kalemler])
 
 
+async def sosyal_isle(tarayici, satir, kilit):
+    """Yalniz sosyal bag: ana sayfayi ac, baglari oku, kapat.
+
+    NEDEN AYRI BIR GECIS: site_isle zaten sosyal bag topluyor ama
+    islenmis() ile ayni kaynagi iki kez taramiyor -- olculdu, bugun
+    2.294 js sitesinin 2.372'si zaten menu icin taranmis ve "bu turda
+    islenecek site: 0". Yani sosyal toplama, hicbir zaman calismayan
+    bir kod yolu olarak kalirdi.
+
+    Bu gecis site_isle'nin AGIR kismini yapmiyor: menu bagini takip
+    etmiyor, PDF indirmiyor, gorsel okumuyor. Bir sayfa acilip
+    <a href> listesi okunuyor. Hem hizli hem de baskasinin sunucusuna
+    binen yuk kucuk -- bu depoda tam tarama zaten bu yuzden elle
+    tetikleniyor.
+    """
+    site = satir["website"]
+    sayfa = None
+    sosyal = []
+    durum = "ok"
+    if not robots_izin(site):
+        durum = "robots-yasak"
+    else:
+        try:
+            sayfa = await tarayici.new_page()
+            sayfa.set_default_timeout(SAYFA_ZAMAN)
+            await sayfa.goto(site, wait_until="domcontentloaded")
+            await sayfa.wait_for_timeout(1200)
+            baglar = await sayfa.eval_on_selector_all(
+                "a", "els => els.map(a => a.getAttribute('href'))")
+            gorulen = set()
+            for h in baglar:
+                m_bag = mutlak(site, h) if h else ""
+                k = SOSYAL_BAG.match(m_bag)
+                if not k or SOSYAL_DEGIL.search("/" + m_bag[k.end():]):
+                    continue
+                alan = k.group(1).lower()
+                if alan in gorulen:
+                    continue
+                gorulen.add(alan)
+                sosyal.append([satir["mekan"], satir.get("il", ""), site,
+                               alan, m_bag])
+        except Exception as e:
+            durum = "erisilemedi: %s" % str(e)[:40]
+        finally:
+            if sayfa:
+                try:
+                    await sayfa.close()
+                except Exception:
+                    pass
+
+    async with kilit:
+        if sosyal:
+            yaz_sosyal(sosyal)
+        # GUNLUK HER ZAMAN yaziliyor, bulgu sifir olsa da: yoksa tur
+        # her kosuda bastan baslardi.
+        _ekle(SOSYAL_LOG, ["website", "durum", "bulunan"],
+              [[site, durum, len(sosyal)]])
+    return len(sosyal)
+
+
+def sosyal_islenmis():
+    if not os.path.exists(SOSYAL_LOG):
+        return set()
+    with io.open(SOSYAL_LOG, encoding="utf-8") as f:
+        return {r["website"] for r in csv.DictReader(f)}
+
+
+async def sosyal_turu(satirlar):
+    kilit = asyncio.Lock()
+    sinir = asyncio.Semaphore(ESZAMANLI)
+    sayac = {"n": 0, "bulunan": 0}
+    async with async_playwright() as p:
+        tarayici = await p.chromium.launch()
+
+        async def tek(s):
+            async with sinir:
+                n = await sosyal_isle(tarayici, s, kilit)
+                sayac["n"] += 1
+                sayac["bulunan"] += n
+                print("[%4d/%d] %-30s %d bag (toplam %d)"
+                      % (sayac["n"], len(satirlar), s["mekan"][:30], n,
+                         sayac["bulunan"]), flush=True)
+        await asyncio.gather(*(tek(s) for s in satirlar))
+        await tarayici.close()
+    print("sosyal turu bitti: %d site, %d bag" % (sayac["n"], sayac["bulunan"]))
+
+
 def yaz_sosyal(satirlar):
     _ekle(SOSYAL, ["mekan", "il", "website", "alan", "url"], satirlar)
 
@@ -500,6 +592,19 @@ def main(kip, guvensiz=False):
     else:
         with io.open(KAYNAK, encoding="utf-8-sig") as f:
             hepsi = [r for r in csv.DictReader(f) if r["kaynak"] == "js"]
+
+    # SOSYAL KIPI: menu bulgusuna bakmiyor, kendi gunlugune bakiyor.
+    if kip == "sosyal":
+        atla = sosyal_islenmis()
+        kalan = [r for r in hepsi if r["website"] not in atla]
+        print("site: %d · sosyal icin bakilmis: %d · bu turda: %d"
+              % (len(hepsi), len(atla), len(kalan)))
+        if not kalan:
+            print("bakilacak site yok")
+            return
+        asyncio.run(sosyal_turu(kalan))
+        return
+
     atla = islenmis()
     kalan = [r for r in hepsi if r["website"] not in atla]
     if kip == "pilot":

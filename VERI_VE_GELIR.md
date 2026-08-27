@@ -329,6 +329,19 @@ bağlantı — kazıma değil.
 Çelişkide **OSM kazanıyor**: etiketi bir insan elle yazmış, sitedeki bağı
 bir tarayıcı bulmuş.
 
+**Ayrı bir tur olmak zorundaydı ve sebebi ölçüldü.** `site_isle` sosyal
+bağı zaten topluyor, ama `islenmis()` aynı siteyi iki kez taramıyor:
+2.294 JS sitesinin **2.372'si** menü için taranmış ve bugün
+`bu turda islenecek site: 0`. Yani toplama, hiçbir zaman koşmayacak bir
+kod yolu olarak kalacaktı. `python menu_pdf_tara.py sosyal` kendi
+günlüğüne (`menu_site_sosyal_log.csv`) bakıyor; yarım kalırsa kaldığı
+yerden devam ediyor ve "bakıldı, yoktu" ile "hiç bakılmadı" ayrı
+duruyor.
+
+Bu tur **hafif**: menü bağını takip etmiyor, PDF indirmiyor, görsel
+okumuyor — bir sayfa açılıp `<a href>` listesi okunuyor. Başkasının
+sunucusuna binen yük, menü turunun çok altında.
+
 Bu iş sırasında `sosyal_adi`'da ölçülmüş bir kusur da çıktı: alt alan
 adları tek tek yazılıydı (`m.`, `web.`, `mobile.`, `music.`) ve listede
 olmayan **`tr-tr.facebook.com` reddediliyordu** — Türkiye'deki
