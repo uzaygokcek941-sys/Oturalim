@@ -47,6 +47,9 @@ on:
         description: "Wikimedia Commons fotograflari (foto_cek.py)"
         type: boolean
         default: false
+      foto_iller:
+        description: "Yalniz bu iller (ornek: TR-34 TR-06). Bos = 81 il"
+        default: ""
 
 concurrency:
   group: veri-turu
@@ -178,10 +181,15 @@ jobs:
       # ELLE yapistirilan bir ara adim. Bugunku duvar da bu -- betik
       # veritabanina kendi yazamiyor, cunku bunun icin service_role
       # anahtari gerekirdi ve o anahtar bu depoya ASLA girmiyor.
+      # IL SECIMI NEDEN VAR: 81 ilin tamami Overpass'ta ~90 DAKIKA
+      # suruyor ve bu turun ciktisina bakmak icin her seferinde 90 dakika
+      # beklemek pratik degil. Buyuk sehirler ~5 dakika ve mekanlarin
+      # buyuk kismini kapsiyor. Bos birakilinca davranis DEGISMIYOR:
+      # 81 il taraniyor.
       - name: Commons fotograflari
         if: inputs.foto
         run: |
-          python foto_cek.py
+          python foto_cek.py ${{ inputs.foto_iller }}
           {
             echo "### Commons fotograflari"
             if [ -f mekan_foto.csv ]; then
