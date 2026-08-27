@@ -2040,6 +2040,30 @@ def veri_turu_kapisi_mi():
                 os.unlink(cikti)
 
     s = []
+    # (0) VERI DALI IS AKISI DOSYASI TASIYAMAZ. 27 Agustos: 91 dakikalik
+    #     Commons turu bitti, kapi dosyayi GORDU ve push duvara carpti --
+    #     "refusing to allow a GitHub App to create or update workflow
+    #     .github/workflows/canli.yml without workflows permission".
+    #     Dal main'in kopyasiydi ve icinde ESKI bir is akisi surumu vardi.
+    #     Cozum yetkiyi buyutmek DEGIL (is akisi yazabilen jeton kendini
+    #     degistirebilir); dalin yalniz veri tasimasi.
+    yaz = re.search(r"\n      - name: Dala yaz\n(?:.*\n)*?        run: \|\n"
+                    r"((?:          .*\n|\n)+)", metin)
+    if not yaz:
+        s.append("veri.yml: 'Dala yaz' adiminin run govdesi bulunamadi")
+    else:
+        g = yaz.group(1)
+        if "--orphan" not in g:
+            s.append("veri.yml 'Dala yaz': dal main'den turetiliyor, yani "
+                     "is akisi dosyalarini da tasiyor -- push 'workflows "
+                     "permission' ile reddedilir")
+        if re.search(r"^\s*git add -A\s*$", g, re.M):
+            s.append("veri.yml 'Dala yaz': 'git add -A' her seyi ekliyor; "
+                     "veri dali yalniz veri tasimali")
+        if "workflows:" in metin:
+            s.append("veri.yml: jetona 'workflows' yetkisi verilmis; is "
+                     "akisi yazabilen bir jeton kendini degistirebilir")
+
     # (a) YENI DOSYA. Kapinin bu depoda UC KEZ kacirdigi durum.
     d = kapi(lambda td: open(os.path.join(td, "mekan_foto.csv"), "w")
              .write("mekan_id,adres\nnode/1,x\n"))

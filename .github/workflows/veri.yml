@@ -237,12 +237,41 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           DAL="veri/tur-$(date -u +%Y%m%d-%H%M)"
-          git checkout -b "$DAL"
-          git add -A
-          git commit -m "veri: toplama turu ($(date -u +%Y-%m-%d)) — mekan=${{ inputs.mekan }} tarayici=${{ inputs.tarayici }} ocr=${{ inputs.ocr }}"
+
+          # ORPHAN DAL: yalniz VERI tasiyor, .github/ TASIMIYOR.
+          #
+          # NEDEN. Normal bir dal main'in kopyasi olur ve icindeki is akisi
+          # dosyalarini da tasir. GITHUB_TOKEN'in "workflows" yetkisi yok,
+          # o yuzden dal ESKI bir is akisi surumu tasidigi anda push
+          # REDDEDILIYOR:
+          #   refusing to allow a GitHub App to create or update workflow
+          #   `.github/workflows/canli.yml` without `workflows` permission
+          # 27 Agustos'ta tam bu oldu: 91 dakikalik Commons turu bitti,
+          # kapi dosyayi GORDU, ve push duvara carpti.
+          #
+          # Cozum yetkiyi buyutmek DEGIL. Is akisi yazabilen bir jeton
+          # kendi kendini degistirebilir; veri turunun buna ihtiyaci yok.
+          # Dal artik yalniz VERI tasiyor -- gozden gecirmesi de kolay:
+          # icinde koddan tek satir yok.
+          git checkout --orphan "$DAL"
+          git rm -r --cached . >/dev/null 2>&1 || true
+          git add -A -- app/veri
+          for f in mekan_foto.csv turkiye_mekanlar.csv menu_site_sosyal.csv \
+                   tr_menu_tarayici.csv menu_ocr_kalem.csv; do
+            [ -f "$f" ] && git add -- "$f"
+          done
+          git commit -m "veri: toplama turu ($(date -u +%Y-%m-%d)) — mekan=${{ inputs.mekan }} tarayici=${{ inputs.tarayici }} ocr=${{ inputs.ocr }} foto=${{ inputs.foto }}"
           git push -u origin "$DAL"
-          echo "### Yeni veri dali: \`$DAL\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "Kontroller gecti. Birlestirmek icin PR ac." >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "### Yeni veri dali: \`$DAL\`"
+            echo "Kontroller gecti. Dal YALNIZ VERI tasiyor (kod yok)."
+            echo "Almak icin:"
+            echo '```'
+            echo "git fetch origin $DAL"
+            echo "git checkout main"
+            echo "git checkout origin/$DAL -- mekan_foto.csv app/veri"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Ozet
         if: always()
