@@ -477,6 +477,14 @@ def sql_yaz():
     if not satirlar:
         sys.exit("mekan_foto.csv BOS. Bu bir olcum degil -- tur yarim "
                  "kalmis olabilir. foto_ekle.sql YAZILMADI.")
+    # CSV ESKI BIR TURDAN GELMIS OLABILIR. Atif temizligi 27 Agustos'ta
+    # eklendi; o gun sabah kosan turun CSV'si kirli yazar tasiyor. Burada
+    # yeniden temizlemek onu da duzeltiyor -- ve temizleyici zaten
+    # "hicbir isim dusurme" kuralina gore yazildi, yani tekrar uygulamak
+    # guvenli (idempotent).
+    for r in satirlar:
+        r["yazar"] = _temiz_yazar(r.get("yazar")) or ""
+
     eksik = [r for r in satirlar if not (r.get("yazar") or "").strip()]
     if eksik:
         # ATIF ZORUNLU. Veritabani kisiti da atifsiz satiri kabul etmiyor;
