@@ -38,6 +38,40 @@ from fiyat_analiz import kategorile
 KAYNAK = "tr_menu_ozet.csv"
 BULGU = "menu_pdf_bulgu.csv"
 KALEM = "menu_pdf_kalem.csv"
+SOSYAL = "menu_site_sosyal.csv"
+
+# ISLETMENIN KENDI SITESINDE KENDI VERDIGI SOSYAL BAG.
+#
+# Olculdu: 35.852 mekanin 304'unde (%0,8) sosyal hesap var ve HEPSI
+# Instagram -- cunku turkiye_mekanlar.csv dort sutun eklenmeden once
+# uretilmis. OSM'yi yeniden cekmek o dort sutunu dolduruyor ama OSM'de
+# etiket YOKSA orada da bir sey cikmiyor.
+#
+# Bu betik zaten her isletme sitesini gercek tarayicida aciyor. Ayni
+# geciste sayfadaki sosyal baglar da toplanabiliyor: ek istek yok, ek
+# kaynak yok, ve kaynak isletmenin KENDI sitesi -- kazima degil, orada
+# yayimlanmis bag.
+#
+# Kullanici adi AYIKLANMIYOR burada: bicim kurallari app_veri.py'de
+# (sosyal_adi) tek yerde duruyor ve iki yere kopyalanmasi, birinin
+# gunun birinde otekinden sapmasi demekti. Burasi ham URL yaziyor.
+SOSYAL_BAG = re.compile(
+    r"^https?://(?:[\w.-]+\.)?"
+    r"(instagram\.com|facebook\.com|fb\.com|twitter\.com|x\.com|"
+    r"tiktok\.com|youtube\.com|youtu\.be)/", re.I)
+
+# PAYLASIM/GIRIS BAGLARI DEGIL. "facebook.com/sharer/sharer.php?u=..."
+# her sitede var ve bir hesap degil; alinsa her mekana ayni sahte
+# hesap yazilirdi.
+#
+# DESEN YALNIZ YOLA BAKIYOR, TUM URL'YE DEGIL. Once tum URL'ye
+# bakiyordu ve "tr-tr.facebook.com/xkafe" REDDEDILIYORDU: alan adindaki
+# "//tr" desendeki "tr" locale parcasina takiliyordu. Turkce Facebook
+# alt alan adi Turkiye'deki isletmelerde en sik gorulen bicim, yani
+# kapi tam da yakalamasi gerekeni eliyordu.
+SOSYAL_DEGIL = re.compile(
+    r"^/(sharer|share|dialog|intent|login|plugins|watch|embed|hashtag|"
+    r"oauth|profile\.php)\b|[?&]u=", re.I)
 
 ESZAMANLI = 6          # ayni anda acik sekme
 SAYFA_ZAMAN = 20000    # ms
@@ -194,6 +228,7 @@ async def site_isle(tarayici, istemci, satir, kilit):
     bulgu = {"mekan": satir["mekan"], "il": satir.get("il", ""), "website": site,
              "tur": "", "kaynak_url": "", "kalem_sayisi": 0, "not": ""}
     kalemler = []
+    sosyal = []
     sayfa = None
     if not robots_izin(site):
         bulgu["tur"] = "robots-yasak"
@@ -233,6 +268,21 @@ async def site_isle(tarayici, istemci, satir, kilit):
 
         baglar = await sayfa.eval_on_selector_all(
             "a", "els => els.map(a => a.getAttribute('href'))")
+        # Sosyal baglar ayni gecisten. Mekan basina platform basina BIR
+        # tane: bir sitede ayni hesaba ustte ve altta iki bag olmasi
+        # kural, ve ikisini de yazmak sayiyi sisirirdi.
+        gorulen = set()
+        for h in baglar:
+            m_bag = mutlak(site, h) if h else ""
+            k = SOSYAL_BAG.match(m_bag)
+            if not k or SOSYAL_DEGIL.search("/" + m_bag[k.end():]):
+                continue
+            alan = k.group(1).lower()
+            if alan in gorulen:
+                continue
+            gorulen.add(alan)
+            sosyal.append([satir["mekan"], satir.get("il", ""), site, alan, m_bag])
+
         pdfler = [mutlak(site, h) for h in baglar
                   if h and h.lower().split("?")[0].endswith(".pdf")]
         gorseller = await sayfa.eval_on_selector_all(
@@ -280,6 +330,8 @@ async def site_isle(tarayici, istemci, satir, kilit):
         yaz_bulgu(bulgu)
         if kalemler:
             yaz_kalem(satir, bulgu["kaynak_url"], kalemler)
+        if sosyal:
+            yaz_sosyal(sosyal)
     return bulgu
 
 
@@ -304,6 +356,10 @@ def yaz_kalem(satir, url, kalemler):
           [[satir["mekan"], satir.get("il", ""), satir["website"], url, ad, f,
             datetime.date.today().isoformat()]
            for ad, f in kalemler])
+
+
+def yaz_sosyal(satirlar):
+    _ekle(SOSYAL, ["mekan", "il", "website", "alan", "url"], satirlar)
 
 
 def islenmis():

@@ -28,7 +28,7 @@ on:
         type: boolean
         default: false
       tarayici:
-        description: "Site/menu taramasi (menu_pdf_tara.py) — gercek tarayici"
+        description: "Site taramasi (menu_pdf_tara.py) — sosyal bag + menu, ~2 saat"
         type: boolean
         default: false
       ocr:
@@ -102,9 +102,15 @@ jobs:
       # "menu bulunamadi 1552". Yani hipotez zaten sinanmis ve
       # cevaplanmisti; ayri betik gereksizdi ve silindi.
       #
-      # Bu adim yine de duruyor: siteler degisir, yeniden taramanin bir
-      # gun anlami olabilir. Ama varsayilan KAPALI, cunku bugun
-      # elimizdeki olcum "getirisi yok" diyor.
+      # AMA ARTIK IKINCI BIR GETIRISI VAR: ayni gecis sayfadaki SOSYAL
+      # BAGLARI da topluyor (menu_site_sosyal.csv). Olculdu: 35.852
+      # mekanin 304'unde (%0,8) sosyal hesap var ve hepsi Instagram.
+      # OSM'yi yeniden cekmek dort eksik sutunu dolduruyor ama etiketin
+      # OLMADIGI yerde yine bos kaliyor; isletmenin kendi sitesi o
+      # bosluga bakan tek ek kaynak ve ek istek istemiyor.
+      #
+      # Varsayilan yine KAPALI (baskasinin sunucusu, ~2 saat), ama
+      # acmanin sebebi artik menu degil sosyal bag.
       - name: Site/menu taramasi
         if: inputs.tarayici
         run: python menu_pdf_tara.py tam

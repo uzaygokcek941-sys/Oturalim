@@ -307,10 +307,34 @@ X, TikTok, YouTube **sıfır**.
 **Yapılacak:** `python turkiye_cek.py` yeniden koşacak. Dört sütun
 kendiliğinden dolacak; kod değişikliği yok.
 
-**İkinci kaynak, bedava:** `menu_pdf_tara.py` zaten her işletme sitesini
-gerçek tarayıcıda açıyor. Aynı geçişte sayfadaki `instagram.com/…`,
-`facebook.com/…` bağlantıları toplanabilir — işletmenin **kendi sitesinde
-kendi yayımladığı** bağlantı. Ek istek yok, ek kaynak yok.
+**İkinci kaynak, bedava — ✅ YAPILDI.** `menu_pdf_tara.py` zaten her
+işletme sitesini gerçek tarayıcıda açıyordu; artık aynı geçişte sayfadaki
+sosyal bağları da topluyor (`menu_site_sosyal.csv`). Ek istek yok, ek
+kaynak yok, ve kaynak işletmenin **kendi sitesinde kendi yayımladığı**
+bağlantı — kazıma değil.
+
+Üç kural kodda duruyor:
+
+1. **Paylaşım bağı hesap değildir.** `facebook.com/sharer/…`,
+   `twitter.com/intent/…`, `plugins/page.php` eleniyor — alınsalardı her
+   mekana aynı sahte hesap yazılırdı.
+2. **Platform başına bir bağ.** Aynı hesap sayfanın üstünde ve altında
+   iki kez duruyor; ikisini de yazmak sayıyı şişirirdi.
+3. **Biçim kuralı tek yerde.** Tarayıcı ham URL yazıyor, kullanıcı adını
+   `app_veri.sosyal_adi` çözüyor. Çözülemeyen bağ (gönderi adresi
+   `instagram.com/p/…`, kanal kimliği `youtube.com/channel/UC…`)
+   **sessizce düşüyor** — yanlış bir hesap adresi üretmek, hiç
+   üretmemekten kötü.
+
+Çelişkide **OSM kazanıyor**: etiketi bir insan elle yazmış, sitedeki bağı
+bir tarayıcı bulmuş.
+
+Bu iş sırasında `sosyal_adi`'da ölçülmüş bir kusur da çıktı: alt alan
+adları tek tek yazılıydı (`m.`, `web.`, `mobile.`, `music.`) ve listede
+olmayan **`tr-tr.facebook.com` reddediliyordu** — Türkiye'deki
+işletmelerin en sık kullandığı biçim. Artık herhangi bir alt alan geçiyor,
+alan adının kendisi yine tam eşleşiyor (`instagram.com.saldirgan.net`
+geçmiyor, `facebook.com/x` bir Instagram kullanıcısı sayılmıyor).
 
 ---
 
@@ -385,7 +409,8 @@ Maliyet ve hazır olma durumuna göre:
 | 1 | `python menu_ocr.py tam` | koşum + API anahtarı | **362 kaynak / 235 mekan** | araç hazır; `NVIDIA_API_KEY` gerekiyor |
 | ~~2~~ | ~~Tarayıcıyla JS menüleri~~ | — | **0/40 (%0,0)** | ❌ **ölçüldü, çürüdü** |
 | ~~3~~ | ~~Tam tarama~~ | — | — | ❌ 2'nin sonucu |
-| 4 | `python turkiye_cek.py` | koşum | 4 sosyal sütun | kod hazır |
+| 4 | `python turkiye_cek.py` | koşum | 4 sosyal sütun | kod hazır; `.github/workflows/veri.yml` → `mekan` |
+| ~~4b~~ | ~~Site taramasında sosyal bağ~~ | — | siteli her mekan | ✅ **yapıldı** (`menu_site_sosyal.csv`) |
 | ~~5~~ | ~~`ilce`/`mahalle` boru hattına~~ | — | **7.460 mekan (%20,8)** | ✅ **yapıldı** |
 | ~~6~~ | ~~OSM `addr:housename`~~ | — | +1,5 puan (sonraki çekimde) | ✅ **yapıldı** |
 | 7 | **Kadıköy 500 m elle derinleştirme** | 1 hafta sonu | 4/474 → 150/474 | `PAZARLAMA.md` Faz A |

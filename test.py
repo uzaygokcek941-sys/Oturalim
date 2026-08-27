@@ -17,6 +17,7 @@ kontrol yakalar.
 
 node yoksa 2. grup ATLANIR ve atlandigi soylenir -- gectigi soylenmez.
 """
+import csv
 import glob
 import io
 import json
@@ -235,19 +236,51 @@ def veri_tutarli_mi():
     # PAZARLAMA.md ozellikle onemli: yatirimciya ve YC'ye SOYLENECEK
     # rakamlar orada. Eskimis bir sayiyi bir toplantida soylemek, bir
     # belgede birakmaktan pahali.
+    #
+    # IKINCI DESEN: menu kalemi. Icerik belgeleri "7.406 menü kalemi"
+    # diyor ve bu rakam veri her buyudugunde degisiyor. Desen DAR
+    # tutuldu (bir hane, nokta, uc hane) -- "12 kalemi" gibi cumleleri
+    # yakalamasin diye; genis desen yanlis alarm uretir ve yanlis alarm
+    # kontrolun kapatilmasiyla biter.
+    #
+    # SATIR SONU ARTIK KACIS DEGIL. Kontrol satir satir okuyordu; bir
+    # belgede "81 ilde 35.852\nmekan var" yaziyordu, yani sayi ile
+    # kelime AYRI SATIRLARDAYDI ve eskise kimse gormeyecekti. Sabotaj
+    # bunu gosterdi: sayiyi bozdum, kontrol susmaya devam etti.
+    # Artik metnin tamami taraniyor ve arada bosluk/madde imi
+    # ("**35.852** mekan") olabiliyor. Satir numarasi konumdan
+    # hesaplaniyor -- hata iletisi yerini gostermeye devam etsin diye.
+    #
+    # SIRA ONEMLI: yalniz "sayi sonra kelime". Tablolarda ("| Mekan |
+    # 12.095 |") kelime once geliyor ve orada 12.095 ISTANBUL, toplam
+    # degil. Ters sirayi da yakalamak yanlis alarm demekti.
+    kalem_dogru = "{:,}".format(kalem).replace(",", ".")
+    DESENLER = ((r"(\d{2}\.\d{3})\**\s+\**mekan", str(toplam), dogru, "mekan"),
+                (r"(\d\.\d{3})\**\s+\**men\u00fc kalemi", str(kalem), kalem_dogru,
+                 "menü kalemi"))
     for ad in ("CEBIMDE.md", "README.md", "KURULUM.md", "PLAY.md",
                "PAZARLAMA.md", "VERI_VE_GELIR.md",
+               "icerik_ilk3.md", "icerik_takvim.md",
                os.path.join("tasarim", "decisions.md")):
         yol = os.path.join(KOK, ad)
         if not os.path.exists(yol):
             continue
-        for no, satir in enumerate(io.open(yol, encoding="utf-8"), 1):
-            if dogru in satir:
-                continue
-            for yazan in set(re.findall(r"(\d{2}\.\d{3}) mekan", satir)):
-                if yazan.replace(".", "") != str(toplam):
-                    s.append("%s:%d: '%s mekan' yaziyor, gercek %s"
-                             % (ad, no, yazan, dogru))
+        metin = io.open(yol, encoding="utf-8").read()
+        satirlar = metin.split("\n")
+        for desen, gercek, guzel, etiket in DESENLER:
+            for m in re.finditer(desen, metin):
+                if m.group(1).replace(".", "") == gercek:
+                    continue
+                no = metin.count("\n", 0, m.start()) + 1
+                # DUZELTMEYI ANLATAN SATIR MUAF: "36.102 -> 35.852" eski
+                # sayiyi HATA OLARAK aniyor, iddia olarak degil. Olcut,
+                # DOGRU sayinin ayni satirda (ya da sarkmis cumlenin bir
+                # onceki satirinda) gecmesi.
+                yakin = "".join(satirlar[max(0, no - 2):no + 1])
+                if guzel in yakin:
+                    continue
+                s.append("%s:%d: '%s %s' yaziyor, gercek %s"
+                         % (ad, no, m.group(1), etiket, guzel))
 
     # Anasayfadaki SABIT yedekler: JS kapaliyken gorunen sayi bunlar.
     ana = oku("app", "index.html")
@@ -1673,6 +1706,133 @@ def platform_kapisi_mi():
     return s
 
 
+def site_sosyal_mi():
+    """Isletme sitesinden sosyal bag toplama gercekten calisiyor mu.
+
+    NEDEN VAR: sosyal hesabi olan mekan 304 (%0,8) ve HEPSI Instagram --
+    turkiye_mekanlar.csv dort sutun eklenmeden onceki surumle uretilmis.
+    OSM'yi yeniden cekmek o sutunlari dolduruyor ama etiketin OLMADIGI
+    yerde yine bos kaliyor. menu_pdf_tara.py zaten her isletme sitesini
+    gercek tarayicida aciyor; ayni geciste sayfadaki sosyal baglar da
+    toplanabiliyor -- ek istek yok, ek kaynak yok, ve kaynak isletmenin
+    KENDI sitesi.
+
+    METIN DEGIL DAVRANIS: site_isle'nin kendisi taklit bir sayfayla
+    kosuluyor ve yazdigi CSV okunuyor. Dosyada dizge aramak, toplama
+    kodunu silen sabotaji gecirirdi (robots kapisinda tam bu oldu).
+    """
+    s = []
+    try:
+        import menu_pdf_tara as MT
+        from app_veri import SOSYAL_ALANDAN, sosyal_adi
+    except Exception as e:
+        return ["menu_pdf_tara/app_veri okunamadi: %s" % e]
+
+    # (a) SUZGEC. Paylasim baglari her sitede var ve bir hesap DEGIL;
+    # alinsalar her mekana ayni sahte hesap yazilirdi. Turkce Facebook
+    # alt alan adi ise en sik gorulen gercek bicim.
+    for u, beklenen in (
+            ("https://www.instagram.com/xkafe/", "instagram.com"),
+            ("https://tr-tr.facebook.com/xkafe", "facebook.com"),
+            ("https://x.com/xkafe", "x.com"),
+            ("https://www.tiktok.com/@xkafe", "tiktok.com"),
+            ("https://www.facebook.com/sharer/sharer.php?u=https://a.com", None),
+            ("https://twitter.com/intent/tweet?url=a", None),
+            ("https://www.facebook.com/plugins/page.php?href=a", None),
+            ("https://xkafe.com/menu", None)):
+        k = MT.SOSYAL_BAG.match(u)
+        gecti = bool(k) and not MT.SOSYAL_DEGIL.search("/" + u[k.end():])
+        alan = k.group(1).lower() if k else None
+        if beklenen is None and gecti:
+            s.append("site sosyal: hesap OLMAYAN bag toplandi: %s" % u)
+        elif beklenen is not None and (not gecti or alan != beklenen):
+            s.append("site sosyal: gercek hesap bagi elendi: %s (%s)" % (u, alan))
+
+    # (b) TOPLAMA GERCEKTEN CAGRILIYOR MU. site_isle taklit sayfayla
+    # kosuluyor; CSV'ye ne yazildigina bakiliyor.
+    import asyncio
+    import tempfile
+
+    class _Sayfa:
+        # SIRA BILEREK BOYLE. Paylasim baglari GERCEK baglardan ONCE
+        # geliyor -- platform basina bir tane alindigi icin, suzgec
+        # kalkarsa toplanan sey paylasim bagi OLUR ve gercek hesap
+        # dusme sirasina girer. Ayrica twitter YALNIZ paylasim bagi
+        # olarak var: suzgec kalkarsa cikan listede "twitter.com"
+        # belirir ve kontrol bunu goruyor. Ilk yazimda ikisi de yoktu
+        # ve "suzgeci sil" sabotaji KACTI: sharer bagi zaten
+        # facebook.com diye tekillenip dusuyordu.
+        BAGLAR = ["https://twitter.com/intent/tweet?url=a",
+                  "https://www.facebook.com/sharer/sharer.php?u=https://a.com",
+                  "https://www.instagram.com/xkafe/",
+                  "https://tr-tr.facebook.com/xkafe",
+                  "https://www.instagram.com/xkafe/",       # tekrar: bir kez
+                  "/menu.html"]
+        url = "https://xkafe.test/"
+        def set_default_timeout(self, *a):
+            pass
+        async def goto(self, *a, **k):
+            pass
+        async def wait_for_timeout(self, *a):
+            pass
+        async def inner_text(self, *a):
+            return ""
+        async def eval_on_selector_all(self, secici, betik):
+            if secici == "img":
+                return []
+            if "innerText" in betik:
+                return [["", h] for h in self.BAGLAR]
+            return list(self.BAGLAR)
+        async def close(self):
+            pass
+
+    class _Tarayici:
+        async def new_page(self):
+            return _Sayfa()
+
+    gecici = tempfile.mkdtemp()
+    eski = (MT.SOSYAL, MT.BULGU, MT.KALEM)
+    MT.SOSYAL = os.path.join(gecici, "sosyal.csv")
+    MT.BULGU = os.path.join(gecici, "bulgu.csv")
+    MT.KALEM = os.path.join(gecici, "kalem.csv")
+    MT._robot_onbellek.clear()
+    MT._robot_onbellek["https://xkafe.test"] = True      # robots izin versin
+    try:
+        asyncio.run(MT.site_isle(
+            _Tarayici(), None,
+            {"mekan": "X Kafe", "il": "34", "website": "https://xkafe.test"},
+            asyncio.Lock()))
+        if not os.path.exists(MT.SOSYAL):
+            s.append("site sosyal: site_isle hicbir bag yazmadi "
+                     "(toplama cagrilmiyor)")
+        else:
+            with io.open(MT.SOSYAL, encoding="utf-8") as f:
+                satir = list(csv.DictReader(f))
+            alanlar = [r["alan"] for r in satir]
+            if sorted(alanlar) != ["facebook.com", "instagram.com"]:
+                s.append("site sosyal: beklenen iki platform yerine %r" % alanlar)
+            # Yazilan bag KULLANICI ADINA cozulmeli ve o ad "xkafe"
+            # olmali. Sadece "cozuluyor mu" demek yetmezdi: paylasim
+            # bagi toplansaydi kullanici adi "sharer" diye cozulur ve
+            # kontrol gecerdi.
+            for r in satir:
+                alan = SOSYAL_ALANDAN.get(r["alan"])
+                if not alan:
+                    s.append("site sosyal: taninmayan platform yazildi: %s"
+                             % r["alan"])
+                    continue
+                if sosyal_adi(alan, r["url"]) != "xkafe":
+                    s.append("site sosyal: yazilan bag 'xkafe' vermiyor: %s -> %r"
+                             % (r["url"], sosyal_adi(alan, r["url"])))
+    except Exception as e:
+        s.append("site_isle kosulamadi: %s: %s" % (type(e).__name__, e))
+    finally:
+        MT.SOSYAL, MT.BULGU, MT.KALEM = eski
+        MT._robot_onbellek.clear()
+        shutil.rmtree(gecici, ignore_errors=True)
+    return s
+
+
 def konum_paneli_mi():
     """Isletme sayfasi mekanin NEREDE oldugunu soyluyor mu.
 
@@ -2596,6 +2756,7 @@ def main():
     kayit("degismez: harita karti maketteki gibi", harita_karti_mi())
     kayit("degismez: isletme sayfasi konumu gosteriyor", konum_paneli_mi())
     kayit("degismez: kazima kapisi platformlari eliyor", platform_kapisi_mi())
+    kayit("degismez: sosyal bag isletmenin kendi sitesinden", site_sosyal_mi())
     kayit("degismez: seviye onayli katkiyi sayiyor", seviye_mi())
     kayit("degismez: butce talebi ifsa etmiyor", butce_talebi_mi())
     kayit("degismez: kurulum dosyalari depoda", kurulum_dosyalari_izleniyor_mu())

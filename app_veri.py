@@ -274,12 +274,23 @@ def instagram_adi(ham):
 # REDDEDILIYOR. Bunu yapmazsak "facebook.com/x" bir instagram kullanicisi
 # sanilip kirpiliyor ve "facebook.com" diye gecerli gorunuyordu (instagram
 # icin olculmus gercek bir hata).
+#
+# ALT ALAN ADI SAYILMIYOR ARTIK. Onceden her platformun alt alan adlari
+# TEK TEK yaziliydi (m., web., mobile., music.) ve listede olmayan biri
+# kapiyi kapatiyordu: "tr-tr.facebook.com/xkafe" REDDEDILIYORDU.
+# Turkce Facebook adresi Turkiye'deki isletmelerin en sik kullandigi
+# bicim; bugunku OSM verisinde bir kez geciyor ama isletme sitelerinden
+# toplanan baglarda en yaygini o olacak.
+#
+# ALAN ADININ KENDISI YINE TAM: desen "...facebook.com/" ile bitiyor,
+# yani "instagram.com.saldirgan.net/x" gecmiyor ve "facebook.com/x" bir
+# instagram kullanicisi sanilmiyor (asagidaki iki kural degismedi).
 SOSYAL_ALAN = {
-    "insta":    (r"(?:m\.)?instagram\.com/",),
-    "facebook": (r"(?:m\.|web\.)?facebook\.com/", r"fb\.com/"),
-    "x":        (r"(?:mobile\.)?twitter\.com/", r"x\.com/"),
-    "tiktok":   (r"(?:m\.|www\.)?tiktok\.com/",),
-    "youtube":  (r"(?:m\.|music\.)?youtube\.com/", r"youtu\.be/"),
+    "insta":    (r"(?:[\w-]+\.)*instagram\.com/",),
+    "facebook": (r"(?:[\w-]+\.)*facebook\.com/", r"(?:[\w-]+\.)*fb\.com/"),
+    "x":        (r"(?:[\w-]+\.)*twitter\.com/", r"(?:[\w-]+\.)*x\.com/"),
+    "tiktok":   (r"(?:[\w-]+\.)*tiktok\.com/",),
+    "youtube":  (r"(?:[\w-]+\.)*youtube\.com/", r"(?:[\w-]+\.)*youtu\.be/"),
 }
 
 # Kullanici adi bicimleri platforma gore ayri: TikTok ve YouTube nokta ve
@@ -531,6 +542,60 @@ def ek_menuler_oku(mekanlar, yollar=EK_MENU_KAYNAKLARI):
     return ek
 
 
+# Isletmenin KENDI sitesinde yayimladigi sosyal bag.
+# menu_pdf_tara.py her siteyi zaten gercek tarayicida aciyor; sosyal
+# baglar ayni geciste, ek istek olmadan toplaniyor.
+#
+# NEDEN GEREKIYOR: OSM'de sosyal etiket seyrek. Olculdu -- 35.852
+# mekanin 304'unde (%0,8) hesap var. OSM'yi yeniden cekmek dort eksik
+# sutunu dolduruyor ama etiketin OLMADIGI yerde yine bos kaliyor.
+# Isletmenin kendi sitesi o bosluga bakan ikinci kaynak.
+SITE_SOSYAL = "menu_site_sosyal.csv"
+
+# Alan adi -> uygulamadaki alan. sosyal_adi() zaten her bicimi
+# cozuyor; burada yalniz HANGI alana yazilacagi soyleniyor.
+SOSYAL_ALANDAN = {
+    "instagram.com": "insta",
+    "facebook.com": "facebook", "fb.com": "facebook",
+    "twitter.com": "x", "x.com": "x",
+    "tiktok.com": "tiktok",
+    "youtube.com": "youtube", "youtu.be": "youtube",
+}
+
+
+def site_sosyal_oku(mekanlar, yol=SITE_SOSYAL):
+    """Site taramasindan gelen sosyal baglar, mekan anahtarina bagli.
+
+    Birlestirme anahtari ek_menuler_oku ile AYNI: WEB SITESI. Zincir
+    adlari illerde tekrar ediyor, site adresi tek mekani gosteriyor.
+    """
+    if not os.path.exists(yol):
+        return {}
+    site_mekan, alan_mekan = {}, defaultdict(set)
+    for m in mekanlar:
+        u = (m.get("website") or "").strip()
+        if u and not platform_mu(u):
+            site_mekan.setdefault(_site_anahtari(u), _menu_anahtari(m["il"], m["ad"]))
+            alan_mekan[_alan_adi(u)].add(_menu_anahtari(m["il"], m["ad"]))
+    tekil_alan = {a: next(iter(v)) for a, v in alan_mekan.items() if len(v) == 1}
+
+    bul = defaultdict(dict)
+    with open(yol, encoding="utf-8") as f:
+        for r in csv.DictReader(f):
+            hedef = (site_mekan.get(_site_anahtari(r.get("website", "")))
+                     or tekil_alan.get(_alan_adi(r.get("website", ""))))
+            alan = SOSYAL_ALANDAN.get((r.get("alan") or "").lower())
+            if not hedef or not alan:
+                continue
+            # Bicim kurali TEK YERDE: sosyal_adi. Cozulemeyen bag
+            # (gonderi adresi, kanal kimligi) SESSIZCE dusuyor --
+            # yanlis bir hesap adresi uretmek, hic uretmemekten kotu.
+            deger = sosyal_adi(alan, r.get("url", ""))
+            if deger:
+                bul[hedef].setdefault(alan, deger)
+    return dict(bul)
+
+
 def kategori_dokumu(kalemler):
     """Mekanin kendi menusunden urun kategorisi kirilimi.
 
@@ -647,7 +712,7 @@ ELENEN = []               # rapor icin: (mekan, tur, sebep)
 PLATFORM_ELENEN = set()   # rapor icin: (il, mekan) -- platform profili
 
 
-def mekan_kaydi(m, menu):
+def mekan_kaydi(m, menu, site_sosyal=None):
     tum_kalemler = menu.get(_menu_anahtari(m["il"], m["ad"]), [])
     tur_tr = TUR_TR.get(m["tur"], m["tur"])
 
@@ -742,6 +807,14 @@ def mekan_kaydi(m, menu):
                            ("youtube",  sosyal_adi("youtube",  m.get("youtube")))):
         if deger:
             kayit[anahtar] = deger
+
+    # UCUNCU KAYNAK: isletmenin kendi sitesindeki sosyal baglar
+    # (menu_pdf_tara.py ayni geciste topluyor). OSM etiketi VARSA o
+    # kaliyor -- ikisi celisirse OSM'yi bir insan elle yazmis, sitedeki
+    # bag bir kaziyicinin buldugu; celiskide elle yazilan kazanir.
+    for anahtar, deger in (site_sosyal or {}).get(
+            _menu_anahtari(m["il"], m["ad"]), {}).items():
+        kayit.setdefault(anahtar, deger)
     if m["bahce"] == "yes":
         kayit["bahce"] = 1
     if m["wifi"] in ("wlan", "yes"):
@@ -874,9 +947,17 @@ def main():
         else:
             ad_menusu += 1
 
+    # Site taramasindan gelen sosyal baglar. SAYI BASILIYOR: dosya yoksa
+    # ya da hicbir bag eslesmediyse sessizce sifir donerdi ve "toplandi"
+    # sanilirdi. Sifir da bir olcumdur, ama gorunur olmali.
+    site_sosyal = site_sosyal_oku(mekanlar)
+    print("site sosyal: %d mekan, %d hesap (%s)"
+          % (len(site_sosyal), sum(len(v) for v in site_sosyal.values()),
+             SITE_SOSYAL if os.path.exists(SITE_SOSYAL) else SITE_SOSYAL + " yok"))
+
     iller = defaultdict(list)
     for m in mekanlar:
-        iller[m["il"]].append(mekan_kaydi(m, menu))
+        iller[m["il"]].append(mekan_kaydi(m, menu, site_sosyal))
 
     # Kopya kayitlar il icinde birlestiriliyor: ayni isletme iki il dosyasinda
     # olamaz, il disina bakmanin anlami yok ve karsilastirma karesel.
@@ -989,6 +1070,58 @@ def kendini_kontrol_et():
     assert semt_adi("A") is None
     # Rakamla BASLAYAN gercek mahalle adlari KALMALI ("17 Eylül").
     assert semt_adi("17 Eylül Mahallesi", True) == "17 Eylül"
+
+    # SOSYAL: alt alan adi gecer, alan adinin KENDISI tam kalir.
+    # "tr-tr.facebook.com" Turkiye'deki isletmelerin en sik kullandigi
+    # bicim ve eski desen onu REDDEDIYORDU (alt alan adlari tek tek
+    # yaziliydi).
+    for alan, url, bekle in (
+            ("facebook", "https://tr-tr.facebook.com/xkafe", "xkafe"),
+            ("facebook", "https://m.facebook.com/xkafe", "xkafe"),
+            ("x",        "https://mobile.twitter.com/xk", "xk"),
+            ("youtube",  "https://m.youtube.com/@xk", "xk"),
+            # Platform karismiyor: facebook adresi bir instagram
+            # kullanicisi degil.
+            ("insta",    "https://facebook.com/xkafe", None),
+            # Alan adi TAM eslesiyor: sahte alt alan gecmiyor.
+            ("insta",    "https://instagram.com.saldirgan.net/x", None),
+            # Kanal kimligi kullanici adi degil: uydurmaktansa bos birak.
+            ("youtube",  "https://www.youtube.com/channel/UC123", None)):
+        assert sosyal_adi(alan, url) == bekle, (alan, url, sosyal_adi(alan, url))
+
+    # SITE TARAMASINDAN gelen sosyal baglar: mekana baglaniyor mu,
+    # cozulemeyen bag dusuyor mu, OSM etiketi korunuyor mu.
+    import tempfile
+    _mekanlar = [{"il": "34", "ad": "X Kafe", "website": "https://xkafe.com"},
+                 {"il": "34", "ad": "Y Kafe", "website": "https://ykafe.com"}]
+    _yol = tempfile.mktemp(suffix=".csv")
+    with open(_yol, "w", encoding="utf-8", newline="") as _f:
+        _y = csv.writer(_f)
+        _y.writerow(["mekan", "il", "website", "alan", "url"])
+        _y.writerow(["X Kafe", "34", "https://xkafe.com", "instagram.com",
+                     "https://www.instagram.com/xkafe/"])
+        _y.writerow(["X Kafe", "34", "https://xkafe.com", "facebook.com",
+                     "https://tr-tr.facebook.com/xkafe"])
+        # Gonderi adresi HESAP DEGIL: dusmeli.
+        _y.writerow(["Y Kafe", "34", "https://ykafe.com", "instagram.com",
+                     "https://www.instagram.com/p/ABC/"])
+    try:
+        _b = site_sosyal_oku(_mekanlar, _yol)
+        assert _b.get(("34", "x kafe")) == {"insta": "xkafe", "facebook": "xkafe"}, _b
+        assert ("34", "y kafe") not in _b, "gonderi adresi hesap sanildi"
+        # CELISKIDE OSM KAZANIR: elle yazilmis etiket, kaziyicinin
+        # buldugu bagdan once gelir.
+        _m = dict.fromkeys(
+            ("mutfak", "telefon", "saatler", "bahce", "wifi", "adres",
+             "ilce", "mahalle", "harita"), "")
+        _m.update({"il": "34", "ad": "X Kafe", "website": "https://xkafe.com",
+                   "tur": "cafe", "instagram": "https://instagram.com/osmdan",
+                   "lat": "41.0", "lon": "29.0", "osm_id": "node/1"})
+        _k = mekan_kaydi(_m, {}, _b)
+        assert _k.get("insta") == "osmdan", _k.get("insta")
+        assert _k.get("facebook") == "xkafe", _k.get("facebook")
+    finally:
+        os.remove(_yol)
 
     # Fiyatin yasi: kolonsuz eski satir tabana duser, kolonlu satir kendi
     # tarihini tasir. Tarih uydurulmuyor -- bilinmeyen icin bildigimiz UST

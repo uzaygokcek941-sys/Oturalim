@@ -173,6 +173,13 @@ Günde 1. Telefonla çek, kurgu yok. Kapanış çağrısı: **"Uygulamada hepsi 
       kapanış ve her rakam depodan **sayılarak**. 11 numaralı fikrin hook'u
       büyütüldü: *"Ankara'daki bütün kafeleri listeledim"* 35.852 mekan
       varken kendini küçültmekti.
+- [x] **8 haftalık takvim hazır** (`icerik_takvim.md`) — Faz A "günde 1
+      içerik, 40+" satırının karşılığı. 40 ayrı senaryo değil bir **düzen**:
+      yedi tekrarlanabilir format, Pzt–Cum sabit ritim, altı susma kuralı ve
+      haftalık ölçüm. Takvimin en önemli sayısı 35.852 değil **62** —
+      81 ilin 62'sinde tek bir menü fiyatı yok, o yüzden fiyat gösteren
+      çekimler İstanbul/Kocaeli/Antalya/İzmir/Eskişehir'de yapılıyor ve
+      "her yerde fiyat var" cümlesi kurulmuyor
 - [ ] Çekim ve yayın *(telefon senin)*
 
 ### Ürün — TAMAMLANDI (tarayıcıda doğrulandı)
@@ -2494,6 +2501,36 @@ TikTok, YouTube **sıfır** — ama bu OSM'de yok demek değil:
 
 Yani eksik olan şey kod değil, veri: `python turkiye_cek.py` yeniden
 çalıştırılınca dört sütun kendiliğinden doluyor.
+
+**İkinci kaynak eklendi (2026-08-27): işletmenin kendi sitesi.**
+`turkiye_cek.py` yeniden koşsa bile OSM'de **etiket yoksa** orada da bir
+şey çıkmıyor. `menu_pdf_tara.py` zaten her işletme sitesini gerçek
+tarayıcıda açıyordu; artık aynı geçişte sayfadaki sosyal bağları da
+topluyor (`menu_site_sosyal.csv`). Ek istek yok, ek kaynak yok — ve
+kazıma değil: bağ, işletmenin kendi sitesinde kendi yayımladığı bağ.
+
+Üç sınır kodda duruyor: paylaşım bağları (`sharer`, `intent`, `plugins`)
+eleniyor — alınsalardı her mekana aynı sahte hesap yazılırdı; platform
+başına tek bağ alınıyor; ve biçim kuralı **tek yerde** (`sosyal_adi`)
+kalıyor, tarayıcı ham URL yazıyor. Çözülemeyen bağ — gönderi adresi
+`instagram.com/p/…`, kanal kimliği `youtube.com/channel/UC…` — sessizce
+düşüyor. Çelişkide **OSM kazanıyor**: etiketi bir insan yazmış.
+
+Bu iş `sosyal_adi`'da ölçülmüş bir kusur da açığa çıkardı: alt alan
+adları tek tek yazılıydı (`m.`, `web.`, `mobile.`, `music.`) ve listede
+olmayan **`tr-tr.facebook.com` reddediliyordu** — Türkiye'deki
+işletmelerin en sık kullandığı biçim. Bugünkü veride bir kayıt, ama site
+taramasında en yaygın olan o olacaktı. Artık herhangi bir alt alan
+geçiyor; alan adının kendisi yine tam eşleşiyor, yani
+`instagram.com.saldirgan.net/x` geçmiyor ve `facebook.com/x` hâlâ bir
+Instagram kullanıcısı sayılmıyor.
+
+Kontrol **davranışla** yazıldı: `site_isle` taklit bir sayfayla koşuluyor
+ve yazdığı CSV okunuyor. Beş sabotajın beşi de yakalandı — ama üçüncüsü
+**ilk denemede kaçtı**: taklit sayfadaki paylaşım bağı `facebook.com`
+sayıldığı için gerçek bağla aynı platforma düşüp tekilleniyordu. Düzeltme
+düzeneği değil **kurguyu** değiştirdi: paylaşım bağları artık gerçek
+bağlardan önce geliyor ve Twitter yalnız paylaşım bağı olarak var.
 
 ### Kontrollerin kendi kusurları (yine ikisi sabotajla çıktı)
 
