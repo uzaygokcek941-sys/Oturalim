@@ -349,6 +349,9 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
       `foto_ekle.sql`'i Supabase SQL Editor'e yapıştırmak — betik
       veritabanına kendi yazamıyor, bunun için `service_role` gerekirdi
       ve o anahtar bu depoya asla girmiyor
+- [ ] **`DUMAN_TESTI.md`** — 30 maddelik elle test, telefonda, gerçek
+      Supabase'e karşı. Otomatik kontroller Supabase'i taklit ediyor;
+      RLS, moderasyon, depolama ve e-posta bir kez bile gerçek koşulmadı
 - [ ] Günde 1 içerik, gelen DM'e ilk 10 dakikada cevap
 
 **Fiyat verisi — 2026-08-23'te ölçülüp düzeltilenler:**

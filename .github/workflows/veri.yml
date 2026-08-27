@@ -212,15 +212,21 @@ jobs:
       - name: Kontroller
         run: python test.py
 
+      # ZINCIRIN UCUNCU HALKASI. "git diff" IZLENMEYEN DOSYAYI GORMUYOR.
+      # mekan_foto.csv .gitignore'dan cikarildi ama depoda bir surumu hic
+      # olmadigi icin YENI dosya, yani izlenmiyor -- git diff sessiz kaldi
+      # ve tur "Veri ayni, commit yok" dedi. Dosya 55 dakika calisip
+      # yine kayboldu. Asagidaki "Dala yaz" adimi zaten "git add -A"
+      # kullaniyor, yani yalniz KAPI kordu.
       - name: Degisiklik var mi
         id: fark
         run: |
-          if git diff --quiet; then
+          if [ -z "$(git status --porcelain)" ]; then
             echo "degisti=hayir" >> "$GITHUB_OUTPUT"
             echo "Veri ayni, commit yok."
           else
             echo "degisti=evet" >> "$GITHUB_OUTPUT"
-            git diff --stat | tail -20
+            git status --short | tail -20
           fi
 
       # DOGRUDAN main'e ITILMIYOR. Ayri bir dala yaziliyor; birlestirme

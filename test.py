@@ -1978,6 +1978,87 @@ def overpass_denemesi_mi():
     return s
 
 
+def veri_turu_kapisi_mi():
+    """Veri turunun "degisiklik var mi" kapisi YENI dosyayi goruyor mu.
+
+    NEDEN VAR, VE UCUNCU KEZ: foto_cek.py 26-27 Agustos'ta 48 dakika,
+    27 Agustos'ta 55 dakika kostu ve URETTIGI DOSYA iki kez de kayboldu.
+      1) mekan_foto.csv .gitignore'daydi           -> duzeltildi
+      2) foto_ekle.sql ayri bir ara adim           -> ayrildi
+      3) kapi "git diff" kullaniyordu -- ve git diff IZLENMEYEN dosyayi
+         GORMUYOR. Dosya .gitignore'dan cikti ama depoda bir surumu hic
+         olmadigi icin YENI, yani izlenmiyor. Kapi sessiz kaldi.
+
+    Ucunun de belirtisi AYNI: "Veri ayni, commit yok." Yani her seferinde
+    tur BASARILI gorunuyor ve elde hicbir sey kalmiyor.
+
+    METIN DEGIL DAVRANIS: kapinin kendi kabuk kodu veri.yml'den OKUNUYOR
+    ve gecici bir depoda GERCEKTEN kosuluyor. Kapiyi elle kopyalasaydim
+    veri.yml degisince kontrol eskir ve yine sessiz kalirdi."""
+    import subprocess as _sp
+    import tempfile
+    yol = os.path.join(".github", "workflows", "veri.yml")
+    if not os.path.exists(yol):
+        return ["%s yok" % yol]
+    metin = open(yol, encoding="utf-8").read()
+    # Adimin "run: |" govdesini cek. Yaml kutuphanesi yok; girinti yeter.
+    m = re.search(r"\n      - name: Degisiklik var mi\n(?:.*\n)*?        run: \|\n"
+                  r"((?:          .*\n|\n)+)", metin)
+    if not m:
+        return ["veri.yml: 'Degisiklik var mi' adiminin run govdesi bulunamadi"]
+    kabuk = "\n".join(satir[10:] for satir in m.group(1).splitlines())
+
+    def kapi(hazirla):
+        """Gecici bir depoda kapiyi kos, 'degisti' degerini dondur."""
+        with tempfile.TemporaryDirectory() as td:
+            ce = dict(os.environ, GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t",
+                      GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@t")
+            def g(*a):
+                _sp.run(("git",) + a, cwd=td, env=ce, check=True,
+                        capture_output=True)
+            g("init", "-q")
+            open(os.path.join(td, "izlenen.txt"), "w").write("bir\n")
+            g("add", "-A")
+            g("commit", "-qm", "ilk")
+            hazirla(td)
+            # GITHUB_OUTPUT deponun DISINDA: icine koyunca kapi kendi
+            # cikti dosyasini "yeni dosya" sayiyor ve hep 'evet' diyor.
+            ck = tempfile.NamedTemporaryFile("w", delete=False)
+            ck.close()
+            cikti = ck.name
+            r = _sp.run(["bash", "-e", "-c", kabuk], cwd=td,
+                        env=dict(ce, GITHUB_OUTPUT=cikti),
+                        capture_output=True, text=True)
+            if r.returncode:
+                return "hata: " + (r.stderr or "")[:80]
+            try:
+                for satir in open(cikti, encoding="utf-8"):
+                    if satir.startswith("degisti="):
+                        return satir.strip().split("=", 1)[1]
+                return "(yazilmadi)"
+            finally:
+                os.unlink(cikti)
+
+    s = []
+    # (a) YENI DOSYA. Kapinin bu depoda UC KEZ kacirdigi durum.
+    d = kapi(lambda td: open(os.path.join(td, "mekan_foto.csv"), "w")
+             .write("mekan_id,adres\nnode/1,x\n"))
+    if d != "evet":
+        s.append("veri.yml kapisi: YENI dosya (mekan_foto.csv) icin '%s' dedi; "
+                 "izlenmeyen dosya gorulmuyor -- tur uretip kaybediyor" % d)
+    # (b) DEGISEN IZLENEN DOSYA. Eski davranis bozulmamali.
+    d = kapi(lambda td: open(os.path.join(td, "izlenen.txt"), "w").write("iki\n"))
+    if d != "evet":
+        s.append("veri.yml kapisi: degisen izlenen dosya icin '%s' dedi" % d)
+    # (c) DEGISIKLIK YOKKEN COMMIT ATILMAMALI: her tur bos commit uretmek
+    #     "veri degisti" sinyalini degersizlestirir.
+    d = kapi(lambda td: None)
+    if d != "hayir":
+        s.append("veri.yml kapisi: degisiklik yokken '%s' dedi; her tur bos "
+                 "commit atar" % d)
+    return s
+
+
 def site_sosyal_mi():
     """Isletme sitesinden sosyal bag toplama gercekten calisiyor mu.
 
@@ -3105,6 +3186,8 @@ def main():
     kayit("degismez: isletme sayfasi konumu gosteriyor", konum_paneli_mi())
     kayit("degismez: kazima kapisi platformlari eliyor", platform_kapisi_mi())
     kayit("degismez: sosyal bag isletmenin kendi sitesinden", site_sosyal_mi())
+    kayit("degismez: veri turu kapisi yeni dosyayi goruyor",
+          veri_turu_kapisi_mi())
     kayit("degismez: overpass turu gecici hatada pes etmiyor",
           overpass_denemesi_mi())
     kayit("degismez: seviye onayli katkiyi sayiyor", seviye_mi())

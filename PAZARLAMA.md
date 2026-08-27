@@ -181,7 +181,7 @@ kilometrekarede.
 
 | Hafta | İş | Biten sayı |
 |---|---|---|
-| 1 | `main` birleştir, Vercel'de yayınla; `kutuphane_al.py`, `foto_cek.py`; 21 maddelik duman testi | Canlı sürüm = son sürüm |
+| 1 | `main` birleştir, Vercel'de yayınla; `kutuphane_al.py`, `foto_cek.py`; duman testi (**`DUMAN_TESTI.md`**, 30 madde) | Canlı sürüm = son sürüm |
 | 1 | **@cebimde** hesapları aç, bio hazır (`icerik_ilk3.md`) | Hesap var |
 | 2–3 | **Kadıköy 500 m derinleştirme** — hafta sonu yürüyüşü, menü fotoğrafı, OCR + elle doğrulama | **150/474** |
 | 3 | 112 saha kartını bas ve bırak; `saha.py olc` ile ölç | Kart bırakıldı |
