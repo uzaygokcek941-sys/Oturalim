@@ -415,6 +415,19 @@ sunucuya özel, aynadan geçebiliyor) ve sunucu `Retry-After` yazarsa
 ona uyuluyor. **HTTP 400 yeniden denenmiyor** — o bozuk sorgu demek,
 üç kez göndermek yalnız başkasının sunucusunu harcar.
 
+**Denemeyi eklemek bir tuzak açıyor ve o tuzağı da kapatmak gerekti.**
+3 deneme × 3 sunucu × 200 sn zaman aşımı = **tek il 30 dakika**. Eski
+kodda bu tuzak yoktu, çünkü hiç denemiyordu: düşen il 200 sn'ye
+malolurdu. 81 il için çarpım iş akışının 300 dakikalık sınırını aşar ve
+tur **ortasında kesilir** — yani "daha çok deneyelim" derken elde hiç
+sonuç kalmayabilirdi. İl başına 420 sn'lik bir bütçe kondu.
+
+Bütçenin asıl derdi kesmediği yerde: **429 anında dönüyor**, yani
+gerçek hız sınırı durumunda 3×3'ün tamamı kullanılabiliyor. Bütçe
+yalnız **zaman aşımını** kesiyor. İkisi de sabotajla ayrı ayrı
+doğrulandı: bütçe kontrolünü silmek 9 istek/1800 sn gösteriyor, bütçeyi
+10 sn'ye indirmek 429 turunu 3 istekte kesiyor.
+
 ---
 
 ## 4 — Yorumlar

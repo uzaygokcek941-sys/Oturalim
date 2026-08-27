@@ -1708,7 +1708,7 @@ def platform_kapisi_mi():
     return s
 
 
-def _sahte_httpx(plan, gunluk):
+def _sahte_httpx(plan, gunluk, zaman=None, istek_suresi=0.0):
     """httpx yerine gecen taklit. Aga HIC cikilmiyor.
 
     plan: sirayla donulecek yanitlar. Her ogesi ya (kod, govde, basliklar)
@@ -1734,6 +1734,8 @@ def _sahte_httpx(plan, gunluk):
 
         def post(self, adres, data=None):
             gunluk.append(adres)
+            if zaman is not None and istek_suresi:
+                zaman.gecir(istek_suresi)
             y = plan.pop(0) if plan else (200, '{"elements": []}', {})
             if isinstance(y, Exception):
                 raise y
@@ -1745,13 +1747,26 @@ def _sahte_httpx(plan, gunluk):
 
 
 class _SahteZaman:
-    """time yerine gecen taklit: uyku SAYILIYOR, uyunmuyor."""
+    """time yerine gecen taklit: uyku SAYILIYOR, uyunmuyor.
 
-    def __init__(self):
+    monotonic de taklit ve bu SART: il butcesi gercek saate baksaydi
+    kontrol ya 7 dakika surerdi ya da butceyi hic sinayamazdi.
+    Her istegin ne kadar surdugunu cagiran soyluyor (istek_suresi)."""
+
+    def __init__(self, istek_suresi=0.0):
         self.uykular = []
+        self.saat = 0.0
+        self.istek_suresi = istek_suresi
 
     def sleep(self, s):
         self.uykular.append(s)
+        self.saat += s
+
+    def monotonic(self):
+        return self.saat
+
+    def gecir(self, s):
+        self.saat += s
 
 
 def overpass_denemesi_mi():
@@ -1776,12 +1791,15 @@ def overpass_denemesi_mi():
     except Exception as e:
         return ["foto_cek/turkiye_cek okunamadi: %s: %s" % (type(e).__name__, e)]
 
-    def kos(plan):
-        """Taklit httpx ve taklit zamanla overpass_iste. (sonuc, adresler, uykular)"""
+    def kos(plan, istek_suresi=0.0):
+        """Taklit httpx ve taklit zamanla overpass_iste. (sonuc, adresler, uykular)
+
+        istek_suresi: her istegin taklit saatte ne kadar surdugu. Zaman
+        asimini butce kontrolu icin boyle taklit ediyoruz."""
         gunluk, zaman = [], _SahteZaman()
         eski_httpx = sys.modules.get("httpx")
         eski_zaman = FC.time
-        sys.modules["httpx"] = _sahte_httpx(list(plan), gunluk)
+        sys.modules["httpx"] = _sahte_httpx(list(plan), gunluk, zaman, istek_suresi)
         FC.time = zaman
         try:
             try:
@@ -1838,6 +1856,24 @@ def overpass_denemesi_mi():
     sonuc, adres, _ = kos([OSError("timed out"), (200, '{"elements": []}', {})])
     if isinstance(sonuc, Exception):
         s.append("overpass_iste: zaman asimindan sonra yeniden denenmedi (%s)" % sonuc)
+
+    # (i) BUTCE: DENEMEYI EKLEMEK BIR TUZAK ACIYOR. 3 deneme x 3 sunucu
+    #     x 200 sn zaman asimi = TEK il 30 dakika; 81 il icin is akisinin
+    #     300 dakikalik siniri asilir ve tur ORTASINDA kesilir. Zaman
+    #     asan istekte dokuz kez denenmemeli.
+    sonuc, adres, _ = kos([OSError("timed out")] * 9, istek_suresi=200)
+    if not isinstance(sonuc, Exception):
+        s.append("overpass_iste: hepsi zaman asti, yine de hata vermedi")
+    if len(adres) * 200 > FC.IL_BUTCESI + 200:
+        s.append("overpass_iste: zaman asan ilde %d istek atildi (%d sn); "
+                 "il butcesi %d sn -- 81 il icin is akisi ortasinda kesilir"
+                 % (len(adres), len(adres) * 200, FC.IL_BUTCESI))
+    # ... AMA 429 BUTCEYI HARCAMIYOR ve asil dert oydu: hiz siniri yaniti
+    #     aninda donuyor, yani orada 3x3'un tamami kullanilabilmeli.
+    _, adres, _ = kos([(429, "", {})] * 9, istek_suresi=0)
+    if len(adres) < FC.OVERPASS_DENEME * len(FC.SUNUCULAR):
+        s.append("overpass_iste: 429 aninda donuyor ama yalniz %d istek "
+                 "atildi; butce hiz sinirini da kesiyor" % len(adres))
 
     # (f) SAYILAR IKI YERDE DURMUYOR. turkiye_cek degisip burasi
     #     unutulursa ayni sunucuya yine iki turlu gidilir.

@@ -73,6 +73,19 @@ GECICI = (429, 502, 503, 504)
 # aninda saatlik degerler donebiliyor ve bu tur 81 il suruyor.
 EN_COK_BEKLEME = 60
 
+# TEK ILIN TOPLAM BUTCESI (saniye). DENEMEYI EKLEMEK BIR TUZAK ACIYOR:
+# 3 deneme x 3 sunucu x 200 sn zaman asimi = TEK il 30 dakika. Eski kodda
+# bu tuzak yoktu cunku hic denemiyordu -- dusen il 200 sn'ye maloluyordu.
+# 81 il icin carpim is akisinin 300 dakikalik sinirini asar ve tur
+# ORTASINDA kesilir; yani "daha cok deneyelim" derken elde HIC sonuc
+# kalmayabilirdi.
+#
+# 429 BU BUTCEYI NEREDEYSE HIC HARCAMIYOR ve asil dert oydu: hiz siniri
+# yaniti ANINDA donuyor, yani gercek 429 durumunda 3x3'un tamami
+# kullanilabiliyor. Butce yalniz ZAMAN ASIMI durumunu kesiyor -- orada
+# ikinci bir aynaya sorulup birakiliyor.
+IL_BUTCESI = 420
+
 # Secicileri turkiye_cek.py ve eglence_cek.py'den ALIYORUZ, kopyalamiyoruz:
 # uc yerde uc ayri liste, birinin guncellenip otekilerin unutulmasi demekti.
 # (import modul duzeyinde: iki betik de aga cikmadan import edilebiliyor.)
@@ -178,8 +191,13 @@ def overpass_iste(sorgu_metni):
     hic degistirmiyorduk."""
     import httpx
     son = "?"
+    baslangic = time.monotonic()
     for deneme in range(1, OVERPASS_DENEME + 1):
         for adres in SUNUCULAR:
+            gecen = time.monotonic() - baslangic
+            if gecen >= IL_BUTCESI:
+                raise RuntimeError("il butcesi doldu (%d sn, son: %s)"
+                                   % (IL_BUTCESI, son))
             varsayilan = OVERPASS_BEKLEME * deneme
             try:
                 with httpx.Client(timeout=200,
