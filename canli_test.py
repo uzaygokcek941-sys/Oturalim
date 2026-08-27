@@ -219,7 +219,14 @@ def _a1_a7(t, taban):
         # A5'in asil maddesi: fiyat varsa KAC OLCUMDEN geldigi de yazmali.
         # Kartta degil DETAY PANELINDE -- 2.300 karta ayni cumleyi yazmak
         # listeyi bogardi. Karti acip panele bakiyoruz.
-        sayfa.query_selector(".kart").click()
+        # query_selector(...).click() DEGIL ve sebebi YAYINDA CIKTI:
+        # "ElementHandle.click: Element is not attached to the DOM".
+        # Liste fotograflar Supabase'ten gelince YENIDEN CIZILIYOR
+        # (fotograflariYukle -> ciz), yani elde tuttugum dugum kopuyor.
+        # Yerelde hic olmadi cunku Supabase'e cikilmiyor -- tam olarak
+        # bu turun VAR OLMA sebebi olan fark. sayfa.click(secici)
+        # kopmayi kendi bekliyor ve yeniden deniyor.
+        sayfa.click(".kart", timeout=BEKLE)
         sayfa.wait_for_timeout(1500)
         if not re.search(r"kalem|ölçüm|fiş", sayfa.inner_text("body"), re.I):
             s.append("A5: mekan paneli fiyat yaziyor ama DAYANAGINI yazmiyor "
@@ -319,10 +326,14 @@ def main():
     try:
         s = kos(taban)
     except Exception as e:
-        # AGA ULASILAMAMASI BIR OLCUM DEGIL. Bu depodaki kural:
-        # basarisizligi sayiya cevirme.
-        sys.exit("TUR KOSULAMADI: %s: %s\nBu bir sonuc DEGIL -- siteye "
-                 "ulasilamadi." % (type(e).__name__, str(e)[:120]))
+        # TUR COKTU. Bu bir OLCUM DEGIL -- ne "yayin saglam" ne "yayin
+        # bozuk" demek. SEBEBINI UYDURMUYORUM: burasi once "siteye
+        # ulasilamadi" yaziyordu ve yayindaki ilk cokme bir ag sorunu
+        # DEGILDI (kopmus bir DOM dugumune tiklamaya calismisim). Yanlis
+        # teshis, teshis yokluğundan kotu.
+        sys.exit("TUR COKTU: %s: %s\nBu bir sonuc DEGIL. Sebep ag da "
+                 "olabilir, turun kendi hatasi da." % (type(e).__name__,
+                                                       str(e)[:200]))
 
     print("OLCULEN: Ankara %s kart · fiyatli suzgecte %s kart · "
           "en yakin dort mesafe %s m · cevrimdisi %s karakter"

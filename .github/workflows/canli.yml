@@ -49,7 +49,13 @@ jobs:
           python -m playwright install --with-deps chromium
 
       - name: Tur
+        # set -o pipefail SART VE BU ADIM ONSUZ YALAN SOYLEDI: yayindaki
+        # ikinci tur COKTU ve is akisi YESIL yandi. Sebep boru hatti --
+        # bash borunun cikis kodunu SON komuttan aliyor ve son komut tee,
+        # yani hep 0. Butun gun kapattigim hatanin aynisi, bu kez bende:
+        # basarisizligi goremeyen bir kapi.
         run: |
+          set -o pipefail
           python canli_test.py "${{ inputs.adres || 'https://oturalim.vercel.app' }}" \
             | tee tur.log
           {
