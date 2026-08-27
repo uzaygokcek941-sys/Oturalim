@@ -145,6 +145,9 @@ function kartHTML(m){
   return '<button class="kart" type="button" data-id="' + kacir(m.id) + '"' +
     (u != null ? ' style="--uzak:' + u.toFixed(3) + '"' : "") +
     (secili === m.id ? ' aria-current="true"' : "") + ">" +
+    /* GORSEL YUVASI. Kural ortak.js'te: bugun kategori simgesi,
+       fotograf geldigi gun ayni yuvaya <img>. */
+    kartGorselHTML(m) + '<div class="kart-icerik">' +
     /* GUVEN NOKTASI adin yaninda, KISA halde: liste 2.300 karta kadar
        cikiyor ve her karta "fiyat yok" yazmak listeyi ayni cumleyle
        doldururdu. Renk tek basina bilgi tasimiyor -- aria-label ve
@@ -197,7 +200,7 @@ function kartHTML(m){
        isletme sayfasinin k-anonimlik icin gizledigi seyi bu ekran
        yayimliyordu. Kural ortak.js'te, karar tek yerde. */
     (fisGoster(o) ? '<span class="rozet vurgulu">kişi başı ~' + tl(o.medyan) + "</span>" : "") +
-    "</div></button>";
+    "</div></div></button>";
 }
 
 function ciz(haritayiOrtala){
@@ -1092,16 +1095,55 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   /* Acik konum dugmesi. Basari durumunu yaziyla bildiriyor: sessizce hicbir
-     sey olmamasi, kullanicinin "calismiyor" diye birakmasinin sebebi. */
+     sey olmamasi, kullanicinin "calismiyor" diye birakmasinin sebebi.
+
+     DURUM YAZISI ARTIK DUGMENIN ICINDE DEGIL. Iki ayri hata vardi:
+
+     (1) textContent dugmenin butun cocuklarini degistiriyordu -- ilk
+         tiklamada icindeki <svg> igne SILINIYOR ve bir daha geri
+         gelmiyordu.
+     (2) Yazi uzayinca dugme buyuyordu: "Konumum" 138 px, "konumun
+         kullanılıyor" 237 px. Olculdu -- 471 ile 600 px arasinda
+         yanindaki siralama secicisinin "Bana yakın" etiketi
+         kirpiliyordu. Gecici bir durum yazisi kalici bir denetimin
+         olcusunu degistirmemeli.
+
+     Dugmenin yazisi artik hic degismiyor; durum ayri bir role="status"
+     satirinda. */
   const konumDug = el("#konum-al");
+  const konumDurum = el("#konum-durum");
+  const konumYaz = (t, hata) => {
+    if (!konumDurum) return;
+    konumDurum.textContent = t || "";
+    konumDurum.hidden = !t;
+    if (hata) konumDurum.dataset.durum = "hata";
+    else delete konumDurum.dataset.durum;
+  };
   if (konumDug) konumDug.addEventListener("click", () => {
-    if (!navigator.geolocation){ konumDug.textContent = "konum desteklenmiyor"; return; }
+    if (!navigator.geolocation){ konumYaz("Konum bu tarayıcıda desteklenmiyor.", true); return; }
     konumDug.disabled = true;
-    konumDug.textContent = "konum alınıyor…";
+    konumYaz("Konum alınıyor…");
     const bitir = () => {
       konumDug.disabled = false;
-      konumDug.textContent = konum ? "konumun kullanılıyor" : "konum alınamadı";
-      ciz(false);
+      konumDug.setAttribute("aria-pressed", String(!!konum));
+      konumYaz(konum
+        ? "Konumun kullanılıyor — liste yakından uzağa sıralandı."
+        : "Konum alınamadı. Tarayıcı izni kapalı olabilir.", !konum);
+      /* KONUM ALINDIYSA SIRALAMA DA YAKINA GECIYOR.
+         Onceden konum aliniyor, mesafe rozetleri ciziliyor ama liste
+         A -> Z'de kaliyordu: kullanici konumunu veriyor ve ekranda hala
+         "06 Tado Dondurma, 1. Yurt Kantini, 100 Burger" goruyordu --
+         adi rakamla baslayanlar. Konumunu veren kisinin istedigi sey
+         zaten "yakindan uzaga"; ayri bir menuden bir daha secmesini
+         beklemek, ozelligi gorunmez yapiyordu. */
+      if (konum && sirala !== "yakin"){
+        sirala = "yakin";
+        const sec = el("#sirala");
+        if (sec) sec.value = "yakin";
+        limit = SAYFA;
+        urlYaz();
+      }
+      ciz(konum ? true : false);
     };
     konumIste(bitir);
   });

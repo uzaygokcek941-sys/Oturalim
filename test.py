@@ -2702,11 +2702,32 @@ def sayfa_kontrolleri():
     yol = os.path.join(KOK, "test_sayfa.py")
     if not os.path.exists(yol):
         return kayit("test_sayfa.py", ["dosya yok"])
+    # SURE SINIRI 420 -> 900. Sinir takimin kendisinden kucuk kalmisti:
+    # iki yeni kontrol (konum siralamasi, kart gorsel yuvasi) eklenince
+    # olculdu -- takim 7 dk 05 sn (425 sn) surdu ve BES SANIYEYLE asti.
+    # Kirmizi yanan sey bir hata degil SINIRIN KENDISIYDI, ve bu tam da
+    # yanlis yere baktiran hata: gercekte gecen 49 kontrolden biri
+    # "basarisiz" gorunuyordu.
+    #
+    # IKI SEY BIRDEN YAPILDI, cunku yalniz siniri buyutmek olcumu
+    # gizlemek olurdu:
+    #   - Kontroller ucuzlatildi: ayri bir tarayici baglami acmak yerine
+    #     mevcut ctx'e izin veriliyor ve iki kontrol ayni sayfada
+    #     olculuyor. Olculdu: 425 -> 409 sn.
+    #   - Sinir 900'e cikti. 420 secildiginde takim bugunkunden kucuktu;
+    #     pay %6'ya inmisti ve boyle bir sinir her yeni kontrolde bir kez
+    #     daha yanar, sonunda "gecici, yine zaman asimi" diye bakilmaz
+    #     olurdu. 900 sn bugunku 409'a gore iki kattan fazla pay veriyor.
+    #
+    # SINIR KALDIRILMIYOR: gercekten ASILI kalan bir tarayici
+    # (izin penceresi, sonsuz bekleyen bir istek) kosumu sonsuza kadar
+    # tutardi. Sinir hala var, yalniz dogru yerde.
     try:
         c = subprocess.run([sys.executable, yol, "test"], capture_output=True,
-                           text=True, timeout=420, cwd=KOK)
+                           text=True, timeout=900, cwd=KOK)
     except subprocess.TimeoutExpired:
-        return kayit("test_sayfa.py (gercek tarayici)", ["zaman asimi"])
+        return kayit("test_sayfa.py (gercek tarayici)",
+                     ["zaman asimi (900 sn) -- tarayici asili kalmis olabilir"])
     cikti = (c.stdout or "") + (c.stderr or "")
     if "ATLANDI" in cikti:
         return kayit("test_sayfa.py (gercek tarayici)",

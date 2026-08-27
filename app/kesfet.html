@@ -84,6 +84,16 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23b3a695' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     background-repeat:no-repeat;background-position:right 12px center;background-size:16px;
   }
+  .konum-durum{
+    font-size:13px;color:var(--metin-3);margin:0;
+    display:flex;align-items:center;gap:6px;min-height:18px;
+  }
+  .konum-durum[data-durum="hata"]{color:var(--kirmizi);font-weight:600}
+  /* Konum alinmisken dugme "acik" duruyor: yazi degismedigi icin
+     tek gorunur isaret bu. */
+  #konum-al[aria-pressed="true"]{
+    border-color:var(--vurgu);background:var(--vurgu-los);color:var(--vurgu);
+  }
   .cipler{display:flex;gap:var(--a2);overflow-x:auto;padding-bottom:4px;
     scrollbar-width:none;-webkit-overflow-scrolling:touch;flex:1 1 100%;min-width:0}
   @media (max-width:620px){
@@ -166,9 +176,33 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
   .liste-bas b{color:var(--metin);font-weight:700;font-variant-numeric:tabular-nums}
 
   .kart{
-    display:block;width:100%;text-align:left;padding:var(--a4) var(--a5);
+    display:flex;align-items:flex-start;gap:var(--a3);
+    width:100%;text-align:left;padding:var(--a4) var(--a5);
     border-bottom:1px solid var(--cizgi);cursor:pointer;
     transition:background var(--hiz) var(--egri);
+  }
+  .kart-icerik{flex:1;min-width:0}
+  /* GORSEL YUVASI -- 56x56. Bugun kategori simgesi, fotograf geldigi
+     gun ayni yuvaya <img>: kart duzeni degismesin diye olculer simdiden
+     sabit. Bos kutu BIRAKILMIYOR (gerekce ortak.js/kartGorselHTML).
+
+     Renk bilgi tasimiyor: sekiz kategoriye sekiz renk uydurmak iki
+     temada da kontrast sorunu demekti ve renk bu ekranda zaten BUTCE
+     BANDININ dili. Ayrim simgenin seklinde. */
+  .kart-gorsel{
+    flex:0 0 auto;width:56px;height:56px;border-radius:14px;overflow:hidden;
+    display:grid;place-items:center;
+    background:var(--zemin-3);color:var(--metin-2);
+  }
+  .kart-gorsel svg{width:26px;height:26px}
+  .kart-gorsel img{width:100%;height:100%;object-fit:cover;display:block}
+  /* Secili kartta yuva da vurguya donuyor: gozun karti bulmasi kolaylassin. */
+  .kart[aria-current="true"] .kart-gorsel{background:var(--vurgu-los);color:var(--vurgu)}
+  /* Cok dar ekranda yuva kuculuyor ama KAYBOLMUYOR: 44 px hala
+     okunur bir simge veriyor ve metne 12 px daha yer aciliyor. */
+  @media (max-width:360px){
+    .kart-gorsel{width:44px;height:44px;border-radius:12px}
+    .kart-gorsel svg{width:22px;height:22px}
   }
   .kart:hover{background:var(--zemin-2)}
   .kart:focus-visible{outline:2px solid var(--vurgu);outline-offset:-3px}
@@ -412,11 +446,22 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
       <!-- Konum yalniz "Bana yakin" siralamasindan isteniyordu; o menuyu
            acmayan kullaniciya konum hic sorulmuyor, mesafe rozeti hic
            cikmiyordu. Acik dugme. -->
-      <button class="mini" type="button" id="konum-al" title="Konumumu kullan">
+      <button class="mini" type="button" id="konum-al" title="Konumumu kullan" aria-pressed="false">
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-5.686 7-11a7 7 0 1 0-14 0c0 5.314 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg>
         Konumum
       </button>
     </div>
+
+    <!-- KONUM DURUMU DUGMENIN ICINDE DEGIL, BURADA.
+         Onceden durum yazisi dugmenin kendi metniydi: "Konumum" ->
+         "konumun kullanilıyor" olunca dugme 138 px'ten 237 px'e
+         cikiyor ve yanindaki iki seciciyi eziyordu -- olculdu, 471
+         ile 600 px arasinda "Bana yakın" etiketi kirpiliyordu. Gecici
+         bir durum yazisi kalici bir denetimin olcusunu degistirmemeli.
+
+         role="status": ekran okuyucu odagi kaybetmeden duyuruyor.
+         Bos oldugu surece gizli. -->
+    <p class="konum-durum" id="konum-durum" role="status" hidden></p>
 
     <div class="arac-satir" style="flex-wrap:wrap">
       <div class="butce-kutu" id="butce-kutu">

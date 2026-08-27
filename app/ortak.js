@@ -916,6 +916,84 @@ const KATEGORI = {
   gezilecek: { ad:"Gezilecek",       tur:["grup:eglence"],  mutfak:[] }
 };
 
+/* ---------- kartın görsel yuvası ----------
+
+   "Ekranda resimler olsun" istendi. ÖLÇÜLDÜ VE BUGÜN TEK BİR FOTOĞRAF
+   YOK: il dosyalarında `foto` alanı hiç yok, `foto_cek.py` bir kez bile
+   koşmamış (`mekan_foto.csv` üretilmemiş) ve kullanıcı yüklemeleri
+   Supabase'de duruyor -- keşfet listesi ise tamamen statik, hiç
+   Supabase'e çıkmıyor.
+
+   Her karta BOŞ bir kutu koymak, kutu koymamaktan kötü olurdu: 35.852
+   mekanın hepsi aynı gri dikdörtgenle listelenirdi ve liste "yükleniyor"
+   gibi görünürdü. Onun yerine yuva HER ZAMAN DOLU -- mekanın kategori
+   simgesi. Fotoğraf geldiği gün aynı yuvaya giriyor, kart düzeni
+   değişmiyor.
+
+   RENK BİLGİ TAŞIMIYOR, ŞEKİL TAŞIYOR. Sekiz kategoriye sekiz renk
+   uydurmak iki temada da kontrast sorunu demekti ve renk zaten bu
+   ekranda BÜTÇE BANDININ dili -- ikinci bir renk dili onu boğardı.
+   Ayrım simgenin şeklinde. (Güven noktasındaki kural ile aynı.)
+
+   SIRA ÖZELDEN GENELE: "yemek" ölçütü Restoran'ın tamamını yakalıyor,
+   o yüzden en sonda. "gezilecek" en başta -- bir müze yemek mekanı
+   değil ve müzenin türü hiçbir yemek ölçütüne uymasa da listede
+   simgesiz kalmamalı. */
+const KART_KATEGORI = ["gezilecek", "kahvalti", "tatli", "kahve",
+                       "icecek", "hizli", "esnaf", "yemek"];
+
+/* 24x24, yalnız çizgi (stroke) -- arayüzün geri kalanındaki simgelerle
+   aynı dil: stroke-width 2, yuvarlak uç. */
+const KATEGORI_SIMGE = {
+  gezilecek: '<path d="M3 21h18M5 21V10M9.5 21V10M14.5 21V10M19 21V10M2.5 10 12 3l9.5 7"/>',
+  /* CAY BARDAGI. Iki deneme elendi ve ikisi de BUYUTULUP BAKILINCA
+     goruldu: tavada yumurta 26 px'te salyangoz, sahanda yumurta ise
+     hedef tahtasi (ic ice iki daire) gibi okunuyordu. Ince belli
+     bardak hem kahve kupasindan (kulplu, buharli) hem kokteyl
+     bardagindan (ucgen) ayriliyor -- ve Turkiye'de kahvaltinin
+     simgesi zaten o. */
+  kahvalti:  '<path d="M8.4 4h7.2l-1.15 12.4a2.45 2.45 0 0 1-4.9 0z"/>' +
+             '<path d="M7.4 20h9.2"/>',
+  /* KAP KEK. Dondurma kulahi denendi ve 26 px'te KONUM IGNESI gibi
+     okunuyordu -- ustelik igne bu ekranda "Konumum" dugmesinin simgesi,
+     yani iki ayri sey ayni sekle dusuyordu. Kagit kalibi + kubbe +
+     ustundeki tane, kahve kupasiyla karismiyor. */
+  tatli:     '<path d="M6.6 11.6h10.8l-1.25 7.5a1.2 1.2 0 0 1-1.2 1H9.05' +
+             'a1.2 1.2 0 0 1-1.2-1z"/>' +
+             '<path d="M7.2 11.6a4.8 4.8 0 0 1 9.6 0"/>' +
+             '<circle cx="12" cy="5" r="1.15"/>',
+  kahve:     '<path d="M4 8h12v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z"/>' +
+             '<path d="M16 9.5h2a2.5 2.5 0 0 1 0 5h-2"/><path d="M6 3v2M10 3v2M14 3v2"/>',
+  icecek:    '<path d="M4 4h16l-8 9z"/><path d="M12 13v6M8.5 19h7"/>',
+  hizli:     '<path d="M4 10a8 4 0 0 1 16 0z"/><path d="M3 13.5h18"/>' +
+             '<path d="M3 16h18a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 16z"/>',
+  esnaf:     '<path d="M4.5 16h15"/><path d="M5.5 16a6.5 6.5 0 0 1 13 0"/>' +
+             '<path d="M12 9.5V7.5"/><path d="M8 19.5h8"/>',
+  yemek:     '<path d="M6.5 3v7a2.5 2.5 0 0 0 5 0V3"/><path d="M9 10.5V21"/>' +
+             '<path d="M17.5 3c-1.6 2-2.3 4-2.3 6.2 0 1.7.8 2.6 2.3 2.6V21"/>'
+};
+
+/* Mekanın kart simgesinde kullanılacak kategorisi. Hiçbirine uymuyorsa
+   null -- o zaman yuvaya nötr bir işaret giriyor, uydurma bir kategori
+   değil. */
+function anaKategori(m){
+  for (const k of KART_KATEGORI) if (mekanUyar(["kat:" + k], m)) return k;
+  return null;
+}
+
+/* Kartın 56x56 görsel yuvası. Bugün her zaman simge; `m.foto` geldiği
+   gün aynı yuvaya <img> giriyor ve kart düzeni değişmiyor. */
+function kartGorselHTML(m){
+  const k = anaKategori(m);
+  /* aria-hidden: simge adın YANINDA duruyor ve aynı şeyi söylüyor.
+     Ekran okuyucuya iki kez okutmak, listeyi iki katına çıkarırdı. */
+  return '<span class="kart-gorsel" data-kat="' + (k || "yok") + '" aria-hidden="true">' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" ' +
+    'stroke-linecap="round" stroke-linejoin="round">' +
+    (KATEGORI_SIMGE[k] || '<circle cx="12" cy="12" r="7"/>') +
+    "</svg></span>";
+}
+
 /* "kebab;barbecue;coffee_shop" -> Set. Küçük harfe çevriliyor: OSM
    etiketleri çoğunlukla küçük ama hepsi değil. */
 function mutfaklar(m){

@@ -1361,6 +1361,131 @@ def kendini_kontrol_et():
                         "iki cerceveli secicinin yaninda dugme gibi durmuyor"
                         % genislik)
 
+            # 2c) KONUM VERILINCE LISTE YAKINDAN UZAGA SIRALANMALI.
+            #
+            # Olculdu (yayindaki ekran goruntusunden): kullanici
+            # "Konumum"a basiyor, konum aliniyor, mesafe rozetleri
+            # ciziliyor -- ve liste HALA A -> Z'de kaliyordu. Ankara'da
+            # ilk dort kart "06 Tado Dondurma, 1. Yurt Kantini,
+            # 100 Burger, 1071 Aspava" idi; yani adi rakamla
+            # baslayanlar. Konumunu veren kisinin istedigi sey zaten
+            # yakindan uzaga; ayri bir menuden bir daha secmesini
+            # beklemek ozelligi gorunmez yapiyordu.
+            #
+            # DUGME YAZISI DA SINANIYOR ve sebebi olculdu: durum yazisi
+            # dugmenin ICINDEYDI, "Konumum" (138 px) -> "konumun
+            # kullanılıyor" (237 px) olunca yanindaki siralama
+            # secicisini eziyor ve "Bana yakın" 471-600 px arasinda
+            # kirpiliyordu. Bir de textContent dugmenin <svg> igesini
+            # siliyordu. Ikisi de burada yaniyor.
+            # AYRI BAGLAM ACILMIYOR, ayni ctx'e izin veriliyor: yeni bir
+            # tarayici baglami taze profil demek ve olculdu -- iki yeni
+            # kontrol takimi test.py'nin 420 sn sinirinin ustune
+            # cikarmisti. 2d de ayni sayfada olculuyor (ayri bir sayfa
+            # yuku daha eklemek yerine).
+            ctx.grant_permissions(["geolocation"])
+            ctx.set_geolocation({"latitude": 39.9208, "longitude": 32.8541})
+            try:
+                ksf, _hata = sayfa_ac("/kesfet.html?il=06")
+                ksf.wait_for_timeout(900)
+
+                # 2d) HER KARTIN BIR GORSEL YUVASI OLMALI -- tiklamadan
+                # ONCE, ayni sayfada.
+                #
+                # "Ekranda resimler olsun" istendi ve olculdu: bugun tek
+                # bir fotograf yok (il dosyalarinda foto alani yok,
+                # foto_cek.py hic kosmamis, kesfet listesi zaten
+                # Supabase'e cikmiyor). Bos kutu birakmak 35.852 mekani
+                # ayni gri dikdortgenle listelemek olurdu; yuva HER
+                # ZAMAN dolu -- kategori simgesi.
+                g = ksf.evaluate("""() => {
+                  const k = [...document.querySelectorAll('.kart')].slice(0, 24);
+                  const y = k.map(x => x.querySelector('.kart-gorsel'));
+                  return {
+                    kart: k.length,
+                    yuva: y.filter(Boolean).length,
+                    cizim: y.filter(x => x && x.querySelector('svg') &&
+                                         x.querySelector('svg').children.length).length,
+                    olcu: y[0] ? [Math.round(y[0].getBoundingClientRect().width),
+                                  Math.round(y[0].getBoundingClientRect().height)] : null,
+                    kat: [...new Set(y.filter(Boolean).map(x => x.dataset.kat))]
+                  };
+                }""")
+                if g["kart"] < 10:
+                    sorunlar.append("kesfet: kart cizilmedi, gorsel yuvasi olculemedi")
+                else:
+                    if g["yuva"] != g["kart"]:
+                        sorunlar.append("kesfet: %d karttan %d'sinde gorsel yuvasi yok"
+                                        % (g["kart"], g["kart"] - g["yuva"]))
+                    if g["cizim"] != g["kart"]:
+                        sorunlar.append("kesfet: %d gorsel yuvasi BOS -- bos kutu, "
+                                        "kutu olmamasindan kotu"
+                                        % (g["kart"] - g["cizim"]))
+                    if not g["olcu"] or g["olcu"][0] < 40 or g["olcu"][1] < 40:
+                        sorunlar.append("kesfet: gorsel yuvasi cok kucuk: %s" % (g["olcu"],))
+                    if len(g["kat"]) < 2:
+                        sorunlar.append("kesfet: butun kartlar ayni kategori simgesini "
+                                        "kullaniyor (%s)" % g["kat"])
+                    if "yok" in g["kat"]:
+                        sorunlar.append("kesfet: bazi mekanlar hicbir kategoriye "
+                                        "dusmuyor, yuvaya notr isaret giriyor")
+
+                once = ksf.eval_on_selector("#sirala", "e => e.value")
+                genislik_once = ksf.eval_on_selector(
+                    "#konum-al", "e => Math.round(e.getBoundingClientRect().width)")
+                ksf.click("#konum-al")
+                ksf.wait_for_timeout(1500)
+                o = ksf.evaluate("""() => {
+                  const kb = document.querySelector('#konum-al');
+                  const mesafe = [...document.querySelectorAll('.kart')].slice(0, 8)
+                    .map(k => {
+                      const r = k.querySelector('.rozet.mesafe');
+                      if (!r) return null;
+                      const t = r.textContent.trim();
+                      /* "110 m" ve "1.4 km" -> metre */
+                      const s = parseFloat(t.replace(',', '.'));
+                      return t.endsWith('km') ? s * 1000 : s;
+                    });
+                  return {
+                    sirala: document.querySelector('#sirala').value,
+                    mesafe: mesafe,
+                    kb_genislik: Math.round(kb.getBoundingClientRect().width),
+                    kb_simge: !!kb.querySelector('svg'),
+                    durum: (document.querySelector('#konum-durum') || {}).textContent || ""
+                  };
+                }""")
+                if once != "ad":
+                    sorunlar.append("kesfet: baslangic siralamasi 'ad' degil (%s)" % once)
+                if o["sirala"] != "yakin":
+                    sorunlar.append(
+                        "kesfet: konum alindi ama siralama '%s' kaldi; "
+                        "liste yakindan uzaga gecmiyor" % o["sirala"])
+                m = [x for x in o["mesafe"] if x is not None]
+                if len(m) < 4:
+                    sorunlar.append("kesfet: konum verildi ama mesafe rozeti "
+                                    "cizilmiyor (%d kart)" % len(m))
+                elif any(m[i] > m[i + 1] + 0.5 for i in range(len(m) - 1)):
+                    sorunlar.append("kesfet: liste yakindan uzaga sirali degil: %s" % m)
+                if not o["kb_simge"]:
+                    sorunlar.append("kesfet: Konumum dugmesinin simgesi tiklamadan "
+                                    "sonra siliniyor")
+                if o["kb_genislik"] != genislik_once:
+                    sorunlar.append(
+                        "kesfet: Konumum dugmesi tiklaninca %d -> %d px degisiyor; "
+                        "yanindaki secicileri eziyor"
+                        % (genislik_once, o["kb_genislik"]))
+                if "yakın" not in o["durum"].lower():
+                    sorunlar.append("kesfet: konum durumu kullaniciya "
+                                    "bildirilmiyor (%r)" % o["durum"][:40])
+                ksf.close()
+            except Exception as e:
+                sorunlar.append("kesfet konum kontrolu kosulamadi: %s: %s"
+                                % (type(e).__name__, str(e)[:80]))
+            finally:
+                # Izin geri aliniyor: sonraki kontroller konumsuz halin
+                # de calistigini gormeli.
+                ctx.clear_permissions()
+
             # 2b) ISLETME SAYFASINDA KONUM HARITASI.
             #
             # Adresi olan mekan yalniz %26,2 (9.397/35.852); kalan
