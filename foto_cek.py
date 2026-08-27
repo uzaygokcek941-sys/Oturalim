@@ -428,6 +428,40 @@ def sql_uret(satirlar):
             "values\n" + govde + "\non conflict do nothing;\n")
 
 
+def sql_yaz():
+    """mekan_foto.csv -> foto_ekle.sql. AGA CIKMADAN, saniyeler.
+
+    NEDEN AYRI BIR KIP. foto_ekle.sql .gitignore'da ve orada KALMALI:
+    o bir cikti degil, Supabase SQL Editor'e ELLE yapistirilan bir ara
+    adim. Ama gitignore'da olmasi "ulasilamaz" demek olmamali -- 27
+    Agustos'ta tam bu oldu, dosya 91 dakikalik bir turda uretildi ve
+    kosucuyla birlikte kayboldu.
+
+    Izlenen sey CSV. SQL ondan HER ZAMAN yeniden uretilebiliyor ve
+    uretmek icin Overpass'a bir daha gitmek gerekmiyor."""
+    if not os.path.exists("mekan_foto.csv"):
+        sys.exit("mekan_foto.csv yok. Once veri turunu kosur ve dosyayi al:\n"
+                 "  git checkout origin/veri/tur-... -- mekan_foto.csv")
+    with open("mekan_foto.csv", encoding="utf-8-sig", newline="") as f:
+        satirlar = list(csv.DictReader(f))
+    # BOS CSV'DEN SQL URETMEK, "fotograf yok" ile "dosya bos geldi"yi
+    # ayni seye cevirir. Bu depoda kural: basarisizligi sayiya cevirme.
+    if not satirlar:
+        sys.exit("mekan_foto.csv BOS. Bu bir olcum degil -- tur yarim "
+                 "kalmis olabilir. foto_ekle.sql YAZILMADI.")
+    eksik = [r for r in satirlar if not (r.get("yazar") or "").strip()]
+    if eksik:
+        # ATIF ZORUNLU. Veritabani kisiti da atifsiz satiri kabul etmiyor;
+        # burada durmak, orada 300 satirlik bir hatayla karsilasmaktan iyi.
+        sys.exit("%d satirda YAZAR yok. Commons lisansi atif ZORUNLU "
+                 "kiliyor; foto_ekle.sql YAZILMADI." % len(eksik))
+    with open("foto_ekle.sql", "w", encoding="utf-8") as f:
+        f.write(sql_uret(satirlar))
+    print("foto_ekle.sql yazildi: %d satir, %d il."
+          % (len(satirlar), len({r.get("il") for r in satirlar})))
+    print("Supabase -> SQL Editor -> yapistir -> Run.")
+
+
 def main(kodlar):
     """Fotograf etiketli mekanlari bulup atifli satirlara cevirir.
 
@@ -666,5 +700,7 @@ def kendini_kontrol_et():
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "test":
         kendini_kontrol_et()
+    elif len(sys.argv) > 1 and sys.argv[1] == "sql":
+        sql_yaz()
     else:
         main([a for a in sys.argv[1:]])

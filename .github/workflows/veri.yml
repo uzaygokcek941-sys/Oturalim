@@ -197,6 +197,24 @@ jobs:
       # yerele inince esm.sh CSP'den kendiliginden dusuyor ve tablo
       # geride kalirsa kontrol patliyor. Bir kez patladi, o yuzden
       # tablo artik uretiliyor.
+      # foto_ekle.sql ARTIK INDIRILEBILIYOR. Dosya .gitignore'da ve orada
+      # KALIYOR -- o bir cikti degil, Supabase SQL Editor'e ELLE
+      # yapistirilan bir ara adim. Ama gitignore'da olmak "ulasilamaz"
+      # demek olmamali: 27 Agustos'ta dosya 91 dakikalik bir turda
+      # uretildi ve kosucuyla birlikte KAYBOLDU.
+      #
+      # Artefakt olarak yuklemek dogru yer: Actions sayfasindan
+      # indiriliyor, depoya girmiyor, ve 14 gun sonra kendiliginden
+      # siliniyor. Icinde sir yok -- Commons'un acik lisansli dosya
+      # adresleri ve yazar adlari.
+      - name: foto_ekle.sql (indirilebilir)
+        if: inputs.foto && hashFiles('foto_ekle.sql') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: foto_ekle-sql
+          path: foto_ekle.sql
+          retention-days: 14
+
       - name: Uygulama verisi
         run: |
           python app_veri.py
