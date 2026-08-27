@@ -88,6 +88,7 @@ def kos(taban):
              if yol else p.chromium.launch(args=["--no-sandbox"]))
         try:
             s += _a1_a7(t, taban)
+            s += _fotograf(t, taban)
             s += _g2_g3(t, taban)
             s += _cevrimdisi(t, taban)
         finally:
@@ -238,6 +239,57 @@ def _a1_a7(t, taban):
     return s
 
 
+def _fotograf(t, taban):
+    """Commons fotograflari EKRANDA gorunuyor mu, ATFIYLA birlikte.
+
+    ZINCIRIN SON HALKASI. Bugun dort halka koptu ve dorduncusunden sonra
+    "artik calisiyor" demek yetmez -- her seferinde bir sonraki halka
+    kirildi. Bu kontrol zincirin UCUNU tutuyor: Supabase'e giren satir
+    kullanicinin ekraninda bir resim mi oluyor.
+
+    IZMIR SECILDI, keyfi degil: turun ciktisinda en cok satir orada
+    (28). Fotograf yoksa bu kontrol DUSER ve dusmesi dogrudur -- foto
+    hatti yine kopmus demektir."""
+    s = []
+    ctx, sayfa, hatalar, csp = _sayfa_ac(t, taban + "/kesfet.html?il=35")
+    try:
+        try:
+            sayfa.wait_for_selector(".kart", timeout=BEKLE)
+        except Exception:
+            s.append("FOTO: Izmir listesinde hic kart yok")
+            return s
+        # Fotograflar Supabase'ten SONRADAN geliyor ve liste yeniden
+        # ciziliyor; beklemeden saymak sifir gorur.
+        sayfa.wait_for_timeout(4000)
+        r = sayfa.evaluate("""() => {
+            const g = [...document.querySelectorAll('.kart-gorsel img')]
+                        .filter(i => !i.hidden);
+            return {
+              resim: g.length,
+              atifsiz: g.filter(i => !(i.title || '').trim() &&
+                                     !/Fotoğraf:/.test(i.alt || '')).length,
+              ornek: g.slice(0, 2).map(i => (i.title || i.alt || '').slice(0, 60))
+            };
+        }""")
+        OLCUM["izmir_foto"] = r["resim"]
+        OLCUM["foto_ornek"] = r["ornek"]
+        if r["resim"] == 0:
+            s.append("FOTO: Izmir listesinde TEK fotograf gorunmuyor. "
+                     "Satirlar Supabase'e girdiyse hat kartla arasinda kopuk")
+        # ATIF ZORUNLU. Commons lisansi bunu sart kosuyor; atifsiz
+        # gostermek lisansi ihlal etmek demek.
+        if r["atifsiz"]:
+            s.append("FOTO: %d fotograf ATIFSIZ gosteriliyor; Commons "
+                     "lisansi atfi ZORUNLU kiliyor" % r["atifsiz"])
+        if hatalar:
+            s.append("FOTO: JS hatasi: %s" % hatalar[0])
+        if csp:
+            s.append("FOTO: CSP ihlali: %s" % csp[0])
+    finally:
+        ctx.close()
+    return s
+
+
 def _g2_g3(t, taban):
     """DUMAN_TESTI G2-G3: 320 px'te kirpilma ve 44 px dokunma hedefi."""
     s = []
@@ -336,9 +388,13 @@ def main():
                                                        str(e)[:200]))
 
     print("OLCULEN: Ankara %s kart · fiyatli suzgecte %s kart · "
-          "en yakin dort mesafe %s m · cevrimdisi %s karakter"
+          "en yakin dort mesafe %s m · cevrimdisi %s karakter · "
+          "Izmir'de %s fotograf"
           % (OLCUM.get("ankara_kart", "?"), OLCUM.get("fiyatli_kart", "?"),
-             OLCUM.get("mesafe", "?"), OLCUM.get("cevrimdisi_bayt", "?")))
+             OLCUM.get("mesafe", "?"), OLCUM.get("cevrimdisi_bayt", "?"),
+             OLCUM.get("izmir_foto", "?")))
+    if OLCUM.get("foto_ornek"):
+        print("  fotograf atfi ornegi: %s" % OLCUM["foto_ornek"][0])
 
     # GORMESI GEREKENI GORDU MU. Bir tur 15 saniyede "temiz" donebiliyor
     # ve bu yayinin hizli olmasindan da olabilir, sayfanin hic
