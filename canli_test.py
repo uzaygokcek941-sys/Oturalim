@@ -33,6 +33,13 @@ import sys
 
 BEKLE = 15000            # ms; yayin yerelden yavas
 
+# TURUN NE GORDUGU. "temiz" tek basina bir sey kanitlamiyor: sayfa hic
+# yuklenmese de bircok kontrol "kotu bir sey bulamadim" der ve tur yesil
+# yanar. Bu depodaki kural basarisizligi sayiya cevirmemek; ayni kural
+# HICBIR SEYI de basari sayamaz. Tur artik NE GORDUGUNU yaziyor ve
+# gormesi gerekeni gormediyse dusuyor.
+OLCUM = {}
+
 
 def _tarayici_yolu():
     kok = os.environ.get("PLAYWRIGHT_BROWSERS_PATH", "")
@@ -72,6 +79,7 @@ def _sayfa_ac(t, adres, izin=None, konum=None):
 def kos(taban):
     from playwright.sync_api import sync_playwright
     taban = taban.rstrip("/")
+    OLCUM.clear()
     s = []
 
     with sync_playwright() as p:
@@ -121,7 +129,10 @@ def _a1_a7(t, taban):
             s.append("A2: kesfet Ankara'da hic kart cizilmedi (il dosyasi "
                      "yayinda yok olabilir)")
         kart = sayfa.query_selector_all(".kart")
-        if kart and len(kart) < 5:
+        OLCUM["ankara_kart"] = len(kart)
+        # "kart and ..." YAZMIYORUM ve sebebi var: bos liste yanlis tarafa
+        # dusuyordu -- SIFIR kart "5'ten az" kontrolunu hic calistirmiyordu.
+        if len(kart) < 5:
             s.append("A2: kesfet Ankara'da yalniz %d kart var" % len(kart))
         # YUVA HER ZAMAN DOLU olmali: fotograf yoksa kategori simgesi.
         #
@@ -168,6 +179,7 @@ def _a1_a7(t, taban):
                                    (b === 'km' ? 1000 : 1));
                 return t.slice(0, 8);
             }""")
+            OLCUM["mesafe"] = sira[:4]
             if len(sira) < 3:
                 s.append("A3: konum verildi ama kartlarda mesafe rozeti yok")
             elif sira != sorted(sira):
@@ -200,6 +212,7 @@ def _a1_a7(t, taban):
             // suzgec yalan soyluyor demektir.
             return k.filter(x => !/\\d[\\d.]*\\s*₺/.test(x.innerText)).length;
         }""")
+        OLCUM["fiyatli_kart"] = len(sayfa.query_selector_all(".kart"))
         if fiyatsiz:
             s.append("A5: 'fiyati olan' suzgecinde %d kart fiyat GOSTERMIYOR"
                      % fiyatsiz)
@@ -279,6 +292,7 @@ def _cevrimdisi(t, taban):
             sayfa.goto(taban + "/kesfet.html", wait_until="domcontentloaded",
                        timeout=BEKLE)
             metin = sayfa.inner_text("body")
+            OLCUM["cevrimdisi_bayt"] = len(metin.strip())
             if not metin.strip():
                 s.append("A7: cevrimdisi sayfa BOS geldi")
         except Exception as e:
@@ -309,6 +323,22 @@ def main():
         # basarisizligi sayiya cevirme.
         sys.exit("TUR KOSULAMADI: %s: %s\nBu bir sonuc DEGIL -- siteye "
                  "ulasilamadi." % (type(e).__name__, str(e)[:120]))
+
+    print("OLCULEN: Ankara %s kart · fiyatli suzgecte %s kart · "
+          "en yakin dort mesafe %s m · cevrimdisi %s karakter"
+          % (OLCUM.get("ankara_kart", "?"), OLCUM.get("fiyatli_kart", "?"),
+             OLCUM.get("mesafe", "?"), OLCUM.get("cevrimdisi_bayt", "?")))
+
+    # GORMESI GEREKENI GORDU MU. Bir tur 15 saniyede "temiz" donebiliyor
+    # ve bu yayinin hizli olmasindan da olabilir, sayfanin hic
+    # yuklenmemesinden de. Ikisini ayiran sey SAYI.
+    for anahtar, en_az, ad in (("ankara_kart", 5, "Ankara kart"),
+                               ("fiyatli_kart", 5, "fiyatli kart"),
+                               ("cevrimdisi_bayt", 20, "cevrimdisi metin")):
+        if OLCUM.get(anahtar, 0) < en_az:
+            s.append("TUR HICBIR SEY GORMEDI: %s = %s (en az %d bekleniyor)"
+                     % (ad, OLCUM.get(anahtar, "yok"), en_az))
+    print()
 
     if s:
         print("%d SORUN:" % len(s))
