@@ -344,7 +344,11 @@ tablosu geçti, `PAYLAS_FORM` sabiti kodda yok) · KVKK yer tutucu adresi
       konum haritası, semt (ilçe + mahalle). Depoda `main` ile
       `claude/repo-incelemesi-wlnrwo` arasında fark yok
 - [ ] `python kutuphane_al.py` — supabase-js'i yerele al (1 dk, `KURULUM.md`)
-- [ ] `python foto_cek.py` — Commons fotoğrafları (buradaki oturumda ağ kapalı)
+- [x] `python foto_cek.py` — GitHub koşucusunda koştu (`veri.yml`, `foto: true`).
+      **241 serbest lisanslı fotoğraf / 61 il.** Kalan tek adım insanda:
+      `foto_ekle.sql`'i Supabase SQL Editor'e yapıştırmak — betik
+      veritabanına kendi yazamıyor, bunun için `service_role` gerekirdi
+      ve o anahtar bu depoya asla girmiyor
 - [ ] Günde 1 içerik, gelen DM'e ilk 10 dakikada cevap
 
 **Fiyat verisi — 2026-08-23'te ölçülüp düzeltilenler:**
@@ -892,6 +896,14 @@ oturanları da çeker; onlar fotoğraflanmayı kabul etmedi.
 
 `foto_cek.py` kapsamı **sayarak** yazıyor, tahmin etmiyor. Beklenti düşük:
 Commons'ta anıt ve müze bol, mahalle kafesi yok denecek kadar az.
+
+**Sayıldı (26–27 Ağustos, GitHub koşucusu):** 35.852 mekanın 413'ünde
+fotoğraf etiketi var, **241'i serbest lisanslı (%0,67)** — ve bu sayı
+**61 ilin**, çünkü **20 il 429/504 ile düştü**. Overpass'a tek adrese
+tek istek atılıyordu ve iller arası bekleme 0,34 sn'di; o sayı
+Wikimedia'nın hız sınırı, Overpass'ın değil. Artık üç ayna sırayla
+deneniyor ve bekleme/deneme sayısı `turkiye_cek.py`'den geliyor —
+ikinci bir kopya yok. Ayrıntı: `VERI_VE_GELIR.md` §3b.
 
 ### Ölçülen ve düzeltilen
 

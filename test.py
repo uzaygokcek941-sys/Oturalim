@@ -17,6 +17,7 @@ kontrol yakalar.
 
 node yoksa 2. grup ATLANIR ve atlandigi soylenir -- gectigi soylenmez.
 """
+import contextlib
 import csv
 import glob
 import io
@@ -26,6 +27,7 @@ import re
 import shutil
 import subprocess
 import sys
+import urllib.parse
 
 import veri_bicim   # il dosyasi bicimi tek yerde
 
@@ -1706,6 +1708,192 @@ def platform_kapisi_mi():
     return s
 
 
+def _sahte_httpx(plan, gunluk):
+    """httpx yerine gecen taklit. Aga HIC cikilmiyor.
+
+    plan: sirayla donulecek yanitlar. Her ogesi ya (kod, govde, basliklar)
+    ya da firlatilacak bir Exception. Tukenirse bos ama gecerli bir
+    Overpass yaniti donuyor."""
+    import types
+
+    class Yanit:
+        def __init__(self, kod, govde="", basliklar=None):
+            self.status_code = kod
+            self.text = govde
+            self.headers = basliklar or {}
+
+    class Istemci:
+        def __init__(self, *a, **k):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def post(self, adres, data=None):
+            gunluk.append(adres)
+            y = plan.pop(0) if plan else (200, '{"elements": []}', {})
+            if isinstance(y, Exception):
+                raise y
+            return Yanit(*y)
+
+    m = types.ModuleType("httpx")
+    m.Client = Istemci
+    return m
+
+
+class _SahteZaman:
+    """time yerine gecen taklit: uyku SAYILIYOR, uyunmuyor."""
+
+    def __init__(self):
+        self.uykular = []
+
+    def sleep(self, s):
+        self.uykular.append(s)
+
+
+def overpass_denemesi_mi():
+    """Overpass turu gecici hatada pes ediyor mu.
+
+    NEDEN VAR, VE BU BIR TAHMIN DEGIL: 26-27 Agustos kosumunda 81 ilin
+    20'si (%25) 429/504 ile dustu. O iller "cekilemedi" diye gecti ve
+    Commons kapsamasi 61 il uzerinden raporlandi. Bu depoda kural
+    "basarisizligi sayiya cevirme" -- ozet dogru davrandi, EKSIK yazdi.
+    Ama esas is denemekti ve denenmiyordu: tek adrese tek istek.
+
+    Ayni Overpass'a giden oteki betik (turkiye_cek.py) UC KEZ deniyor ve
+    iller arasi 4 sn bekliyor. Ayni kural iki yerde iki turlu yazilmisti.
+
+    METIN DEGIL DAVRANIS: httpx taklit ediliyor ve fonksiyon gercekten
+    kosuluyor."""
+    import importlib
+    s = []
+    try:
+        FC = importlib.import_module("foto_cek")
+        TC = importlib.import_module("turkiye_cek")
+    except Exception as e:
+        return ["foto_cek/turkiye_cek okunamadi: %s: %s" % (type(e).__name__, e)]
+
+    def kos(plan):
+        """Taklit httpx ve taklit zamanla overpass_iste. (sonuc, adresler, uykular)"""
+        gunluk, zaman = [], _SahteZaman()
+        eski_httpx = sys.modules.get("httpx")
+        eski_zaman = FC.time
+        sys.modules["httpx"] = _sahte_httpx(list(plan), gunluk)
+        FC.time = zaman
+        try:
+            try:
+                sonuc = FC.overpass_iste("[out:json];out;")
+            except Exception as e:
+                sonuc = e
+        finally:
+            FC.time = eski_zaman
+            if eski_httpx is None:
+                sys.modules.pop("httpx", None)
+            else:
+                sys.modules["httpx"] = eski_httpx
+        return sonuc, gunluk, zaman.uykular
+
+    # (a) GECICI HATA PES ETTIRMIYOR. Iki basarisiz yanittan sonra gelen
+    #     200 aliniyor -- eski kod ilk 429'da ili dusuruyordu.
+    sonuc, adres, _ = kos([(429, "", {}), (504, "", {}), (200, '{"elements": []}', {})])
+    if isinstance(sonuc, Exception):
+        s.append("overpass_iste: iki gecici hatadan sonra gelen 200 alinmadi (%s)" % sonuc)
+    elif len(adres) != 3:
+        s.append("overpass_iste: 429/504 sonrasi %d istek atildi, 3 bekleniyordu" % len(adres))
+    # AYNI ADRESE UC KEZ SORMAK bir aynadan gecmek DEGIL. 429 sunucuya ozel.
+    if len(set(adres)) < 2:
+        s.append("overpass_iste: uc denemenin hepsi ayni adrese gitti (%s); "
+                 "ayna kullanilmiyor" % (adres[0] if adres else "?"))
+
+    # (b) KALICI HATA TEKRAR DENENMIYOR. Overpass 400'u BOZUK SORGU icin
+    #     donduruyor; onu uc kez gondermek yalniz baskasinin sunucusunu
+    #     ve bizim zamanimizi harcar.
+    sonuc, adres, _ = kos([(400, "bozuk sorgu", {})])
+    if not isinstance(sonuc, Exception):
+        s.append("overpass_iste: HTTP 400 (bozuk sorgu) hata vermedi")
+    if len(adres) != 1:
+        s.append("overpass_iste: HTTP 400 icin %d istek atildi; kalici hata "
+                 "yeniden denenmemeli" % len(adres))
+
+    # (c) SUNUCU NE KADAR BEKLEYECEGIMIZI SOYLUYORSA ONA UYULUYOR.
+    sonuc, _, uyku = kos([(429, "", {"Retry-After": "7"}), (200, '{"elements": []}', {})])
+    if 7 not in uyku:
+        s.append("overpass_iste: Retry-After: 7 dinlenmedi (uykular: %s)" % uyku)
+    # ... ama SINIRSIZ degil: ariza aninda saatlik degerler donebiliyor.
+    _, _, uyku = kos([(429, "", {"Retry-After": "99999"}), (200, '{"elements": []}', {})])
+    if uyku and max(uyku) > FC.EN_COK_BEKLEME:
+        s.append("overpass_iste: Retry-After ustten kesilmiyor (%s sn uyudu)" % max(uyku))
+
+    # (d) HEPSI DUSERSE HATA VERIYOR, bos liste DONMUYOR. Bos liste
+    #     "Commons'ta fotograf yok" diye okunur -- ariza olcume donusur.
+    sonuc, _, _ = kos([(503, "", {})] * (FC.OVERPASS_DENEME * len(FC.SUNUCULAR)))
+    if not isinstance(sonuc, Exception):
+        s.append("overpass_iste: butun denemeler dustugu halde hata vermedi")
+
+    # (e) AG HATASI DA GECICI. Zaman asimi bir yaniti bile yok, ama
+    #     yeniden denenmeli.
+    sonuc, adres, _ = kos([OSError("timed out"), (200, '{"elements": []}', {})])
+    if isinstance(sonuc, Exception):
+        s.append("overpass_iste: zaman asimindan sonra yeniden denenmedi (%s)" % sonuc)
+
+    # (f) SAYILAR IKI YERDE DURMUYOR. turkiye_cek degisip burasi
+    #     unutulursa ayni sunucuya yine iki turlu gidilir.
+    if FC.OVERPASS_BEKLEME != TC.BEKLEME:
+        s.append("foto_cek.OVERPASS_BEKLEME (%s) turkiye_cek.BEKLEME (%s) ile "
+                 "ayni degil; Overpass beklemesi iki yere yazilmis"
+                 % (FC.OVERPASS_BEKLEME, TC.BEKLEME))
+    if FC.OVERPASS_DENEME != TC.DENEME:
+        s.append("foto_cek.OVERPASS_DENEME (%s) turkiye_cek.DENEME (%s) ile "
+                 "ayni degil" % (FC.OVERPASS_DENEME, TC.DENEME))
+
+    # (g) ADAY LISTESI TEK ADRESE DUSEMEZ ve hepsi ayni sunucuda olamaz.
+    #     kutuphane_al.py'de bu satir sabotajla eklenmisti: mekanizmayi
+    #     sinamak yetmiyor, listeyi tek adrese indirince butun kontroller
+    #     geciyor ve duzeltilen hata geri gelmis oluyor.
+    sunucular = list(getattr(FC, "SUNUCULAR", ()))
+    if len(sunucular) < 2:
+        s.append("foto_cek.SUNUCULAR %d adres tasiyor; tek adrese baglilik "
+                 "bu depoda zaten bir kez yandi" % len(sunucular))
+    alanlar = {urllib.parse.urlsplit(a).netloc for a in sunucular}
+    if len(alanlar) < 2:
+        s.append("foto_cek.SUNUCULAR'in hepsi ayni sunucuda (%s); "
+                 "ayna sayilmaz" % ", ".join(sorted(alanlar)))
+
+    # (h) ILLER ARASI BEKLEME OVERPASS'IN OLCUSUYLE. BEKLEME (0,34)
+    #     Wikimedia'nin hiz siniri; onu Overpass'a uygulamak sunucuyu
+    #     saniyede uc kez sorgulamak demekti. main() GERCEKTEN kosuluyor
+    #     -- gecici bir dizinde, ciktilari depoya dusmesin diye.
+    import tempfile
+    gunluk, zaman = [], _SahteZaman()
+    eski_httpx = sys.modules.get("httpx")
+    eski_zaman, eski_dizin = FC.time, os.getcwd()
+    sys.modules["httpx"] = _sahte_httpx([], gunluk)
+    FC.time = zaman
+    try:
+        with tempfile.TemporaryDirectory() as td:
+            os.symlink(os.path.join(eski_dizin, "app"), os.path.join(td, "app"))
+            os.chdir(td)
+            with io.StringIO() as bos, contextlib.redirect_stdout(bos):
+                FC.main(["TR-06"])
+    except Exception as e:
+        s.append("foto_cek.main taklit agla kosulamadi: %s: %s" % (type(e).__name__, e))
+    finally:
+        os.chdir(eski_dizin)
+        FC.time = eski_zaman
+        if eski_httpx is None:
+            sys.modules.pop("httpx", None)
+        else:
+            sys.modules["httpx"] = eski_httpx
+    if zaman.uykular and max(zaman.uykular) < FC.OVERPASS_BEKLEME:
+        s.append("foto_cek.main: iller arasi en uzun bekleme %s sn; Overpass "
+                 "olcusu %s sn (0,34 Wikimedia'nin, Overpass'in degil)"
+                 % (max(zaman.uykular), FC.OVERPASS_BEKLEME))
+    return s
+
+
 def site_sosyal_mi():
     """Isletme sitesinden sosyal bag toplama gercekten calisiyor mu.
 
@@ -2833,6 +3021,8 @@ def main():
     kayit("degismez: isletme sayfasi konumu gosteriyor", konum_paneli_mi())
     kayit("degismez: kazima kapisi platformlari eliyor", platform_kapisi_mi())
     kayit("degismez: sosyal bag isletmenin kendi sitesinden", site_sosyal_mi())
+    kayit("degismez: overpass turu gecici hatada pes etmiyor",
+          overpass_denemesi_mi())
     kayit("degismez: seviye onayli katkiyi sayiyor", seviye_mi())
     kayit("degismez: butce talebi ifsa etmiyor", butce_talebi_mi())
     kayit("degismez: kurulum dosyalari depoda", kurulum_dosyalari_izleniyor_mu())

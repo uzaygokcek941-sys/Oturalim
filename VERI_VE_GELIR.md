@@ -386,6 +386,35 @@ Commons orada boş.
 **Ölçekleyen yol kullanıcı yüklemesi.** O hat uçtan uca çalışıyor ve
 karta kadar bağlı.
 
+### Turun kendi sayısı — ve o sayının neden EKSİK olduğu
+
+26–27 Ağustos koşumunun kendi özeti:
+
+> uygulamadaki **35.852** mekanın **413**'ünde fotoğraf etiketi var,
+> **241**'i serbest lisanslı (**%0,67**)
+> UYARI: **20 il çekilemedi** (TR-01, TR-09, TR-12, TR-19, TR-23,
+> TR-32 …). Sayılar EKSİK
+> **61/81** il tarandı.
+
+Daha önce bu turun getirisi için "sıfır" demiştim; **yanlıştı**. Getiri
+düşük ama sıfır değil: 241 serbest lisanslı fotoğraf. Ve 81 ilin
+**20'si (%25) hiç taranmadı** — yani 241 bile tam sayı değil, 61 ilin
+sayısı.
+
+**20 il neden düştü:** `foto_cek.py` Overpass'a **tek adrese tek istek**
+atıyordu ve düşerse ili "çekilemedi" sayıp geçiyordu. Üstelik iller
+arası **0,34 sn** bekliyordu — o sayı Wikimedia'nın hız sınırı,
+Overpass'ın değil. Sunucu bizi yavaşlatmaya çalışırken (429) hızımızı
+hiç değiştirmiyorduk.
+
+Aynı Overpass'a giden öteki betik (`turkiye_cek.py`) **üç kez** deniyor
+ve iller arası **4 sn** bekliyor. Aynı kural iki yerde iki türlü
+yazılmıştı. Artık bekleme ve deneme sayısı `turkiye_cek.py`'den
+**geliyor**, ikinci bir kopya yok; üç ayna sırayla deneniyor (429
+sunucuya özel, aynadan geçebiliyor) ve sunucu `Retry-After` yazarsa
+ona uyuluyor. **HTTP 400 yeniden denenmiyor** — o bozuk sorgu demek,
+üç kez göndermek yalnız başkasının sunucusunu harcar.
+
 ---
 
 ## 4 — Yorumlar

@@ -52,12 +52,37 @@ import sys
 import time
 import urllib.parse
 
-OVERPASS = "https://overpass-api.de/api/interpreter"
+# UC SUNUCU, ucu de ayni Overpass API'sini konusuyor.
+# 26-27 Agustos kosumunda 81 ilin 20'si (%25) 429/504 ile dustu. 429 "cok
+# istedin" demek ve SUNUCUYA OZEL: ayni sorgu bir aynadan gecebiliyor.
+# Tek adrese baglilik bu depoda ZATEN bir kez yandi (kutuphane_al.py,
+# esm.sh) ve cozum orada da adresi degistirmek degil, ADAY LISTESI olmustu.
+SUNUCULAR = (
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+    "https://overpass.private.coffee/api/interpreter",
+)
+
+# GECICI kodlar; yalniz bunlar yeniden deneniyor.
+# 400 BURADA YOK ve olmamali: Overpass 400'u BOZUK SORGU icin donduruyor.
+# Onu denemek ayni bozuk sorguyu uc kez baskasinin sunucusuna gondermek
+# olur -- ve bozuklugu bir de gecikmeyle ogrenirsin.
+GECICI = (429, 502, 503, 504)
+
+# Sunucu "Retry-After" yazarsa ona uyuluyor, ama SINIRSIZ degil: ariza
+# aninda saatlik degerler donebiliyor ve bu tur 81 il suruyor.
+EN_COK_BEKLEME = 60
 
 # Secicileri turkiye_cek.py ve eglence_cek.py'den ALIYORUZ, kopyalamiyoruz:
 # uc yerde uc ayri liste, birinin guncellenip otekilerin unutulmasi demekti.
 # (import modul duzeyinde: iki betik de aga cikmadan import edilebiliyor.)
-from turkiye_cek import AMENITY as YEME_AMENITY
+# Bekleme ve deneme sayisi da turkiye_cek'ten GELIYOR, kopyalanmiyor.
+# Ayni Overpass'a iki betik iki turlu gidiyordu: turkiye_cek uc kez
+# deniyor ve iller arasi 4 sn bekliyor, burasi hic denemiyor ve 0,34 sn
+# bekliyordu -- 0,34 Wikimedia'nin hiz siniri, Overpass'in degil.
+from turkiye_cek import (AMENITY as YEME_AMENITY,
+                         BEKLEME as OVERPASS_BEKLEME,
+                         DENEME as OVERPASS_DENEME)
 from eglence_cek import AMENITY as EGLENCE_AMENITY, LEISURE, TOURISM
 
 import veri_bicim   # il dosyasi bicimi tek yerde
@@ -124,13 +149,59 @@ def sorgu(kod):
             % (kod, "".join(parcalar)))
 
 
+def _sunucu_adi(adres):
+    return urllib.parse.urlsplit(adres).netloc or adres
+
+
+def _bekleme_suresi(yanit, varsayilan):
+    """Sunucu "Retry-After" yazdiysa ONA uyuluyor.
+
+    429 "cok istedin" demek ve Overpass ne kadar bekleyecegini SOYLUYOR.
+    Kendi sayimizi dayatmak iki turlu de yanlis: erken donersen yine 429
+    alirsin, gec donersen bosuna beklersin."""
+    ham = (getattr(yanit, "headers", None) or {}).get("Retry-After", "")
+    try:
+        s = float(str(ham).strip())
+    except (TypeError, ValueError):
+        return varsayilan
+    if s <= 0:
+        return varsayilan
+    return min(s, EN_COK_BEKLEME)
+
+
+def overpass_iste(sorgu_metni):
+    """Overpass'a sor, JSON metnini dondur. Butun yollar tukenirse catlar.
+
+    Onceden burada TEK istek vardi: 429 gelince il "cekilemedi" sayiliyor
+    ve bir daha denenmiyordu. Bir sonraki il de hemen 0,34 sn sonra
+    soruluyordu, yani sunucu bizi yavaslatmaya calisirken biz hizimizi
+    hic degistirmiyorduk."""
+    import httpx
+    son = "?"
+    for deneme in range(1, OVERPASS_DENEME + 1):
+        for adres in SUNUCULAR:
+            varsayilan = OVERPASS_BEKLEME * deneme
+            try:
+                with httpx.Client(timeout=200,
+                                  headers={"User-Agent": KULLANICI_AJANI}) as c:
+                    y = c.post(adres, data={"data": sorgu_metni})
+            except Exception as e:               # ag koptu ya da zaman asti
+                son = "%s: %s" % (_sunucu_adi(adres), str(e)[:40])
+                time.sleep(varsayilan)
+                continue
+            if getattr(y, "status_code", 0) == 200:
+                return y.text
+            son = "%s: HTTP %s" % (_sunucu_adi(adres), getattr(y, "status_code", "?"))
+            if y.status_code not in GECICI:
+                raise RuntimeError(son)
+            time.sleep(_bekleme_suresi(y, varsayilan))
+    raise RuntimeError("%d deneme x %d sunucu tukendi (son: %s)"
+                       % (OVERPASS_DENEME, len(SUNUCULAR), son))
+
+
 def overpass_oku(kod):
     """Overpass yanitindan fotograf etiketi tasiyan mekanlar."""
-    import httpx
-    with httpx.Client(timeout=200, headers={"User-Agent": KULLANICI_AJANI}) as c:
-        y = c.post(OVERPASS, data={"data": sorgu(kod)})
-        y.raise_for_status()
-        return _elemanlari_coz(y.json())
+    return _elemanlari_coz(json.loads(overpass_iste(sorgu(kod))))
 
 
 def _elemanlari_coz(veri):
@@ -354,7 +425,10 @@ def main(kodlar):
                 mekanlar, kaynak = ham_oku(yol), "ham"
             else:
                 mekanlar, kaynak = overpass_oku(kod), "overpass"
-                time.sleep(BEKLEME)
+                # ILLER ARASI bekleme Overpass'in olcusuyle. BEKLEME (0,34)
+                # Wikimedia icin; onu buraya koymak sunucuyu saniyede uc
+                # ile sorgulamak demekti ve 20 il o yuzden dustu.
+                time.sleep(OVERPASS_BEKLEME)
         except Exception as e:
             basarisiz.append(kod)
             print("[%2d/%d] %s  CEKILEMEDI: %s"
