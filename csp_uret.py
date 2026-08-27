@@ -165,6 +165,74 @@ def mevcut(d):
     return None
 
 
+# ---------------------------------------------------------------
+# GIZLILIK TABLOSU: CSP'DEN URETILIYOR, ELLE YAZILMIYOR
+#
+# NEDEN: gizlilik sayfasi kullaniciya "tarayicin sunlarla konusuyor"
+# diyor, CSP ise tarayicinin nereye gidebilecegini soyleyen TEK YETKILI
+# yer. Ikisi elle tutuldugu surece ayrisirlar ve bu SESSIZCE olur.
+#
+# BU TAM OLARAK YASANDI, iki kez:
+#   1) Sayfa unpkg'yi listeliyordu ama Leaflet yerele alinmisti; ayrica
+#      Wikimedia Commons ve esm.sh cagriliyordu ama YAZMIYORDU.
+#   2) supabase-js yerele alinip esm.sh CSP'den kendiliginden dusunce
+#      tablo geride kaldi ve kontrol GitHub kosucusunda patladi.
+#
+# Ikincisinde kontrol dogru davrandi ama is durdu. Kural yerine
+# URETICI koymak dogru cozum: "ayni kural tek yerde dursun".
+SAGLAYICI = {
+    "https://unpkg.com":               ("unpkg", "Leaflet harita kütüphanesi"),
+    "https://esm.sh":                  ("esm.sh", "Supabase istemci kütüphanesi"),
+    "https://fonts.googleapis.com":    ("Google Fonts", "Yazı tipleri"),
+    "https://fonts.gstatic.com":       ("Google Fonts", "Yazı tipleri"),
+    "https://*.basemaps.cartocdn.com": ("OpenStreetMap / CARTO", "Harita döşemeleri"),
+    "https://upload.wikimedia.org":    ("Wikimedia Commons",
+                                        "Serbest lisanslı mekan fotoğrafları — "
+                                        "yalnızca o fotoğrafın olduğu sayfada"),
+    "https://*.supabase.co":           ("Supabase",
+                                        "Hesap, oturum, favori ve fiyat paylaşımı "
+                                        "verisi — yalnızca hesap açarsan"),
+    "wss://*.supabase.co":             ("Supabase",
+                                        "Hesap, oturum, favori ve fiyat paylaşımı "
+                                        "verisi — yalnızca hesap açarsan"),
+}
+# CSP'de GECMEYEN ama listede olmasi gereken: siteyi barindiran taraf
+# 'self' oldugu icin CSP'de gorunmuyor, ama kullanici acisindan bir
+# ucuncu taraf ve dosyalari onun sunucusundan geliyor.
+HER_ZAMAN = [("Vercel", "Sitenin barındırılması")]
+
+GIZLILIK = os.path.join(KOK, "app", "gizlilik.html")
+TBODY = re.compile(r"(<thead><tr><th>Sağlayıcı</th>.*?<tbody>)(.*?)(</tbody>)", re.S)
+
+
+def gizlilik_satirlari(csp_metni=None):
+    """CSP'de GERCEKTEN gecen saglayicilarin tablo satirlari."""
+    c = csp_metni if csp_metni is not None else csp()
+    gorulen, satirlar = set(), []
+    for konak, (ad, ne) in SAGLAYICI.items():
+        if konak in c and ad not in gorulen:
+            gorulen.add(ad)
+            satirlar.append((ad, ne))
+    satirlar.sort()
+    return satirlar + HER_ZAMAN
+
+
+def gizlilik_yaz(csp_metni=None):
+    """Tabloyu CSP'den yeniden yazar. (degisti_mi, satir_sayisi) doner."""
+    ham = io.open(GIZLILIK, encoding="utf-8").read()
+    m = TBODY.search(ham)
+    if not m:
+        sys.exit("gizlilik.html'de saglayici tablosu bulunamadi")
+    govde = "\n" + "".join(
+        "            <tr><td>%s</td><td>%s</td></tr>\n" % (ad, ne)
+        for ad, ne in gizlilik_satirlari(csp_metni)) + "          "
+    yeni = ham[:m.start(2)] + govde + ham[m.end(2):]
+    if yeni == ham:
+        return False, len(gizlilik_satirlari(csp_metni))
+    io.open(GIZLILIK, "w", encoding="utf-8").write(yeni)
+    return True, len(gizlilik_satirlari(csp_metni))
+
+
 def yaz():
     d = ayari_oku()
     hedef = None
@@ -182,7 +250,38 @@ def yaz():
         hedef["headers"].append({"key": "Content-Security-Policy", "value": yeni})
     io.open(AYAR, "w", encoding="utf-8").write(
         json.dumps(d, ensure_ascii=False, indent=2) + "\n")
+    # TABLO DA AYNI KOSUMDA YAZILIYOR. Ayri bir komut olsaydi biri
+    # calistirilip oteki unutulurdu -- iki listenin ayrismasi tam da
+    # boyle oluyordu.
+    degisti, n = gizlilik_yaz(yeni)
+    if degisti:
+        print("gizlilik.html saglayici tablosu yenilendi (%d satir)" % n)
     return yeni
+
+
+def gizlilik_kontrol(csp_metni=None):
+    """Tablo, URETICININ bugun yazacagi seyle AYNI mi.
+
+    "CSP'de gecen her ad tabloda var mi" kontrolu ayri ve daha gevsek
+    (test.py'de); bu kontrol daha siki: uretici hic kosmasa bile tablo
+    dogru gorunebiliyordu ve o hal sabotajla goruldu -- yaz() icindeki
+    cagriyi silmek hicbir seyi patlatmiyordu.
+
+    Burada tablo URETILENLE karsilastiriliyor, yani uretici durursa
+    veya kaynak listesi degisirse fark hemen cikiyor.
+    """
+    beklenen = gizlilik_satirlari(csp_metni)
+    ham = io.open(GIZLILIK, encoding="utf-8").read()
+    m = TBODY.search(ham)
+    if not m:
+        return ["gizlilik.html: saglayici tablosu bulunamadi"]
+    var = [(a.strip(), b.strip()) for a, b in
+           re.findall(r"<tr><td>(.*?)</td><td>(.*?)</td></tr>", m.group(2), re.S)]
+    if var != beklenen:
+        return ["gizlilik.html saglayici tablosu eskimis "
+                "(tabloda %d satir, uretici %d satir yazardi); "
+                "`python csp_uret.py` calistir" % (len(var), len(beklenen))]
+    return []
 
 
 def kontrol():
@@ -199,11 +298,30 @@ def kontrol():
         eksik = [h for h in karmalar if h not in var]
         return ["vercel.json'daki CSP eskimis (%d karmadan %d'i eksik); "
                 "`python csp_uret.py` calistir" % (len(karmalar), len(eksik))]
-    return []
+    # TABLO DA AYNI KONTROLDE. Ayri bir kontrol olsaydi biri kosup
+    # oteki unutulurdu -- zaten sorunun kaynagi buydu.
+    return gizlilik_kontrol(var)
 
 
 def kendini_kontrol_et():
     sorunlar = []
+    # URETICI yaz()'A BAGLI MI. gizlilik_kontrol() tablonun GUNCEL
+    # oldugunu soyluyor; bu satir uretilebilir oldugunu soyluyor.
+    # Ikisi ayri sey ve ikincisi olmadan sinsi bir tuzak kaliyor:
+    # cagri silinirse tablo bugun dogru gorunur, ama CSP degistigi gun
+    # kontrol "python csp_uret.py calistir" der ve o komut HICBIR SEYI
+    # DUZELTMEZ -- kullanici dongude kalir. Sabotajla goruldu.
+    kaynak = io.open(__file__, encoding="utf-8").read()
+    govde = kaynak.split("def yaz():")[1].split("\ndef ")[0]
+    if "gizlilik_yaz(" not in govde:
+        sorunlar.append("yaz() gizlilik tablosunu URETMIYOR: CSP degisince "
+                        "tablo geride kalir ve `python csp_uret.py` onu "
+                        "duzeltmez")
+    # Uretilen satirlarin ikisi de dolu olmali; bos bir aciklama
+    # kullaniciya hicbir sey soylemez.
+    for ad, ne in gizlilik_satirlari():
+        if not ad.strip() or len(ne.strip()) < 8:
+            sorunlar.append("gizlilik satiri eksik: %r / %r" % (ad, ne))
     k = satir_ici_karmalar()
     if len(k) < 5:
         sorunlar.append("satir ici script karmasi az bulundu (%d)" % len(k))

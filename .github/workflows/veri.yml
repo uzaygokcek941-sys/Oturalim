@@ -147,6 +147,10 @@ jobs:
         run: python foto_cek.py
 
       # ---- 4. Uygulama verisini yeniden uret -----------------------
+      # csp_uret.py gizlilik tablosunu DA yeniden yaziyor: supabase-js
+      # yerele inince esm.sh CSP'den kendiliginden dusuyor ve tablo
+      # geride kalirsa kontrol patliyor. Bir kez patladi, o yuzden
+      # tablo artik uretiliyor.
       - name: Uygulama verisi
         run: |
           python app_veri.py
