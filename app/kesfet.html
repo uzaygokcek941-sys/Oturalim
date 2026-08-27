@@ -55,20 +55,60 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
   }
   input.ara::placeholder{color:var(--metin-3)}
   input.ara:hover{border-color:var(--cizgi-2)}
-  select.mini{
-    min-height:44px;padding:0 32px 0 12px;border-radius:var(--r);background:var(--yuzey);
+  /* .mini KUTUSU -- select ve buton AYNI kutu.
+     Onceden yalniz "select.mini" yaziliydi. #konum-al da class="mini"
+     tasiyor ama hicbir kural onu tutmuyordu; olculdu (360 px):
+     81x41, cerceve 0, zemin saydam, kose yaricapi 0. Yani iki
+     cerceveli kutunun yaninda ciplak yazi gibi duruyordu ve dokunma
+     alani 41 px'ti -- bu depo WCAG 2.5.8'in 44 px'ini her yerde
+     uyguluyor, burada sessizce uygulanmiyordu. */
+  .mini{
+    min-height:44px;padding:0 12px;border-radius:var(--r);background:var(--yuzey);
     border:1px solid var(--cizgi);color:var(--metin);font-size:16px;font-weight:600;
-    cursor:pointer;appearance:none;max-width:190px;
+    cursor:pointer;
+  }
+  .mini:hover{border-color:var(--cizgi-2)}
+  button.mini{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+  select.mini{
+    /* SAG BOSLUK 12 -> 26: ok isareti icin. Olculdu (360 px,
+       Montserrat 16/600): "İstanbul" 74 px, "Bana yakin" 100 px.
+       44 px'lik ic boslukla (12+32) 360'ta metne 71 px kaliyordu ve
+       "İstanbul" UC PIKSEL eksikten kirpiliyordu ("İstanbu"). Play
+       magaza ekran goruntusunde yakalandi. Ok 16 px, 26 px yetiyor.
+
+       ELLIPSIS SART: hicbir genislik butun il adlarina yetmiyor --
+       "Kahramanmaraş" 148 px, "Afyonkarahisar" 138 px. Kirpilan ad
+       yazim hatasi gibi duruyor; ucu ucu ("Kahramanma…") kirpildigini
+       SOYLUYOR. */
+    padding-right:26px;appearance:none;max-width:190px;text-overflow:ellipsis;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23b3a695' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     background-repeat:no-repeat;background-position:right 12px center;background-size:16px;
   }
-  select.mini:hover{border-color:var(--cizgi-2)}
   .cipler{display:flex;gap:var(--a2);overflow-x:auto;padding-bottom:4px;
     scrollbar-width:none;-webkit-overflow-scrolling:touch;flex:1 1 100%;min-width:0}
   @media (max-width:620px){
     .ara-sar{flex:1 1 100%}
     select.mini{flex:1 1 0;max-width:none;min-width:0}
     .butce-kutu{flex:1 1 100%}
+  }
+  /* 471 px ALTINDA "Konumum" KENDI SATIRINA INIYOR.
+     Buton cerceveli hale gelince 81 px'ten 138 px'e cikti ve ucunu
+     yan yana tutmak imkansizlasti. Esik hesapla degil TARANARAK
+     bulundu (455..499, tarayicida): 471 px, ucunun ayni satirda
+     durdugu VE en uzun siralama etiketi "Bana yakın"in (100 px) tam
+     sigdigi ilk genislik.
+
+     Altinda ucu birden kirpiliyordu: 320 px'te seciciye 67 px kutu,
+     metne 29 px kaliyordu ("İst…"). Buton alta inince secicilere
+     kalan metin alani: 320 -> 102 px, 360 -> 122, 390 -> 135,
+     430 -> 154. Yani her telefonda hem "İstanbul" (74) hem
+     "Bana yakın" (100) tam giriyor.
+
+     Uzun il adlari (Kahramanmaraş 148, Afyonkarahisar 138) 430 px
+     altinda yine ellipsis'e dusuyor; bu bilerek -- hicbir genislik
+     hepsine yetmiyor ve ucu ucu kirpildigini SOYLUYOR. */
+  @media (max-width:470px){
+    #konum-al{flex:1 1 100%;justify-content:center}
   }
   .cipler::-webkit-scrollbar{display:none}
   .cip.sifirla{color:var(--kirmizi);border-color:transparent;background:none}

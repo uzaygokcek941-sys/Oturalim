@@ -1278,6 +1278,89 @@ def kendini_kontrol_et():
                                 "(kutu metni %d karakter)" % len(yedek))
             sf.close()
 
+            # 2a) FILTRE CUBUGU: ETIKETLER KIRPILMAMALI, KUTULAR 44 PX.
+            #
+            # Play magaza ekran goruntusu alinirken yakalandi: 360 px'de
+            # il secici "İstanbu" yaziyordu. Pesinden iki sey daha cikti:
+            #
+            #   - #konum-al class="mini" tasiyor ama HICBIR kural onu
+            #     tutmuyordu (yalniz "select.mini" yaziliydi). Olculdu:
+            #     81x41, cerceve 0, zemin saydam. Iki cerceveli kutunun
+            #     yaninda ciplak yazi ve dokunma alani 41 px -- bu depo
+            #     WCAG 2.5.8'in 44 px'ini her yerde uyguluyor.
+            #   - Butonu kutuya sokunca 138 px oldu ve ucu birden ayni
+            #     satirda kalamadi: 320 px'te seciciye 29 px metin
+            #     alani kaliyordu. 471 px alti buton kendi satirina.
+            #
+            # HICBIR GENISLIK butun il adlarina yetmiyor
+            # ("Kahramanmaraş" 148 px), o yuzden iki sey birden
+            # sinaniyor: SECILI ad ve en uzun SIRALAMA etiketi sigmali,
+            # sigmayan il adi da ELLIPSIS ile bitmeli -- kirpilan ad
+            # yazim hatasi gibi duruyor, ucu ucu kirpildigini soyluyor.
+            #
+            # 471 de listede: esik oradan gecti; kayarsa burasi yanar.
+            for genislik in (320, 360, 390, 430, 471):
+                sf, hata = sayfa_ac("/kesfet.html?il=34")
+                sf.set_viewport_size({"width": genislik, "height": 844})
+                sf.wait_for_timeout(600)
+                o = sf.evaluate("""() => {
+                  const il = document.getElementById('il');
+                  const sr = document.getElementById('sirala');
+                  const kb = document.getElementById('konum-al');
+                  if (!il || !sr || !kb) return null;
+                  const cs = getComputedStyle(il);
+                  const c = document.createElement('canvas').getContext('2d');
+                  c.font = cs.fontWeight+' '+cs.fontSize+' '+cs.fontFamily;
+                  /* Ic genislik: kutudan ic bosluk VE cerceve dusulur.
+                     Cerceveyi unutmak 2 px'lik kirpmayi gizler. */
+                  const yer = e => {
+                    const s = getComputedStyle(e);
+                    return Math.round(e.getBoundingClientRect().width
+                      - parseFloat(s.paddingLeft)  - parseFloat(s.paddingRight)
+                      - parseFloat(s.borderLeftWidth) - parseFloat(s.borderRightWidth));
+                  };
+                  const enUzun = e => Math.max.apply(null,
+                    [...e.options].map(o => Math.ceil(c.measureText(o.text.trim()).width)));
+                  return {
+                    il_ad: il.options[il.selectedIndex].text,
+                    il_metin: Math.ceil(c.measureText(il.options[il.selectedIndex].text).width),
+                    il_yer: yer(il),
+                    sr_metin: enUzun(sr),
+                    sr_yer: yer(sr),
+                    ellipsis: cs.textOverflow,
+                    kb_boy: Math.round(kb.getBoundingClientRect().height),
+                    kb_cerceve: parseFloat(getComputedStyle(kb).borderTopWidth)
+                  };
+                }""")
+                sf.close()
+                if not o:
+                    sorunlar.append("kesfet: filtre cubugunda secici/buton bulunamadi")
+                    break
+                if o["il_metin"] > o["il_yer"]:
+                    sorunlar.append(
+                        "kesfet %dpx: il secicide '%s' kirpiliyor "
+                        "(metin %d px, yer %d px)"
+                        % (genislik, o["il_ad"], o["il_metin"], o["il_yer"]))
+                if o["sr_metin"] > o["sr_yer"]:
+                    sorunlar.append(
+                        "kesfet %dpx: siralama secicisinde en uzun etiket kirpiliyor "
+                        "(metin %d px, yer %d px)"
+                        % (genislik, o["sr_metin"], o["sr_yer"]))
+                if o["ellipsis"] != "ellipsis":
+                    sorunlar.append(
+                        "kesfet %dpx: il secicide text-overflow ellipsis yok; "
+                        "uzun il adi (Kahramanmaraş 148 px) sessizce kirpilir"
+                        % genislik)
+                if o["kb_boy"] < 44:
+                    sorunlar.append(
+                        "kesfet %dpx: Konumum dugmesi %d px yuksek (WCAG 2.5.8 en az 44)"
+                        % (genislik, o["kb_boy"]))
+                if o["kb_cerceve"] <= 0:
+                    sorunlar.append(
+                        "kesfet %dpx: Konumum dugmesinin cercevesi yok; "
+                        "iki cerceveli secicinin yaninda dugme gibi durmuyor"
+                        % genislik)
+
             # 2b) ISLETME SAYFASINDA KONUM HARITASI.
             #
             # Adresi olan mekan yalniz %26,2 (9.397/35.852); kalan
