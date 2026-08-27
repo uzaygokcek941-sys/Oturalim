@@ -185,7 +185,7 @@ kilometrekarede.
 | 1 | **@cebimde** hesapları aç, bio hazır (`icerik_ilk3.md`) | Hesap var |
 | 2–3 | **Kadıköy 500 m derinleştirme** — hafta sonu yürüyüşü, menü fotoğrafı, OCR + elle doğrulama | **150/474** |
 | 3 | 112 saha kartını bas ve bırak; `saha.py olc` ile ölç | Kart bırakıldı |
-| 2–8 | Günde 1 içerik; ilk 3'ün çekim notu hazır | 40+ içerik |
+| 2–8 | Günde 1 içerik — takvim ve formatlar hazır (`icerik_takvim.md`), ilk 3'ün çekim notu `icerik_ilk3.md` | 40+ içerik |
 | 4–8 | **İlk 100 kullanıcı** — Kadıköy odaklı, ilçe grupları, üniversite | 100 kayıt |
 | 6–8 | Play Store: Bubblewrap → Play Console → `assetlinks_uret.py` | Uygulama yayında |
 | 8 | **Webrazzi Summit'e git.** Pitch değil, ürünü aç ve Kadıköy'ü göster | Tanışma |
