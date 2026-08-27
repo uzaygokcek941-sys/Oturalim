@@ -115,10 +115,23 @@ tarayıcı gibi görünür.
 | Kısa açıklama | Cebindeki bütçeyle keşfet. 81 ilde 35.852 mekan. |
 | Tam açıklama | Aşağıda |
 | Uygulama ikonu | `app/ikon/ikon-512.png` |
-| Öne çıkan görsel | 1024×500 — henüz yok, hazırlanmalı |
-| Ekran görüntüsü | En az 2 telefon görüntüsü; keşfet + mekan sayfası |
+| Öne çıkan görsel | `app/play/one-cikan-1024x500.png` |
+| Ekran görüntüsü | `app/play/01-kesfet.png`, `02-mekan.png`, `03-konum.png` (1080×1920) |
 | Kategori | Yiyecek ve İçecek |
 | Gizlilik politikası | `https://<alan-adın>/gizlilik.html` |
+
+Görseller `python play_gorsel.py` ile üretiliyor — maket değil, **çalışan
+uygulamanın kendi ekranı**: betik yerel sunucuyu kaldırıp sayfaları gerçek
+Chromium'da açıyor ve fotoğraflıyor. Rakamlar (mekan sayısı, il sayısı)
+`app/vitrin.json`'dan okunuyor, elle yazılmıyor; veri değişince görsel de
+değişiyor.
+
+Bu yüzden mağaza görseli aynı zamanda bir **kontrol**: ilk turda keşfet
+ekranının il seçicisi "İstanbu" yazıyordu. Ölçüldü (360 px) — kutuya
+71 px, "İstanbul"a 74 px gerekiyordu. Üç piksel. Peşinden "Konumum"
+düğmesinin hiçbir kural tarafından tutulmadığı da çıktı (81×41, çerçevesiz,
+WCAG 2.5.8'in 44 px'i altında). İkisi de düzeltildi ve `test_sayfa.py`
+artık 320/360/390/430/471 px'te ölçerek sınıyor.
 
 **Tam açıklama taslağı** (rakamlar depodan sayılarak; değişirse güncelle):
 
