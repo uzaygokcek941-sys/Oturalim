@@ -11,7 +11,13 @@ bugüne kadar bir kez bile gerçek koşulmadı:
 - E-posta (kayıt onayı, parola sıfırlama)
 - k-anonimlik eşiklerinin **gerçek veriyle** davranışı
 
-**Süre:** ~60 dakika. **Gereken:** telefon + `oturalim.vercel.app`.
+**Süre:** ~35 dakika. **Gereken:** telefon + `oturalim.vercel.app`.
+
+> **A ve G bölümleri artık otomatik.** `canli_test.py` bunları gerçek
+> yayına karşı, gerçek tarayıcıda koşuyor ve `.github/workflows/canli.yml`
+> her sabah 08:00'de tetikliyor. Elle koşman gerekmiyor — Actions
+> sekmesindeki "Canli tur" işine bakman yeterli. Aşağıda **yine de
+> duruyorlar**, çünkü bir şey kırıldığında elle bakılacak yer burası.
 
 ---
 
