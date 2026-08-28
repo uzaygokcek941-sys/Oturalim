@@ -169,6 +169,25 @@ window.__SAHTE_VERI = {
         yazar_adi: null, yazar_ad: null, yazar_avatar: null,
         yazar_dogum: null, yazar_meslek: null }], error: null }),
     mekan_puani: () => ({ data: [{ adet: 3, ortalama: 4 }], error: null }),
+    /* BAYILIK. Sayilar BILEREK baska hicbir ekranda gecmeyen degerler:
+       64 kart, 525,00 / 200,00 / 325,00 TL. Boylece panelin gercekten bu
+       cagridan cizildigi gorulebiliyor, sabit metin gormek gostermezdi.
+       Tutarlar KURUS (bayilik.sql); TL'ye ceviren ortak.js kurus(). */
+    bayi_mi: () => ({ data: true, error: null }),
+    bayi_bolgelerim: () => ({ data: [
+      { il: "06", ilce: "Çankaya", durum: "aktif" }], error: null }),
+    bayi_ozetim: () => ({ data: [{ kart: 64, sahiplenilen: 9, alan_eklenen: 4,
+      hakedis: 52500, odenen: 20000, bakiye: 32500 }], error: null }),
+    /* Iki kart, IKISI FARKLI HALDE: biri sahiplenilmis ve bilgi eklemis,
+       oteki hic dokunulmamis. Tek hal sinansaydi "her satira evet yazan"
+       bir tablo da gecerdi. */
+    bayi_kartlarim: () => ({ data: [
+      { mekan_id: "node/1", mekan_ad: "Bayi Kafe", il: "06", parti: "ankara-51",
+        basildi: "2026-08-01T10:00:00Z", sahiplenildi: "2026-08-20T10:00:00Z",
+        gecerlilik: "2027-01-28", alan_eklendi: true },
+      { mekan_id: "node/2", mekan_ad: "Bekleyen Bar", il: "06", parti: "ankara-51",
+        basildi: "2026-08-01T10:00:00Z", sahiplenildi: null,
+        gecerlilik: "2027-01-28", alan_eklendi: false }], error: null }),
     /* Uc kaynak birden: sahip, kullanici ve commons. Ucuncusu ATIFLI
        olmali, dorduncusu ATIFSIZ -- atifsiz olan CIZILMEMELI. */
     mekan_fotograflari: () => ({ data: [
@@ -276,8 +295,24 @@ GIRISLI = [
   ("hesabim.html/isletmeler", "/hesabim.html", '[data-bolum="isletmeler"]',
    # GORUNUR metin araniyor: 'isletmem.html' bir href ve inner_text'te
    # gecmiyor. (Ayni tuzak galeri atifinda ve odenen kutusunda da cikti.)
-   ["doğrulanmış işletmen var", "İşletme paneline git"],
+   #
+   # "Bayi panelin var": bayi.html'in TEK girisi burasi. Menuye
+   # koymadik -- menu her sayfada senkron ciziliyor, oysa "bayi miyim"
+   # bir sunucu sorusu. Kapi cizilmezse panel ULASILAMAZ olur ve bunun
+   # hicbir belirtisi olmaz.
+   ["doğrulanmış işletmen var", "İşletme paneline git",
+    "Bayi panelin var", "Bayi paneline git"],
    ["Yükleniyor", "kul-1", "Sahipliği bırak"]),
+  # BAYI PANELI. Bayinin panele bakma sebebi SAYILAR: kac kart, kaci
+  # calisti, ne kadar hakedis. Hepsi taklit RPC'den geliyor.
+  #
+  # OLMAMALI listesi iki sizintiyi kolluyor: "kul-1" kullanici kimligi,
+  # "kod_ozeti" ise kartin anahtari. Ikisi de bayi_kartlarim()'in donus
+  # listesinde YOK ve orada kalmali (bayilik.sql).
+  ("bayi.html", "/bayi.html", None,
+   ["Çankaya", "64", "525,00", "200,00", "325,00",
+    "Bayi Kafe", "Bekleyen Bar", "ankara-51"],
+   ["Yükleniyor", "kul-1", "kod_ozeti"]),
   # Isletme paneli: sahibin panele bakma sebebi SAYILAR. Uc kaynaktan
   # uc sayi -- goruntulenme (47), yorum ortalamasi, fis medyani (300) --
   # ve duzeltme formu. Hepsi taklit veriden geliyor, sabit metin degil.
