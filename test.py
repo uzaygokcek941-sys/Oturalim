@@ -2301,6 +2301,76 @@ def kapsama_tutarli_mi():
     return s
 
 
+def site_haritasi_yayinda_mi():
+    """Site haritasi YAYINA gidiyor mu ve alan adlari tutuyor mu.
+
+    YASANDI VE SESSIZDI. app/sitemap.xml .gitignore'daydi, yani depoda
+    yoktu, yani Vercel'e HIC gitmiyordu -- canli sitede sitemap diye bir
+    dosya yoktu. Ustelik yayina GIDEN robots.txt arama motorlarini
+    "https://cebimde.vercel.app/sitemap.xml" adresine yolluyordu; canli
+    site ise oturalim.vercel.app. Iki taraf da bozuktu ve hicbir kontrol
+    bunu goremiyordu, cunku her iki dosya da kendi icinde tutarliydi.
+
+    Derleme adimi olmayan bir projede "kurulumda uretilir" diye bir yol
+    yok: uretilen dosya izlenmiyorsa yayina gitmiyor. Ayni gerekceyle
+    vitrin.json ve kapsama.json da izleniyor.
+
+    ALAN ADI TEK YERDE: .github/workflows/canli.yml'deki varsayilan adres
+    canli siteyi tanimliyor (her sabahki tur oraya gidiyor). robots.txt
+    ve sitemap.xml ona uymak zorunda. Boylece alan adi degistiginde tek
+    satir degisiyor ve geri kalani KONTROL yakaliyor."""
+    s = []
+    yml = oku(".github", "workflows", "canli.yml")
+    m = re.search(r'default:\s*"https://([^"/]+)"', yml)
+    if not m:
+        return ["canli.yml icinde varsayilan adres bulunamadi"]
+    canli = m.group(1)
+
+    c = subprocess.run(["git", "ls-files", "app/sitemap.xml"],
+                       capture_output=True, text=True, cwd=KOK)
+    if not c.stdout.strip():
+        s.append("app/sitemap.xml depoda IZLENMIYOR -- Vercel'e gitmiyor, "
+                 "yani canli sitede sitemap yok")
+    if not os.path.exists(os.path.join(KOK, "app", "sitemap.xml")):
+        return s + ["app/sitemap.xml yok -- site_haritasi.py %s calistir" % canli]
+
+    robots = oku("app", "robots.txt")
+    m = re.search(r"^Sitemap:\s*https://([^/\s]+)/sitemap\.xml", robots, re.M)
+    if not m:
+        s.append("robots.txt'de Sitemap satiri yok")
+    elif m.group(1) != canli:
+        s.append("robots.txt sitemap'i %s diyor, canli site %s "
+                 "-- arama motoru yanlis yere gidiyor" % (m.group(1), canli))
+
+    harita = oku("app", "sitemap.xml")
+    yerler = re.findall(r"<loc>https://([^/]+)/([^<]*)</loc>", harita)
+    yabanci = sorted({a for a, _ in yerler if a != canli})
+    if yabanci:
+        s.append("sitemap.xml %s alan adini kullaniyor, canli site %s"
+                 % (", ".join(yabanci), canli))
+
+    # site_haritasi.py'nin saydigi her sayfa haritada olmali. Yeni bir
+    # sayfa eklenip harita yeniden uretilmezse burasi yakalar.
+    sh = oku("site_haritasi.py")
+    bek = re.findall(r'\(\s*"([\w.]+\.html)"\s*,', sh)
+    var = {y for _, y in yerler}
+    for sayfa in bek:
+        if sayfa not in var:
+            s.append("sitemap.xml'de %s yok -- site_haritasi.py %s calistir"
+                     % (sayfa, canli))
+
+    # Basilan kartlarin QR'i belge orneginden kopyalaniyor: saha.py'nin
+    # ornegi CANLI alan adi olmali. "Uydurulmus bir alan adiyla basilmis
+    # kart, basilmamis karttan kotudur" -- saha.py'nin kendi cumlesi.
+    saha = oku("saha.py")
+    for eski in re.findall(r"\b([\w-]+\.vercel\.app)\b", saha):
+        if eski != canli:
+            s.append("saha.py ornegi '%s' diyor, canli site '%s' -- "
+                     "oradan kopyalanan alan adi OLU QR basar" % (eski, canli))
+            break
+    return s
+
+
 def veri_turu_kapisi_mi():
     """Veri turunun "degisiklik var mi" kapisi YENI dosyayi goruyor mu.
 
@@ -3543,6 +3613,7 @@ def main():
     kayit("degismez: kesfet once bilgisi olani gosteriyor",
           varsayilan_sira_dolu_mu())
     kayit("degismez: kapsama sayfasi veriyle ayni", kapsama_tutarli_mi())
+    kayit("degismez: site haritasi yayina gidiyor", site_haritasi_yayinda_mi())
     kayit("degismez: overpass turu gecici hatada pes etmiyor",
           overpass_denemesi_mi())
     kayit("degismez: seviye onayli katkiyi sayiyor", seviye_mi())

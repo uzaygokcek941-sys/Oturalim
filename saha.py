@@ -5,11 +5,11 @@ sahiplen.py yuruyus kumelerini uretiyor; bu betik o kumelerden secilenler
 icin KAPIYA BIRAKILACAK karti basiyor. Kartin uzerinde mekana ozel bir QR
 ve tek kullanimlik bir sahiplenme kodu var (Faz 4).
 
-    python saha.py cebimde.vercel.app             # en degerli 3 kume
-    python saha.py cebimde.vercel.app --kume 5
-    python saha.py cebimde.vercel.app --il Ankara --kume 2
-    python saha.py cebimde.vercel.app --il Ankara --atla 1 --kume 1  # ikinci kume
-    python saha.py cebimde.vercel.app --il Ankara --bayi 3 --parti ankara-eylul
+    python saha.py oturalim.vercel.app             # en degerli 3 kume
+    python saha.py oturalim.vercel.app --kume 5
+    python saha.py oturalim.vercel.app --il Ankara --kume 2
+    python saha.py oturalim.vercel.app --il Ankara --atla 1 --kume 1  # ikinci kume
+    python saha.py oturalim.vercel.app --il Ankara --bayi 3 --parti ankara-eylul
     python saha.py sql saha_liste.csv --bayi 1     # basilmis partiyi bayiye bagla
     python saha.py olc                             # dagitim sonrasi olcum
     python saha.py test
@@ -760,7 +760,7 @@ if __name__ == "__main__":
         sql_yaz(m.liste, bayi=m.bayi, parti=m.parti)
         sys.exit(0)
     a = argparse.ArgumentParser(description="Saha kartlari uret")
-    a.add_argument("alan_adi", help="ornek: cebimde.vercel.app")
+    a.add_argument("alan_adi", help="ornek: oturalim.vercel.app")
     a.add_argument("--kume", type=int, default=3, help="kac kume (varsayilan 3)")
     a.add_argument("--atla", type=int, default=0,
                    help="ilk N kumeyi atla (ikinci partiyi basmak icin)")

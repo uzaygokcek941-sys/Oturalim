@@ -122,7 +122,7 @@ COMMONS = "https://commons.wikimedia.org/w/api.php"
 WIKIDATA = "https://www.wikidata.org/w/api.php"
 BEKLEME = 0.34          # saniye; Wikimedia'nin istedigi hiz siniri
 YIGIN = 40              # tek istekte sorulan dosya sayisi (API siniri 50)
-KULLANICI_AJANI = "Cebimde/0.1 (https://cebimde.vercel.app; menu fiyat projesi)"
+KULLANICI_AJANI = "Cebimde/0.1 (https://oturalim.vercel.app; menu fiyat projesi)"
 
 ALANLAR = ["mekan_id", "il", "mekan_ad", "adres", "yazar", "lisans", "kaynak_bag"]
 

@@ -29,7 +29,13 @@ taranmamis.txt
 
 # Site haritasi — site_haritasi.py alan adiyla birlikte yeniden uretir.
 # Depoda tutulursa alan adi degistiginde sessizce eskir.
-app/sitemap.xml
+# app/sitemap.xml ARTIK IZLENIYOR ve sebebi olculdu: dosya buradaydi,
+# yani Vercel'e HIC gitmiyordu -- canli sitede sitemap yoktu. Ustelik
+# yayina giden robots.txt arama motorlarini bir sitemap adresine
+# yolluyordu. Uretilmis ama yayina gitmeyen bir dosya, uretilmemisle
+# ayni sey; ayni gerekceyle vitrin.json ve kapsama.json da izleniyor.
+# Derleme adimi yok, o yuzden "kurulumda uretilir" diye bir yol da yok.
+#   app/sitemap.xml
 
 # Saha ciktilari — sahiplen.py yeniden uretir, elle doldurulan
 # sutunlar (dogrulandi_mi / ziyaret_edildi_mi) depoya girmez.
