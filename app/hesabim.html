@@ -609,6 +609,27 @@ async function isletmeleriCiz(){
         "telefon, adres ve site bilgisi sıraya girmeden yayına çıkar.") +
     '<a class="dugme" style="margin-top:var(--a4)" href="isletmem.html">' +
     (aktif ? "İşletme paneline git" : "İşletme paneli") + "</a></p>";
+
+  /* BAYI KAPISI. Panelin tek girişi burası: bayi.html menüde yok ve
+     olmamalı -- menü her sayfada senkron çiziliyor (kimlik.js
+     menuyuGuncelle), oysa "bayi miyim" bir sunucu sorusu. Menüye
+     koymak her sayfa açılışına bir RPC eklerdi; bir avuç kişinin
+     baktığı panel için bu pahalı ve gereksiz.
+
+     Kapı YALNIZ bayiye açılıyor: bayi olmayan kullanıcı bu bağlantıyı
+     hiç görmüyor. Sayfanın kendisi de zaten korunuyor (fonksiyonlar
+     bayi_kimligim() ile süzülüyor); bu satır yetki değil, yön. */
+  let bayi = false;
+  try { bayi = await Kimlik.bayiMiyim(); } catch (e) {}
+  if (bayi){
+    yuva.insertAdjacentHTML("beforeend",
+      '<p class="bos" style="margin-top:var(--a5)">' +
+      "<strong>Bayi panelin var</strong>" +
+      "Dağıttığın kartların kaçı sahiplenildi, kaçı bilgi ekledi ve " +
+      "hakedişin ne kadar — hepsi bayi panelinde." +
+      '<a class="dugme ikincil" style="margin-top:var(--a4)" href="bayi.html">' +
+      "Bayi paneline git</a></p>");
+  }
 }
 
 /* ---------- sekmeler ---------- */

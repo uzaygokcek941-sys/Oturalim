@@ -2057,6 +2057,79 @@ def alan_listesi_ayrismis_mi():
     return s
 
 
+def bayilik_ayrismis_mi():
+    """Bayilik zincirinin dort halkasi da ayni adlari mi kullaniyor.
+
+    ZINCIR: saha.py bir SQL uretiyor -> bayilik.sql o sutunlari tanimliyor
+    -> kimlik.js uc RPC cagiriyor -> bayi.html o cagrilari kullaniyor.
+    Halkalardan biri koparsa sonuc SESSIZ degil ama GEC: hata sahada,
+    kart basildiktan sonra goruluyor.
+
+    Bu depoda ayni desen daha once yandi ve pahaliya patladi: app_veri
+    veri_bicim'e dort sutun eklemeyi unuttu ve bunu ancak 40 dakikalik
+    bir tur ortaya cikardi (alan_listesi_ayrismis_mi). Bayilikte
+    karsiligi daha kotu -- basilmis ve dagitilmis bir parti geri
+    alinamiyor.
+
+    AYRICA IKI SIZINTI KONTROLU. bayi_kartlarim() donus listesinde
+    kod_ozeti ya da kullanan OLMAMALI: birincisi kartin anahtari,
+    ikincisi isletmecinin kimligi. Bu iki sutun donus listesine bir gun
+    "pratik olur" diye eklenirse RLS hicbir sey demez, cunku fonksiyon
+    security definer."""
+    s = []
+    sql = oku("veritabani", "bayilik.sql")
+    js = oku("app", "kimlik.js")
+    html = oku("app", "bayi.html")
+    saha = oku("saha.py")
+    ortak = oku("app", "ortak.js")
+    if not sql:
+        return ["veritabani/bayilik.sql yok"]
+
+    # (a) kimlik.js'in cagirdigi her bayi RPC'si semada tanimli mi.
+    tanimli = set(re.findall(r"create or replace function public\.(\w+)", sql))
+    for ad in sorted(set(re.findall(r'rpc\("(bayi\w*)"', js))):
+        if ad not in tanimli:
+            s.append("kimlik.js 'rpc(%s)' cagiriyor ama bayilik.sql'de "
+                     "boyle bir fonksiyon yok" % ad)
+
+    # (b) bayi.html'in kullandigi her Kimlik.bayi* yontemi kimlik.js'te var mi.
+    for ad in sorted(set(re.findall(r"Kimlik\.(bayi\w+)\(", html))):
+        if not re.search(r"\n  async %s\(" % ad, js):
+            s.append("bayi.html Kimlik.%s() cagiriyor ama kimlik.js'te yok" % ad)
+
+    # (c) saha.py'nin yazdigi sutunlar semada eklenmis mi.
+    m = re.search(r'sutun \+= ", ([^"]+)"', saha)
+    if not m:
+        s.append("saha.py: bayili SQL sutun listesi bulunamadi")
+    else:
+        for sutun in [x.strip() for x in m.group(1).split(",") if x.strip()]:
+            if not re.search(r"add column if not exists %s\b" % re.escape(sutun), sql):
+                s.append("saha.py sahiplenme_kodu'na '%s' yaziyor ama "
+                         "bayilik.sql o sutunu eklemiyor" % sutun)
+
+    # (d) Panelin donus listesi kimlik ve anahtar tasimamali.
+    m = re.search(r"function public\.bayi_kartlarim\([^)]*\)\s*returns table \((.*?)\)\s*language",
+                  sql, re.S)
+    if not m:
+        s.append("bayilik.sql: bayi_kartlarim donus listesi okunamadi")
+    else:
+        for yasak in ("kod_ozeti", "kullanan"):
+            if re.search(r"\b%s\b" % yasak, m.group(1)):
+                s.append("bayi_kartlarim '%s' donduruyor; bayi kartin "
+                         "anahtarini ve isletmecinin kimligini gormemeli" % yasak)
+
+    # (e) Ucret varsayilani SIFIR kalmali. Sifirdan farkli bir varsayilan,
+    #     kimsenin karar vermedigi bir odemeyi kendiliginden baslatir.
+    for sutun in ("sahiplenme_ucreti", "alan_ucreti"):
+        if not re.search(r"%s\s+integer not null default 0\b" % sutun, sql):
+            s.append("bayilik.sql: %s varsayilani 0 degil" % sutun)
+
+    # (f) Panel kurus biciminde gosteriyor; bicimlendirici tek yerde olmali.
+    if "kurus(" in html and not re.search(r"^const kurus = ", ortak, re.M):
+        s.append("bayi.html kurus() kullaniyor ama ortak.js'te tanimli degil")
+    return s
+
+
 def veri_turu_kapisi_mi():
     """Veri turunun "degisiklik var mi" kapisi YENI dosyayi goruyor mu.
 
@@ -3238,7 +3311,8 @@ def sql_kontrolleri():
               ("mekan fotografi", "mekan fotografi: 12 kontrolun hepsi gecti"),
               ("akran", "akran_test: 12 adimin hepsi gecti"),
               ("fiyat oyu", "fiyat_oyu_test: 15 adimin hepsi gecti"),
-              ("topluluk", "topluluk_test: 11 adimin hepsi gecti"))
+              ("topluluk", "topluluk_test: 11 adimin hepsi gecti"),
+              ("bayilik", "BAYILIK TESTI: 16 adim gecti"))
              if imza not in cikti]
     if eksik:
         return kayit("SQL davranisi (gercek Postgres)",
@@ -3293,6 +3367,7 @@ def main():
           veri_turu_kapisi_mi())
     kayit("degismez: alan listeleri ayrismamis",
           alan_listesi_ayrismis_mi())
+    kayit("degismez: bayilik zinciri ayrismamis", bayilik_ayrismis_mi())
     kayit("degismez: overpass turu gecici hatada pes etmiyor",
           overpass_denemesi_mi())
     kayit("degismez: seviye onayli katkiyi sayiyor", seviye_mi())

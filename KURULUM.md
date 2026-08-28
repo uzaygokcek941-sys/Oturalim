@@ -43,6 +43,7 @@ Toplam süre: ~15 dakika. Ücret yok, kart istenmiyor.
    | `veritabani/akran.sql` | Bütçe akranları ve civar özeti | Keşfette akran şeridi, işletme sayfasında civar fişi görünmez |
    | `veritabani/fiyat_oyu.sql` | "Bu fiyat hâlâ geçerli mi?" oylaması | Doğrulama düğmesi hiç görünmez, güven skoru yalnız menüye bakar |
    | `veritabani/topluluk.sql` | Topluluk akışı (`topluluk.html`) | Sayfa açılır ama "Akış şu an yüklenemedi" der |
+   | `veritabani/bayilik.sql` | Saha temsilciliği: bölge, kart partisi, hakediş (`bayi.html`) | Bayi paneli "bu hesap bir bayiye bağlı değil" der; kartlar bayisiz basılır ve normal çalışır |
 
    Hiçbiri kurulmadığında sayfa normal çalışır; yalnız o bölümler
    sessizce gizli kalır. Beklenen çıktılar:
@@ -58,6 +59,7 @@ Toplam süre: ~15 dakika. Ücret yok, kart istenmiyor.
    Akran kuruldu: iki fonksiyon, 10 arguman adi tarandi
    Fiyat oylari kuruldu: tablo, RLS, tek-oy kurali ve fiyat_oy_ozeti().
    Topluluk akisi kuruldu: yorum yazariyla, menu katkisi ADSIZ, fis ve fiyat oyu yok.
+   Bayilik kuruldu: 4 tablo, 2 tetikleyici, kazanim yalniz koddan
    ```
 
    > `profil.sql` **`yorum.sql`'den önce** çalıştırılmalı: yorumlar yazarın
@@ -77,6 +79,12 @@ Toplam süre: ~15 dakika. Ücret yok, kart istenmiyor.
    > Bu kapı yaşanmış bir hatadan sonra eklendi: dosya ilk çalıştırıldığında
    > `ERROR: 42P01: relation "public.yorumlar" does not exist` diyordu ve o
    > satır ne yapılacağını söylemiyordu.
+
+   > `bayilik.sql` **`sahiplenme.sql`'den sonra**: `sahiplenme_kodu`
+   > tablosuna iki sütun (`bayi`, `parti`) ekliyor. Bayiliği hiç
+   > kullanmayacaksan bu dosyayı atlayabilirsin — `saha.py` `--bayi`
+   > verilmediğinde o sütunlara hiç dokunmuyor, kartlar aynen basılıyor.
+   > Ayrıntı: `BAYILIK.md`.
 
    > **Fotoğraflar için ek adım yok.** `profil.sql` ve `menu_katki.sql`
    > depolama kovalarını (`avatar`, `menu`) ve yetkilerini kendileri

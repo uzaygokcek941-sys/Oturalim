@@ -5,10 +5,18 @@ sahiplen.py yuruyus kumelerini uretiyor; bu betik o kumelerden secilenler
 icin KAPIYA BIRAKILACAK karti basiyor. Kartin uzerinde mekana ozel bir QR
 ve tek kullanimlik bir sahiplenme kodu var (Faz 4).
 
-    python saha.py cebimde.vercel.app             # en yogun 3 kume
+    python saha.py cebimde.vercel.app             # en degerli 3 kume
     python saha.py cebimde.vercel.app --kume 5
+    python saha.py cebimde.vercel.app --il Ankara --kume 2
+    python saha.py cebimde.vercel.app --il Ankara --bayi 3 --parti ankara-eylul
     python saha.py olc                             # dagitim sonrasi olcum
     python saha.py test
+
+BAYI (istege bagli). --bayi verilirse basilan PARTI o bayiye baglaniyor:
+uretilen SQL sahiplenme_kodu satirlarina bayi ve parti yaziyor, isletme
+kodu kullandiginda hakedis KENDILIGINDEN dusuyor (veritabani/bayilik.sql).
+Bayi "su kadar yere ugradim" demiyor; olculen sey kartin kendisi.
+--bayi verilmezse eski davranis aynen suruyor, kartlar bayisiz basiliyor.
 
 ALAN ADI DISARIDAN VERILIYOR, sabit degil. site_haritasi.py ile ayni
 gerekce: QR mutlak adres istiyor ve depoda gercek alan adi yazili degil.
@@ -80,11 +88,12 @@ def _guncel_kimlikler():
     return kimlik
 
 
-def kumeleri_oku(yol=KUME_CSV):
+def kumeleri_oku(yol=KUME_CSV, il=None):
     if not os.path.exists(yol):
         sys.exit("%s yok. Once 'python sahiplen.py' calistir." % yol)
     kume = collections.defaultdict(list)
     yok = 0
+    disarida = 0
     guncel = _guncel_kimlikler()
     with io.open(yol, encoding="utf-8-sig") as f:
         for r in csv.DictReader(f):
@@ -98,6 +107,14 @@ def kumeleri_oku(yol=KUME_CSV):
             if guncel and mekan_id not in guncel:
                 yok += 1
                 continue
+            # IL SUZGECI. Kumeler butun Turkiye icin uretiliyor ve en
+            # degerli 20 kumenin cogu Istanbul; oysa kart basan kisi
+            # yalnizca kendi sehrinde yuruyebiliyor. Suzgec olmadan
+            # "Ankara icin kart bas" diye bir sey yok, tek yol elle
+            # kume numarasi aramak.
+            if il and r["il"] != il:
+                disarida += 1
+                continue
             kume[r["kume"]].append(r)
     if yok:
         oran = 100.0 * yok / (yok + sum(len(v) for v in kume.values()))
@@ -105,6 +122,12 @@ def kumeleri_oku(yol=KUME_CSV):
               % (yol, yok, oran))
         if oran > 5:
             sys.exit("Kume dosyasi bayat gorunuyor. 'python sahiplen.py' calistir.")
+    if il and not kume:
+        sys.exit("'%s' icin kume yok. Il adi kume dosyasindaki gibi, TURKCE "
+                 "harflerle yazilmali: Ankara, \u0130zmir, \u0130stanbul." % il)
+    if il:
+        print("il suzgeci '%s': %d kayit disarida kaldi, %d kume kaldi"
+              % (il, disarida, len(kume)))
     return kume
 
 
@@ -206,7 +229,15 @@ def qr_svg(veri):
     return ham.replace('width="', 'data-w="', 1).replace('height="', 'data-h="', 1)
 
 
-def sql_uret(kayitlar):
+def sql_uret(kayitlar, bayi=None, parti=None):
+    """Kod ozetleri + (varsa) parti sahibi bayi.
+
+    BAYI SUTUNU YALNIZ ISTENDIGINDE yaziliyor. Sutun bayilik.sql ile
+    geliyor; her zaman yazsaydik bayilik kurulmamis bir projede bu betik
+    "column bayi does not exist" ile patlardi ve kartlar basilmis olurdu.
+    Kart basilip SQL'i calismayan bir parti, dagitildiginda hicbir kodu
+    kabul etmez -- basilmamis karttan kotu."""
+    bayi_var = bayi is not None
     satirlar = [
         "-- Cebimde — saha kodlari (saha.py uretti)",
         "-- Supabase SQL Editor'e yapistirip BIR KEZ calistir.",
@@ -214,18 +245,35 @@ def sql_uret(kayitlar):
         "-- Burada KODUN KENDISI YOK, yalniz sha256 ozeti. Kodlar",
         "-- saha_kartlar.html ve saha_liste.csv icinde; ikisi de depoya girmiyor.",
         "-- Bu dosyayi calistirmadan kart dagitirsan kodlar calismaz.",
+    ]
+    if bayi_var:
+        satirlar += [
+            "--",
+            "-- PARTI SAHIBI: bayi #%d, parti '%s'. Bu iki sutun"
+            % (bayi, parti or ""),
+            "-- veritabani/bayilik.sql ile geliyor; o dosya calistirilmadan",
+            "-- burasi 'column \"bayi\" does not exist' der ve HICBIR kod",
+            "-- yazilmaz (islem tek parca). Kartlari dagitmadan once kos.",
+        ]
+    sutun = "kod_ozeti, mekan_id, il, mekan_ad, gecerlilik"
+    if bayi_var:
+        sutun += ", bayi, parti"
+    satirlar += [
         "",
         "insert into public.sahiplenme_kodu",
-        "  (kod_ozeti, mekan_id, il, mekan_ad, gecerlilik) values",
+        "  (%s) values" % sutun,
     ]
     govde = []
     for r in kayitlar:
-        govde.append("  ('%s', '%s', '%s', '%s', current_date + %d)"
-                     % (ozet(r["kod"]),
-                        r["mekan_id"].replace("'", "''"),
-                        r["il_kodu"].replace("'", "''"),
-                        r["ad"].replace("'", "''")[:200],
-                        GECERLILIK_GUN))
+        deger = ("  ('%s', '%s', '%s', '%s', current_date + %d"
+                 % (ozet(r["kod"]),
+                    r["mekan_id"].replace("'", "''"),
+                    r["il_kodu"].replace("'", "''"),
+                    r["ad"].replace("'", "''")[:200],
+                    GECERLILIK_GUN))
+        if bayi_var:
+            deger += ", %d, '%s'" % (bayi, (parti or "").replace("'", "''"))
+        govde.append(deger + ")")
     satirlar.append(",\n".join(govde))
     satirlar.append("on conflict (kod_ozeti) do nothing;")
     satirlar.append("")
@@ -239,12 +287,30 @@ def mekan_kimligi(sayfa):
     return (q.get("il", [""])[0], q.get("id", [""])[0])
 
 
-def main(taban, adet):
+def _parti_adi(il, kumeler):
+    """Insanin okuyabildigi parti etiketi: 'ankara-51-52'.
+
+    Etiket bir KIMLIK degil, bir NOT: sahada 'hangi partiden' sorusunun
+    cevabi. Kod tarafinda tekillik kod_ozeti'nde; parti yalniz gruplama."""
+    import datetime
+    # CEVIRI ONCE, KUCULTME SONRA. Ters sirada yazilmisti ve kendi
+    # kontrolum yakaladi: Python'da "İ".lower() tek harf degil, iki kod
+    # noktasi veriyor (i + birlesen nokta), yani cevrim tablosu onu hic
+    # gormuyor ve etikette ASCII olmayan bir karakter kaliyordu.
+    cevir = str.maketrans("çğıöşüÇĞİÖŞÜ", "cgiosuCGIOSU")
+    parca = [(il or "turkiye").translate(cevir).lower().replace(" ", "")]
+    parca.append("-".join(str(k) for k, _ in kumeler[:3]))
+    parca.append(datetime.date.today().strftime("%Y%m%d"))
+    ad = "-".join(p for p in parca if p)
+    return ad[:60]
+
+
+def main(taban, adet, il=None, bayi=None, parti=None):
     if not taban.startswith("http"):
         taban = "https://" + taban
     taban = taban.rstrip("/")
 
-    secilen = sec(kumeleri_oku(), adet)
+    secilen = sec(kumeleri_oku(il=il), adet)
     if not secilen:
         sys.exit("kume yok")
 
@@ -266,20 +332,27 @@ def main(taban, adet):
     kodlar = [r["kod"] for r in kayitlar]
     assert len(set(kodlar)) == len(kodlar), "kod carpismasi"
 
+    if bayi is not None and not parti:
+        parti = _parti_adi(il, secilen)
+
     io.open(KART_CIKTI, "w", encoding="utf-8").write(kart_html(taban, kayitlar))
-    io.open(SQL_CIKTI, "w", encoding="utf-8").write(sql_uret(kayitlar))
+    io.open(SQL_CIKTI, "w", encoding="utf-8").write(
+        sql_uret(kayitlar, bayi=bayi, parti=parti))
     with io.open(LISTE_CIKTI, "w", encoding="utf-8-sig", newline="") as f:
         y = csv.writer(f)
-        y.writerow(["kume", "sira", "il", "ad", "tur", "mekan_id", "kod",
-                    "sor", "birakildi_mi", "not"])
+        y.writerow(["parti", "kume", "sira", "il", "ad", "tur", "mekan_id",
+                    "kod", "sor", "birakildi_mi", "not"])
         for r in kayitlar:
-            y.writerow([r["kume"], r["sira"], r["il"], r["ad"], r["tur"],
-                        r["mekan_id"], r["kod"], r["sor"], "", ""])
+            y.writerow([parti or "", r["kume"], r["sira"], r["il"], r["ad"],
+                        r["tur"], r["mekan_id"], r["kod"], r["sor"], "", ""])
 
     print("kume: %s" % ", ".join("#%s (%d mekan)" % (k, len(v)) for k, v in secilen))
     print("kart : %d  -> %s" % (len(kayitlar), KART_CIKTI))
     print("sql  : %s  (Supabase'e yapistir, YOKSA KODLAR CALISMAZ)" % SQL_CIKTI)
     print("liste: %s" % LISTE_CIKTI)
+    if bayi is not None:
+        print("bayi : #%d  parti '%s'  (bayilik.sql calistirilmis olmali)"
+              % (bayi, parti))
     print()
     print("Sira: 1) SQL'i calistir  2) karti yazdir  3) kapiya birak")
 
@@ -404,11 +477,29 @@ def kendini_kontrol_et():
     assert [k for k, _ in sec(sahte, 3)] == ["1", "2", "3"]
 
     # SQL kacisi: tek tirnakli mekan adi enjeksiyon olmamali
-    s = sql_uret([{"kod": "ABCD3456", "mekan_id": "node/1", "il_kodu": "06",
-                   "ad": "Ali'nin Yeri"}])
+    ornek = [{"kod": "ABCD3456", "mekan_id": "node/1", "il_kodu": "06",
+              "ad": "Ali'nin Yeri"}]
+    s = sql_uret(ornek)
     assert "Ali''nin Yeri" in s, s
     assert ozet("ABCD3456") in s
     assert "ABCD3456" not in s, "DUZ KOD SQL'e sizmis"
+
+    # BAYISIZ SQL bayi sutununa HIC dokunmamali: bayilik.sql
+    # calistirilmamis bir projede kartlar yine basilabilmeli.
+    assert ", bayi, parti" not in s, "bayisiz SQL bayi sutunu yaziyor"
+
+    # Bayili SQL: sutunlar ve deger yerinde, parti etiketi de kaciriliyor.
+    sb = sql_uret(ornek, bayi=7, parti="ankara'51")
+    assert "(kod_ozeti, mekan_id, il, mekan_ad, gecerlilik, bayi, parti) values" in sb, sb
+    assert ", 7, 'ankara''51')" in sb, sb
+    assert "bayi #7" in sb
+    assert "ABCD3456" not in sb, "DUZ KOD bayili SQL'e sizmis"
+
+    # Parti etiketi: Turkce harf ve bosluk tasimamali (dosya adi, SQL ve
+    # panelde yan yana geciyor).
+    e = _parti_adi("\u0130stanbul", [("1", []), ("2", [])])
+    assert e.startswith("istanbul-1-2-"), e
+    assert e == e.encode("ascii", "ignore").decode(), e
 
     # QR gercekten uretiliyor ve veriyi tasiyabilecek boyutta
     svg = qr_svg("https://ornek.test/isletme.html?il=06&id=node/1&kod=ABCD3456")
@@ -433,7 +524,8 @@ def kendini_kontrol_et():
     _rol = _json.loads(base64.urlsafe_b64decode(_govde)).get("role")
     assert _rol == "anon", "yapilandirma.js'te anon degil '%s' anahtari var" % _rol
 
-    print("kontrol gecti: kod uretimi, ozet normalizasyonu, SQL kacisi, QR, kart, anon anahtar")
+    print("kontrol gecti: kod uretimi, ozet normalizasyonu, SQL kacisi, "
+          "bayi sutunu, parti etiketi, QR, kart, anon anahtar")
     return True
 
 
@@ -446,5 +538,13 @@ if __name__ == "__main__":
     a = argparse.ArgumentParser(description="Saha kartlari uret")
     a.add_argument("alan_adi", help="ornek: cebimde.vercel.app")
     a.add_argument("--kume", type=int, default=3, help="kac kume (varsayilan 3)")
+    a.add_argument("--il", default=None,
+                   help="yalniz bu ildeki kumeler (ornek: Ankara)")
+    a.add_argument("--bayi", type=int, default=None,
+                   help="partiyi bu bayiye bagla (veritabani/bayilik.sql)")
+    a.add_argument("--parti", default=None,
+                   help="parti etiketi; verilmezse ilden ve kumeden turetilir")
     n = a.parse_args()
-    main(n.alan_adi, n.kume)
+    if n.parti and n.bayi is None:
+        a.error("--parti yalniz --bayi ile anlamli: parti bir bayiye ait.")
+    main(n.alan_adi, n.kume, il=n.il, bayi=n.bayi, parti=n.parti)

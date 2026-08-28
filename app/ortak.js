@@ -41,6 +41,12 @@ function temaKur(){
 /* ---------- biçimlendirme ---------- */
 const tl = n => n == null ? "" : Math.round(n).toLocaleString("tr-TR") + " ₺";
 const sayi = n => Number(n || 0).toLocaleString("tr-TR");
+/* Kuruş -> "1.250,00 ₺". tl() ile AYRI ve sebebi ayrı: tl() tam sayıya
+   yuvarlıyor, menü fiyatında doğru olan da bu ("kişi başı 347 ₺"). Bayi
+   hakedişi ve ödemesi kuruş hassasiyetinde tutuluyor (bayilik.sql) ve
+   yuvarlanmış bir bakiye "5 kuruş nerede" sorusunu doğurur. */
+const kurus = n => (Number(n || 0) / 100).toLocaleString("tr-TR",
+  { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " ₺";
 /* Tek tirnak da kaciriliyor. Bugun her oznitelik cift tirnakli, yani
    teknik olarak gerekli degildi; ama kacir()'in guvenli oldugunu varsayip
    href='...' yazan biri icin sessiz bir tuzakti. Kacis dizisi bir yerde

@@ -98,6 +98,10 @@ function hataMetni(e){
     return "Bu mekan için bugün zaten bir paylaşım göndermişsin.";
   if (m.includes("failed to fetch") || m.includes("networkerror"))
     return "Sunucuya ulaşılamadı. İnternet bağlantını kontrol et.";
+  /* Bayilik (bayilik.sql). Ham "bayi degilsiniz" cumlesi kullaniciya bir
+     sey anlatmiyor; bayilik verilen bir sey, alinan degil. */
+  if (m.includes("bayi degilsiniz"))
+    return "Bu hesap bir bayiye bağlı değil. Bayilik için bize yaz.";
   /* Veritabani kisiti: istemci ayni sinirlari zaten kontrol ediyor, yani
      buraya ancak istemci atlanirsa ya da iki taraf ayrisirsa gelinir.
      Ikisinde de kullaniciya ham SQL cumlesi gostermenin anlami yok. */
@@ -502,6 +506,64 @@ const Kimlik = {
       .update({ durum: "iptal", iptal_notu: String(notu || "").slice(0, 300) || null })
       .eq("id", id);
     if (error) throw new Error(hataMetni(error));
+  },
+
+  /* ---------- Bayilik ----------
+     Bayi = bir bolgenin saha temsilcisi (veritabani/bayilik.sql).
+     Panelin okudugu her sey SUNUCUDA suzuluyor: uc fonksiyon da
+     security definer ve icinde bayi_kimligim() var, yani istemci
+     "hangi bayi" diye bir sey GONDERMIYOR. Gonderseydi, bir bayi
+     baskasinin numarasini yazip onun hakedisini okuyabilirdi.
+
+     Bayilik kurulmamis bir projede (bayilik.sql calistirilmamis) bu
+     cagrilar hata degil BOS donuyor: bayiMiyim() false diyor ve panel
+     kendini hic acmiyor. mekanSahiplenilmis() ile ayni desen. */
+  async bayiMiyim(){
+    if (!sb || !oturum) return false;
+    const { data, error } = await sb.rpc("bayi_mi");
+    if (error){
+      const m = String(error.message || "").toLowerCase();
+      /* Fonksiyon yok = ozellik kurulu degil. Konsola yazmiyoruz:
+         bayilik cogu kurulumda YOK ve her sayfa acilisinda hata
+         basmak, gercek hatayi goze gorunmez yapar. */
+      if (m.includes("does not exist") || m.includes("schema cache") ||
+          error.code === "42883" || error.code === "PGRST202") return false;
+      console.error("bayi_mi:", error.message);
+      return false;
+    }
+    return !!data;
+  },
+
+  /* Tutarlar KURUS. TL'ye cevirme arayuzde ve tek yerde (ortak.js kurus). */
+  async bayiOzetim(){
+    if (!sb || !oturum) return null;
+    const { data, error } = await sb.rpc("bayi_ozetim");
+    if (error) throw new Error(hataMetni(error));
+    const o = Array.isArray(data) ? data[0] : data;
+    return o ? { kart: +o.kart || 0, sahiplenilen: +o.sahiplenilen || 0,
+                 alanEklenen: +o.alan_eklenen || 0, hakedis: +o.hakedis || 0,
+                 odenen: +o.odenen || 0, bakiye: +o.bakiye || 0 } : null;
+  },
+
+  /* Kart kart liste. DONMEYEN iki sey var ve bilerek: kodun ozeti ve
+     mekani sahiplenen kisinin kimligi. Bayi "sahiplenildi mi" goruyor,
+     "kim sahiplendi" gormuyor. */
+  async bayiKartlarim(sinir){
+    if (!sb || !oturum) return [];
+    const { data, error } = await sb.rpc("bayi_kartlarim",
+      { p_sinir: Math.max(1, Math.min(Number(sinir) || 500, 2000)) });
+    if (error) throw new Error(hataMetni(error));
+    return (data || []).map(k => ({
+      mekanId: k.mekan_id, mekanAd: k.mekan_ad, il: k.il, parti: k.parti,
+      basildi: k.basildi, sahiplenildi: k.sahiplenildi,
+      gecerlilik: k.gecerlilik, alanEklendi: !!k.alan_eklendi }));
+  },
+
+  async bayiBolgelerim(){
+    if (!sb || !oturum) return [];
+    const { data, error } = await sb.rpc("bayi_bolgelerim");
+    if (error){ console.error("bayi bolge:", error.message); return []; }
+    return (data || []).map(b => ({ il: b.il, ilce: b.ilce, durum: b.durum }));
   },
 
   /* Bir mekanin fis ozeti: kac fis, kac FARKLI kisi, kisi basi medyan.
