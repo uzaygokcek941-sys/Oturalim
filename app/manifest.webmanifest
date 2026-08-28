@@ -41,6 +41,29 @@
       "purpose": "any"
     }
   ],
+  "screenshots": [
+    {
+      "src": "play/01-kesfet.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Bütçene göre mekan listesi"
+    },
+    {
+      "src": "play/02-mekan.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Mekan sayfası: fiyat, menü ve kaç ölçümden geldiği"
+    },
+    {
+      "src": "play/03-konum.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Konumunu ver, liste yakından uzağa sıralansın"
+    }
+  ],
   "shortcuts": [
     {
       "name": "Keşfet",

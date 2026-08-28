@@ -835,6 +835,40 @@ def pwa_tutarli_mi():
         except ImportError:
             pass
 
+    # EKRAN GORUNTULERI. Chrome bunlar YOKSA Android'de sade kurulum
+    # kutusunu gosteriyor; VARSA uygulama magazasi gibi zengin olani.
+    # Yani eksik olmasi hicbir yerde hata vermiyor, yalnizca kurulum
+    # ekrani fakirlesiyor -- tam da bu depodaki "sessiz kirilma" turu.
+    #
+    # 28 Agustos'ta olculdu: uc ekran goruntusu (1080x1920) DEPODAYDI
+    # ama manifest'te screenshots alani HIC YOKTU. play_gorsel.py onlari
+    # Play magazasi icin uretmisti; PWA tarafi bos kalmis.
+    ss = m.get("screenshots", [])
+    if not ss:
+        s.append("manifest: screenshots yok -- Android sade kurulum "
+                 "kutusunu gosterir (app/play/ icinde uc goruntu duruyor)")
+    if not any(x.get("form_factor") == "narrow" for x in ss):
+        s.append("manifest: 'narrow' ekran goruntusu yok; telefon zengin "
+                 "kurulum ekrani icin bunu istiyor")
+    for x in ss:
+        yol = os.path.join(KOK, "app", x.get("src", ""))
+        if not os.path.exists(yol):
+            s.append("manifest ekran goruntusu yok: %s" % x.get("src"))
+            continue
+        if not x.get("label"):
+            s.append("%s: label yok; kurulum ekraninda aciklama cikmaz"
+                     % x.get("src"))
+        try:
+            from PIL import Image
+            g = Image.open(yol)
+            beklenen = tuple(int(v) for v in x["sizes"].split("x"))
+            if g.size != beklenen:
+                # OLCU YANLISSA CHROME O GORUNTUYU SESSIZCE ATIYOR.
+                s.append("%s olcusu %s, manifest %s diyor -- Chrome bunu "
+                         "sessizce yok sayar" % (x["src"], g.size, x["sizes"]))
+        except ImportError:
+            pass
+
     # Sayfalarin hepsi manifest'e baglanmali: biri unutulursa o sayfadan
     # giren kullaniciya kurulum onerilmez.
     for y in sorted(glob.glob(os.path.join(KOK, "app", "*.html"))):
