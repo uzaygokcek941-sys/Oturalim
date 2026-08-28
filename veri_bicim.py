@@ -58,7 +58,19 @@ YOGUN = ["id", "ad", "tur", "lat", "lon"]
 # Seyrek alanlar. Listede OLMAYAN bir alan sessizce DUSMEZ -- kodlayici
 # hata verir (asagida). Yeni bir alan eklendiginde burasi da guncellenmeli
 # ve unutulursa kosum patlar, veri kaybolmaz.
-SEYREK = ["mutfak", "adres", "saat", "tel", "web", "wifi", "bahce", "insta",
+# SOSYAL ALANLARIN BESI DE BURADA. 28 Agustos: sosyal toplama turu
+# calisti, isletmelerin kendi sitelerinden Facebook ve X baglari buldu,
+# ve tur SON ADIMDA durdu:
+#     ValueError: bilinmeyen alan: facebook, x
+# Kapi DOGRU davrandi -- bilmedigi alani sessizce dusurmek yerine
+# catladi. Bu depoda kural "sessiz kirpma yok"; alan listesi ile
+# toplayici ayrisirsa veri kaybi hicbir yerde gorunmezdi.
+#
+# insta zaten listedeydi cunku turkiye_mekanlar.csv'de o sutun bastan
+# vardi; dordu (facebook, x, tiktok, youtube) sonradan eklendi ve
+# BURASI unutuldu.
+SEYREK = ["mutfak", "adres", "saat", "tel", "web", "wifi", "bahce",
+          "insta", "facebook", "x", "tiktok", "youtube",
           "menu", "kat", "min", "max", "tarih", "kalem_n",
           "ilce", "mahalle"]
 

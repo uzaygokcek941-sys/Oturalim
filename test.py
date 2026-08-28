@@ -1978,6 +1978,51 @@ def overpass_denemesi_mi():
     return s
 
 
+def alan_listesi_ayrismis_mi():
+    """app_veri'nin URETTIGI alanlar veri_bicim'in BILDIGI alanlarda mi.
+
+    28 Agustos: sosyal toplama turu 40 dakika kostu, isletmelerin kendi
+    sitelerinden Facebook ve X baglari buldu, ve SON ADIMDA durdu:
+        ValueError: bilinmeyen alan: facebook, x
+    Kapi dogru davrandi -- bilmedigi alani sessizce dusurmek yerine
+    catladi. Ama ayrismayi ONLEMEDI: dort sosyal sutun app_veri'ye
+    eklenirken veri_bicim unutulmustu ve bunu ancak 40 dakikalik bir
+    tur ortaya cikardi.
+
+    Bu depoda ayni desen daha once de yandi (gizlilik tablosu / CSP):
+    "kontrol ayrismayi yakaliyor ama onlemiyor". Buradaki fark su --
+    onlemek icin uretici yok, iki liste ayri sebeplerle var. O yuzden
+    cozum: ayrismayi TURU KOSMADAN, saniyeler icinde yakalamak."""
+    import importlib
+    s = []
+    try:
+        VB = importlib.import_module("veri_bicim")
+    except Exception as e:
+        return ["veri_bicim okunamadi: %s" % e]
+
+    metin = open("app_veri.py", encoding="utf-8").read()
+    biliniyor = set(VB.SEYREK) | set(getattr(VB, "YOGUN", []))
+
+    # (a) SOSYAL_ALAN sozlugunun anahtarlari.
+    m = re.search(r"SOSYAL_ALAN = \{(.*?)\n\}", metin, re.S)
+    if not m:
+        s.append("app_veri.py: SOSYAL_ALAN bulunamadi")
+    else:
+        for alan in sorted(set(re.findall(r'"(\w+)":', m.group(1)))):
+            if alan not in biliniyor:
+                s.append("app_veri SOSYAL_ALAN'da '%s' var ama veri_bicim "
+                         "bilmiyor; il dosyasi yazilirken tur CATLAR" % alan)
+
+    # (b) mekan_kaydi'nin yazdigi anahtarlar. SOSYAL_ALAN'dan genis:
+    #     kayit["..."] = ve kayit.setdefault("...", ...) ikisi de sayiliyor.
+    for alan in sorted(set(re.findall(r'kayit(?:\.setdefault\(|\[)"(\w+)"',
+                                      metin))):
+        if alan not in biliniyor:
+            s.append("app_veri mekan_kaydi '%s' yaziyor ama veri_bicim "
+                     "bilmiyor" % alan)
+    return s
+
+
 def veri_turu_kapisi_mi():
     """Veri turunun "degisiklik var mi" kapisi YENI dosyayi goruyor mu.
 
@@ -3212,6 +3257,8 @@ def main():
     kayit("degismez: sosyal bag isletmenin kendi sitesinden", site_sosyal_mi())
     kayit("degismez: veri turu kapisi yeni dosyayi goruyor",
           veri_turu_kapisi_mi())
+    kayit("degismez: alan listeleri ayrismamis",
+          alan_listesi_ayrismis_mi())
     kayit("degismez: overpass turu gecici hatada pes etmiyor",
           overpass_denemesi_mi())
     kayit("degismez: seviye onayli katkiyi sayiyor", seviye_mi())
