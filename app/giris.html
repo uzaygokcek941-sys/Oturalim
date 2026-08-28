@@ -49,16 +49,24 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
   .ipucu{font-size:13px;color:var(--metin-3);line-height:1.45}
   .parola-sar{position:relative;display:block}
   .parola-sar input{padding-right:52px}
+  /* 40 -> 44. Mutlak konumlu ve dikey ORTALI oldugu icin buyumesi
+     hicbir seyi itmiyor; simge 19 px'te kaliyor, yalniz dokunma alani
+     buyuyor. Parolayi gizle/goster telefonda en cok yanlis basilan
+     denetimlerden biri. */
   .goster{
     position:absolute;right:6px;top:50%;transform:translateY(-50%);
-    width:40px;height:40px;display:grid;place-items:center;border-radius:var(--r-s);
+    width:44px;height:44px;display:grid;place-items:center;border-radius:var(--r-s);
     color:var(--metin-3);
   }
   .goster:hover{color:var(--metin);background:var(--zemin-2)}
   .goster svg{width:19px;height:19px}
+  /* min-height 32 -> 44. Yazi 13 px kaliyor ve alti cizili gorunumu
+     degismiyor; buyuyen sey yalniz dokunma kutusu. "Parolami unuttum"
+     bir BAG GIBI duruyor ama <button> -- yani WCAG'in satir ici bag
+     muafiyeti buna islemiyor. */
   .kucuk-baglanti{background:none;border:0;color:var(--vurgu);font-size:13px;
     cursor:pointer;text-decoration:underline;text-underline-offset:3px;padding:4px 0;
-    justify-self:start;min-height:32px}
+    justify-self:start;min-height:44px;display:inline-flex;align-items:center}
   .uyari{
     display:none;gap:var(--a3);padding:var(--a4);border-radius:var(--r);
     font-size:13px;line-height:1.55;margin-bottom:var(--a4);align-items:flex-start;

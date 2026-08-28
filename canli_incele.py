@@ -96,6 +96,13 @@ def _sayfayi_incele(ctx, taban, yol, ad):
         son = sayfa.url.replace(taban, "")
         if son.split("?")[0] != yol.split("?")[0]:
             r["yonlendi"] = son
+            # YONLENDIRME ISTEMCI TARAFINDA ve networkidle'dan SONRA
+            # olabiliyor: hedef sayfanin <head>'i daha ayrisirken
+            # olcuyordum. Belirtisi tutarsizlikti -- hesabim "meta
+            # description YOK" diyordu, ayni giris.html'e yonlenen
+            # yonetim ise demiyordu. Ayni sayfa iki farkli sonuc
+            # veremez; demek ki olcum erkendi.
+            sayfa.wait_for_timeout(800)
         r.update(sayfa.evaluate("""() => {
             if (!document.body) return {yonlendirdi: true, aciklama: 0,
                      h1: 1, gorsel: 0, altsiz: 0, kucuk_hedef: 0,
