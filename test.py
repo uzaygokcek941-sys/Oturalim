@@ -2371,6 +2371,79 @@ def site_haritasi_yayinda_mi():
     return s
 
 
+def talep_zinciri_ayrismis_mi():
+    """Talep acigi ve fiyat endeksi zinciri ayrismasin.
+
+    ZINCIR: talep.sql iki RPC tanimliyor -> kimlik.js onlari cagiriyor ->
+    kesfet.js seridi ciziyor -> ortak.js cumleyi kuruyor. Halkalardan
+    biri koparsa sonuc SESSIZ: satir hic gorunmuyor ve bunu kimse fark
+    etmiyor, cunku bugun VERI DE YOK (kullanici sifir). Yani ozellik
+    "calisiyor" gorunup hicbir sey yapmayabilir -- bu depodaki en pahali
+    hata turu.
+
+    ESIKLER SUNUCUDA KALMALI. Istemci tarafinda bir esik gorunmesi,
+    esigin gevsetilebilir oldugu anlamina gelir; k-anonimlik o zaman
+    bir sozden ibaret kalir. Sayilar talep.sql'de (5 bakis, 3 fis) ve
+    orada davranis testi var (talep_test.sql).
+
+    SINIR SESSIZCE KIRPILMAMALI. Sunucu 500'u asan listeye hata veriyor;
+    istemci de kirpip GONDERMEMELI -- ekranda yazan mekan sayisiyla
+    gonderilen liste ayrisirsa sayi yalan olur."""
+    s = []
+    sql = oku("veritabani", "talep.sql")
+    js = oku("app", "kimlik.js")
+    kesfet = oku("app", "kesfet.js")
+    ortak = oku("app", "ortak.js")
+    html = oku("app", "kesfet.html")
+
+    tanimli = set(re.findall(r"create or replace function public\.(\w+)", sql))
+    for ad in ("civar_talep_ozeti", "civar_fiyat_endeksi"):
+        if ad not in tanimli:
+            s.append("talep.sql'de %s yok" % ad)
+    for ad in sorted(set(re.findall(r'rpc\("(civar_(?:talep|fiyat)\w*)"', js))):
+        if ad not in tanimli:
+            s.append("kimlik.js 'rpc(%s)' cagiriyor ama talep.sql'de yok" % ad)
+
+    # Serit gercekten cizilmis mi: kesfet.js cagiriyor ve HTML'de yuva var.
+    # CAGRIYA bakiliyor, ada degil. Ilk yazimda "talepYaz(" geciyor mu
+    # diye bakiyordum ve SABOTAJ YAKALANMADI: cagriyi yorum satirina
+    # alsan bile TANIM ("async function talepYaz(") o dizeyi tasiyor.
+    # Ayni ders bugun ikinci kez alindi (kapsama.html fetch) ve daha
+    # once bos <svg> etiketinde de alinmisti: bir adin metinde gecmesi,
+    # o adin KULLANILDIGI anlamina gelmiyor.
+    if not re.search(r"^\s*talepYaz\(", kesfet, re.M):
+        s.append("kesfet.js talepYaz() CAGIRMIYOR; serit hic cizilmiyor")
+    if 'id="talep"' not in html:
+        s.append("kesfet.html'de talep seridinin yuvasi yok")
+    if "talepAcigiCumlesi" not in ortak:
+        s.append("ortak.js'te talepAcigiCumlesi() yok")
+    if "civarTalepOzeti" not in kesfet:
+        s.append("kesfet.js sunucudan talep dagilimini ISTEMIYOR")
+
+    # Esikler SUNUCUDA: istemci tarafinda sayi olmamali.
+    m = re.search(r"async function talepYaz\(.*?\n\}", kesfet, re.S)
+    if not m:
+        s.append("kesfet.js: talepYaz() govdesi okunamadi")
+    else:
+        govde = m.group(0)
+        if re.search(r"(kisi|bakis|fis)\s*[<>]=?\s*\d", govde):
+            s.append("talepYaz() istemcide esik uyguluyor; esik SUNUCUDA "
+                     "olmali (talep.sql), yoksa gevsetilebilir")
+        # Sinir asilinca liste KIRPILMAMALI, satir hic cikmamali.
+        if ".slice(0, 500)" in govde or ".slice(0,500)" in govde:
+            s.append("talepYaz() listeyi sessizce kirpiyor; ekranda yazan "
+                     "mekan sayisiyla gonderilen liste ayrisir")
+        if "500" not in govde:
+            s.append("talepYaz() 500 sinirini hic gozetmiyor")
+
+    # Sunucudaki iki esik yerinde mi (sayi degisirse gerekce de degismeli).
+    if not re.search(r"count\(\*\) from son\) >= 5", sql):
+        s.append("talep.sql: bakis esigi (5) kaldirilmis")
+    if not re.search(r"having count\(\*\) >= 3", sql):
+        s.append("talep.sql: aylik fis esigi (3) kaldirilmis")
+    return s
+
+
 def veri_turu_kapisi_mi():
     """Veri turunun "degisiklik var mi" kapisi YENI dosyayi goruyor mu.
 
@@ -3553,7 +3626,8 @@ def sql_kontrolleri():
               ("akran", "akran_test: 12 adimin hepsi gecti"),
               ("fiyat oyu", "fiyat_oyu_test: 15 adimin hepsi gecti"),
               ("topluluk", "topluluk_test: 11 adimin hepsi gecti"),
-              ("bayilik", "BAYILIK TESTI: 18 adim gecti"))
+              ("bayilik", "BAYILIK TESTI: 18 adim gecti"),
+              ("talep", "TALEP TESTI: 14 adim gecti"))
              if imza not in cikti]
     if eksik:
         return kayit("SQL davranisi (gercek Postgres)",
@@ -3614,6 +3688,7 @@ def main():
           varsayilan_sira_dolu_mu())
     kayit("degismez: kapsama sayfasi veriyle ayni", kapsama_tutarli_mi())
     kayit("degismez: site haritasi yayina gidiyor", site_haritasi_yayinda_mi())
+    kayit("degismez: talep zinciri ayrismamis", talep_zinciri_ayrismis_mi())
     kayit("degismez: overpass turu gecici hatada pes etmiyor",
           overpass_denemesi_mi())
     kayit("degismez: seviye onayli katkiyi sayiyor", seviye_mi())

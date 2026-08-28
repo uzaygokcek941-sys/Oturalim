@@ -270,6 +270,11 @@ function ciz(haritayiOrtala){
   if (b) b.textContent = (ilAdi() || "Türkiye") + " mekanları — Cebimde";
   el("#sifirla").hidden = !suzuluyor;
 
+  /* TALEP ACIGI ekrandaki listeye bagli, o yuzden her cizimde
+     tazeleniyor. Cagri asenkron ve icinde yaris korumasi var; ciz()
+     onu BEKLEMIYOR, cunku liste talep satirini beklemek zorunda degil. */
+  talepYaz(l);
+
   /* Sicrama girisi YALNIZ ilk cizimde. Her filtre degisiminde tekrar
      oynarsa arac hissi bozuluyor -- burasi kesfet, gosteri degil. */
   /* Cetvel tavani: cizilecek kartlarin en uzagi. kartHTML'den ONCE
@@ -482,6 +487,60 @@ async function akranYaz(){
 
   if (benim !== akranSayac) return;         /* gecikmis cevap: at */
   const c = akranCumlesi(o, butce);
+  if (!c){ kutu.hidden = true; kutu.textContent = ""; return; }
+  kutu.textContent = c;
+  kutu.hidden = false;
+}
+
+/* ---------- talep acigi (FIKIRLER.md F3) ----------
+   "Buraya bakan 40 kisinin 28'i 250 TL alti ariyordu; menusu olculmus
+   mekanlarin medyani 340 TL -- aradiklarinin ustunde."
+
+   IKI TARAF IKI YERDEN: aranan bant SUNUCUDAN (k-anonimlik esigi orada,
+   5 bakisin altinda hic donmuyor), bulunan medyan ISTEMCIDE -- fiyat
+   kurali zaten burada (yemekFiyati) ve iki dilde tutmak ayrismak demek.
+
+   LISTE EKRANDA GORUNENIN AYNISI: kullanicinin suzdugu ne ise talep de
+   onun. 500 sinir sunucuda ve SESSIZCE KIRPMIYOR, hata veriyor; o yuzden
+   burada da 500'e kirpip GONDERMIYORUZ -- daha genis bir liste varsa
+   satir hic cikmiyor, cunku ekranda yazan sayiyla gonderilen liste
+   ayrisirsa sayi yalan olur.
+
+   Akran seridiyle ayni yaris korumasi: gec donen eski cevap yenisini
+   ezmesin. */
+let talepSayac = 0;
+
+async function talepYaz(liste){
+  const kutu = el("#talep");
+  if (!kutu) return;
+  const benim = ++talepSayac;
+  const K = window.Kimlik;
+  if (!K || !K.acik){ kutu.hidden = true; return; }
+
+  const idler = (liste || []).map(m => m.id);
+  if (!idler.length || idler.length > 500){
+    kutu.hidden = true; kutu.textContent = ""; return;
+  }
+
+  let dagilim = null;
+  try {
+    await K.hazir;
+    dagilim = await K.civarTalepOzeti(idler);
+  } catch (e) { /* talep.sql kurulu degil ya da ag yok: satir cikmasin */ }
+  if (benim !== talepSayac) return;
+
+  /* Bulunan taraf: AYNI listenin olculmus fiyatlarinin medyani. */
+  const f = [];
+  for (const m of liste){
+    const y = yemekFiyati(m);
+    if (y != null) f.push(y);
+  }
+  f.sort((a, b) => a - b);
+  const medyan = f.length ? Math.round(f.length % 2
+    ? f[(f.length - 1) / 2]
+    : (f[f.length / 2 - 1] + f[f.length / 2]) / 2) : null;
+
+  const c = talepAcigiCumlesi(dagilim, medyan);
   if (!c){ kutu.hidden = true; kutu.textContent = ""; return; }
   kutu.textContent = c;
   kutu.hidden = false;

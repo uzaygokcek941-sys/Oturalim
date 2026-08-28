@@ -2082,6 +2082,40 @@ function butceTalebiCumlesi(dagilim){
          " " + butceBandiAdi(iyi.bant) + " arıyordu.";
 }
 
+/* TALEP AÇIĞI (FIKIRLER.md F3). İki tarafı yan yana koyuyor:
+   ne aranıyor (sunucudan gelen bant dağılımı) ve ne bulunuyor
+   (listedeki ölçülmüş fiyatların medyanı, istemcide).
+
+   NEDEN ÖZGÜN: Google ve Yemeksepeti fiyatı biliyor ama ARAYANIN
+   BÜTÇESİNİ yayınlamıyor -- o veri onların reklam ürünü. Cebimde'de
+   bütçe zaten ürünün girdisi.
+
+   AÇIK YOKSA AÇIK DENMİYOR. Aranan bant ile bulunan medyan çelişmiyorsa
+   cümle yalnız iki sayıyı söylüyor. Olmayan bir açığı yazmak, bu
+   depodaki "yanlış fiyat fiyatsızlıktan kötüdür" kuralının ölçüm
+   tarafındaki karşılığı olurdu.
+
+   MEDYAN YOKSA CÜMLE DE YOK: karşılaştıracak bir şey olmadan "talep
+   açığı" diye bir şey yok. */
+function talepAcigiCumlesi(dagilim, medyan){
+  if (!dagilim || !dagilim.length) return "";
+  let iyi = dagilim[0];
+  for (const d of dagilim) if (d.kisi > iyi.kisi) iyi = d;
+  const toplam = dagilim.reduce((t, d) => t + d.kisi, 0);
+  const bas = "Buraya bakan " + sayi(toplam) + " kişinin " + sayiEkli(iyi.kisi) +
+              " " + butceBandiAdi(iyi.bant) + " arıyordu";
+  if (medyan == null) return bas + ".";
+  const son = "; menüsü ölçülmüş mekanların medyanı " + tl(medyan);
+  /* Bandın üst sınırı: aranan bandın tavanı. Son bantta tavan yok --
+     "ve üstü" bandında açık tanımlı değil, o yüzden karşılaştırma da
+     yapılmıyor. */
+  const e = BUTCE_SECENEK;
+  const tavan = (iyi.bant >= 1 && iyi.bant <= e.length) ? e[iyi.bant - 1] : null;
+  if (tavan != null && medyan > tavan)
+    return bas + son + " — aradıklarının üstünde.";
+  return bas + son + ".";
+}
+
 /* ---------- kohort ölçümü ----------
    Çerezsiz ve sunucusuz: yalnız localStorage, yalnız bu cihaz.
    Hangi günlerde açıldığı tutuluyor; D1/D7/D30 buradan hesaplanıyor. */
@@ -3289,6 +3323,18 @@ function kendiniKontrolEt(){
        degil. 1.250 = "bin iki yuz elli" -> elli -> si */
     ["ek binlik ayracli", sayiEkli(1250), "1.250'si"],
     ["ek sifir",      sayiEkli(0),        "0'ı"],
+    /* TALEP ACIGI. Medyan aranan bandin TAVANININ ustundeyse "aradiklarinin
+       ustunde" diyor; altindaysa DEMIYOR -- olmayan bir acik uydurmuyor. */
+    ["talep acigi bos",              talepAcigiCumlesi([], 300),         ""],
+    ["talep acigi medyansiz",
+     /9 kişinin 5'i .*arıyordu\.$/.test(talepAcigiCumlesi(
+       [{bant:2,kisi:5},{bant:1,kisi:4}], null)),                        true],
+    ["talep acigi ACIK VAR",
+     /aradıklarının üstünde/.test(talepAcigiCumlesi(
+       [{bant:1,kisi:9}], 9000)),                                        true],
+    ["talep acigi ACIK YOK",
+     /aradıklarının üstünde/.test(talepAcigiCumlesi(
+       [{bant:5,kisi:9}], 100)),                                         false],
     ["talep cumlesi bos dagilim",    butceTalebiCumlesi([]),             ""],
     ["talep cumlesi null",           butceTalebiCumlesi(null),           ""],
 

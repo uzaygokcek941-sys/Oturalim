@@ -44,6 +44,7 @@ Toplam süre: ~15 dakika. Ücret yok, kart istenmiyor.
    | `veritabani/fiyat_oyu.sql` | "Bu fiyat hâlâ geçerli mi?" oylaması | Doğrulama düğmesi hiç görünmez, güven skoru yalnız menüye bakar |
    | `veritabani/topluluk.sql` | Topluluk akışı (`topluluk.html`) | Sayfa açılır ama "Akış şu an yüklenemedi" der |
    | `veritabani/bayilik.sql` | Saha temsilciliği: bölge, kart partisi, hakediş (`bayi.html`) | Bayi paneli "bu hesap bir bayiye bağlı değil" der; kartlar bayisiz basılır ve normal çalışır |
+   | `veritabani/talep.sql` | Talep açığı şeridi (keşfet) ve fiyat endeksi | Keşfette talep satırı hiç görünmez; başka hiçbir şey etkilenmez |
 
    Hiçbiri kurulmadığında sayfa normal çalışır; yalnız o bölümler
    sessizce gizli kalır. Beklenen çıktılar:
@@ -60,6 +61,7 @@ Toplam süre: ~15 dakika. Ücret yok, kart istenmiyor.
    Fiyat oylari kuruldu: tablo, RLS, tek-oy kurali ve fiyat_oy_ozeti().
    Topluluk akisi kuruldu: yorum yazariyla, menu katkisi ADSIZ, fis ve fiyat oyu yok.
    Bayilik kuruldu: 4 tablo, 2 tetikleyici, kazanim yalniz koddan
+   Talep ve endeks kuruldu: iki toplayici, esikler sunucuda
    ```
 
    > `profil.sql` **`yorum.sql`'den önce** çalıştırılmalı: yorumlar yazarın
@@ -79,6 +81,10 @@ Toplam süre: ~15 dakika. Ücret yok, kart istenmiyor.
    > Bu kapı yaşanmış bir hatadan sonra eklendi: dosya ilk çalıştırıldığında
    > `ERROR: 42P01: relation "public.yorumlar" does not exist` diyordu ve o
    > satır ne yapılacağını söylemiyordu.
+
+   > `talep.sql` **`sayac.sql`'den sonra**: bütçe bandı sütunu oradan
+   > geliyor. İki toplayıcı ekliyor, hiçbir okuma yolu açmıyor — ham
+   > görüntülenme ve fiş satırları kapalı kalmaya devam ediyor.
 
    > `bayilik.sql` **`sahiplenme.sql`'den sonra**: `sahiplenme_kodu`
    > tablosuna iki sütun (`bayi`, `parti`) ekliyor. Bayiliği hiç

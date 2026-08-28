@@ -700,6 +700,31 @@ const Kimlik = {
                  medyan: o.medyan == null ? null : +o.medyan } : null;
   },
 
+  /* Civarın TALEP dağılımı (FIKIRLER.md F3). civarFisOzeti ile aynı
+     desen: hangi mekanların civar olduğuna İSTEMCİ karar veriyor
+     (koordinat statik JSON'da), toplamı sunucu veriyor ve eşik orada.
+     Liste 500'ü aşarsa sunucu hata veriyor, sessizce kırpmıyor. */
+  async civarTalepOzeti(mekanIdler){
+    if (!sb || !mekanIdler || !mekanIdler.length) return null;
+    const { data, error } = await sb.rpc("civar_talep_ozeti",
+      { p_mekan_idler: mekanIdler });
+    if (error){ console.error("civar talep:", error.message); return null; }
+    return (data || []).map(o => ({ bant: +o.bant, kisi: +o.kisi || 0 }));
+  },
+
+  /* Civarın AY AY kişi başı medyanı (FIKIRLER.md F4).
+     RESMÎ BİR ENDEKS DEĞİL ve arayüz bunu yazmak zorunda: burada dönen
+     şey Cebimde kullanıcılarının paylaştığı fişlerin medyanı. Üç fişten
+     az olan ay sunucudan HİÇ dönmüyor. */
+  async civarFiyatEndeksi(mekanIdler, ay){
+    if (!sb || !mekanIdler || !mekanIdler.length) return [];
+    const { data, error } = await sb.rpc("civar_fiyat_endeksi",
+      { p_mekan_idler: mekanIdler, p_ay: Math.max(1, Math.min(+ay || 6, 24)) });
+    if (error){ console.error("endeks:", error.message); return []; }
+    return (data || []).map(o => ({ ay: o.ay, fis: +o.fis || 0,
+      kisi: +o.kisi || 0, medyan: o.medyan == null ? null : +o.medyan }));
+  },
+
   /* ---------- profil (genişletilmiş) ----------
      Alanların hepsi isteğe bağlı; profil.sql'in başındaki kural bu.
      Tablo dışarıya KAPALI kalıyor: herkese açık okuma tek bir
