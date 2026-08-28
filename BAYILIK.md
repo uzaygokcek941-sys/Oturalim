@@ -177,6 +177,26 @@ gösteriyor.
 > bir parti hiçbir kodu kabul etmez. İşletme bir kez dener, olmaz, bir
 > daha denemez.
 
+### Basılmış bir partiyi sonradan bayiye bağlamak
+
+Kartlar `--bayi` verilmeden basıldıysa **yeniden basmaya gerek yok**:
+
+```bash
+python saha.py sql saha_liste.csv --bayi 1 --parti ankara-52
+```
+
+Kodlar listede duruyor; bayi ve parti yalnız SQL'de geçen bir şey. Kartın
+üstündeki kod ve QR **değişmiyor**, yalnız veritabanına yazılan sütunlar
+değişiyor. (Aynı desen `foto_cek.py sql`'de de var: CSV kaynak, SQL
+türetilmiş.) Supabase'de bu SQL'i çalıştırmak yeterli — `on conflict
+(kod_ozeti) do nothing` yüzünden kod zaten yazılmışsa bayi sütunu
+**güncellenmez**; o durumda önce o partinin satırlarını sil ya da
+`update ... set bayi = 1 where parti = '...'` yaz.
+
+`saha.py` ikinci bir partiyi basarken **üzerine yazmayı reddediyor**:
+`saha_liste.csv`, hangi kodun hangi kapıya gittiğini gösteren tek kayıt
+ve kod veritabanında yalnız sha256 özeti olarak duruyor.
+
 ### 4. Ölç
 
 ```bash

@@ -10,6 +10,7 @@ ve tek kullanimlik bir sahiplenme kodu var (Faz 4).
     python saha.py cebimde.vercel.app --il Ankara --kume 2
     python saha.py cebimde.vercel.app --il Ankara --atla 1 --kume 1  # ikinci kume
     python saha.py cebimde.vercel.app --il Ankara --bayi 3 --parti ankara-eylul
+    python saha.py sql saha_liste.csv --bayi 1     # basilmis partiyi bayiye bagla
     python saha.py olc                             # dagitim sonrasi olcum
     python saha.py test
 
@@ -375,11 +376,16 @@ def main(taban, adet, il=None, bayi=None, parti=None, atla=0,
         sql_uret(kayitlar, bayi=bayi, parti=parti))
     with io.open(LISTE_CIKTI, "w", encoding="utf-8-sig", newline="") as f:
         y = csv.writer(f)
-        y.writerow(["parti", "kume", "sira", "il", "ad", "tur", "mekan_id",
-                    "kod", "sor", "birakildi_mi", "not"])
+        # il_kodu DA YAZILIYOR: SQL'i listeden yeniden uretmek (asagidaki
+        # `sql` kipi) iki basamakli il kodunu istiyor ve il ADINDAN
+        # turetilemez. Bu sutun olmadan yazilmis eski listeler icin kume
+        # dosyasindan bulunuyor, ama o dosya yenilenirse bag kopar.
+        y.writerow(["parti", "kume", "sira", "il", "il_kodu", "ad", "tur",
+                    "mekan_id", "kod", "sor", "birakildi_mi", "not"])
         for r in kayitlar:
-            y.writerow([parti or "", r["kume"], r["sira"], r["il"], r["ad"],
-                        r["tur"], r["mekan_id"], r["kod"], r["sor"], "", ""])
+            y.writerow([parti or "", r["kume"], r["sira"], r["il"],
+                        r["il_kodu"], r["ad"], r["tur"], r["mekan_id"],
+                        r["kod"], r["sor"], "", ""])
 
     print("kume: %s" % ", ".join("#%s (%d mekan)" % (k, len(v)) for k, v in secilen))
     print("kart : %d  -> %s" % (len(kayitlar), KART_CIKTI))
@@ -431,6 +437,87 @@ def _istek(url, anahtar, yol, govde=None):
         method="POST" if govde is not None else "GET")
     with urllib.request.urlopen(ist, timeout=20) as c:
         return _json.loads(c.read().decode() or "null")
+
+
+def _il_kodlari(kimlikler):
+    """mekan_id -> il_kodu, kume dosyasindan.
+
+    YALNIZ ESKI LISTELER ICIN. saha_liste.csv artik il_kodu sutununu
+    kendisi tasiyor; bu yol, o sutun eklenmeden once basilmis partiler
+    (ankara-51, ankara-52) icin var ve bir gun kume dosyasi yenilenirse
+    calismayi birakabilir -- o yuzden bulunamayani SAYMIYOR, ADIYLA
+    sayiyor ve durduruyor."""
+    istenen = set(kimlikler)
+    bulunan = {}
+    with io.open(KUME_CSV, encoding="utf-8-sig") as f:
+        for r in csv.DictReader(f):
+            il_kodu, mekan_id = mekan_kimligi(r["sayfa"])
+            if mekan_id in istenen:
+                bulunan[mekan_id] = il_kodu
+    return bulunan
+
+
+def sql_yaz(yol, bayi=None, parti=None):
+    """Var olan bir kart listesinden SQL'i YENIDEN uret.
+
+    NEDEN GEREKLI. Basilmis bir partiyi bir bayiye baglamanin tek yolu
+    aksi halde kartlari YENIDEN BASMAK olurdu -- yeni kodlarla, yani
+    elindeki 64 kart cop. Oysa kodlar listede duruyor ve bayi/parti
+    yalniz SQL'de gecen bir sey. Ayni desen foto_cek.py'de de var
+    (`python foto_cek.py sql`): CSV kaynak, SQL turetilmis.
+
+    KART DOSYASINA DOKUNMUYOR. Kartlarin uzerindeki kod ve QR aynen
+    kaliyor; degisen tek sey veritabanina hangi sutunlarin yazildigi."""
+    if not os.path.exists(yol):
+        sys.exit("%s yok." % yol)
+    with io.open(yol, encoding="utf-8-sig") as f:
+        kayitlar = list(csv.DictReader(f))
+    if not kayitlar:
+        sys.exit("%s bos." % yol)
+    if not kayitlar[0].get("kod"):
+        sys.exit("%s icinde 'kod' sutunu yok; bu bir saha listesi degil." % yol)
+
+    eksik_kodlu = [r for r in kayitlar if not (r.get("kod") or "").strip()]
+    if eksik_kodlu:
+        sys.exit("%s icinde %d satirda kod yok; yarim liste yazmiyorum."
+                 % (yol, len(eksik_kodlu)))
+
+    if kayitlar[0].get("il_kodu"):
+        for r in kayitlar:
+            r["il_kodu"] = (r.get("il_kodu") or "").strip()
+    else:
+        print("liste 'il_kodu' sutunu tasimiyor; %s dosyasindan bulunuyor"
+              % KUME_CSV)
+        harita = _il_kodlari([r["mekan_id"] for r in kayitlar])
+        yok = [r["mekan_id"] for r in kayitlar if r["mekan_id"] not in harita]
+        if yok:
+            sys.exit("Su mekanlarin il kodu %s icinde bulunamadi (%d): %s"
+                     % (KUME_CSV, len(yok), ", ".join(yok[:5])))
+        for r in kayitlar:
+            r["il_kodu"] = harita[r["mekan_id"]]
+
+    bos_il = [r["mekan_id"] for r in kayitlar if len(r["il_kodu"]) != 2]
+    if bos_il:
+        sys.exit("Su mekanlarin il kodu iki basamakli degil (%d): %s"
+                 % (len(bos_il), ", ".join(bos_il[:5])))
+
+    # Parti etiketi listede zaten varsa ONU kullan: ayni parti iki adla
+    # anilmasin.
+    if parti is None:
+        parti = (kayitlar[0].get("parti") or "").strip() or None
+
+    # Cikti adi girdiden turetiliyor: saha_liste-ankara-51.csv ->
+    # saha_kodlar-ankara-51.sql. Boylece iki parti birbirinin ustune
+    # yazmiyor.
+    taban = os.path.basename(yol)
+    ek = taban[len("saha_liste"):-len(".csv")] if taban.startswith("saha_liste") else ""
+    cikti = os.path.join(os.path.dirname(yol) or ".", "saha_kodlar%s.sql" % ek)
+    io.open(cikti, "w", encoding="utf-8").write(
+        sql_uret(kayitlar, bayi=bayi, parti=parti))
+    print("%d kod -> %s%s" % (len(kayitlar), cikti,
+                              "  (bayi #%d, parti '%s')" % (bayi, parti or "")
+                              if bayi is not None else ""))
+    print("Kartlar DEGISMEDI: koda ve QR'a dokunulmadi.")
 
 
 def olc(yol=LISTE_CIKTI):
@@ -511,6 +598,26 @@ def kendini_kontrol_et():
     assert [k for k, _ in sec(sahte, 2)] == ["1", "2"], sec(sahte, 2)
     assert [k for k, _ in sec(sahte, 3)] == ["1", "2", "3"]
 
+    # LISTEDEN SQL'I YENIDEN URETMEK ayni kodlari vermeli. Bu turun
+    # butun degeri burada: basilmis kartlar gecerli kalsin diye yapiliyor,
+    # yani ozetler kaymissa tur zararli.
+    import tempfile
+    with tempfile.TemporaryDirectory() as gecici:
+        liste = os.path.join(gecici, "saha_liste-deneme.csv")
+        with io.open(liste, "w", encoding="utf-8-sig", newline="") as f:
+            y = csv.writer(f)
+            y.writerow(["parti", "kume", "sira", "il", "il_kodu", "ad", "tur",
+                        "mekan_id", "kod", "sor", "birakildi_mi", "not"])
+            y.writerow(["deneme", "1", "1", "Ankara", "06", "Ali'nin Yeri",
+                        "Kafe", "node/1", "ABCD3456", "saat", "", ""])
+        sql_yaz(liste, bayi=4, parti="deneme")
+        uretilen = io.open(os.path.join(gecici, "saha_kodlar-deneme.sql"),
+                           encoding="utf-8").read()
+    assert ozet("ABCD3456") in uretilen, "yeniden uretilen SQL kodu tutmuyor"
+    assert "ABCD3456" not in uretilen, "DUZ KOD yeniden uretilen SQL'e sizmis"
+    assert ", 4, 'deneme')" in uretilen, uretilen
+    assert "Ali''nin Yeri" in uretilen, "kacis yeniden uretimde kaybolmus"
+
     # --atla ikinci kumeyi veriyor, birincisini tekrar basmiyor.
     sahte = {"1": ["a"], "2": ["b"], "3": ["c"]}
     assert [k for k, _ in sec(sahte, 1)] == ["1"]
@@ -567,7 +674,8 @@ def kendini_kontrol_et():
     assert _rol == "anon", "yapilandirma.js'te anon degil '%s' anahtari var" % _rol
 
     print("kontrol gecti: kod uretimi, ozet normalizasyonu, SQL kacisi, "
-          "bayi sutunu, parti etiketi, kume atlama, QR, kart, anon anahtar")
+          "bayi sutunu, parti etiketi, kume atlama, listeden yeniden\n"
+          "uretim, QR, kart, anon anahtar")
     return True
 
 
@@ -576,6 +684,21 @@ if __name__ == "__main__":
         sys.exit(0 if kendini_kontrol_et() else 1)
     if len(sys.argv) > 1 and sys.argv[1] == "olc":
         olc()
+        sys.exit(0)
+    if len(sys.argv) > 1 and sys.argv[1] == "sql":
+        b = argparse.ArgumentParser(prog="saha.py sql",
+                                    description="Var olan bir kart listesinden "
+                                                "SQL'i yeniden uret")
+        b.add_argument("liste", nargs="?", default=LISTE_CIKTI,
+                       help="kart listesi (varsayilan %s)" % LISTE_CIKTI)
+        b.add_argument("--bayi", type=int, default=None,
+                       help="partiyi bu bayiye bagla")
+        b.add_argument("--parti", default=None,
+                       help="parti etiketi; verilmezse listedeki kullanilir")
+        m = b.parse_args(sys.argv[2:])
+        if m.parti and m.bayi is None:
+            b.error("--parti yalniz --bayi ile anlamli: parti bir bayiye ait.")
+        sql_yaz(m.liste, bayi=m.bayi, parti=m.parti)
         sys.exit(0)
     a = argparse.ArgumentParser(description="Saha kartlari uret")
     a.add_argument("alan_adi", help="ornek: cebimde.vercel.app")
