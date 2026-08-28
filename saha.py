@@ -288,7 +288,29 @@ def sql_uret(kayitlar, bayi=None, parti=None):
             deger += ", %d, '%s'" % (bayi, (parti or "").replace("'", "''"))
         govde.append(deger + ")")
     satirlar.append(",\n".join(govde))
-    satirlar.append("on conflict (kod_ozeti) do nothing;")
+    if bayi_var:
+        # BAYISIZ HALDE 'do nothing' DOGRU, BAYILI HALDE DEGILDI.
+        # Yasandi: 51 ve 52. partiler once bayisiz basildi ve SQL'leri
+        # calistirildi. Sonra ayni partiler bayiye baglanip yeniden
+        # uretildi -- ama kod_ozeti birincil anahtar ve KODLAR AYNI, yani
+        # 'do nothing' ikinci calistirmayi tamamen yutuyordu: 64 kod
+        # yerinde duruyor, bayi sutunu bos ve hicbir hata yok. Tam olarak
+        # bu depoda tekrar tekrar kapattigimiz sey -- basarisizligi
+        # goremeyen kapi.
+        #
+        # Guncelleme YALNIZ iki sutuna dokunuyor. mekan_id, gecerlilik,
+        # kullanildi ve kullanan disarida: bir kartin hangi mekana ait
+        # oldugu ya da kullanilip kullanilmadigi bu dosyayla degismemeli.
+        #
+        # KULLANILMIS KART DISARIDA. Kod kullanildiysa hakedis o an
+        # dogmus ve tutari donmus (bayilik.sql). Atfi sonradan baska bir
+        # bayiye tasimak, kapanmis bir hesabi geriye donuk yeniden
+        # yazmak olurdu.
+        satirlar.append("on conflict (kod_ozeti) do update")
+        satirlar.append("   set bayi = excluded.bayi, parti = excluded.parti")
+        satirlar.append(" where public.sahiplenme_kodu.kullanildi is null;")
+    else:
+        satirlar.append("on conflict (kod_ozeti) do nothing;")
     satirlar.append("")
     return "\n".join(satirlar)
 
@@ -643,6 +665,15 @@ def kendini_kontrol_et():
     assert ", 7, 'ankara''51')" in sb, sb
     assert "bayi #7" in sb
     assert "ABCD3456" not in sb, "DUZ KOD bayili SQL'e sizmis"
+
+    # Bayili SQL, ZATEN YAZILMIS bir kodu da bayiye baglamali; bayisiz
+    # olan hicbir seyi guncellememeli.
+    assert "do update" in sb and "kullanildi is null" in sb, sb
+    assert "do nothing" in s and "do update" not in s, s
+    # Guncelleme yalniz iki sutuna dokunsun: kartin hangi mekana ait
+    # oldugu ve kullanilip kullanilmadigi bu dosyayla degismemeli.
+    for yasak in ("mekan_id =", "gecerlilik =", "kullanildi =", "kullanan ="):
+        assert yasak not in sb, "guncelleme %s sutununa dokunuyor" % yasak
 
     # Parti etiketi: Turkce harf ve bosluk tasimamali (dosya adi, SQL ve
     # panelde yan yana geciyor).

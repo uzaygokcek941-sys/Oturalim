@@ -188,10 +188,31 @@ python saha.py sql saha_liste.csv --bayi 1 --parti ankara-52
 Kodlar listede duruyor; bayi ve parti yalnız SQL'de geçen bir şey. Kartın
 üstündeki kod ve QR **değişmiyor**, yalnız veritabanına yazılan sütunlar
 değişiyor. (Aynı desen `foto_cek.py sql`'de de var: CSV kaynak, SQL
-türetilmiş.) Supabase'de bu SQL'i çalıştırmak yeterli — `on conflict
-(kod_ozeti) do nothing` yüzünden kod zaten yazılmışsa bayi sütunu
-**güncellenmez**; o durumda önce o partinin satırlarını sil ya da
-`update ... set bayi = 1 where parti = '...'` yaz.
+türetilmiş.)
+
+Bayili SQL, kodu daha önce yazılmış partiyi de bağlıyor:
+
+```sql
+on conflict (kod_ozeti) do update
+   set bayi = excluded.bayi, parti = excluded.parti
+ where public.sahiplenme_kodu.kullanildi is null;
+```
+
+Bayisiz SQL'de `do nothing` doğru, bayilide **değildi**. Yaşandı: 51 ve
+52. partiler önce bayisiz basıldı ve SQL'leri çalıştırıldı; bayilik
+sonradan kuruldu. `kod_ozeti` birincil anahtar ve kodlar aynı olduğu
+için `do nothing` ikinci çalıştırmayı **tamamen yutuyordu** — 64 kod
+yerinde, bayi sütunu boş, hiçbir hata yok. Bu depoda tekrar tekrar
+kapattığımız şeyin aynısı: başarısızlığı göremeyen kapı.
+
+Güncelleme yalnız iki sütuna dokunuyor. `mekan_id`, `gecerlilik`,
+`kullanildi` ve `kullanan` dışarıda: bir kartın hangi mekana ait olduğu
+ya da kullanılıp kullanılmadığı bu dosyayla değişmemeli.
+
+**Kullanılmış kart dışarıda.** Kod kullanıldıysa hakediş o an doğmuş ve
+tutarı donmuş. Atfı sonradan başka bir bayiye taşımak, kapanmış bir
+hesabı geriye dönük yeniden yazmak olurdu. `bayilik_test.sql` 17. ve 18.
+adımlar bu ikisini ölçüyor.
 
 `saha.py` ikinci bir partiyi basarken **üzerine yazmayı reddediyor**:
 `saha_liste.csv`, hangi kodun hangi kapıya gittiğini gösteren tek kayıt
@@ -228,7 +249,7 @@ sahiplenildi" bayinin bilmesi gereken en önemli cümle.
 
 ## Ne sınandı
 
-`sh veritabani/kos.sh` gerçek Postgres'te 16 adım koşuyor
+`sh veritabani/kos.sh` gerçek Postgres'te 18 adım koşuyor
 (`bayilik_test.sql`). Ölçtüğü iki şey:
 
 - **Kimse başkasının verisini göremiyor**: anon bayi tablosunu okuyamıyor,

@@ -3356,7 +3356,7 @@ def sql_kontrolleri():
               ("akran", "akran_test: 12 adimin hepsi gecti"),
               ("fiyat oyu", "fiyat_oyu_test: 15 adimin hepsi gecti"),
               ("topluluk", "topluluk_test: 11 adimin hepsi gecti"),
-              ("bayilik", "BAYILIK TESTI: 16 adim gecti"))
+              ("bayilik", "BAYILIK TESTI: 18 adim gecti"))
              if imza not in cikti]
     if eksik:
         return kayit("SQL davranisi (gercek Postgres)",

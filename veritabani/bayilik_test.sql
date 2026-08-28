@@ -254,4 +254,51 @@ end $$;
 update public.bayi_bolge set durum = 'birakildi' where bayi = 1;
 insert into public.bayi_bolge (bayi, il, ilce) values (2,'06','Çankaya');
 
-\echo 'BAYILIK TESTI: 16 adim gecti'
+\echo '--- 17. once bayisiz yazilmis kod, sonradan bayiye baglanabiliyor'
+-- YASANMIS HAL. Ankara 51 ve 52 once bayisiz basildi ve SQL'leri
+-- calistirildi; bayilik sonradan kuruldu. Ayni partiyi bayiye baglayan
+-- ikinci SQL'de kod_ozeti AYNI (kodlar degismedi), yani 'on conflict
+-- do nothing' ikinci calistirmayi sessizce yutuyordu: kodlar yerinde,
+-- bayi bos, hata yok. saha.py artik bayili SQL'de 'do update' yaziyor
+-- ve bu adim onun gercekten tuttugunu olcuyor.
+insert into public.sahiplenme_kodu (kod_ozeti, mekan_id, il, mekan_ad)
+values (encode(digest('DDDD2345','sha256'),'hex'),'node/5','06','Sonradan');
+insert into public.sahiplenme_kodu
+  (kod_ozeti, mekan_id, il, mekan_ad, gecerlilik, bayi, parti)
+values (encode(digest('DDDD2345','sha256'),'hex'),'node/5','06','Sonradan',
+        current_date + 180, 1, 'ankara-51')
+on conflict (kod_ozeti) do update
+   set bayi = excluded.bayi, parti = excluded.parti
+ where public.sahiplenme_kodu.kullanildi is null;
+do $$
+declare b bigint; p text;
+begin
+  select bayi, parti into b, p from public.sahiplenme_kodu
+   where mekan_id = 'node/5';
+  if b is distinct from 1 or p is distinct from 'ankara-51' then
+    raise exception 'BASARISIZ: bayisiz kod baglanmadi (bayi=%, parti=%)', b, p;
+  end if;
+  raise notice 'gecti: basilmis parti yeniden basmadan baglandi';
+end $$;
+
+\echo '--- 18. KULLANILMIS kartin atfi geriye donuk degismiyor'
+-- node/1'in kodu 5. adimda kullanildi ve hakedisi o an dogdu. Atfi
+-- baska bir bayiye tasimak, kapanmis bir hesabi yeniden yazmak olurdu.
+insert into public.sahiplenme_kodu
+  (kod_ozeti, mekan_id, il, mekan_ad, gecerlilik, bayi, parti)
+values (encode(digest('AAAA2345','sha256'),'hex'),'node/1','06','A Kafe',
+        current_date + 180, 2, 'calinti')
+on conflict (kod_ozeti) do update
+   set bayi = excluded.bayi, parti = excluded.parti
+ where public.sahiplenme_kodu.kullanildi is null;
+do $$
+declare b bigint;
+begin
+  select bayi into b from public.sahiplenme_kodu where mekan_id = 'node/1';
+  if b is distinct from 1 then
+    raise exception 'BASARISIZ: kullanilmis kartin bayisi % oldu', b;
+  end if;
+  raise notice 'gecti: kullanilmis kartin atfi korundu';
+end $$;
+
+\echo 'BAYILIK TESTI: 18 adim gecti'
