@@ -105,6 +105,19 @@ python sunucu.py
 
 → http://localhost:8123
 
+**Tek başına çalıştırma** (sunucu yok, hesap yok, internet yok):
+Windows'ta `baslat.bat` dosyasına çift tıkla, macOS/Linux'ta
+`sh baslat.sh`. Ya da doğrudan:
+
+```bash
+python sunucu.py --yerel
+```
+
+`--yerel` Supabase'i kapatıyor: keşfet, fiyatlar, harita ve çevrimdışı
+çalışıyor; giriş/fiş/yorum katmanı hiç açılmıyor. Diskteki
+`app/yapilandirma.js` **değişmiyor** — boş ayar yalnız yanıtta üretiliyor.
+Adım adım kurulum: **`YEREL.md`**.
+
 Kontroller tek komutla:
 
 ```bash

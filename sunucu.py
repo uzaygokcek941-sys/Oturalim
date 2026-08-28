@@ -18,6 +18,21 @@ GERCEK CSP ALTINDA kosuyor.
 
     python sunucu.py            -> 8123
     python sunucu.py 9000       -> 9000
+    python sunucu.py --yerel    -> Supabase KAPALI (tek basina calisma)
+
+--YEREL NE YAPIYOR. app/yapilandirma.js'i BOS bir yapilandirmayla
+degistiriyor -- diskteki dosyaya DOKUNMADAN, yalniz yanitta. Boylece
+uygulama hicbir sunucuya cikmadan calisiyor: 81 il, 35.852 mekan,
+fiyatlar, harita ve cevrimdisi sayfasi il dosyalarindan geliyor.
+
+Kapanan sey yalniz HESAP KATMANI: giris, fis paylasma, yorum, fotograf
+yukleme, isletme paneli. Uygulama bunlari zaten "kurulu degil" diye
+sessizce gizliyor (kimlik.js ACIK bayragi), yani kirik bir ekran degil
+eksik bir ekran cikiyor.
+
+DOSYAYA DOKUNMAMASI SART: yapilandirma.js izlenen bir dosya ve icinde
+gercek anon anahtar var. Diski degistirseydik ya bosaltilmis hali
+kazayla commit'lenirdi ya da anahtar calisma agacinda degismis gorunurdu.
 """
 import io
 import json
@@ -45,10 +60,31 @@ def guvenlik_basliklari():
 
 BASLIKLAR = guvenlik_basliklari()
 
+# --yerel modunda servis edilen yapilandirma. Gercek dosyanin yapisini
+# birebir taklit ediyor; yalniz iki alan bos. kimlik.js bos gorunce
+# ACIK bayragini false yapiyor ve hesap katmanini hic acmiyor.
+YEREL_AYAR = (
+    "/* --yerel: Supabase KAPALI. Bu icerik sunucu.py tarafindan\n"
+    "   uretildi; diskteki app/yapilandirma.js DEGISMEDI. */\n"
+    "window.CEBIMDE = { supabaseUrl: \"\", supabaseAnahtar: \"\" };\n"
+).encode("utf-8")
+
 
 class OnbelleksizIsleyici(SimpleHTTPRequestHandler):
+    yerel = False
+
     def __init__(self, *a, **kw):
         super().__init__(*a, directory=KOK, **kw)
+
+    def do_GET(self):
+        if self.yerel and self.path.split("?")[0] == "/yapilandirma.js":
+            self.send_response(200)
+            self.send_header("Content-Type", "text/javascript; charset=utf-8")
+            self.send_header("Content-Length", str(len(YEREL_AYAR)))
+            self.end_headers()
+            self.wfile.write(YEREL_AYAR)
+            return
+        super().do_GET()
 
     def end_headers(self):
         self.send_header("Cache-Control", "no-store, must-revalidate")
@@ -65,11 +101,19 @@ class OnbelleksizIsleyici(SimpleHTTPRequestHandler):
 
 
 def main():
-    port = int(sys.argv[1]) if len(sys.argv) > 1 else 8123
+    arg = [a for a in sys.argv[1:] if not a.startswith("--")]
+    yerel = "--yerel" in sys.argv[1:]
+    port = int(arg[0]) if arg else 8123
     if not os.path.isdir(KOK):
-        sys.exit("app/ klasoru bulunamadi: " + KOK)
+        sys.exit("app/ klasoru bulunamadi: " + KOK + "\n"
+                 "Bu betigi deponun KOKUNDEN calistir.")
+    OnbelleksizIsleyici.yerel = yerel
     with ThreadingHTTPServer(("127.0.0.1", port), OnbelleksizIsleyici) as s:
-        print("Cebimde -> http://localhost:%d  (onbellek kapali)" % port)
+        print("Cebimde -> http://localhost:%d  (onbellek kapali%s)"
+              % (port, ", Supabase KAPALI" if yerel else ""))
+        if yerel:
+            print("  Hesap katmani kapali: giris, fis, yorum, fotograf yok.")
+            print("  Kesfet, fiyatlar, harita ve cevrimdisi CALISIYOR.")
         try:
             s.serve_forever()
         except KeyboardInterrupt:

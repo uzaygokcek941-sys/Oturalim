@@ -2468,6 +2468,82 @@ def talep_zinciri_ayrismis_mi():
     return s
 
 
+def yerel_kip_tutarli_mi():
+    """--yerel gercekten TEK BASINA calisiyor mu, ve diske dokunuyor mu.
+
+    IKI SEY ONEMLI VE IKISI DE SESSIZCE BOZULABILIR:
+
+    (a) DISKE DOKUNMAMALI. app/yapilandirma.js izlenen bir dosya.
+        --yerel onu bosaltsaydi ya bosaltilmis hali kazayla
+        commit'lenirdi ya da calisma agacinda surekli degismis
+        gorunurdu. Bos ayar YALNIZ yanitta uretiliyor.
+
+    (b) BASLATICILAR --yerel'i GERCEKTEN gecmeli. baslat.bat ve
+        baslat.sh bayragi kaybederse hicbir hata olmaz: sunucu kalkar,
+        uygulama acilir, sadece gercek Supabase'e cikmaya calisir --
+        yani "tek basina calisiyor" iddiasi sessizce yalan olur.
+
+    Kip DAVRANIS olarak da sinaniyor: sunucu gercekten kaldiriliyor ve
+    /yapilandirma.js'in ne dondurdugune bakiliyor."""
+    s = []
+    sun = oku("sunucu.py")
+    if "--yerel" not in sun:
+        s.append("sunucu.py --yerel bayragini tanimiyor")
+    # Diske yazma yolu OLMAMALI: yapilandirma.js'e acik(...,"w") yok.
+    if re.search(r'open\([^)]*yapilandirma[^)]*["\']w', sun):
+        s.append("sunucu.py yapilandirma.js'e YAZIYOR; --yerel diske "
+                 "dokunmamali")
+    for ad in ("baslat.bat", "baslat.sh"):
+        try:
+            b = oku(ad)
+        except OSError:
+            s.append("%s yok" % ad)
+            continue
+        if "--yerel" not in b:
+            s.append("%s --yerel gecmiyor; 'tek basina' iddiasi sessizce "
+                     "yalan olur" % ad)
+        if "sunucu.py" not in b:
+            s.append("%s sunucu.py'yi calistirmiyor" % ad)
+    if not os.path.exists(os.path.join(KOK, "YEREL.md")):
+        s.append("YEREL.md yok; README ona atif yapiyor")
+    if "--yerel" not in oku("README.md"):
+        s.append("README --yerel kipinden hic soz etmiyor")
+    if s:
+        return s
+
+    # ---- DAVRANIS: sunucuyu gercekten kaldir ----
+    import socket, subprocess as _sp, time as _t, urllib.request as _u
+    with socket.socket() as sk:
+        sk.bind(("127.0.0.1", 0))
+        port = sk.getsockname()[1]
+    once = oku("app", "yapilandirma.js")
+    p = _sp.Popen([sys.executable, "sunucu.py", str(port), "--yerel"],
+                  cwd=KOK, stdout=_sp.DEVNULL, stderr=_sp.DEVNULL)
+    try:
+        govde = None
+        for _ in range(60):
+            try:
+                govde = _u.urlopen("http://127.0.0.1:%d/yapilandirma.js" % port,
+                                   timeout=2).read().decode("utf-8")
+                break
+            except Exception:
+                _t.sleep(0.25)
+        if govde is None:
+            return ["--yerel sunucusu kalkmadi"]
+        if 'supabaseUrl: ""' not in govde:
+            s.append("--yerel bos supabaseUrl servis etmiyor: %r" % govde[:120])
+        if "https://" in govde:
+            s.append("--yerel yanitinda gercek adres var; tek basina degil")
+    finally:
+        p.terminate()
+        p.wait(timeout=10)
+
+    # Disk DEGISMEMIS olmali.
+    if oku("app", "yapilandirma.js") != once:
+        s.append("--yerel app/yapilandirma.js dosyasini DEGISTIRDI")
+    return s
+
+
 def veri_turu_kapisi_mi():
     """Veri turunun "degisiklik var mi" kapisi YENI dosyayi goruyor mu.
 
@@ -3713,6 +3789,7 @@ def main():
     kayit("degismez: kapsama sayfasi veriyle ayni", kapsama_tutarli_mi())
     kayit("degismez: site haritasi yayina gidiyor", site_haritasi_yayinda_mi())
     kayit("degismez: talep zinciri ayrismamis", talep_zinciri_ayrismis_mi())
+    kayit("degismez: --yerel tek basina calisiyor", yerel_kip_tutarli_mi())
     kayit("degismez: overpass turu gecici hatada pes etmiyor",
           overpass_denemesi_mi())
     kayit("degismez: seviye onayli katkiyi sayiyor", seviye_mi())
