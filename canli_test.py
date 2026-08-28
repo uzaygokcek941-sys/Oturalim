@@ -88,6 +88,7 @@ def kos(taban):
              if yol else p.chromium.launch(args=["--no-sandbox"]))
         try:
             s += _a1_a7(t, taban)
+            s += _varsayilan_sira(t, taban)
             s += _fotograf(t, taban)
             s += _g2_g3(t, taban)
             s += _cevrimdisi(t, taban)
@@ -251,7 +252,13 @@ def _fotograf(t, taban):
     (28). Fotograf yoksa bu kontrol DUSER ve dusmesi dogrudur -- foto
     hatti yine kopmus demektir."""
     s = []
-    ctx, sayfa, hatalar, csp = _sayfa_ac(t, taban + "/kesfet.html?il=35")
+    # SIRALAMA SABITLENDI (?sirala=ad). Bu kontrol ilk sayfadaki kartlara
+    # bakiyor ve sordugu sey "foto hatti karta ulasiyor mu" -- "varsayilan
+    # siralamada ilk sayfaya foto dusuyor mu" DEGIL. Varsayilan sira
+    # "dolu"ya cevrildiginde ilk 120 kart degisir ve bu kapi hatasiz bir
+    # degisiklik yuzunden kirmizi yanabilirdi. Ayni ders daha once de
+    # alinmisti: fiyat kontrolu de bayrak=menu ile deterministik yapildi.
+    ctx, sayfa, hatalar, csp = _sayfa_ac(t, taban + "/kesfet.html?il=35&sirala=ad")
     try:
         try:
             sayfa.wait_for_selector(".kart", timeout=BEKLE)
@@ -285,6 +292,60 @@ def _fotograf(t, taban):
             s.append("FOTO: JS hatasi: %s" % hatalar[0])
         if csp:
             s.append("FOTO: CSP ihlali: %s" % csp[0])
+    finally:
+        ctx.close()
+    return s
+
+
+def _varsayilan_sira(t, taban):
+    """VARSAYILAN sirada ilk sayfa fiyat gosteriyor mu.
+
+    A5 bayrak=menu SUZGECIYLE bakiyor, yani "fiyat gosterebiliyor mu"
+    sorusunu cevapliyor. Bu kontrol baska bir sey soruyor ve daha sert:
+    HICBIR SEY SECMEYEN kullanicinin gordugu ilk ekranda fiyat var mi.
+
+    OLCULDU ve fark buradan cikti: A -> Z sirasinda Istanbul'un ilk 120
+    kartinin SIFIRINDA fiyat vardi -- oysa il dosyasinda 191 fiyatli
+    mekan duruyordu. PAZARLAMA.md B1'in "telefonu eline alsa hicbir sey
+    goremez" cumlesi veri eksikliginden degil SIRADAN geliyordu.
+    Varsayilan "once bilgisi olan"a cevrilince 102 oldu.
+
+    KAPI, cunku bu geri donebilir: siralama tek satir ve varsayilani
+    degistirmek hicbir yerde hata vermez."""
+    s = []
+    ctx, sayfa, hatalar, _ = _sayfa_ac(t, taban + "/kesfet.html?il=34")
+    try:
+        try:
+            sayfa.wait_for_selector(".kart", timeout=BEKLE)
+        except Exception:
+            s.append("SIRA: Istanbul varsayilan listesinde hic kart yok")
+            return s
+        r = sayfa.evaluate("""() => {
+            const k = [...document.querySelectorAll('.kart')];
+            const ad = x => {
+              const h = x.querySelector('h3');
+              return ((h ? h.innerText : x.innerText) || '').trim();
+            };
+            return { kart: k.length,
+                     fiyatli: k.filter(x => /\\d[\\d.]*\\s*₺/.test(x.innerText)).length,
+                     farkli: new Set(k.map(ad)).size };
+        }""")
+        OLCUM["varsayilan_fiyatli"] = r["fiyatli"]
+        OLCUM["varsayilan_farkli_ad"] = r["farkli"]
+        # ESIK 20: olculen deger 102. Cok altina dusmek, ya varsayilanin
+        # geri alindigini ya da puanlamanin bozuldugunu gosterir.
+        if r["fiyatli"] < 20:
+            s.append("SIRA: varsayilan listede yalniz %d kart fiyat "
+                     "gosteriyor (en az 20 bekleniyor). Varsayilan sira "
+                     "'dolu' olmaktan cikmis olabilir" % r["fiyatli"])
+        # ZINCIR KAPISI. Sube sirasi satiri dusunce Istanbul'da ilk 120
+        # kart 21 isletmeden geliyordu (56'si Domino's). Olculen: 50.
+        if r["farkli"] < 35:
+            s.append("SIRA: ilk sayfa yalniz %d farkli isletmeden geliyor "
+                     "(en az 35 bekleniyor). Zincirler one yigilmis olabilir"
+                     % r["farkli"])
+        if hatalar:
+            s.append("SIRA: JS hatasi: %s" % hatalar[0])
     finally:
         ctx.close()
     return s
@@ -393,6 +454,11 @@ def main():
           % (OLCUM.get("ankara_kart", "?"), OLCUM.get("fiyatli_kart", "?"),
              OLCUM.get("mesafe", "?"), OLCUM.get("cevrimdisi_bayt", "?"),
              OLCUM.get("izmir_foto", "?")))
+    # VARSAYILAN SIRA ayri satirda: A5'in olctugu sey "suzgec calisiyor
+    # mu", burasi "hicbir sey secmeyen kullanici fiyat goruyor mu".
+    print("  varsayilan sirada ilk sayfa: %s kart fiyatli, %s farkli isletme"
+          % (OLCUM.get("varsayilan_fiyatli", "?"),
+             OLCUM.get("varsayilan_farkli_ad", "?")))
     if OLCUM.get("foto_ornek"):
         print("  fotograf atfi ornegi: %s" % OLCUM["foto_ornek"][0])
 

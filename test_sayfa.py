@@ -1489,8 +1489,11 @@ def kendini_kontrol_et():
                     durum: (document.querySelector('#konum-durum') || {}).textContent || ""
                   };
                 }""")
-                if once != "ad":
-                    sorunlar.append("kesfet: baslangic siralamasi 'ad' degil (%s)" % once)
+                # VARSAYILAN 'dolu' (once bilgisi olan). Olculdu: A -> Z
+                # ile Istanbul'un ilk 120 kartinin SIFIRINDA fiyat vardi,
+                # oysa il dosyasinda 191 fiyatli mekan var.
+                if once != "dolu":
+                    sorunlar.append("kesfet: baslangic siralamasi 'dolu' degil (%s)" % once)
                 if o["sirala"] != "yakin":
                     sorunlar.append(
                         "kesfet: konum alindi ama siralama '%s' kaldi; "
@@ -1548,7 +1551,14 @@ def kendini_kontrol_et():
                 '  adres:null, kaynak:"kullanici", yazar:null, lisans:null,'
                 '  durum:"bekliyor", olusturuldu:"2026-08-22T10:00:00Z" }'
                 '] }, rpc:{} };')
-            fsf, _h = sayfa_ac("/kesfet.html?il=06", foto_taklit, sahte_modul=True)
+            # SIRALAMA SABITLENDI (?sirala=ad). Bu kontrol UC BELIRLI
+            # kart kimligini ariyor ve sordugu sey "foto karta ciziliyor
+            # mu". Varsayilan sira "dolu"ya cevrilince o kartlar ilk
+            # sayfadan dustu ve kontrol "kart bulunamadi" dedi -- hatasiz
+            # bir degisiklik yuzunden. Ayni ders canli_test.py'deki Izmir
+            # foto kapisinda da alindi.
+            fsf, _h = sayfa_ac("/kesfet.html?il=06&sirala=ad", foto_taklit,
+                               sahte_modul=True)
             fsf.wait_for_timeout(1800)
             f = fsf.evaluate("""() => {
               const al = id => {

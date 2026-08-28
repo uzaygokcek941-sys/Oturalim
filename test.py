@@ -2174,6 +2174,57 @@ def saha_ciktilari_gizli_mi():
     return s
 
 
+def varsayilan_sira_dolu_mu():
+    """Kesfet varsayilan sirasi "once bilgisi olan" mi, ve zincir kirilmis mi.
+
+    OLCULDU (28 Agustos, gercek tarayici, yerel sunucu):
+      Istanbul  A -> Z          ilk 120 kart, FIYATLI  0
+      Istanbul  varsayilan      ilk 120 kart, FIYATLI 102
+      Ankara    varsayilan      6 (ilin fiyatli mekanlarinin TAMAMI)
+    Yani "uygulama bos" izlenimi veri eksikliginden degil SIRADAN
+    geliyordu; il dosyasinda 191 fiyatli Istanbul mekani zaten vardi.
+
+    SUBE SIRASI SATIRI EN AZ VARSAYILAN KADAR ONEMLI ve ayri olculdu:
+    Istanbul'un 191 fiyatli mekani yalniz 55 FARKLI ad; Domino's 56,
+    Kahve Dunyasi 56, ikisi %59. Yalniz puana gore dizince ilk 120 kart
+    21 isletmeden geliyordu. Sube sirasi eklenince 55'e cikti -- yani
+    mumkun olan en fazlasi. O satir dusunce siralama kendi amacini
+    yiyor: bos ekran yerine zincir listesi.
+
+    FOTOGRAF PUANA GIRMEMELI: fotograflar Supabase'ten sonradan geliyor
+    ve liste yeniden ciziliyor (fotograflariYukle -> ciz). Puana
+    girseydi liste kullanicinin gozu onunde yeniden dizilirdi."""
+    s = []
+    js = oku("app", "kesfet.js")
+    html = oku("app", "kesfet.html")
+
+    if not re.search(r'sirala\s*=\s*P\.get\("sirala"\)\s*\|\|\s*"dolu"', js):
+        s.append("kesfet.js: varsayilan siralama 'dolu' degil")
+    # Varsayilan adres cubuguna YAZILMAMALI, yoksa her URL ?sirala=dolu
+    # tasir ve paylasilan baglanti varsayilani dondurur.
+    if not re.search(r'if \(sirala !== "dolu"\) p\.set\("sirala"', js):
+        s.append("kesfet.js: urlYaz varsayilani 'dolu' saymiyor; "
+                 "her adres ?sirala= tasiyacak")
+    if 'value="dolu"' not in html:
+        s.append("kesfet.html: 'dolu' secenegi menude yok")
+    if not re.search(r'function bilgiPuani', js):
+        s.append("kesfet.js: bilgiPuani() yok")
+    # Sube sirasi: zincirin one yigilmasini kiran satir.
+    if "subeSira" not in js:
+        s.append("kesfet.js: sube sirasi kaldirilmis; ilk sayfa zincir "
+                 "listesine doner (Istanbul'da 120 kart -> 21 isletme)")
+    # Konum reddedilince varsayilana donmeli, eski 'ad'a degil.
+    if re.search(r'el\("#sirala"\)\.value = sirala = "ad"', js):
+        s.append("kesfet.js: konum reddedilince 'ad'a donuyor, "
+                 "varsayilana degil")
+    # Fotograf puana girmemeli.
+    m = re.search(r"function bilgiPuani\(m\)\{(.*?)\n  \}", js, re.S)
+    if m and re.search(r"\bfoto\w*", m.group(1)):
+        s.append("bilgiPuani fotografa bakiyor; fotograf sonradan geliyor "
+                 "ve liste kullanicinin gozu onunde yeniden dizilir")
+    return s
+
+
 def veri_turu_kapisi_mi():
     """Veri turunun "degisiklik var mi" kapisi YENI dosyayi goruyor mu.
 
@@ -3413,6 +3464,8 @@ def main():
           alan_listesi_ayrismis_mi())
     kayit("degismez: bayilik zinciri ayrismamis", bayilik_ayrismis_mi())
     kayit("degismez: saha kartlari depoya girmiyor", saha_ciktilari_gizli_mi())
+    kayit("degismez: kesfet once bilgisi olani gosteriyor",
+          varsayilan_sira_dolu_mu())
     kayit("degismez: overpass turu gecici hatada pes etmiyor",
           overpass_denemesi_mi())
     kayit("degismez: seviye onayli katkiyi sayiyor", seviye_mi())

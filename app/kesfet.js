@@ -34,7 +34,7 @@ let mekanlar = [],
     turler   = new Set(P.getAll("tur").filter(Boolean)),
     bayraklar= new Set(P.getAll("bayrak").filter(Boolean)),
     arama    = sade(P.get("q") || ""),
-    sirala   = P.get("sirala") || "ad",
+    sirala   = P.get("sirala") || "dolu",
     butce    = +(P.get("butce") || 0),
     konum    = null,
     limit    = SAYFA,
@@ -61,7 +61,7 @@ function urlYaz(){
   turler.forEach(t => p.append("tur", t));
   bayraklar.forEach(b => p.append("bayrak", b));
   if (arama) p.set("q", arama);
-  if (sirala !== "ad") p.set("sirala", sirala);
+  if (sirala !== "dolu") p.set("sirala", sirala);
   if (butce) p.set("butce", butce);
   history.replaceState(null, "", location.pathname + "?" + p);
 }
@@ -108,7 +108,61 @@ function suzulmus(){
     return true;
   });
 
-  if (sirala === "ucuz")
+  /* "Önce bilgisi olan" -- VARSAYILAN SIRA.
+
+     NEDEN. Ölçüldü: İstanbul'da A → Z ile ilk 120 kartın **0**'ında
+     fiyat vardı; oysa il dosyasında 191 fiyatlı mekan var. Yani
+     "uygulama boş" izlenimi veri eksikliğinden değil sıradan geliyordu.
+     Deponun kendi kuralının aynısı: *boş bir harita, küçük ama dolu bir
+     haritadan kötüdür.*
+
+     HİÇBİR MEKAN GİZLENMİYOR, yalnız sıra değişiyor. Listede hepsi var.
+
+     ÜÇ KATMAN, ve aralarındaki mesafe bilerek büyük: fiyatı olan her
+     mekan, bilgisi ne kadar tam olursa olsun fiyatsız olanın üstünde.
+     Uygulamanın verdiği söz fiyat; "telefonu var ama fiyatı yok" o sözü
+     karşılamıyor.
+
+     FOTOĞRAF PUANA GİRMİYOR ve bu şart: fotoğraflar Supabase'ten
+     SONRADAN geliyor ve liste yeniden çiziliyor (fotograflariYukle ->
+     ciz). Puana girseydi liste kullanıcının gözü önünde yeniden
+     dizilirdi. */
+  function bilgiPuani(m){
+    if (yemekFiyati(m) != null) return 100;   /* uygulamanın verdiği söz */
+    if (m.menu)                 return 50;    /* menü var, fiyat sayısı çıkmadı */
+    return (m.saat ? 3 : 0) + (m.adres ? 1 : 0) + (m.tel ? 1 : 0) +
+           (m.web || m.insta ? 1 : 0);
+  }
+
+  if (sirala === "dolu"){
+    /* Puan ÖNCE hesaplanıyor, karşılaştırıcının içinde değil.
+       yemekFiyati() kategori kategori topluyor ve İstanbul'da 12.095
+       mekan var; karşılaştırıcı onu O(n log n) kez çağırırdı. */
+    const puan = new Map();
+    for (const m of l) puan.set(m.id, bilgiPuani(m));
+
+    /* ÖNCE HER İŞLETMEDEN BİR TANE — ve bu satır olmadan sıralama
+       kendi amacını yiyordu. ÖLÇÜLDÜ: İstanbul'un 191 fiyatlı mekanı
+       yalnız **55 farklı ad**; Domino's 56, Kahve Dünyası 56, yani
+       ikisi %59. Yalnız puana göre dizince ilk 120 kart 21 işletmeden
+       geliyordu — 56'sı Domino's, 32'si Kahve Dünyası. Yani boş ekranı
+       zincir listesiyle değiştirmiş olurduk; keşif uygulaması için bu
+       daha kötü.
+
+       Sıra numarası: aynı adın kaçıncı şubesi. Önce bütün adların
+       birincisi geliyor, sonra ikincileri. Zincir listeden ÇIKMIYOR,
+       öne yığılmıyor. */
+    const gorulen = new Map(), subeSira = new Map();
+    for (const m of [...l].sort((a,b) => a.ad.localeCompare(b.ad, "tr"))){
+      const n = gorulen.get(m.ad) || 0;
+      subeSira.set(m.id, n);
+      gorulen.set(m.ad, n + 1);
+    }
+    l.sort((a,b) => puan.get(b.id) - puan.get(a.id) ||
+                    subeSira.get(a.id) - subeSira.get(b.id) ||
+                    a.ad.localeCompare(b.ad, "tr"));
+  }
+  else if (sirala === "ucuz")
     l.sort((a,b) => ((yemekFiyati(a) == null) ? Infinity : yemekFiyati(a)) -
                     ((yemekFiyati(b) == null) ? Infinity : yemekFiyati(b))
                     || a.ad.localeCompare(b.ad, "tr"));
@@ -1033,7 +1087,7 @@ function konumIste(bitince){
   if (konum || !navigator.geolocation){ bitince(); return; }
   navigator.geolocation.getCurrentPosition(
     p => { konum = { lat:p.coords.latitude, lon:p.coords.longitude }; bitince(); },
-    () => { el("#sirala").value = sirala = "ad"; bitince(); },
+    () => { el("#sirala").value = sirala = "dolu"; bitince(); },
     { timeout:6000 });
 }
 

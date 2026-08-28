@@ -448,6 +448,15 @@ try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dat
       </div>
       <select class="mini" id="il" aria-label="Şehir"><option>…</option></select>
       <select class="mini" id="sirala" aria-label="Sıralama">
+        <!-- VARSAYILAN VE EN BASTA. Olculdu: Istanbul'da A -> Z ile ilk
+             120 kartin 0'inda fiyat vardi, oysa il dosyasinda 191 fiyatli
+             mekan var. Yani "uygulama bos" izlenimi veri eksikliginden
+             degil SIRADAN geliyordu. -->
+        <!-- ETIKET KISA VE OLCUMLE KISALDI. "Önce bilgisi olan" 150 px
+             genisligindeydi; seçicide 320 px ekranda 100 px yer var ve
+             test_sayfa.py dört genişlikte birden kırpılma bildirdi.
+             "Önce ucuz" ile aynı kalıp, aynı boy. -->
+        <option value="dolu">Önce dolu</option>
         <option value="ad">A → Z</option>
         <option value="ucuz">Önce ucuz</option>
         <option value="yakin">Bana yakın</option>
