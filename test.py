@@ -2130,6 +2130,50 @@ def bayilik_ayrismis_mi():
     return s
 
 
+def saha_ciktilari_gizli_mi():
+    """saha.py'nin urettigi UC dosya da depoya girmiyor mu.
+
+    Ikisi DUZ KOD tasiyor: saha_kartlar.html ve saha_liste.csv. Her kod
+    bir isletme sayfasinin anahtari; depoya girmis bir liste, o kartlarin
+    hepsini gecersiz kilmayi gerektirir ve dagitilmis kart geri alinamaz.
+
+    KALIP DEGIL, GIT'E SORULUYOR. .gitignore satirlarini okuyup "var"
+    demek yetmez: bir satir sonraki bir kural tarafindan (! ile) geri
+    alinmis olabilir ve bu depoda tam olarak bu tur bir kayma yasandi --
+    yol belirtmeyen "mekan_foto.sql" kalibi SEMA dosyasini da yutmustu.
+    Burada gercek cevap `git check-ignore`'da.
+
+    ARSIV ADLARI DA SINANIYOR. saha.py ikinci parti basarken uzerine
+    yazmayi reddediyor ve "once eskiyi yeniden adlandir" diyor; o
+    onerilen ad da (saha_liste-ankara-51.csv) kapsanmali, yoksa betigin
+    kendi onerisi bir sizinti talimati olur."""
+    adlar = []
+    saha = oku("saha.py")
+    for anahtar in ("KART_CIKTI", "SQL_CIKTI", "LISTE_CIKTI"):
+        m = re.search(r'^%s = "([^"]+)"' % anahtar, saha, re.M)
+        if not m:
+            return ["saha.py: %s bulunamadi" % anahtar]
+        adlar.append(m.group(1))
+    # Betigin kendi onerdigi arsiv adi da kapsanmali.
+    arsiv = [re.sub(r"\.(\w+)$", r"-ankara-51.\1", a) for a in adlar]
+
+    s = []
+    hepsi = adlar + arsiv
+    c = subprocess.run(["git", "check-ignore"] + hepsi,
+                       capture_output=True, text=True, cwd=KOK)
+    kapsanan = set(c.stdout.split())
+    for ad in hepsi:
+        if ad not in kapsanan:
+            s.append("%s .gitignore kapsaminda degil; duz kod depoya girebilir" % ad)
+
+    # Ayrica: bugun izlenen bir dosya olmasin.
+    c = subprocess.run(["git", "ls-files", "--"] + hepsi,
+                       capture_output=True, text=True, cwd=KOK)
+    for ad in c.stdout.split():
+        s.append("%s DEPODA IZLENIYOR -- kodlari gecersiz kil" % ad)
+    return s
+
+
 def veri_turu_kapisi_mi():
     """Veri turunun "degisiklik var mi" kapisi YENI dosyayi goruyor mu.
 
@@ -3368,6 +3412,7 @@ def main():
     kayit("degismez: alan listeleri ayrismamis",
           alan_listesi_ayrismis_mi())
     kayit("degismez: bayilik zinciri ayrismamis", bayilik_ayrismis_mi())
+    kayit("degismez: saha kartlari depoya girmiyor", saha_ciktilari_gizli_mi())
     kayit("degismez: overpass turu gecici hatada pes etmiyor",
           overpass_denemesi_mi())
     kayit("degismez: seviye onayli katkiyi sayiyor", seviye_mi())

@@ -41,9 +41,15 @@ sahiplenme_kume.csv
 # isletme sayfasinin anahtari), saha_kodlar.sql ise yalniz ozetleri ama
 # hangi mekana hangi kartin gittigini gosteriyor. Kartlar basilip
 # dagitiliyor; kaynak depoda durmasi gereken sey degil.
-saha_kartlar.html
-saha_kodlar.sql
-saha_liste.csv
+# YILDIZLI, cunku parti arsivi ayni adla duramiyor. saha.py ciktilari
+# SABIT ada yaziyor ve ikinci bir parti basmak birincinin uzerine
+# yaziyordu -- yani hangi kodun hangi kapiya gittigini gosteren TEK kayit
+# siliniyordu. Betik artik uzerine yazmayi reddediyor ve "once eskiyi
+# yeniden adlandir" diyor; o yeniden adlandirilmis dosya da (ornek:
+# saha_liste-ankara-51.csv) duz kod tasiyor ve depoya girmemeli.
+saha_kartlar*.html
+saha_kodlar*.sql
+saha_liste*.csv
 
 # foto_cek.py ciktilari. KOKE SABITLENMIS (bastaki /): yol belirtmeyen
 # bir kalip AYNI ADLI her dosyayi yutuyor ve tam olarak bu oldu --

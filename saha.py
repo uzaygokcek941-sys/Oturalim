@@ -8,6 +8,7 @@ ve tek kullanimlik bir sahiplenme kodu var (Faz 4).
     python saha.py cebimde.vercel.app             # en degerli 3 kume
     python saha.py cebimde.vercel.app --kume 5
     python saha.py cebimde.vercel.app --il Ankara --kume 2
+    python saha.py cebimde.vercel.app --il Ankara --atla 1 --kume 1  # ikinci kume
     python saha.py cebimde.vercel.app --il Ankara --bayi 3 --parti ankara-eylul
     python saha.py olc                             # dagitim sonrasi olcum
     python saha.py test
@@ -22,6 +23,12 @@ ALAN ADI DISARIDAN VERILIYOR, sabit degil. site_haritasi.py ile ayni
 gerekce: QR mutlak adres istiyor ve depoda gercek alan adi yazili degil.
 Uydurulmus bir alan adiyla basilmis kart, basilmamis karttan kotudur --
 tarandiginda hicbir yere gitmez ve isletme bir daha denemez.
+
+UZERINE YAZMIYOR. Ucu de SABIT ada yaziliyor ve ikinci parti birincinin
+uzerine biniyordu -- yani hangi kodun hangi kapiya gittigini gosteren TEK
+kayit siliniyordu. Dagitilmis bir kart geri alinamiyor, o kayit da geri
+gelmiyor. Betik artik var olan ciktiyi gorunce duruyor ve ne yapilacagini
+soyluyor; bilerek isteniyorsa --ustune-yaz.
 
 UC CIKTI, UCU DE .gitignore'DA:
   saha_kartlar.html   yazdirilacak kartlar (A4, sayfa basina 4)
@@ -131,7 +138,7 @@ def kumeleri_oku(yol=KUME_CSV, il=None):
     return kume
 
 
-def sec(kumeler, adet):
+def sec(kumeler, adet, atla=0):
     """Ilk N kume, NUMARA SIRASIYLA.
 
     Burada yeniden siralama YAPILMIYOR: sahiplen.py kumeleri zaten
@@ -141,9 +148,14 @@ def sec(kumeler, adet):
     Ilk yazimda burada "en cok uyesi olan" diye ikinci bir tanim vardi ve
     farkli bir sonuc veriyordu: boyuta gore 1, 3, 2; degere gore 1, 2, 3.
     Ayni kavramin iki tanimi, ikisinin ayrismasi demek. Tanim sahiplen.py'de
-    kalsin."""
+    kalsin.
+
+    ATLA, ikinci partiyi basmak icin. --kume 2 birinci VE ikinci kumeyi
+    birlikte basiyor; ilk kume zaten dagitilmissa bu, ayni mekanlar icin
+    IKINCI bir gecerli kod uretmek demek. --atla 1 --kume 1 yalniz ikinci
+    kumeyi veriyor."""
     sirali = sorted(kumeler.items(), key=lambda kv: int(kv[0]))
-    return sirali[:adet]
+    return sirali[atla:atla + adet]
 
 
 def _oz(s, n):
@@ -305,12 +317,33 @@ def _parti_adi(il, kumeler):
     return ad[:60]
 
 
-def main(taban, adet, il=None, bayi=None, parti=None):
+def _ciktilari_koru(ustune_yaz):
+    """Var olan bir partinin uzerine yazma.
+
+    saha_liste.csv, hangi kodun hangi kapiya gittigini gosteren TEK
+    kayit -- kod veritabaninda yalniz sha256 ozeti olarak duruyor, yani
+    silinen bir liste geri getirilemiyor. Kartlar da basilip dagitilmis
+    olabilir. Bu yuzden sessiz uzerine yazma degil, DURMA."""
+    var = [y for y in (KART_CIKTI, SQL_CIKTI, LISTE_CIKTI) if os.path.exists(y)]
+    if not var or ustune_yaz:
+        return
+    sys.exit(
+        "Onceki parti duruyor: %s\n"
+        "Uzerine yazmiyorum -- %s hangi kodun hangi kapiya gittigini gosteren\n"
+        "TEK kayit ve kod veritabaninda yalniz sha256 ozeti olarak duruyor.\n"
+        "Once eskiyi yeniden adlandir (ornek: mv %s saha_liste-ankara-51.csv;\n"
+        ".gitignore yildizli kaliplarla onu da kapsiyor), sonra tekrar kos.\n"
+        "Bilerek istiyorsan: --ustune-yaz"
+        % (", ".join(var), LISTE_CIKTI, LISTE_CIKTI))
+
+
+def main(taban, adet, il=None, bayi=None, parti=None, atla=0,
+         ustune_yaz=False):
     if not taban.startswith("http"):
         taban = "https://" + taban
     taban = taban.rstrip("/")
 
-    secilen = sec(kumeleri_oku(il=il), adet)
+    secilen = sec(kumeleri_oku(il=il), adet, atla=atla)
     if not secilen:
         sys.exit("kume yok")
 
@@ -334,6 +367,8 @@ def main(taban, adet, il=None, bayi=None, parti=None):
 
     if bayi is not None and not parti:
         parti = _parti_adi(il, secilen)
+
+    _ciktilari_koru(ustune_yaz)
 
     io.open(KART_CIKTI, "w", encoding="utf-8").write(kart_html(taban, kayitlar))
     io.open(SQL_CIKTI, "w", encoding="utf-8").write(
@@ -476,6 +511,13 @@ def kendini_kontrol_et():
     assert [k for k, _ in sec(sahte, 2)] == ["1", "2"], sec(sahte, 2)
     assert [k for k, _ in sec(sahte, 3)] == ["1", "2", "3"]
 
+    # --atla ikinci kumeyi veriyor, birincisini tekrar basmiyor.
+    sahte = {"1": ["a"], "2": ["b"], "3": ["c"]}
+    assert [k for k, _ in sec(sahte, 1)] == ["1"]
+    assert [k for k, _ in sec(sahte, 1, atla=1)] == ["2"]
+    assert [k for k, _ in sec(sahte, 2, atla=1)] == ["2", "3"]
+    assert sec(sahte, 1, atla=9) == []
+
     # SQL kacisi: tek tirnakli mekan adi enjeksiyon olmamali
     ornek = [{"kod": "ABCD3456", "mekan_id": "node/1", "il_kodu": "06",
               "ad": "Ali'nin Yeri"}]
@@ -525,7 +567,7 @@ def kendini_kontrol_et():
     assert _rol == "anon", "yapilandirma.js'te anon degil '%s' anahtari var" % _rol
 
     print("kontrol gecti: kod uretimi, ozet normalizasyonu, SQL kacisi, "
-          "bayi sutunu, parti etiketi, QR, kart, anon anahtar")
+          "bayi sutunu, parti etiketi, kume atlama, QR, kart, anon anahtar")
     return True
 
 
@@ -538,6 +580,10 @@ if __name__ == "__main__":
     a = argparse.ArgumentParser(description="Saha kartlari uret")
     a.add_argument("alan_adi", help="ornek: cebimde.vercel.app")
     a.add_argument("--kume", type=int, default=3, help="kac kume (varsayilan 3)")
+    a.add_argument("--atla", type=int, default=0,
+                   help="ilk N kumeyi atla (ikinci partiyi basmak icin)")
+    a.add_argument("--ustune-yaz", action="store_true",
+                   help="var olan cikti dosyalarinin uzerine yaz")
     a.add_argument("--il", default=None,
                    help="yalniz bu ildeki kumeler (ornek: Ankara)")
     a.add_argument("--bayi", type=int, default=None,
@@ -547,4 +593,5 @@ if __name__ == "__main__":
     n = a.parse_args()
     if n.parti and n.bayi is None:
         a.error("--parti yalniz --bayi ile anlamli: parti bir bayiye ait.")
-    main(n.alan_adi, n.kume, il=n.il, bayi=n.bayi, parti=n.parti)
+    main(n.alan_adi, n.kume, il=n.il, bayi=n.bayi, parti=n.parti,
+         atla=n.atla, ustune_yaz=n.ustune_yaz)
