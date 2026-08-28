@@ -1,0 +1,66 @@
+Websitesi olan mekan: 57
+
+[1/57] 100 Burger                           js       0 kalem
+[2/57] 3 Cores Roastery Coffee Shop         js       0 kalem
+[3/57] A4 Kahve                             js       0 kalem
+[4/57] Ade Miel Coffee Shop                 js       0 kalem
+[5/57] Adıyaman Çiğ Köftecisi               js       0 kalem
+[6/57] Anka E-Spor Merkezi Bayındır         js       0 kalem
+[7/57] Bake & Joy                           js       0 kalem
+[8/57] bi'sütlü bi'tatlı                    js       0 kalem
+[9/57] Bilge Şahin Pasta Dükkanı            js       0 kalem
+[10/57] Cafe Puzzle barbekü                  js       0 kalem
+[11/57] Catalyst Coffee and Hub              js       0 kalem
+[12/57] Cennetkuşu Çukurambar                js       0 kalem
+[13/57] Dayi Kürek Lahmacun (Emek)           js       0 kalem
+[14/57] Dayı'nın Yeri                        js       0 kalem
+[15/57] Elizinn                              woo     99 kalem
+[16/57] Emir Hatay Dürümcüsü                 js       0 kalem
+[17/57] EskiYeni Bar                         js       0 kalem
+[18/57] Fanus Komünite Kafe                  js       0 kalem
+[19/57] Fevzi Hoca Balık Lokantası           js       0 kalem
+[20/57] Gazi Üniversitesi Mühendislik Yeme   js       0 kalem
+[21/57] Greenwich Coffee                     woo    100 kalem
+[22/57] Gıyma Kebap                          js       0 kalem
+[23/57] homies pub                           js       0 kalem
+[24/57] Hype Coffee                          js       0 kalem
+[25/57] IF Sokak Tunus                       js       0 kalem
+[26/57] Jolly Joker Ankara                   js       0 kalem
+[27/57] Kalender Zebra                       js       0 kalem
+[28/57] Keyfimce                             js       0 kalem
+[29/57] Klas Pastanesi                       js       0 kalem
+[30/57] Konakbay Çibörek-Mantı               js       0 kalem
+[31/57] Kronotrop                            html     7 kalem
+[32/57] Liman Kitap Kafe                     js       0 kalem
+[33/57] Livane Restaurant - Artvin Evi       js       0 kalem
+[34/57] Maharet Mantı Ankara & Kayseri Yağ   js       0 kalem
+[35/57] Meşhur Özçelik Aspava                js       0 kalem
+[36/57] Miso Ramen Ankara                    js       0 kalem
+[37/57] Mozaik Kebap                         js       0 kalem
+[38/57] New Jersey Coffee House              js       0 kalem
+[39/57] Niyokki Armada                       js       0 kalem
+[40/57] Nusr-Et Steakhouse Ankara            js       0 kalem
+[41/57] Quick China                          js       0 kalem
+[42/57] Quito Coffee                         js       0 kalem
+[43/57] Ring Music Studio & Living Room      js       0 kalem
+[44/57] Starbucks                            js       0 kalem
+[45/57] Süha  Döner & Köfteci                js       0 kalem
+[46/57] Tarihi İnegöl Köftecisi Nevzat Ust   js       0 kalem
+[47/57] Tavacı Recep Usta Parkvadi           js       0 kalem
+[48/57] Tetra N Roastery                     js       0 kalem
+[49/57] The York Pub and Bar                 js       0 kalem
+[50/57] Urumchi Uyghur Restaurant            js       0 kalem
+[51/57] Veganarsist Kızılay                  woo     59 kalem
+[52/57] Vinni the Vegan Witch                js       0 kalem
+[53/57] Yelken Balık                         js       0 kalem
+[54/57] Yöresel Türk Mutfağı                 js       0 kalem
+[55/57] Çiçek Lokantası                      js       0 kalem
+[56/57] Çiğköftesim                          js       0 kalem
+[57/57] Çukurağa Sofrası                     html    28 kalem
+
+Site denendi      : 57
+Fiyat cikan site  : 5 (%8)
+Toplam kalem      : 293
+  woo  : 3 site
+  html : 2 site
+  js   : 52 site

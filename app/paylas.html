@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fiyat paylaş — Cebimde</title>
+<meta name="description" content="Gittiğin mekanda ödediğin tutarı paylaş. Bir sonraki kişi kazık yemeden gitsin.">
+<meta property="og:title" content="Fiyat paylaş — Cebimde">
+<meta property="og:description" content="Kazık yediğin yeri paylaş, başkası yemesin.">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="tr_TR">
+<meta property="og:image" content="og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="marka.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="ikon/ikon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cebimde">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="stil.css">
+<link rel="stylesheet" href="sahne.css">
+<script>document.documentElement.classList.add("js-sahne");/* Emniyet: sahne.js gelmezse (CDN degil ama betik hatasi, engel,
+   eksik <script>) perde acilmaz ve icerik KALICI gizli kalirdi.
+   2 sn sonra sinif kendiliginden kalkiyor; sahne.css o sinif
+   olmadan hicbir seyi gizlemiyor. Bir kez oldu: isletme.html
+   sahne.js'i hic yuklemiyordu. */
+setTimeout(function(){if(!window.__sahneHazir)document.documentElement.classList.remove("js-sahne");},2000);</script>
+<script>
+try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dataset.tema=t;}catch(e){}
+</script>
+<style>
+  .ikili{display:grid;grid-template-columns:1.15fr .85fr;gap:clamp(24px,4vw,56px);align-items:start}
+  @media (max-width:860px){.ikili{grid-template-columns:1fr}}
+
+  .neden{display:grid;gap:var(--a4);margin-top:var(--a5);list-style:none}
+  .neden li{display:flex;gap:var(--a3);font-size:16px;color:var(--metin-2);line-height:1.6}
+  .neden svg{width:20px;height:20px;color:var(--vurgu);flex:0 0 auto;margin-top:4px}
+  .neden strong{color:var(--metin)}
+
+  .kutucuk{position:sticky;top:calc(var(--ust-yukseklik) + var(--a5))}
+  .alan-grup{display:grid;gap:var(--a4);margin-block:var(--a5)}
+  .alan-grup label{display:grid;gap:8px}
+  .alan-grup .ad{font-size:13px;font-weight:700;color:var(--metin-2);letter-spacing:.02em}
+  .alan-grup .ipucu{font-size:13px;color:var(--metin-3);line-height:1.45}
+  .alan-grup input{
+    min-height:48px;padding:12px 16px;border-radius:var(--r);background:var(--zemin-3);
+    border:1px solid var(--cizgi);color:var(--metin);font-size:16px;width:100%;
+  }
+  .alan-grup input:hover{border-color:var(--cizgi-2)}
+  .alan-grup input::placeholder{color:var(--metin-3)}
+
+  .kvkk-uyari{
+    display:flex;gap:var(--a3);padding:var(--a4);border-radius:var(--r);
+    background:var(--vurgu-los);border:1px solid var(--vurgu);margin-top:var(--a4);
+  }
+  .kvkk-uyari svg{width:20px;height:20px;color:var(--vurgu);flex:0 0 auto;margin-top:1px}
+  .kvkk-uyari p{font-size:13px;line-height:1.6;color:var(--metin-2)}
+  .kvkk-uyari strong{color:var(--metin)}
+
+  .yok{
+    display:grid;gap:var(--a3);padding:var(--a5);border-radius:var(--r);
+    background:var(--zemin-3);border:1px dashed var(--cizgi-2);
+  }
+  .yok h3{font-family:var(--font-govde);font-size:13px;font-weight:700;color:var(--metin)}
+  .yok p{font-size:13px;line-height:1.6}
+
+  .ne-oluyor{display:grid;gap:var(--a3);margin-top:var(--a6);counter-reset:n;list-style:none}
+  .ne-oluyor li{
+    counter-increment:n;display:flex;gap:var(--a3);align-items:flex-start;
+    font-size:16px;color:var(--metin-2);line-height:1.55;
+  }
+  .ne-oluyor li::before{
+    content:counter(n);flex:0 0 auto;width:24px;height:24px;border-radius:var(--r-tam);
+    background:var(--zemin-3);color:var(--metin-3);display:grid;place-items:center;
+    font-size:13px;font-weight:700;font-family:var(--font-baslik);
+  }
+</style>
+</head>
+<body class="sahne-fis">
+<a class="atla" href="#ana">İçeriğe atla</a>
+
+<header class="ust">
+  <div class="kap">
+    <a class="marka" href="index.html" aria-label="Cebimde ana sayfa">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="mg" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#ffa03a"/><stop offset="1" stop-color="#f4690a"/></linearGradient></defs><g transform="rotate(-14 26 11)"><rect x="13" y="3.2" width="26" height="7.2" rx="2.2" fill="#00bfa6"/><rect x="11" y="6.6" width="28" height="7.2" rx="2.2" fill="#ffb74d"/></g><path d="M32 8c-9.6 0-17.4 7.5-17.4 16.8 0 8.8 5.9 15.1 12.9 23.8 1.9 2.4 4.5 5.6 4.5 5.6s2.6-3.2 4.5-5.6c7-8.7 12.9-15 12.9-23.8C49.4 15.5 41.6 8 32 8Z" fill="url(#mg)"/><circle cx="32" cy="25.4" r="9.1" fill="#fff"/><g stroke="#f4690a" stroke-width="1.75" stroke-linecap="round"><path d="M27.5 20.1v3.3M29.4 20.1v3.3M31.3 20.1v3.3"/><path d="M29.4 23.4v7.2"/><path d="M35.9 20.1v4.4" stroke-width="3.3"/><path d="M35.9 24.2v6.4"/></g></svg>
+      <span>Ceb<em>imde</em></span>
+    </a>
+    <nav class="menu" aria-label="Ana menü">
+      <a href="index.html">Ana sayfa</a>
+      <a href="kesfet.html">Keşfet</a>
+      <a href="paylas.html" aria-current="page">Fiyat paylaş</a>
+      <a href="topluluk.html" class="gizle-kucuk">Topluluk</a>
+      <a href="hakkinda.html" class="gizle-kucuk">Hakkında</a>
+      <span data-kimlik-menu></span>
+      <button class="tema-dugme" data-tema-dugme type="button" aria-label="Temayı değiştir">
+        <svg data-ay viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+        <svg data-gunes viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" hidden><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+    </nav>
+  </div>
+</header>
+
+<main id="ana" class="bolum">
+  <div class="kap">
+    <div class="ikili">
+
+      <div>
+        <span class="etiket">Fiyat paylaş</span>
+        <h1 style="max-width:18ch">
+          Ödediğin tutar, bir sonraki kişinin bilgisi olsun
+        </h1>
+        <p style="margin-top:var(--a4);font-size:16px;max-width:52ch">
+          Mekanların çoğunda fiyat yok, çünkü işletmeler menülerini okunamayan
+          biçimde yayımlıyor. Bu boşluğu kapatmanın tek yolu gerçekten gidenlerin
+          söylemesi.
+        </p>
+
+        <ul class="neden">
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.4 7-11a7 7 0 1 0-14 0c0 4.6 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg>
+            <span><strong>Tek bir hesap bile işe yarıyor.</strong> Bir mekanda ne kadar
+            harcandığını bilmek, o mekanı hiç bilmemekten çok daha iyi.</span>
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+            <span><strong>İki dakika sürüyor.</strong> Üyelik yok, hesap açmak yok.
+            Mekan adı, ödediğin tutar, kaç kişiydiniz — bu kadar.</span>
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h10M4 17h7"/></svg>
+            <span><strong>Kimseyi kötülemek değil.</strong> Amaç işletmeyi hedef almak
+            değil, insanın cebindeki parayla ne yapabileceğini bilmesi.</span>
+          </li>
+        </ul>
+
+        <ol class="ne-oluyor">
+          <li>Formu doldurursun, doğrudan bana gelir.</li>
+          <li>Aynı mekan için gelen tutarları karşılaştırırım; tek başına duran aykırı bir rakamı yayımlamam.</li>
+          <li>Veri bir sonraki güncellemede mekanın sayfasında görünür.</li>
+          <li>Adın, e-postan veya telefonun hiçbir yerde görünmez — zaten istemiyorum.</li>
+        </ol>
+      </div>
+
+      <div class="kutucuk">
+        <div class="kutu">
+          <h2 style="font-size:20px">Hesabını ekle</h2>
+
+          <form class="alan-grup" id="form" data-giris="fis">
+            <label>
+              <span class="ad">Mekan adı</span>
+              <!-- maxlength veritabanindaki kisitla ayni (2-200): yoksa uzun
+                   bir ad sunucuda reddediliyor ve kullanici ham SQL cumlesi
+                   goruyor. -->
+              <input id="mekan" name="mekan" type="text" required
+                     minlength="2" maxlength="200"
+                     placeholder="Örn. Kronotrop Kavaklıdere" autocomplete="off">
+            </label>
+            <label>
+              <span class="ad">Ödediğin toplam tutar (₺)</span>
+              <input id="tutar" name="tutar" type="number" inputmode="numeric"
+                     min="1" step="1" required placeholder="480">
+              <span class="ipucu">Hesabın tamamı — bahşiş hariç.</span>
+            </label>
+            <label>
+              <span class="ad">Kaç kişiydiniz</span>
+              <input id="kisi" name="kisi" type="number" inputmode="numeric"
+                     min="1" max="30" step="1" required placeholder="2">
+            </label>
+            <label>
+              <span class="ad">Ne zaman gittin</span>
+              <input id="tarih" name="tarih" type="date" required>
+            </label>
+            <label>
+              <span class="ad">Not <span style="font-weight:400;color:var(--metin-3)">(isteğe bağlı)</span></span>
+              <input id="aciklama" name="aciklama" type="text" maxlength="200"
+                     placeholder="Örn. iki kahve iki tatlı">
+            </label>
+          </form>
+
+          <div id="form-alani"></div>
+
+          <div class="kvkk-uyari">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4m0 4h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
+            <p>
+              <strong>Fiş fotoğrafı yüklüyorsan</strong> kart numarası, isim ve
+              benzeri kişisel bilgileri kapatarak yükle. Gönderdiğin bilgiler
+              <a href="gizlilik.html">aydınlatma metnindeki</a> şekilde işlenir.
+            </p>
+          </div>
+        </div>
+
+        <p style="margin-top:var(--a4);font-size:13px;color:var(--metin-3);line-height:1.6">
+          Yanlış bir fiyat mı gördün, ya da işletme sahibi olarak bilginin
+          kaldırılmasını mı istiyorsun?
+          <a href="gizlilik.html#bildir">Bildirim kanalı burada</a> — en geç 7 gün içinde dönüyorum.
+        </p>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<footer class="alt">
+  <div class="kap">
+    <div class="alt-izgara">
+      <div>
+        <a class="marka" href="index.html" style="margin-bottom:var(--a3)">
+          <svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="mg" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#ffa03a"/><stop offset="1" stop-color="#f4690a"/></linearGradient></defs><g transform="rotate(-14 26 11)"><rect x="13" y="3.2" width="26" height="7.2" rx="2.2" fill="#00bfa6"/><rect x="11" y="6.6" width="28" height="7.2" rx="2.2" fill="#ffb74d"/></g><path d="M32 8c-9.6 0-17.4 7.5-17.4 16.8 0 8.8 5.9 15.1 12.9 23.8 1.9 2.4 4.5 5.6 4.5 5.6s2.6-3.2 4.5-5.6c7-8.7 12.9-15 12.9-23.8C49.4 15.5 41.6 8 32 8Z" fill="url(#mg)"/><circle cx="32" cy="25.4" r="9.1" fill="#fff"/><g stroke="#f4690a" stroke-width="1.75" stroke-linecap="round"><path d="M27.5 20.1v3.3M29.4 20.1v3.3M31.3 20.1v3.3"/><path d="M29.4 23.4v7.2"/><path d="M35.9 20.1v4.4" stroke-width="3.3"/><path d="M35.9 24.2v6.4"/></g></svg>
+          <span>Ceb<em>imde</em></span>
+        </a>
+        <p style="font-size:16px;max-width:38ch">
+          Cebindeki bütçeyle keşfet. Türkiye'deki mekanları gerçek fiyat bilgisiyle gösteren
+          bağımsız bir proje.
+        </p>
+      </div>
+      <div>
+        <h4>Ürün</h4>
+        <ul>
+          <li><a href="kesfet.html">Mekanları keşfet</a></li>
+          <li><a href="paylas.html">Fiyat paylaş</a></li>
+          <li><a href="hakkinda.html">Hakkında</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Yasal</h4>
+        <ul>
+          <li><a href="gizlilik.html">Aydınlatma metni ve gizlilik</a></li>
+          <li><a href="gizlilik.html#bildir">Hata bildir / kaldırma talebi</a></li>
+          <li><a href="hakkinda.html#veri">Veri kaynağı ve lisans</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="kunye">
+      Mekan verisi <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap katkıcıları</a> (ODbL).
+      Fiyatlar işletmelerin kendi yayımladığı menülerden ve kullanıcı paylaşımlarından derlenir;
+      güncelliği garanti edilmez, bağlayıcı değildir.
+    </p>
+  </div>
+</footer>
+
+<script src="ortak.js" defer></script>
+<script src="sahne.js" defer></script>
+<script src="yapilandirma.js"></script>
+<script type="module">
+import Kimlik, { tutarSorunu, kisiSorunu } from "./kimlik.js";
+
+/* Kimlik kurulu değilse eski e-posta yolu çalışır; kurulu ve girişliyse
+   paylaşım doğrudan veritabanına gider. İkisi de yoksa kullanıcıya
+   çalışmayan bir düğme göstermek yerine durum açıkça söyleniyor. */
+const EPOSTA = "uzaygokcek941@gmail.com";   /* kendi adresinle değiştir */
+
+const el = s => document.querySelector(s);
+const P = new URLSearchParams(location.search);
+
+function durumKutusu(sinif, baslik, metin, dugmeHTML){
+  el("#form-alani").innerHTML =
+    '<div class="yok"><h3>' + baslik + "</h3><p>" + metin + "</p>" + (dugmeHTML || "") + "</div>";
+}
+
+/* ortak.js'ten: YEREL gun. Onceden toISOString() vardi, yani UTC --
+   Turkiye kalici UTC+3 oldugu icin her gece 00:00-03:00 arasi form DUNUN
+   tarihiyle aciliyor ve <input max> bugunu SECTIRMIYORDU. Tam da disari
+   cikip fis paylasan insanin saati. */
+const bugun = bugunYerel;
+
+document.addEventListener("DOMContentLoaded", () => {
+  const gelen = P.get("mekan");
+  if (gelen) el("#mekan").value = gelen;
+  const t = el("#tarih");
+  t.value = bugun();
+  t.max = bugun();
+});
+
+Kimlik.hazir.then(acik => {
+  const alan = el("#form-alani");
+
+  /* --- 1. Kimlik kurulu ve giris yapilmis: dogrudan gonder --- */
+  if (acik && Kimlik.girisli){
+    alan.innerHTML = '<button class="dugme tam" type="submit" form="form" id="gonder">Paylaşımı gönder</button>' +
+      '<p style="margin-top:var(--a3);font-size:13px;color:var(--metin-3);line-height:1.55">' +
+      "Gönderdiğin fiyat önce tarafımdan kontrol edilir, sonra mekanın sayfasında görünür. " +
+      'Durumunu <a href="hesabim.html">hesabından</a> takip edebilirsin.</p>';
+
+    el("#form").addEventListener("submit", async e => {
+      e.preventDefault();
+      const dugme = el("#gonder");
+      const mekanAd = el("#mekan").value.trim();
+      const tutar = Number(el("#tutar").value);
+      const kisi = Number(el("#kisi").value);
+
+      if (mekanAd.length < 2) return alert("Mekan adını yaz.");
+      const t = tutarSorunu(tutar); if (t) return alert(t);
+      const k = kisiSorunu(kisi);   if (k) return alert(k);
+
+      dugme.disabled = true;
+      dugme.textContent = "Gönderiliyor…";
+      try {
+        await Kimlik.paylasimGonder({
+          mekanAd, tutar, kisi,
+          il: P.get("il") || null,
+          mekanId: P.get("mekanId") || null,
+          tarih: el("#tarih").value || bugun(),
+          aciklama: el("#aciklama").value
+        });
+        alan.innerHTML =
+          '<div class="yok"><h3>Teşekkürler, aldım</h3>' +
+          "<p>Paylaşımın kaydedildi. Kontrol ettikten sonra mekanın sayfasında görünecek.</p>" +
+          '<a class="dugme tam" href="hesabim.html">Paylaşımlarımı gör</a></div>';
+        el("#form").hidden = true;
+      } catch (err){
+        alert(err.message);
+        dugme.disabled = false;
+        dugme.textContent = "Paylaşımı gönder";
+      }
+    });
+    return;
+  }
+
+  /* --- 2. Kimlik kurulu ama giris yapilmamis --- */
+  if (acik){
+    const donus = "paylas.html" + location.search;
+    durumKutusu("", "Paylaşmak için giriş yap",
+      "Hesap açmak yarım dakika sürüyor; gönderdiğin fiyatların durumunu takip edebilmen için gerekiyor.",
+      '<a class="dugme tam" href="giris.html?donus=' + encodeURIComponent(donus) + '">Giriş yap veya hesap aç</a>');
+    return;
+  }
+
+  /* --- 3. Kimlik hic kurulu degil: e-posta yedegi --- */
+  durumKutusu("", "Form henüz bağlanmadı",
+    "Paylaşım sistemi kurulana kadar hesabını e-posta ile gönderebilirsin — " +
+    "aşağıdaki düğme yazdıklarını hazır bir e-postaya doldurur.",
+    '<a class="dugme tam" id="eposta-dugme" href="#">E-posta ile gönder</a>');
+
+  el("#eposta-dugme").addEventListener("click", e => {
+    e.preventDefault();
+    const mekan = el("#mekan").value.trim() || "(mekan adı)";
+    const tutar = el("#tutar").value.trim() || "(tutar)";
+    const kisi  = el("#kisi").value.trim()  || "(kişi sayısı)";
+    /* Şablon dizgi: satır sonlarını doğrudan kabul ediyor, kaçış gerekmiyor. */
+    const govde =
+`Mekan: ${mekan}
+Ödenen tutar: ${tutar} TL
+Kişi sayısı: ${kisi}
+Tarih: ${el("#tarih").value || bugun()}
+Not: ${el("#aciklama").value || "-"}
+
+(Fiş fotoğrafı eklemek istersen bu e-postaya ekleyebilirsin. Kart numarası ve isim gibi bilgileri kapatmayı unutma.)`;
+    location.href = "mailto:" + EPOSTA +
+      "?subject=" + encodeURIComponent("Cebimde fiyat paylaşımı: " + mekan) +
+      "&body=" + encodeURIComponent(govde);
+  });
+});
+</script>
+</body>
+</html>

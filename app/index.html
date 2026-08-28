@@ -1,0 +1,1215 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cebimde — cebindeki bütçeyle keşfet</title>
+<meta name="description" content="Cebindeki bütçeyle keşfet. Türkiye'deki 35.852 kafe, restoran ve barı bütçene, bahçesine ve şu an açık olup olmadığına göre filtrele. Ücretsiz, üyeliksiz, reklamsız.">
+<meta property="og:title" content="Cebimde — cebindeki bütçeyle keşfet">
+<meta property="og:description" content="35.852 mekan, 81 il. Cebinde ne varsa, masanda o var.">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="tr_TR">
+<meta property="og:image" content="og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="marka.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="ikon/ikon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cebimde">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="stil.css">
+<link rel="stylesheet" href="sahne.css">
+<script>/* Sahne girisleri yalniz JS varken gizlenir. Bu satir olmazsa
+  JS yuklenmeyen veya arka planda acilan sekmede sayfa bos gorunur. */
+document.documentElement.classList.add("js-sahne");/* Emniyet: sahne.js gelmezse (CDN degil ama betik hatasi, engel,
+   eksik <script>) perde acilmaz ve icerik KALICI gizli kalirdi.
+   2 sn sonra sinif kendiliginden kalkiyor; sahne.css o sinif
+   olmadan hicbir seyi gizlemiyor. Bir kez oldu: isletme.html
+   sahne.js'i hic yuklemiyordu. */
+setTimeout(function(){if(!window.__sahneHazir)document.documentElement.classList.remove("js-sahne");},2000);</script>
+<script>/* FOUC olmasın: tema tercihini boyamadan önce uygula */
+try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dataset.tema=t;}catch(e){}</script>
+<style>
+  /* ---- kahraman ---- */
+  .kahraman{position:relative;overflow:hidden;padding-block:clamp(40px,7vw,88px) 0}
+  .kahraman::before{
+    content:"";position:absolute;inset:-30% -10% auto -10%;height:520px;z-index:-1;
+    background:radial-gradient(60% 60% at 22% 20%,color-mix(in srgb,var(--vurgu) 22%,transparent),transparent 70%);
+    filter:blur(30px);pointer-events:none;
+  }
+  .kahraman-bas{ max-width:min(560px,100%); margin:0 auto var(--a6) }
+  .kahraman h1{max-width:22ch}
+  .kahraman h1 em{font-style:normal;color:var(--vurgu)}
+  .kahraman .giris{margin-top:var(--a4);font-size:20px;max-width:52ch}
+
+  /* ---- cep: ekranın asıl işi ----
+     Bütçe önce, kategori sonra, konum en son. Kutu formun kendisi:
+     "Bugün cebimde ₺300" tek bir cümle gibi okunsun. */
+  .cep{ margin-top:var(--a5) }
+  /* Marka maketindeki "Butceni Gir" ekrani: ORTALANMIS, kucuk etiket,
+     cok buyuk rakam, altinda turuncu kaydirici. */
+  .cep-ust{ text-align:center }
+  .cep-tutar{ display:block }
+  .cep-etiket{
+    display:block; font-size:14px; font-weight:600; letter-spacing:.02em;
+    color:var(--metin-2); margin-bottom:var(--a1);
+  }
+  .cep-alan{
+    display:inline-flex; align-items:baseline; gap:2px; justify-content:center;
+  }
+  .cep-simge{
+    font-family:var(--font-baslik); font-size:clamp(30px,7vw,44px);
+    font-weight:700; color:var(--metin); line-height:1;
+  }
+  /* Rakam maketteki gibi cok buyuk ve LACIVERT -- turuncu degil: makette
+     de rakam lacivert, turuncu olan kaydirici. */
+  #butce-girdi{
+    width:4ch; min-width:0; background:none; border:0; color:var(--metin);
+    font-family:var(--font-baslik); font-size:clamp(44px,11vw,68px);
+    font-weight:700; letter-spacing:-.03em; font-variant-numeric:tabular-nums;
+    padding:0; text-align:left; line-height:1.05;
+  }
+  #butce-girdi:focus{ outline:2px solid var(--vurgu); outline-offset:6px;
+    border-radius:var(--r-s) }
+  #butce-girdi::placeholder{ color:var(--cizgi-2) }
+  /* "Farketmez": rakam yerine kelime. Soluk bir yer tutucu rakam,
+     olmayan bir butceyi varmis gibi gosteriyordu. */
+  .cep-alan.farketmez .cep-simge{ display:none }
+  .cep-alan.farketmez #butce-girdi{
+    width:9ch; font-size:clamp(24px,6vw,34px); color:var(--metin-2);
+    text-align:center;
+  }
+  .cep-alan.farketmez #butce-girdi::placeholder{ color:var(--metin-2); opacity:1 }
+
+  /* KAYDIRICI. Dolu tarafi marka turuncusu, bos tarafi gri, tutamak
+     beyaz + turuncu halka -- makette birebir boyle. Yukseklik 28px:
+     WCAG 2.5.8 dokunma hedefi (tutamak 26px ve serit onu tasiyor). */
+  /* 28 -> 44 px, AMA DUZEN KIPIRDAMADAN. Olculdu: denetim 28x277'ydi,
+     yani parmakla surukleme hedefi 44 px'in altindaydi.
+
+     Yuksekligi buyutmek tek basina IZI ASAGI KAYDIRIYOR: tarayici
+     8 px'lik izi kutunun icinde dikey ORTALIYOR, kutu 28'den 44'e
+     cikinca iz de 8 px asagi iniyor. Ust kenar bosluguyla o 8 px geri
+     alindi; alt kenar boslugu -16 px, boylece AKISA KATKI 28 px kaliyor
+     ve altindaki metin hic oynamiyor.
+
+     display:block DE GEREKTI ve sebebi olcumle cikti. <input type=range>
+     varsayilan olarak SATIR ICI: bir satir kutusunda duruyor, dikey
+     kenar bosluklari akisi etkilemiyor ve kutu buyuyunce satir kutusu
+     buyuyup altini itiyor. Once margin-bottom:-8 yazdim, alttaki metin
+     yine de 555'ten 563'e kaydi; -16 yaptim ve HICBIR SEY DEGISMEDI --
+     yani negatif bosluk hic islemiyordu. Blok yapilinca kenar
+     bosluklari normal calisiyor. Kagit uzerinde dogru olan sayi
+     tarayicida yanlisti; olcum soyledi.
+
+     -1 px de olcumle bulundu, hesapla degil: blok yapmak satir
+     kutusunun bosunu (~7 px) da kaldiriyor, yani -8 fazla cekiyordu.
+     Uc sayi da (44 / merkez / alttaki metnin yeri) tarayicida
+     dogrulandi.
+
+     Tutamagin margin-top'u IZE gore, kutuya gore degil -- o yuzden
+     dokunulmadi. */
+  .cep-kaydirici{
+    -webkit-appearance:none; appearance:none;
+    display:block; width:100%; height:44px; background:none;
+    margin-top:calc(var(--a4) - 8px); margin-bottom:-1px;
+    cursor:pointer;
+  }
+  .cep-kaydirici::-webkit-slider-runnable-track{
+    height:8px; border-radius:var(--r-tam);
+    background:linear-gradient(90deg,var(--marka) var(--dolu,0%),
+                               var(--zemin-3) var(--dolu,0%));
+  }
+  .cep-kaydirici::-moz-range-track{
+    height:8px; border-radius:var(--r-tam); background:var(--zemin-3);
+  }
+  .cep-kaydirici::-moz-range-progress{
+    height:8px; border-radius:var(--r-tam); background:var(--marka);
+  }
+  .cep-kaydirici::-webkit-slider-thumb{
+    -webkit-appearance:none; appearance:none;
+    width:26px; height:26px; margin-top:-9px; border-radius:var(--r-tam);
+    background:#fff; border:3px solid var(--marka); box-shadow:var(--golge-2);
+  }
+  .cep-kaydirici::-moz-range-thumb{
+    width:26px; height:26px; border-radius:var(--r-tam);
+    background:#fff; border:3px solid var(--marka); box-shadow:var(--golge-2);
+  }
+  .cep-kaydirici:focus-visible{ outline:2px solid var(--vurgu); outline-offset:4px;
+    border-radius:var(--r-tam) }
+  .cep-not{ margin-top:var(--a3); font-size:13px; color:var(--metin-3);
+    text-align:center }
+
+  /* KATEGORILER: makette YUVARLAK RENKLI IKONLAR, altinda kucuk etiket.
+     Metin cipi degil.
+
+     GLIF LACIVERT, BEYAZ DEGIL. Makette beyaz; olculdu ve WCAG 1.4.11'in
+     3:1 grafik esigini hicbiri gecmiyor (beyaz/teal 2,33 - beyaz/turuncu
+     2,61 - beyaz/sari 1,72). Ucuncu kez ayni karar: rengi degil
+     murekkebi degistir. Lacivert glif 5,9-10,4 arasi veriyor. */
+  .canim{ border:0; margin-top:var(--a6) }
+  .canim legend{
+    font-size:14px; font-weight:600; color:var(--metin-2);
+    margin-bottom:var(--a3); padding:0; display:block; text-align:center;
+  }
+  /* DORT SUTUN, tek satir -- maketteki duzen. Alti cip iki satira
+     tasiyordu. Dar ekranda da dort kaliyor: 320 px'te bile daire 44 px
+     dokunma hedefini koruyor. */
+  .canim-cipler{
+    display:grid; grid-template-columns:repeat(4,1fr); gap:var(--a2);
+  }
+  .canim-cip{
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+    background:none; border:0; padding:var(--a1) 0; color:var(--metin-2);
+    font-size:12px; font-weight:600; line-height:1.2; text-align:center;
+    transition:var(--hiz) var(--egri);
+  }
+  .canim-cip i{
+    width:56px; height:56px; border-radius:var(--r-tam);
+    display:grid; place-items:center; background:var(--daire,var(--zemin-3));
+    color:var(--metin); transition:var(--hiz) var(--egri);
+    box-shadow:var(--golge-1);
+  }
+  .canim-cip svg{ width:26px; height:26px }
+  .canim-cip:hover i{ transform:translateY(-2px); box-shadow:var(--golge-2) }
+  /* Secili hal RENKLE DEGIL cerceveyle isaretleniyor: daire zaten renkli
+     ve rengi koyulastirmak "secili" ile "secili degil"i ayirt ettirmiyor. */
+  .canim-cip[aria-pressed="true"] i{
+    box-shadow:0 0 0 3px var(--zemin), 0 0 0 6px var(--metin);
+  }
+  .canim-cip[aria-pressed="true"]{ color:var(--metin) }
+
+  /* Birincil eylem: makette OKYANUS (teal) hap dugme. */
+  .cep .dugme.buyuk{ margin-top:var(--a6); width:100%; border-radius:var(--r-tam) }
+  .dugme.birincil{
+    background:var(--teal); border-color:var(--teal); color:var(--teal-metin);
+    box-shadow:var(--golge-2);
+  }
+  .dugme.birincil:hover{ background:var(--teal); filter:brightness(.95) }
+
+  /* Bütçenin ne kadarının ÖLÇÜLDÜĞÜ. Vurgulu değil, okunur: bu satır
+     bir rozet değil bir itiraf -- 35.852 mekanın 163'ünde ölçüm var. */
+  .butce-ozet{
+    margin-top:var(--a4); padding-left:var(--a3);
+    border-left:2px solid var(--sari);
+    font-size:14px; line-height:1.55; color:var(--metin-2);
+  }
+  .akran{
+    margin-top:var(--a3); padding-left:var(--a3);
+    border-left:2px solid var(--yesil);
+    font-size:14px; line-height:1.55; color:var(--metin-2);
+  }
+
+  /* ---- yedek: şehir seçici ---- */
+  .secim{
+    background:var(--yuzey);border:1px solid var(--cizgi);
+    border-radius:var(--r-b);padding:var(--a5);box-shadow:var(--golge-3);max-width:660px;
+  }
+  .secim legend{
+    font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--metin-3);margin-bottom:var(--a3);display:block;padding:0;
+  }
+  .secim fieldset{border:0}
+  .sehir-satir{display:flex;gap:var(--a3);align-items:flex-end;flex-wrap:wrap}
+  .sehir-satir label{flex:1 1 220px}
+  select.alan{
+    width:100%;min-height:52px;padding:0 48px 0 16px;border-radius:var(--r);
+    background:var(--zemin-3);border:1px solid var(--cizgi);color:var(--metin);
+    font-size:16px;font-weight:600;cursor:pointer;appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23b3a695' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 14px center;background-size:17px;
+  }
+  select.alan:hover{border-color:var(--cizgi-2)}
+  .secim .not{margin-top:var(--a3);font-size:13px;color:var(--metin-3);line-height:1.55}
+
+  /* Dar ekran: tutar kutusu ve hazır çipler alt alta. 320 px'te yan yana
+     dururlarsa çipler 24 px'in altına iniyor (ölçüldü). */
+  @media (max-width:520px){
+    .canim-cip i{ width:50px; height:50px }
+    .canim-cip svg{ width:23px; height:23px }
+  }
+
+  /* ---- türler ---- */
+  .turler{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:var(--a3)}
+  .tur-kart{
+    display:flex;flex-direction:column;gap:var(--a2);padding:var(--a4);
+    background:var(--yuzey);border:1px solid var(--cizgi);border-radius:var(--r);
+    text-decoration:none;color:var(--metin);transition:var(--hiz) var(--egri);
+  }
+  .tur-kart:hover{border-color:var(--vurgu);color:var(--metin);transform:translateY(-2px)}
+  .tur-kart svg{width:24px;height:24px;color:var(--vurgu)}
+  .tur-kart b{font-size:16px;font-weight:700;letter-spacing:-.01em}
+  .tur-kart span{font-size:13px;color:var(--metin-3);font-variant-numeric:tabular-nums}
+
+  /* ---- vitrin ---- */
+  .vitrin{display:grid;grid-template-columns:repeat(auto-fill,minmax(272px,1fr));gap:var(--a4)}
+  .v-kart{display:flex;flex-direction:column;gap:var(--a3)}
+  .v-kart .ust{display:flex;justify-content:space-between;align-items:flex-start;gap:var(--a3)}
+  .v-kart h3{font-size:16px;line-height:1.25}
+  .v-kart .yer{font-size:13px;color:var(--metin-3);margin-top:4px}
+  .v-kart .tutar{
+    font-family:var(--font-baslik);font-size:20px;font-weight:600;color:var(--vurgu);
+    font-variant-numeric:tabular-nums;white-space:nowrap;letter-spacing:-.02em;text-align:right;
+  }
+  .v-kart .tutar small{display:block;font-family:var(--font-govde);font-size:13px;
+    font-weight:600;color:var(--metin-3);letter-spacing:.06em;text-transform:uppercase}
+  .v-kart .satir{display:flex;gap:var(--a2);flex-wrap:wrap;margin-top:auto;padding-top:var(--a1)}
+
+  /* ---- adımlar ---- */
+  .adimlar{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--a5);counter-reset:s}
+  .adim{counter-increment:s;position:relative;padding-top:var(--a6)}
+  .adim::before{
+    content:counter(s);position:absolute;top:0;left:0;
+    font-family:var(--font-baslik);font-size:13px;font-weight:700;
+    width:28px;height:28px;display:grid;place-items:center;border-radius:var(--r-tam);
+    background:var(--vurgu-los);color:var(--vurgu);
+  }
+  .adim h3{margin-bottom:var(--a2)}
+  .adim p{font-size:16px}
+  @media (max-width:760px){.adimlar{grid-template-columns:1fr;gap:var(--a5)}}
+
+  /* ---- dürüstlük ---- */
+  .durust{
+    background:var(--zemin-2);border:1px solid var(--cizgi);border-radius:var(--r-b);
+    padding:clamp(24px,4vw,44px);display:grid;grid-template-columns:1fr 1fr;gap:var(--a6);
+  }
+  .durust ul{list-style:none;display:grid;gap:var(--a3)}
+  .durust li{display:flex;gap:var(--a3);font-size:16px;color:var(--metin-2);line-height:1.55}
+  .durust li svg{width:19px;height:19px;flex:0 0 auto;margin-top:4px}
+  .durust .evet svg{color:var(--yesil)}
+  .durust .hayir svg{color:var(--metin-3)}
+  .durust h3{margin-bottom:var(--a4);font-family:var(--font-govde);font-size:13px;
+    font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--metin-3)}
+  @media (max-width:760px){.durust{grid-template-columns:1fr;gap:var(--a5)}}
+
+  /* ---- kapanış çağrısı ---- */
+  .cagri{
+    text-align:center;border:1px solid var(--vurgu);border-radius:var(--r-b);
+    background:linear-gradient(160deg,var(--vurgu-los),var(--yuzey) 65%);
+    padding:clamp(32px,5vw,60px) var(--a5);
+  }
+  .cagri h2{max-width:20ch;margin-inline:auto}
+  .cagri p{max-width:52ch;margin:var(--a3) auto var(--a5);font-size:16px}
+  .cagri .dugmeler{display:flex;gap:var(--a3);justify-content:center;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<a class="atla" href="#ana">İçeriğe atla</a>
+
+<header class="ust">
+  <div class="kap">
+    <a class="marka" href="index.html" aria-label="Cebimde ana sayfa">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="mg" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#ffa03a"/><stop offset="1" stop-color="#f4690a"/></linearGradient></defs><g transform="rotate(-14 26 11)"><rect x="13" y="3.2" width="26" height="7.2" rx="2.2" fill="#00bfa6"/><rect x="11" y="6.6" width="28" height="7.2" rx="2.2" fill="#ffb74d"/></g><path d="M32 8c-9.6 0-17.4 7.5-17.4 16.8 0 8.8 5.9 15.1 12.9 23.8 1.9 2.4 4.5 5.6 4.5 5.6s2.6-3.2 4.5-5.6c7-8.7 12.9-15 12.9-23.8C49.4 15.5 41.6 8 32 8Z" fill="url(#mg)"/><circle cx="32" cy="25.4" r="9.1" fill="#fff"/><g stroke="#f4690a" stroke-width="1.75" stroke-linecap="round"><path d="M27.5 20.1v3.3M29.4 20.1v3.3M31.3 20.1v3.3"/><path d="M29.4 23.4v7.2"/><path d="M35.9 20.1v4.4" stroke-width="3.3"/><path d="M35.9 24.2v6.4"/></g></svg>
+      <span>Ceb<em>imde</em></span>
+    </a>
+    <nav class="menu" aria-label="Ana menü">
+      <a href="index.html" aria-current="page">Ana sayfa</a>
+      <a href="kesfet.html">Keşfet</a>
+      <a href="paylas.html" class="gizle-kucuk">Fiyat paylaş</a>
+      <a href="topluluk.html" class="gizle-kucuk">Topluluk</a>
+      <a href="hakkinda.html" class="gizle-kucuk">Hakkında</a>
+      <span data-kimlik-menu></span>
+      <button class="tema-dugme" data-tema-dugme type="button" aria-label="Temayı değiştir">
+        <svg data-ay viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+        <svg data-gunes viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" hidden><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+    </nav>
+  </div>
+</header>
+
+<main id="ana">
+
+  <!-- kahraman -->
+  <!-- SOKAK/VITRIN KATMANI KALDIRILDI. Onceki tasarim kahramani koyu
+       bir "gece sokagi" olarak kuruyordu ve .sahne tema tokenlarini
+       ZORLA koyuya ceviriyordu. Marka kilavuzunun ekran maketlerinin
+       hepsi acik: beyaz kart, yumusak golge, lacivert yazi. Olculdu --
+       koyu katman acik temada buyuk butce rakamini okunmaz yapiyordu
+       (lacivert rakam, lacivert zemin). -->
+  <section class="kahraman">
+    <div class="kap">
+      <!-- Baslik ve giris KARTIN DISINDA. Makette kartin ici yalniz
+           karar ekrani: "Butcem" -> rakam -> kaydirici -> kategoriler ->
+           dugme. Basligi da iceri koymak, maketteki tek isli ekrani
+           bes satirlik bir metnin arkasina itiyordu. -->
+      <div class="kahraman-bas" data-giris="odak">
+        <h1>Cebinde ne varsa, <em>masanda</em> o var.</h1>
+        <p class="giris">
+          Bütçeni yaz, canının ne çektiğini söyle — yakınında nereye
+          gidilebileceğini göstereyim. Üyelik yok, reklam yok, ücret yok.
+        </p>
+      </div>
+
+      <div class="cep-kart">
+
+      <!-- Ana karar burada: once BUTCE, sonra kategori, sonra konum.
+           Butce ciplerinin rakamlari ve kategori listesi ortak.js'te
+           (BUTCE_SECENEK, CANIM); burada elle yazilmis tek bir sayi ya da
+           tur adi yok. -->
+      <form class="cep" id="cep">
+        <!-- BUTCE: buyuk rakam + kaydirici. Marka kilavuzunun "Butceni Gir"
+             ekraninin duzeni birebir: ustte kucuk "Butcem" etiketi, altinda
+             cok buyuk lacivert rakam, altinda turuncu kaydirici.
+
+             RAKAM AYNI ZAMANDA YAZI ALANI: makette yalniz kaydirici var ama
+             kaydiricinin ustu 1.000 TL'de bitiyor ve elle 1.500 yazmak
+             isteyen kullanicinin baska yolu kalmiyordu. Ikisi de AYNI
+             degeri gosteriyor. -->
+        <div class="cep-ust">
+          <label class="cep-tutar" for="butce-girdi">
+            <span class="cep-etiket">Bütçem</span>
+            <span class="cep-alan">
+              <span class="cep-simge" aria-hidden="true">₺</span>
+              <input id="butce-girdi" type="text" inputmode="numeric"
+                     autocomplete="off" enterkeyhint="search"
+                     aria-describedby="butce-not" placeholder="Farketmez">
+            </span>
+          </label>
+          <input class="cep-kaydirici" id="butce-kaydirici" type="range"
+                 min="0" max="1000" step="25" value="0"
+                 aria-label="Bütçe kaydırıcısı">
+        </div>
+        <p class="cep-not" id="butce-not">
+          Kişi başı. Boş bırakırsan bütçeye hiç bakmam.
+        </p>
+
+        <fieldset class="canim">
+          <legend>Canın ne çekti?</legend>
+          <div class="canim-cipler" role="group" id="canim"></div>
+        </fieldset>
+
+        <button class="dugme buyuk birincil" type="submit" id="yakinimdakiler">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-5.686 7-11a7 7 0 1 0-14 0c0 5.314 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg>
+          Yakınımda Bul
+        </button>
+        <p class="not" id="konum-durum">Konumun yalnız tarayıcında kullanılır, hiçbir yere gönderilmez.</p>
+        <div id="oneri-kutu" hidden>
+          <div id="oneriler"></div>
+          <!-- Butcenin NE KADARININ olculdugu. Ekrandaki en onemli cumle:
+               35.852 mekanin 163'unde olculmus fiyat var ve bu satir
+               olmazsa liste hepsini olculmus gibi gosterir. -->
+          <p class="butce-ozet" id="butce-ozet" hidden></p>
+          <p class="akran" id="akran" hidden></p>
+          <div id="etkinlikler"></div>
+        </div>
+      </form>
+      </div><!-- /cep-kart: karar burada biter, yedek yol disarida -->
+
+      <!-- Yedek yol. Butce ve kategori YUKARIDA secildi; burasi yalniz
+           konum alinamadiginda devreye giren sehir kapisi. Onceden butce
+           cipleri BURADAYDI -- yani birincil yolda butce hic sorulmuyordu
+           ve cogu ziyaretci bu formu hic gormuyordu. -->
+      <form class="secim yedek" id="secim" hidden>
+        <fieldset>
+          <legend>Konum yoksa şehir seç</legend>
+          <div class="sehir-satir">
+            <label>
+              <span class="gizli">Şehir</span>
+              <select class="alan" id="il" aria-label="Şehir seç">
+                <option value="06">Yükleniyor…</option>
+              </select>
+            </label>
+            <button class="dugme" type="submit">
+              Mekanları göster
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+            </button>
+          </div>
+        </fieldset>
+
+        <p class="not">
+          Fiyatlar işletmelerin kendi sitelerinde yayımladığı menülerden derlendi.
+          Her mekanda yok — <a href="hakkinda.html#veri">neden olmadığını yazdım</a>.
+        </p>
+      </form>
+
+      <p class="kapsam" data-giris="sicrama">
+        <span><b class="sayi" data-s="toplam">—</b> mekan, 81 ilde</span>
+        <span>Ücretsiz, üyeliksiz, reklamsız</span>
+      </p>
+    </div>
+  </section>
+
+  <!-- türler -->
+  <section class="bolum" aria-labelledby="b-tur">
+    <div class="kap">
+      <div class="bolum-bas">
+        <span class="etiket">Ne arıyorsun</span>
+        <h2 id="b-tur">Türe göre başla</h2>
+      </div>
+      <div class="turler odaklanir" id="turler" data-giris="perde"></div>
+    </div>
+  </section>
+
+  <!-- vitrin -->
+  <section class="bolum" aria-labelledby="b-vitrin" style="padding-top:0">
+    <div class="kap">
+      <div class="bolum-bas">
+        <span class="etiket">Fiyatı bilinen</span>
+        <h2 id="b-vitrin">Menüsü elimizde olan mekanlar</h2>
+        <p>
+          Bu mekanların menü fiyatları biliniyor, o yüzden bütçeye göre süzülebiliyorlar.
+          Gösterilen tutar bir <strong>yemeğin</strong> ortalama fiyatı — içecekler hariç,
+          hesabın tamamı değil.
+        </p>
+      </div>
+      <div class="vitrin odaklanir" id="vitrin" data-giris="gecis"></div>
+    </div>
+  </section>
+
+  <!-- nasıl çalışır -->
+  <section class="bolum" aria-labelledby="b-nasil" style="padding-top:0">
+    <div class="kap">
+      <div class="bolum-bas">
+        <span class="etiket">Nasıl çalışır</span>
+        <h2 id="b-nasil">Üç adım, hesap açmadan</h2>
+      </div>
+      <div class="adimlar">
+        <div class="adim">
+          <h3>Bütçeni ve canının çektiğini yaz</h3>
+          <p>Kişi başı ne harcayacağını ve ne aradığını söyle. İkisi de tarayıcında kalır, sunucuya gitmez.</p>
+        </div>
+        <div class="adim">
+          <h3>Haritada süz</h3>
+          <p>Bahçesi olan, wi-fi'ı olan, şu an açık olan, fiyatı bilinen — filtreleri istediğin gibi birleştir.</p>
+        </div>
+        <div class="adim">
+          <h3>Gittiğin yeri paylaş</h3>
+          <p>Ödediğin tutarı ekle. Bir sonraki kişi kazık yemeden gitsin. Veri böyle büyüyor.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- dürüstlük -->
+  <section class="bolum" aria-labelledby="b-durust" style="padding-top:0">
+    <div class="kap">
+      <div class="durust">
+        <div>
+          <h3 id="b-durust">Elimizde ne var</h3>
+          <ul class="evet">
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 13 4 4L19 7"/></svg>
+              <span><strong id="d-toplam">35.852</strong> mekanın konumu, türü, açılış saati — OpenStreetMap'ten, açık lisanslı.</span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 13 4 4L19 7"/></svg>
+              <span><strong id="d-kalem">7.406</strong> menü kalemi, <strong id="d-fiyatli">293</strong> mekandan — işletmelerin kendi sitelerinden.</span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 13 4 4L19 7"/></svg>
+              <span>Ama o 293 mekan <strong id="d-marka">93</strong> işletme: aynı zincirin şubeleri tek bir menüyü paylaşıyor.
+              Fiyatın kaç ölçümden geldiğini mekan sayfasında yazıyoruz.</span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 13 4 4L19 7"/></svg>
+              <span>Bahçe, wi-fi, telefon ve adres bilgisi olan mekanlar için ayrı filtre.</span></li>
+          </ul>
+        </div>
+        <div>
+          <h3>Elimizde ne yok</h3>
+          <ul class="hayir">
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              <span>Mekanların çoğunda fiyat yok. Denenen sitelerin %93'ü menüsünü JavaScript'le basıyor, okunamıyor.</span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              <span>Puan, yorum, yıldız yok. Uydurulmuş sosyal kanıt koymuyoruz.</span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              <span>Rezervasyon, sipariş, ödeme yok. Buradan yalnız bakılır; gitmeye sen karar verirsin.</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- çağrı -->
+  <section class="bolum" style="padding-top:0">
+    <div class="kap">
+      <div class="cagri">
+        <h2>Kazık yediğin yeri paylaş, başkası yemesin</h2>
+        <p>
+          Fiyat verisi tek tek elle büyüyor. Gittiğin bir yerin hesabını eklemek iki dakika sürüyor,
+          senden sonra bakan herkes görüyor.
+        </p>
+        <div class="dugmeler">
+          <a class="dugme" href="paylas.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            Fiyat ekle
+          </a>
+          <a class="dugme ikincil" href="kesfet.html">Önce mekanlara bak</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="alt">
+  <div class="kap">
+    <div class="alt-izgara">
+      <div>
+        <a class="marka" href="index.html" style="margin-bottom:var(--a3)">
+          <svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="mg" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#ffa03a"/><stop offset="1" stop-color="#f4690a"/></linearGradient></defs><g transform="rotate(-14 26 11)"><rect x="13" y="3.2" width="26" height="7.2" rx="2.2" fill="#00bfa6"/><rect x="11" y="6.6" width="28" height="7.2" rx="2.2" fill="#ffb74d"/></g><path d="M32 8c-9.6 0-17.4 7.5-17.4 16.8 0 8.8 5.9 15.1 12.9 23.8 1.9 2.4 4.5 5.6 4.5 5.6s2.6-3.2 4.5-5.6c7-8.7 12.9-15 12.9-23.8C49.4 15.5 41.6 8 32 8Z" fill="url(#mg)"/><circle cx="32" cy="25.4" r="9.1" fill="#fff"/><g stroke="#f4690a" stroke-width="1.75" stroke-linecap="round"><path d="M27.5 20.1v3.3M29.4 20.1v3.3M31.3 20.1v3.3"/><path d="M29.4 23.4v7.2"/><path d="M35.9 20.1v4.4" stroke-width="3.3"/><path d="M35.9 24.2v6.4"/></g></svg>
+          <span>Ceb<em>imde</em></span>
+        </a>
+        <p style="font-size:16px;max-width:38ch">
+          Cebindeki bütçeyle keşfet. Türkiye'deki mekanları gerçek fiyat bilgisiyle gösteren
+          bağımsız bir proje.
+        </p>
+      </div>
+      <div>
+        <h4>Ürün</h4>
+        <ul>
+          <li><a href="kesfet.html">Mekanları keşfet</a></li>
+          <li><a href="paylas.html">Fiyat paylaş</a></li>
+          <li><a href="hakkinda.html">Hakkında</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Yasal</h4>
+        <ul>
+          <li><a href="gizlilik.html">Aydınlatma metni ve gizlilik</a></li>
+          <li><a href="gizlilik.html#bildir">Hata bildir / kaldırma talebi</a></li>
+          <li><a href="hakkinda.html#veri">Veri kaynağı ve lisans</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="kunye">
+      Mekan verisi <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap katkıcıları</a> (ODbL).
+      Fiyatlar işletmelerin kendi yayımladığı menülerden derlenir; güncelliği garanti edilmez, bağlayıcı değildir.
+      Bir işletmeyle ilişkimiz veya anlaşmamız yoktur.
+    </p>
+  </div>
+</footer>
+
+<script src="ortak.js" defer></script>
+<script src="sahne.js" defer></script>
+<script src="yapilandirma.js"></script>
+<script type="module" src="kimlik.js"></script>
+<script defer>
+/* Anasayfa: gerçek sayılar ve vitrin vitrin.json'dan gelir.
+   Elle yazılmış tek bir rakam yok; hepsi veriden sayılıyor. */
+document.addEventListener("DOMContentLoaded", () => {
+  const el = s => document.querySelector(s);
+
+  const TUR_IKON = {
+    "Kafe":      '<path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><path d="M6 2v3M10 2v3M14 2v3"/>',
+    "Restoran":  '<path d="M3 2v7a3 3 0 0 0 3 3v10M6 2v7M9 2v7a3 3 0 0 1-3 3"/><path d="M17 2c-1.7 1.3-2.5 3.4-2.5 6 0 2 .8 3.4 2.5 4v10"/>',
+    "Bar":       '<path d="M5 4h14l-7 8Z"/><path d="M12 12v8M8 20h8"/>',
+    "Pub":       '<path d="M6 5h9v14H6z"/><path d="M15 8h2.5a2.5 2.5 0 0 1 0 5H15"/><path d="M9 5V3M12 5V3"/>',
+    "Fast food": '<path d="M3 11h18a9 9 0 0 0-18 0Z"/><path d="M4 15h16"/><path d="M5 19h14"/>',
+    "Dondurma":  '<path d="M8 11a4 4 0 0 1 8 0"/><path d="M7.5 11h9L12 21Z"/><path d="M9 7a3 3 0 0 1 6 0"/>'
+  };
+
+  /* şehir listesi */
+  const secim = el("#il");
+  let kayitliIl = null;
+  try { kayitliIl = localStorage.getItem("cebimde.il"); } catch (e) {}
+
+  let iller = [];
+  fetch("veri/index.json").then(r => r.json()).then(d => {
+    iller = d.iller;
+    secim.innerHTML = d.iller.map(i =>
+      '<option value="' + i.kod + '">' + kacir(i.ad) + " — " + sayi(i.n) + " mekan</option>"
+    ).join("");
+    secim.value = d.iller.some(i => i.kod === kayitliIl) ? kayitliIl : d.varsayilan;
+  }).catch(() => { secim.innerHTML = '<option value="06">Ankara</option>'; });
+
+  /* gerçek sayılar + türler + vitrin */
+  fetch("vitrin.json").then(r => r.json()).then(v => {
+    document.querySelectorAll('[data-s="toplam"]').forEach(n => n.textContent = sayi(v.toplam));
+    document.querySelectorAll('[data-s="il"]').forEach(n => n.textContent = sayi(v.il));
+    document.querySelectorAll('[data-s="kalem"]').forEach(n => n.textContent = sayi(v.kalem));
+    el("#d-toplam").textContent  = sayi(v.toplam);
+    el("#d-kalem").textContent   = sayi(v.kalem);
+    el("#d-fiyatli").textContent = sayi(v.fiyatliMekan);
+    el("#d-marka").textContent   = sayi(v.fiyatliMarka);
+
+    el("#turler").innerHTML = v.turler.map(t =>
+      '<a class="tur-kart" href="kesfet.html?tur=' + encodeURIComponent(t[0]) + '">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" ' +
+        'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        (TUR_IKON[t[0]] || "") + "</svg>" +
+        "<b>" + kacir(t[0]) + "</b></a>"
+    ).join("");
+
+    /* Vitrin fiyati yemekFiyati() ile hesaplaniyor, vitrin.json'daki
+       "medyan" alaniyla DEGIL: o medyan icecekleri de sayiyordu ve vitrin
+       en ucuzdan siralandigi icin yapisal olarak tema demosu menuleri one
+       cikariyordu (Marache Coffee 49 TL, Uzunlar Kebap 36 TL). Olculemeyen
+       mekan vitrine hic girmiyor -- yanlis ucuzluk, ucuzluk yoklugundan kotu. */
+    /* Ayni zincirin sekiz subesi vitrin degil duvar olur: ad tekrari eleniyor,
+       tur basina en fazla 3 birakiliyor. */
+    const gorulenAd = new Set(), turSayaci = {};
+    const vit = v.vitrin
+      .map(m => ({ m, fiyat: yemekFiyati(m) }))
+      .filter(x => x.fiyat != null)
+      .sort((a, b) => a.fiyat - b.fiyat)
+      .filter(({ m }) => {
+        const ad = m.ad.trim().toLocaleLowerCase("tr");
+        if (gorulenAd.has(ad)) return false;
+        if ((turSayaci[m.tur] || 0) >= 3) return false;
+        gorulenAd.add(ad);
+        turSayaci[m.tur] = (turSayaci[m.tur] || 0) + 1;
+        return true;
+      })
+      .slice(0, 12);
+
+    el("#vitrin").innerHTML = vit.map(({ m, fiyat }) =>
+      '<a class="kutu tiklanir v-kart" href="kesfet.html?il=' + encodeURIComponent(m.il) +
+        "&mekan=" + encodeURIComponent(m.id) + '">' +
+        '<div class="ust"><div><h3>' + kacir(m.ad) + "</h3>" +
+          '<div class="yer">' + kacir(m.tur) + " · " + kacir(m.ilAd) + "</div></div>" +
+          '<div class="tutar">' + tl(fiyat) + "<small>" +
+            ((fiyatYasEtiketi(m) || {}).eski ? "eski fiyat" : "yemek") +
+          "</small></div></div>" +
+        '<div class="satir"><span class="rozet">' + sayi(m.n) + " kalem</span></div></a>"
+    ).join("");
+  }).catch(() => {
+    el("#vitrin").innerHTML =
+      '<p class="bos"><strong>Vitrin yüklenemedi</strong>Mekanlara doğrudan bakabilirsin.</p>';
+  });
+
+  /* ---------- bütçe ve kategori: ekranın asıl sorusu ----------
+     "Bugün cebimde ₺300" -> kategori -> yakınımda bul.
+
+     ÖLÇÜLDÜ, sonra tasarlandı: bütçe SÜZGEÇ olarak neredeyse hiçbir şey
+     yapmıyor. 3 km'lik gerçek semt çemberlerinde ₺300 bütçe listenin
+     yalnız %2,7-%5,1'ini eliyor (Kadıköy 1.096 mekandan 36, Beyoğlu
+     2.203'ten 81, Kızılay 599'dan 16). Sebep basit: 35.852 mekanın
+     163'ünde (%0,45) ölçülmüş menü fiyatı var.
+
+     O yüzden bütçe burada listeyi kesmiyor, SIRALIYOR ve ETİKETLİYOR --
+     ve ne kadarının ölçüm ne kadarının tahmin olduğunu #butce-ozet
+     satırı açıkça yazıyor. Bütçeyi süzgeç gibi gösteren bir ekran,
+     %0,45'lik ölçümü %100 gibi sunardı. Sınıflandırma ortak.js'te
+     (butceDurumu / butceOzeti / butceCumlesi). */
+  let butce = 0, canim = new Set(), zincir = null;
+
+  /* Bütçe çipleri BUTCE_SECENEK'ten, kategori çipleri CANIM'dan çiziliyor:
+     rakamlar ve tür adları bu sayfada ikinci kez tanımlanmıyor. */
+  const butceGirdi = el("#butce-girdi"), kaydirici = el("#butce-kaydirici");
+
+  /* Kategori dairelerinin renkleri ve glifleri. Renkler MARKA
+     PALETINDEN sirayla (Okyanus, Mercan, Cebimde turuncusu, Gun
+     Batimi) -- makette de dort renk bu sirada donuyor. Renk kategoriye
+     SABIT bagli: her acilista ayni kategori ayni renkte olsun, yoksa
+     renk bir isaret olmaktan cikar. */
+  const CANIM_RENK = ["#00bfa6", "#ff5a5f", "#ff7a00", "#ffb74d",
+                      "#00bfa6", "#ff5a5f"];
+  const CANIM_GLIF = {
+    "Kafe":      '<path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><path d="M6 2v3M10 2v3M14 2v3"/>',
+    "Restoran":  '<path d="M3 2v7a3 3 0 0 0 3 3v10M6 2v7M9 2v7a3 3 0 0 1-3 3"/><path d="M17 2c-1.7 1.3-2.5 3.4-2.5 6 0 2 .8 3.4 2.5 4v10"/>',
+    "Fast food": '<path d="M3 11h18a9 9 0 0 0-18 0Z"/><path d="M4 15h16"/><path d="M5 19h14"/>',
+    "İçki":      '<path d="M5 4h14l-7 8Z"/><path d="M12 12v8M8 20h8"/>',
+    "Dondurma":  '<path d="M8 11a4 4 0 0 1 8 0"/><path d="M7.5 11h9L12 21Z"/><path d="M9 7a3 3 0 0 1 6 0"/>',
+    "Gezilecek": '<path d="M4 20V8l8-4 8 4v12"/><path d="M9 20v-6h6v6"/>'
+  };
+
+  el("#canim").innerHTML = CANIM.map((k, i) =>
+    '<button type="button" class="canim-cip" data-tur="' +
+    kacir(k.tur.join("|")) + '" aria-pressed="false"' +
+    ' style="--daire:' + CANIM_RENK[i % CANIM_RENK.length] + '">' +
+    '<i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" ' +
+    'stroke="currentColor" stroke-width="1.9" stroke-linecap="round" ' +
+    'stroke-linejoin="round">' + (CANIM_GLIF[k.ad] || "") + "</svg></i>" +
+    "<span>" + kacir(k.ad) + "</span></button>").join("");
+
+  /* Çipler ile yazı alanı TEK durumu gösteriyor. Ayrı durursa kullanıcı
+     ₺400 çipine basıp kutuda ₺250 görür ve hangisinin geçerli olduğunu
+     bilemez. */
+  const BUTCE_NOT = el("#butce-not").textContent;
+
+  /* Kaydirici ile yazi alani TEK degeri gosteriyor. Kaydiricinin ustu
+     1.000 TL'de bitiyor; daha buyugunu elle yazan kullanicida kaydirici
+     sona dayaniyor ama RAKAM dogru kaliyor -- kaydirici degeri asagi
+     cekmiyor, yoksa yazdigi sayi altindan degisirdi. */
+  function cipleriYaz(){
+    const ust = +kaydirici.max;
+    kaydirici.value = String(Math.min(butce, ust));
+    /* Webkit'te dolu tarafi ayri bir sozde-oge olarak boyanamiyor;
+       gradyan duragi degiskenle suruluyor. */
+    kaydirici.style.setProperty("--dolu",
+      (100 * Math.min(butce, ust) / ust).toFixed(1) + "%");
+  }
+  /* SIFIR HALI "FARKETMEZ" DIYE OKUNUYOR. Onceden alan bosaliyordu ve
+     ekranda soluk bir yer tutucu ("300") kaliyordu -- yani ekran bir
+     butce varmis gibi duruyor, aslinda yok. Sifir gecerli bir secim
+     (butceOku'nun "farketmez" degeri) ve oyle yaziliyor. */
+  const cepAlan = el(".cep-alan");
+  function butceYaz(){
+    butceGirdi.value = butce ? String(butce) : "";
+    cepAlan.classList.toggle("farketmez", !butce);
+    cipleriYaz(); notYaz();
+  }
+  /* Anlaşılmayan girdi SESSİZCE SİLİNMİYOR. İlk yazımda "9000" yazan
+     kullanıcının alanı boşalıyordu: sayı sınır dışı olduğu için bütçe 0
+     oluyor, 0 da alanı temizliyordu. Yazdığı şeyin nereye gittiğini
+     söylemeyen bir kutu, yanlış bir kutudan kötü. Artık yazdığı duruyor
+     ve sınır ekranda yazıyor -- sınır rakamları ortak.js'ten geliyor. */
+  function notYaz(){
+    const ham = butceGirdi.value.trim();
+    el("#butce-not").textContent = (ham && !butce)
+      ? "Bunu bütçe olarak okuyamadım. " + tl(BUTCE_EN_AZ) + " ile " +
+        tl(BUTCE_EN_COK) + " arası bir sayı yaz ya da boş bırak."
+      : BUTCE_NOT;
+  }
+
+  /* Kaydirici SIFIRDAN basliyor: sol uc "farketmez". Ayri bir
+     "farketmez" dugmesi koymak, maketin tek kaydiricili duzenini
+     bozardi -- ve sifir zaten butceOku()'nun "farketmez" degeri. */
+  kaydirici.addEventListener("input", () => {
+    butce = +kaydirici.value;
+    butceGirdi.value = butce ? String(butce) : "";
+    cepAlan.classList.toggle("farketmez", !butce);
+    kaydirici.style.setProperty("--dolu",
+      (100 * butce / +kaydirici.max).toFixed(1) + "%");
+    notYaz();
+  });
+  kaydirici.addEventListener("change", butceSakla);
+
+  /* Elle yazılan bütçe: çözülemeyen girdi "farketmez"e düşüyor,
+     sessizce bir sayıya yuvarlanmıyor (bkz. butceOku). */
+  butceGirdi.addEventListener("input", () => {
+    butce = butceOku(butceGirdi.value);
+    cepAlan.classList.toggle("farketmez", !butceGirdi.value.trim());
+    /* butceYaz() DEGIL: alanin degerini yazarken kullanicinin imlecini
+       kaydirir ve yazdigi rakami altindan degistirir. Yalniz cipler ve
+       aciklama tazeleniyor. */
+    cipleriYaz(); notYaz(); butceSakla();
+  });
+  /* Alandan cikinca normallestir -- ama YALNIZ anladiysak. Anlamadigimiz
+     metni silmek, kullaniciya ne oldugunu soylemeden yazdigini almak olur. */
+  butceGirdi.addEventListener("change", () => {
+    if (butce) butceYaz(); else notYaz();
+    butceSakla();
+  });
+
+  el("#canim").addEventListener("click", e => {
+    const c = e.target.closest(".canim-cip");
+    if (!c) return;
+    const t = c.dataset.tur;
+    if (canim.has(t)) canim.delete(t); else canim.add(t);
+    c.setAttribute("aria-pressed", String(canim.has(t)));
+    butceSakla();
+  });
+
+  /* Seçim cihazda kalıyor: aynı kişi ertesi gün aynı bütçeyi yeniden
+     yazmasın. Sunucuya gitmiyor. */
+  function butceSakla(){
+    try {
+      localStorage.setItem("cebimde.butce", String(butce));
+      localStorage.setItem("cebimde.canim", [...canim].join(","));
+    } catch (e) {}
+  }
+  try {
+    butce = butceOku(localStorage.getItem("cebimde.butce"));
+    const k = (localStorage.getItem("cebimde.canim") || "").split(",").filter(Boolean);
+    /* Kayıtlı kategori BUGÜNKÜ listeye karşı doğrulanıyor: CANIM
+       değişirse eski kayıt hiçbir mekana uymayan bir çip bırakırdı. */
+    const gecerli = new Set(CANIM.map(x => x.tur.join("|")));
+    k.filter(x => gecerli.has(x)).forEach(x => canim.add(x));
+  } catch (e) {}
+  butceYaz();
+  document.querySelectorAll(".canim-cip").forEach(c =>
+    c.setAttribute("aria-pressed", String(canim.has(c.dataset.tur))));
+
+  /* Seçili kategorilerin ölçüt kümesi. mekanUyar() ortak.js'te ve keşfet
+     ekranıyla aynı: "kat:esnaf" burada da orada da aynı şeyi seçsin. */
+  function seciliTurler(){
+    const t = new Set();
+    canim.forEach(x => x.split("|").forEach(v => t.add(v)));
+    return t;
+  }
+
+  /* ---------- konum ----------
+     Veri il dosyalarina bolunmus, o yuzden once koordinattan il bulunur.
+     Eslesme il merkezine en yakin olan; sinirda oturan yanlis ile dusebilir,
+     kesfet ekranindaki sehir secici acik duruyor. */
+  function enYakinIl(lat, lon){
+    let iyi = null, iyiUz = Infinity;
+    for (const i of iller){
+      if (i.lat == null) continue;
+      const dx = (i.lon - lon) * 85, dy = (i.lat - lat) * 111;
+      const uz = Math.hypot(dx, dy);
+      if (uz < iyiUz){ iyiUz = uz; iyi = i; }
+    }
+    return iyi;
+  }
+
+  /* ---------- öneri ----------
+     Sıralama öneri değildir. Kullanıcı "yakınımda nerede yenir" diye
+     soruyor; 2.300 kartlık liste bu sorunun cevabı değil, ödevin kendisi.
+     Burada üç mekan seçilip GEREKÇESİYLE gösteriliyor. */
+  function uzaklikKm(a, b, lat, lon){
+    const dx = (a - lon) * 85, dy = (b - lat) * 111;   // km, kaba
+    return Math.hypot(dx, dy);
+  }
+
+  /* Yakinlik penceresi. 3 km, yuruyus degil "bu semt" demek; sehir
+     merkezinde bu pencerede 500-2.200 mekan var (olculdu). */
+  const YAKIN_KM = 3;
+
+  function onerVer(il, lat, lon){
+    konumDurum.textContent = il.ad + " çevresine bakılıyor…";
+    fetch("veri/" + il.kod + ".json")
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(ham => {
+        const v = ilCoz(ham);          /* sikistirilmis bicim: veri_bicim.py */
+        const turSet = seciliTurler();
+        /* Once YAKINLIK, sonra KATEGORI. Ikisi de listeyi gercekten
+           kesiyor: tur her mekanda var (%100 kapsama), yani kategori
+           cipi butcenin aksine somut bir suzgec. */
+        /* Zincir haritasi ILIN TAMAMINDAN, civardan degil: "56 subede
+           ayni menu" iddiasi ilin tamamina ait bir sayidir ve 3 km'lik
+           bir cemberden bakan hesap onu 2 gosterirdi. */
+        zincir = zincirHaritasi(v.mekanlar);
+        const civar = v.mekanlar.filter(m => uzaklikKm(m.lon, m.lat, lat, lon) < YAKIN_KM);
+        const konu  = turSet.size ? civar.filter(m => mekanUyar(turSet, m)) : civar;
+
+        if (!konu.length){
+          konumDugme.disabled = false;
+          konumDurum.innerHTML = (turSet.size && civar.length)
+            ? "Yakınında bu türden mekan yok. " +
+              '<a href="kesfet.html?il=' + il.kod + '">' + kacir(il.ad) +
+              " listesine bak</a>."
+            : "Yakınında kayıtlı mekan bulamadım. " +
+              '<a href="kesfet.html?il=' + il.kod + '">' + kacir(il.ad) +
+              " listesine bak</a>.";
+          return;
+        }
+
+        /* Dokum SUZULMEMIS konu listesinden cikiyor: ekranda yazan
+           "N mekanin M'sinde olculmus fiyat var" cumlesi, bu kisinin
+           gercekten bakabilecegi butun mekanlari saymali. Once uc adayi
+           secip sonra saymak, %0,45'lik olcumu ucte bir gibi gosterirdi. */
+        const ozet = butceOzeti(konu, butce);
+
+        /* Butce USTU oldugu KESIN bilinen mekan listeden cikiyor -- bu
+           163 mekanin bir kismi, yani kucuk ama emin bir eleme. Tahmine
+           dayanarak (tur/mutfak) hicbir mekan ELENMIYOR: "pahali sanmak"
+           ile "pahali bilmek" ayni sey degil. */
+        const aday = konu
+          .map(m => ({ m, uz: uzaklikKm(m.lon, m.lat, lat, lon),
+                       d: butceDurumu(m, butce) }))
+          .filter(x => !(x.d && x.d.sinif === "asiyor"))
+          .sort((a, b) => a.uz - b.uz)
+          .slice(0, 60);
+
+        /* Puan mesafede, kilometre cinsinden. Butce agirliklari da
+           kilometre: "olculdu ve butcene giriyor" 800 m'lik bir cekim
+           gucu demek -- yani daha yakin ama hakkinda hicbir sey
+           bilmedigimiz bir mekanin onune gecebiliyor, iki katini gecemiyor.
+           Uydurma bir "eslesme yuzdesi" yok; her bilesen karta gerekce
+           olarak yaziliyor. */
+        for (const x of aday){
+          const a = acikMi(x.m.saat), sv = seviye(x.m);
+          x.acik = a; x.sv = sv;
+          x.puan = x.uz
+            - (a === true ? 0.45 : 0)
+            - (x.d && x.d.sinif === "girer"    ? 0.80 : 0)
+            - (x.d && x.d.sinif === "muhtemel" ? 0.30 : 0)
+            /* Ust segment GERIYE itiliyor, elenmiyor: rakam yok, yalniz
+               tur/mutfak tahmini var. */
+            + (x.d && x.d.sinif === "zor"      ? 0.60 : 0)
+            - (!butce && sv && sv.sinif === "hesapli" ? 0.30 : 0)
+            - (!butce && sv && sv.olculdu ? 0.25 : 0);
+        }
+        aday.sort((a, b) => a.puan - b.puan);
+
+        /* Ayni turden uc tane onermek oneri degil tekrar olur -- AMA
+           kullanici turu KENDI sectiyse cesitlilik zorlamak onu
+           yoksaymak demek. "Kafe" diyene iki restoran vermek. */
+        const cesitlen = !turSet.size;
+        const secim = [], gorulenTur = new Set();
+        for (const x of aday){
+          if (secim.length === 3) break;
+          if (cesitlen && gorulenTur.has(x.m.tur) && aday.length > 6) continue;
+          gorulenTur.add(x.m.tur); secim.push(x);
+        }
+        while (secim.length < 3 && aday.length > secim.length)
+          for (const x of aday) if (!secim.includes(x)){ secim.push(x); break; }
+
+        cizOneri(il, secim, ozet, turSet);
+      })
+      .catch(() => {
+        konumDugme.disabled = false;
+        yedegiAc("Mekan verisi yüklenemedi. Şehir seçebilirsin.");
+      });
+  }
+
+  function mesafeYaz(km){
+    return km < 1 ? Math.round(km * 1000) + " m" : km.toFixed(1) + " km";
+  }
+
+  function cizOneri(il, secim, ozet, turSet){
+    const kart = x => {
+      const neden = [];
+      neden.push(mesafeYaz(x.uz));
+      if (x.acik === true) neden.push("şu an açık");
+      /* Butce girilmisse KESIN cevap once yaziliyor: "bütçene giriyor"
+         olculmus bir fiyattan geliyor, "hesaplı görünüyor" tahminden.
+         Ikisi ayni cumlede ayni tonla durursa kullanici hangisinin
+         olculdugunu anlayamaz. */
+      if (x.d && x.d.kesin){
+        neden.push(x.d.ad);
+        /* Fiyat zincir menusunden geliyorsa kart bunu SOYLUYOR. Olculdu:
+           fiyati gosterilen 163 mekan yalniz 53 farkli isletme, 94'u tek
+           bir zincirin subesi ve subeler arasi fiyat farki yok. Bunu
+           yazmayan bir kart, tek kazimayi bu subenin olcumu gibi sunar. */
+        const dy = fiyatDayanagi(x.m, zincir);
+        if (dy && dy.sinif === "zincir") neden.push(dy.ad);
+        /* Rakamin kendisi de yaziliyor: "bütçene giriyor" tek basina bir
+           iddia, "menü ortalama ₺240" o iddianin dayanagi. Ayri ayri
+           ekleniyor -- birlestirilmis hali sv yoksa "menü " diye bos bir
+           kuyruk birakiyordu. */
+        if (x.sv && x.sv.olculdu) neden.push("menü " + x.sv.ad);
+      }
+      else if (x.sv && x.sv.olculdu) neden.push("menü " + x.sv.ad);
+      else if (x.d && x.d.sinif === "muhtemel") neden.push("hesaplı görünüyor");
+      else if (x.sv && x.sv.sinif === "hesapli") neden.push("hesaplı");
+      /* Butce URL'de tasiniyor: kartla acilan mekan sayfasi ayni butceyi
+         gormeli, kullanici oraya varinca rakami yeniden yazmasin. */
+      const p = new URLSearchParams({ il: il.kod, mekan: x.m.id });
+      if (butce) p.set("butce", butce);
+      return '<a class="oneri' + (x.d && x.d.kesin && x.d.sinif === "girer"
+                                  ? " girer" : "") + '" href="kesfet.html?' + p + '">' +
+        /* Guven rozeti oneri kartinda da: uc mekan oneriyoruz ve
+           kullanici hangisinin fiyatinin olculdugunu gormeli. Kart
+           listesinden farkli olarak TAM halde -- burada yalniz uc kart
+           var, yer de var. Fis ozeti bu ekranda yuklenmiyor, o yuzden
+           ozet null geciliyor: olmayan bir dogrulamayi iddia etmesin. */
+        "<h3>" + kacir(x.m.ad) + "</h3>" +
+        guvenRozeti(fiyatGuveni(x.m, zincir, null)) +
+        '<p class="neden">' + neden.filter(Boolean).map(kacir).join(" · ") + "</p>" +
+        '<span class="tur">' + kacir(x.m.tur) + "</span></a>";
+    };
+
+    /* "Hepsini gor" baglantisi SECIMIN AYNISINI tasimali: butce ve
+       kategori dusurse kullanici bambaska bir listeye duser ve uc kartin
+       nereden geldigini anlayamaz. */
+    const hepsi = new URLSearchParams({ il: il.kod, sirala: "yakin" });
+    if (butce) hepsi.set("butce", butce);
+    turSet.forEach(t => hepsi.append("tur", t));
+
+    el("#oneriler").innerHTML = secim.map(kart).join("") +
+      '<a class="hepsi" href="kesfet.html?' + hepsi + '">' +
+      "Yakındaki her yeri gör</a>";
+
+    /* Butcenin ne kadarinin OLCULDUGU. Bu satir olmadan uc kart, arkasinda
+       olculmus fiyat varmis gibi okunur: gercekte 35.852 mekanin 163'unde
+       (%0,45) olcum var. Cumle ortak.js'te; sayfa hicbir rakami kendi
+       saymiyor. */
+    const oz = el("#butce-ozet"), c = butceCumlesi(ozet, butce);
+    oz.textContent = c || "";
+    oz.hidden = !c;
+
+    el("#oneri-kutu").hidden = false;
+    /* Yaricap EKRANDA yaziyor ve YAKIN_KM'den geliyor: "441 mekan" tek
+       basina neyin icinden secildigini soylemiyor, "3 km icinde 441
+       mekan" soyluyor. Sabiti buraya elle yazmak, pencereyi degistiren
+       birinin ekranda yanlis bir sayi birakmasi demekti. */
+    konumDurum.textContent = il.ad + " · " + YAKIN_KM + " km içinde " +
+      sayi(ozet ? ozet.toplam : secim.length) + " mekan, en yakın üçü";
+    konumDugme.hidden = true;
+    akranYaz(il);
+    etkinlikGetir(il);
+  }
+
+  /* ---------- bütçe akranları ----------
+     "Benim bütçemdeki insanlar nereye gidiyor." Menü fiyatı 35.852
+     mekanın 163'ünde var ve büyümesi yavaş; fiş katmanı ise kullanıcıdan
+     geliyor, yani bu ekranın bütçeye verebileceği TEK büyüyen cevap bu.
+
+     Sayım sunucuda (akran.sql): "kaç KİŞİ" ile "kaç FİŞ" ayrı şeyler ve
+     tarayıcı ayırt edemiyor -- `kullanici` sütunu ona kapalı (sema.sql).
+
+     Sıfır bir başarısızlık değil, davet: cümle o hâlde katkı çağrısına
+     dönüyor (akranCumlesi, ortak.js). */
+  let akranSayac = 0;
+
+  async function akranYaz(il){
+    const kutu = el("#akran");
+    if (!kutu) return;
+    const benim = ++akranSayac;
+    kutu.hidden = true; kutu.textContent = "";
+    if (!butce) return;
+    const K = window.Kimlik;
+    if (!K || !K.acik) return;
+    let o = null;
+    try {
+      await K.hazir;
+      o = await K.butceAkranlari(il.kod, butce);
+    } catch (e) { /* akran.sql kurulu degil ya da ag yok: satir hic cikmasin */ }
+    if (benim !== akranSayac) return;        /* gecikmis cevap: at */
+    const c = akranCumlesi(o, butce);
+    if (!c) return;
+    kutu.textContent = c;
+    kutu.hidden = false;
+  }
+
+  /* ---------- etkinlik ----------
+     Kaynak: etkinlik.io RSS. Mekan koordinati YOK, o yuzden bunlar
+     mesafeye gore degil ZAMANA gore secliyor: once baslayan once.
+     "Yakininda" demiyoruz, "senin sehrinde" diyoruz -- veri onu destekliyor. */
+  function saatYaz(iso){
+    const t = new Date(iso), simdi = new Date();
+    const gun = Math.round((new Date(t.toDateString()) - new Date(simdi.toDateString())) / 86400000);
+    const sa = t.toLocaleTimeString("tr-TR", { hour:"2-digit", minute:"2-digit" });
+    if (gun === 0) return "bugün " + sa;
+    if (gun === 1) return "yarın " + sa;
+    return t.toLocaleDateString("tr-TR", { day:"numeric", month:"long" }) + " " + sa;
+  }
+
+  function etkinlikGetir(il){
+    fetch("veri/etkinlik.json")
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => {
+        const simdi = Date.now(), GUN = 86400000;
+        /* Dosya bayatlayabilir; geçmiş etkinlik gösterilmez. Çekimde de
+           eleniyor ama veri tazelenmezse sayfa yanlış şey söylemesin. */
+        const liste = (d.iller[il.kod] || [])
+          .filter(e => Date.parse(e.bas) > simdi)
+          .sort((a, b) => Date.parse(a.bas) - Date.parse(b.bas));
+        if (!liste.length) return;
+
+        /* İki AYRI soru var, tek listede karıştırmıyoruz:
+           "bu akşam ne var" ve "ileride ne var".
+           Veri bunu doğruluyor: bugünkü 46 etkinliğin hepsi konser,
+           festival ve fuarın %94'ü bir haftadan uzakta. Festival aylar
+           öncesinden duyurulur, konser sık ve yakındır. Bu akşamki
+           konserin yanına 6 hafta sonraki fuarı koymak, kimsenin
+           sormadığı soruya cevap vermek olurdu. */
+        const pencere = liste.filter(e => Date.parse(e.bas) - simdi < 14 * GUN);
+        const yakin = pencere.slice(0, 3);
+
+        /* Yakın pencerede festival/fuar varsa ama ilk üçe girememişse
+           (konserler sayıca eziyor) üçüncüyü onunla değiştir. Tür
+           çeşitliliği ancak GERÇEKTEN yakınsa zorlanır -- 6 hafta
+           sonraki fuarı bu akşamki konserin yanına koymak yanlış olurdu. */
+        if (yakin.length === 3 && !yakin.some(e => e.tur !== "Konser")){
+          const senlik = pencere.find(e => e.tur === "Festival" || e.tur === "Fuar");
+          if (senlik) yakin[2] = senlik;
+        }
+
+        /* "İleride" YALNIZ pencere dışındakiler için. Yarınki bir festivali
+           "ileride" diye sunmak yanlış olurdu. */
+        const ileri = liste.find(e =>
+          (e.tur === "Festival" || e.tur === "Fuar") &&
+          Date.parse(e.bas) - simdi >= 14 * GUN);
+
+        let html = "";
+        if (yakin.length){
+          html += '<p class="etkinlik-bas">' + kacir(il.ad) + " · yaklaşan etkinlikler</p>" +
+            yakin.map(satir).join("");
+        } else {
+          /* Yakında hiçbir şey yoksa 3 ay sonrakini "yaklaşan" diye
+             sunmak yanlış olur; ne zaman olduğunu açıkça söylüyoruz. */
+          html += '<p class="etkinlik-bas">' + kacir(il.ad) +
+            " · yakın günlerde etkinlik yok</p>" + satir(liste[0]);
+        }
+        if (ileri){
+          html += '<p class="etkinlik-bas">ileride</p>' + satir(ileri);
+        }
+        el("#etkinlikler").innerHTML = html;
+      })
+      .catch(() => {});   /* etkinlik dosyası yoksa mekan önerisi yine çalışır */
+  }
+
+  function satir(e){
+    /* Etkinlik baglantilari UCUNCU TARAF RSS akislarindan geliyor; sema
+       denetlenmiyordu. kacir() bunu yapmaz -- tirnagi kacirir, semaya
+       bakmaz -- yani akisin verdigi "javascript:..." ana sayfada
+       tiklanabilir bir baglanti olurdu. Kural guvenliBag()'da, webBagi
+       ile ayni yerde. Adres kullanilamiyorsa etkinlik yine gorunuyor,
+       yalniz tiklanmiyor: bilgi kaybolmasin. */
+    const bag = guvenliBag(e.link);
+    const et = bag
+      ? '<a class="etkinlik" href="' + kacir(bag) + '" target="_blank" rel="noopener">'
+      : '<div class="etkinlik">';
+    return et +
+      "<h4>" + kacir(e.ad) + "</h4>" +
+      '<p class="ne-zaman">' + kacir(saatYaz(e.bas)) + " · " + kacir(e.tur) + "</p>" +
+      (bag ? "</a>" : "</div>");
+  }
+
+  /* Yedek yol. Konum alinamazsa (izin yok, zaman asimi, veri inmedi) kullanici
+     tikanip kalmasin diye sehir secici burada aciliyor. Dort hata yolunun
+     dordu de buraya cikiyor -- tanimsizken hepsi ReferenceError firlatiyordu ve
+     ekran "Konum aliniyor..." da doniyordu. */
+  function yedegiAc(mesaj){
+    konumDurum.textContent = mesaj;
+    const form = el("#secim");
+    if (form){
+      form.hidden = false;
+      form.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }
+
+  const konumDugme = el("#yakinimdakiler"), konumDurum = el("#konum-durum");
+  /* Dinleyici DUGMEDE degil FORMDA: dugme artik type="submit" ve formun
+     kendi gonderimi engellenmezse sayfa yeniden yukleniyor -- butce
+     kutusunda Enter'a basmak da ayni yoldan geciyor. */
+  el("#cep").addEventListener("submit", e => {
+    e.preventDefault();
+    if (!navigator.geolocation){
+      yedegiAc("Tarayıcın konum desteklemiyor. Şehir seçebilirsin.");
+      return;
+    }
+    konumDugme.disabled = true;
+    konumDurum.textContent = "Konum alınıyor…";
+
+    /* KENDI BEKCIMIZ. getCurrentPosition'in "timeout" secenegi, izin
+       istemi CEVAPLANANA KADAR saymaya baslamiyor (sartname boyle
+       tanimliyor). Kullanici istemi yanitlamaz da oylece birakirsa --
+       en yaygin davranis -- ne basari ne hata geri cagrisi geliyor:
+       dugme devre disi, yazi sonsuza kadar "Konum aliniyor…".
+       Olculdu: 12 sn sonra hala kilitli.
+
+       Bekci yalniz KILIDI aciyor. Gec gelen bir izin hala calisiyor;
+       o yuzden geri cagrilar bekciyi iptal ediyor ve bekci sonrasi
+       gelen basari da normal yoluna devam ediyor. */
+    let bitti = false;
+    const bekci = setTimeout(() => {
+      if (bitti) return;
+      konumDugme.disabled = false;
+      yedegiAc("Konum izni bekleniyor. İstersen şehri elle seçebilirsin.");
+    }, 12000);
+    const kapat = () => { bitti = true; clearTimeout(bekci); };
+
+    navigator.geolocation.getCurrentPosition(
+      p => {
+        kapat();
+        const il = enYakinIl(p.coords.latitude, p.coords.longitude);
+        if (!il){
+          konumDugme.disabled = false;
+          yedegiAc("Şehir listesi yüklenemedi. Elle seçebilirsin.");
+          return;
+        }
+        try { localStorage.setItem("cebimde.il", il.kod); } catch (e) {}
+        onerVer(il, p.coords.latitude, p.coords.longitude);
+      },
+      err => {
+        kapat();
+        konumDugme.disabled = false;
+        yedegiAc(err.code === 1
+          ? "Konum izni verilmedi. Şehir seçebilirsin."
+          : "Konum alınamadı. Şehir seçebilirsin.");
+      },
+      { timeout: 10000, maximumAge: 300000 }
+    );
+  });
+
+  /* keşfete gönder — durum URL'de taşınıyor, link paylaşılabilir.
+     Bütçe ve kategori de gidiyor: kullanıcı ikisini de yukarıda seçti,
+     şehir kapısından girince seçimini kaybetmesi onu iki kez sormak
+     olurdu. */
+  el("#secim").addEventListener("submit", e => {
+    e.preventDefault();
+    try { localStorage.setItem("cebimde.il", secim.value); } catch (err) {}
+    const p = new URLSearchParams({ il: secim.value });
+    if (butce) p.set("butce", butce);
+    seciliTurler().forEach(t => p.append("tur", t));
+    location.href = "kesfet.html?" + p;
+  });
+});
+</script>
+</body>
+</html>

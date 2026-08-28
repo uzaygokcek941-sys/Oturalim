@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Aydınlatma metni ve gizlilik — Cebimde</title>
+<meta name="description" content="Cebimde hangi veriyi işler, neyi işlemez. KVKK aydınlatma metni, gizlilik politikası ve bildirim kanalı.">
+<meta property="og:title" content="Aydınlatma metni ve gizlilik — Cebimde">
+<meta property="og:description" content="Hesap yok, çerez yok, izleyici yok. İşlenen veri ve haklarınız.">
+<meta property="og:type" content="article">
+<meta property="og:locale" content="tr_TR">
+<meta property="og:image" content="og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="marka.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="ikon/ikon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cebimde">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="stil.css">
+<link rel="stylesheet" href="sahne.css">
+<script>document.documentElement.classList.add("js-sahne");/* Emniyet: sahne.js gelmezse (CDN degil ama betik hatasi, engel,
+   eksik <script>) perde acilmaz ve icerik KALICI gizli kalirdi.
+   2 sn sonra sinif kendiliginden kalkiyor; sahne.css o sinif
+   olmadan hicbir seyi gizlemiyor. Bir kez oldu: isletme.html
+   sahne.js'i hic yuklemiyordu. */
+setTimeout(function(){if(!window.__sahneHazir)document.documentElement.classList.remove("js-sahne");},2000);</script>
+<script>
+try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dataset.tema=t;}catch(e){}
+</script>
+<style>
+  .ust-yazi{border-bottom:1px solid var(--cizgi);padding-block:clamp(36px,5vw,60px)}
+  .ust-yazi h1{max-width:18ch;font-size:clamp(1.9rem,1.3rem + 2.2vw,2.9rem)}
+  .ust-yazi p{margin-top:var(--a4);font-size:16px;max-width:56ch}
+  .ozet{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+    gap:var(--a3);margin-top:var(--a6)}
+  .ozet div{
+    display:flex;gap:var(--a3);align-items:flex-start;padding:var(--a4);
+    background:var(--yuzey);border:1px solid var(--cizgi);border-radius:var(--r);
+  }
+  .ozet svg{width:19px;height:19px;color:var(--yesil);flex:0 0 auto;margin-top:4px}
+  .ozet b{display:block;font-size:16px;color:var(--metin);font-weight:700}
+  .ozet span{font-size:13px;color:var(--metin-3);line-height:1.5}
+  #bildir{scroll-margin-top:calc(var(--ust-yukseklik) + 20px)}
+  .bildir-kutu{
+    border:1px solid var(--vurgu);border-radius:var(--r-b);padding:clamp(20px,3vw,32px);
+    background:linear-gradient(160deg,var(--vurgu-los),var(--yuzey) 70%);margin-top:var(--a5);
+  }
+  .bildir-kutu h3{font-family:var(--font-baslik);font-size:20px;color:var(--metin);
+    letter-spacing:-.02em;margin:0 0 var(--a3);text-transform:none}
+  .guncel{font-size:13px;color:var(--metin-3);margin-top:var(--a7);
+    padding-top:var(--a4);border-top:1px solid var(--cizgi)}
+</style>
+</head>
+<body class="sahne-yazi">
+<a class="atla" href="#ana">İçeriğe atla</a>
+
+<header class="ust">
+  <div class="kap">
+    <a class="marka" href="index.html" aria-label="Cebimde ana sayfa">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="mg" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#ffa03a"/><stop offset="1" stop-color="#f4690a"/></linearGradient></defs><g transform="rotate(-14 26 11)"><rect x="13" y="3.2" width="26" height="7.2" rx="2.2" fill="#00bfa6"/><rect x="11" y="6.6" width="28" height="7.2" rx="2.2" fill="#ffb74d"/></g><path d="M32 8c-9.6 0-17.4 7.5-17.4 16.8 0 8.8 5.9 15.1 12.9 23.8 1.9 2.4 4.5 5.6 4.5 5.6s2.6-3.2 4.5-5.6c7-8.7 12.9-15 12.9-23.8C49.4 15.5 41.6 8 32 8Z" fill="url(#mg)"/><circle cx="32" cy="25.4" r="9.1" fill="#fff"/><g stroke="#f4690a" stroke-width="1.75" stroke-linecap="round"><path d="M27.5 20.1v3.3M29.4 20.1v3.3M31.3 20.1v3.3"/><path d="M29.4 23.4v7.2"/><path d="M35.9 20.1v4.4" stroke-width="3.3"/><path d="M35.9 24.2v6.4"/></g></svg>
+      <span>Ceb<em>imde</em></span>
+    </a>
+    <nav class="menu" aria-label="Ana menü">
+      <a href="index.html">Ana sayfa</a>
+      <a href="kesfet.html">Keşfet</a>
+      <a href="paylas.html" class="gizle-kucuk">Fiyat paylaş</a>
+      <a href="topluluk.html" class="gizle-kucuk">Topluluk</a>
+      <a href="hakkinda.html" class="gizle-kucuk">Hakkında</a>
+      <span data-kimlik-menu></span>
+      <button class="tema-dugme" data-tema-dugme type="button" aria-label="Temayı değiştir">
+        <svg data-ay viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+        <svg data-gunes viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" hidden><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+    </nav>
+  </div>
+</header>
+
+<section class="ust-yazi">
+  <div class="kap">
+    <span class="etiket">Yasal</span>
+    <h1>Aydınlatma metni ve gizlilik</h1>
+    <p>
+      Uzun sürüm aşağıda, ama kısası şu: çerez koymuyorum, seni izlemiyorum ve
+      hesap açmak zorunda değilsin. Hesap yalnızca favori ve fiyat paylaşımı için.
+    </p>
+    <div class="ozet">
+      <div>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 13 4 4L19 7"/></svg>
+        <span><b>Üyelik isteğe bağlı</b>Mekanlara bakmak için gerekmiyor</span>
+      </div>
+      <div>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 13 4 4L19 7"/></svg>
+        <span><b>Çerez yok</b>Reklam veya analitik izleyici yok</span>
+      </div>
+      <div>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 13 4 4L19 7"/></svg>
+        <span><b>Konum cihazda kalır</b>Sunucuya gönderilmez, saklanmaz</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<main id="ana" class="bolum">
+  <div class="kap">
+    <article class="yazi">
+
+      <h2 id="kim">Veriyi kim işliyor</h2>
+      <p>
+        Cebimde tek kişilik bir girişim tarafından işletilmektedir. Veri sorumlusuna
+        ulaşmak için: <a href="mailto:uzaygokcek941@gmail.com">uzaygokcek941@gmail.com</a>
+      </p>
+
+      <h2 id="hangi">Hangi veri işleniyor</h2>
+
+      <h3>Konum</h3>
+      <p>
+        "Bana yakın" sıralamasını kullanırsan tarayıcın senden konum izni ister.
+        Konumun <strong>yalnızca cihazında</strong> işlenir; mekanlara olan uzaklık
+        tarayıcının içinde hesaplanır. Sunucuya gönderilmez, kaydedilmez, üçüncü
+        kişilerle paylaşılmaz. İzni reddedersen uygulamanın geri kalanı normal çalışır.
+      </p>
+
+      <h3>Şehir ve tema tercihi</h3>
+      <p>
+        Seçtiğin il ve açık/koyu tema tercihi tarayıcının <strong>localStorage</strong>
+        alanında tutulur. Sunucuya gitmez. Tarayıcı verilerini temizleyerek her ikisini
+        de silebilirsin.
+      </p>
+
+      <h3>Kullanım ölçümü</h3>
+      <p>
+        Uygulamayı hangi günlerde açtığın bilgisi de yalnızca localStorage'da, yalnızca
+        kendi cihazında tutulur. Kimlik bilgisi içermez, sunucuya gönderilmez, başka
+        cihazlarla eşleştirilemez. Amacı, ürünün gerçekten geri dönülen bir şey olup
+        olmadığını görmek. Tarayıcı verilerini temizlemek bu kaydı da siler.
+      </p>
+
+      <h3 id="sayac">İşletme sayfası görüntülenme sayısı</h3>
+      <p>
+        Bir işletme sayfası açıldığında, o sayfanın kaç kişi tarafından görüldüğünü
+        sayabilmek için isteğinin <strong>IP adresi ve tarayıcı bilgisi</strong>
+        sunucuda işlenir. <strong>Ham IP adresi hiçbir yere kaydedilmez</strong>;
+        yalnızca geri döndürülemez bir özeti saklanır ve bu özet
+        <strong>her gün yenilenir</strong>, yani aynı kişinin iki ayrı gündeki
+        ziyareti birbirine bağlanamaz. Kalıcı bir ziyaretçi kimliği tutulmadığı için
+        davranış profili çıkarılamaz. Saklanan tek şey "şu mekan, şu gün, şu kadar
+        farklı ziyaretçi" bilgisidir; bu satırları hiçbir kullanıcı okuyamaz, yalnızca
+        toplam sayı gösterilir.
+      </p>
+      <p>
+        Bu işleme, işletmelere sayfalarının ne kadar görüldüğünü doğru söyleyebilmek
+        için yapılıyor — <em>meşru menfaat</em> hukuki sebebine dayanıyor. Reklam,
+        profilleme veya üçüncü kişilere aktarım için kullanılmıyor.
+      </p>
+
+      <h3 id="hesap">Hesap bilgileri</h3>
+      <p>
+        Hesap açarsan <strong>e-posta adresin</strong> ve <strong>parolanın şifrelenmiş
+        özeti</strong> saklanır; parolanın kendisi hiçbir yerde tutulmaz.
+        Telefon, cinsiyet, kimlik numarası ve açık adres <strong>istenmiyor</strong>.
+      </p>
+      <p>
+        Kimlik doğrulama <strong>Supabase</strong> altyapısıyla yürütülüyor; oturum bilgin
+        tarayıcında tutulur. Hesabını <a href="hesabim.html">hesap sayfandan</a>
+        yönetebilir, silinmesini talep edebilirsin — talep en geç 7 gün içinde karşılanır.
+      </p>
+      <p>
+        <strong>Favorilerin</strong> hesabına bağlı olarak saklanır; başka kimse göremez.
+        Hesabın silinince favorilerin de silinir.
+      </p>
+
+      <h3 id="profil">Profil bilgileri</h3>
+      <p>
+        Profilinde <strong>görünen ad, kullanıcı adı, profil fotoğrafı, doğum yılı,
+        meslek ve kendini anlattığın kısa metin</strong> tutulabilir.
+        <strong>Hepsi isteğe bağlıdır</strong> — hiçbirini doldurmadan hesap açabilir,
+        yorum yazabilir, favori ekleyebilirsin. Doldurduklarını istediğin zaman
+        <a href="hesabim.html">hesap sayfandan</a> değiştirebilir veya silebilirsin.
+      </p>
+      <p>
+        <strong>Yaşın değil doğum yılın saklanıyor.</strong> Yaş her yıl eskir ve
+        güncel tutulması için sürekli yeniden sorulması gerekir; doğum yılı eskimez
+        ve gün-ay içermediği için daha azını söyler. Ekranda yaşa çevrilerek görünür.
+        13 yaşından küçüklerin profil bilgisi kabul edilmiyor.
+      </p>
+      <p>
+        Profil bilgilerin <strong>herkese açıktır</strong>: yazdığın yorumların yanında
+        ve profil sayfanda görünür. Bu ayarı hesap sayfandan kapatabilirsin — kapattığında
+        yorumların mekan sayfalarında görünmeye devam eder ama <strong>adın, yaşın,
+        mesleğin ve fotoğrafın olmadan</strong>; profil sayfan da açılmaz.
+      </p>
+      <p>
+        Profil sayfaları arama motorlarına <strong>kapalıdır</strong>
+        (<code>noindex, noarchive</code>): bu bilgileri sitede görünsün diye yazdın,
+        Google sonuçlarında çıksın diye değil.
+      </p>
+
+      <h3 id="yorum">Yorumlar</h3>
+      <p>
+        Bir mekana yorum yazarsan <strong>puanın, yazdığın metin ve tarihi</strong>
+        saklanır. Yorum <strong>önce kontrol edilir</strong>, sonra yayımlanır; ölçüt
+        bilginin doğruluğu değil, hakaret ve karalama içermemesidir. Yayımlanan yorum
+        profilin açıksa <strong>adınla</strong>, kapalıysa adsız görünür.
+      </p>
+      <p>
+        Yorumunu istediğin zaman silebilirsin — silinen yorum yayından da kalkar.
+        Fiyat paylaşımlarından farklı olarak yorumlar <strong>kişiye bağlı olarak
+        yayımlanır</strong>; bunu bilerek yazıyorsun.
+      </p>
+      <p>
+        <strong>Fiyat paylaşımların (fişlerin) profilinde listelenmez</strong> ve
+        listelenmeyecek. Onlar bir kanı değil ödeme kaydıdır: hangi gün, hangi mekanda,
+        ne kadar, kaç kişiyle. Kişiye göre dizilmiş bir liste, dışarı çıkma ve harcama
+        geçmişi olurdu. Fiyat kamuya yalnızca <strong>toplu ortalama</strong> olarak
+        veriliyor.
+      </p>
+
+      <h3>Profil fotoğrafı</h3>
+      <p>
+        Fotoğraf yüklersen dosya Supabase depolama alanında tutulur ve
+        <strong>herkese açık bir adresle</strong> servis edilir — profilinde ve
+        yorumlarının yanında görünmesi için gerekli. Kaldırdığında dosya da silinir.
+        Yalnız JPEG, PNG ve WebP kabul ediliyor; en fazla 2 MB.
+      </p>
+
+      <h3 id="mekanfoto">Mekan fotoğrafları</h3>
+      <p>
+        Bir mekanın fotoğrafını yüklersen dosya ve varsa açıklaman saklanır;
+        <strong>önce kontrol edilir</strong>, sonra yayımlanır. Doğrulanmış
+        işletme sahibinin yüklediği fotoğraf doğrudan yayına çıkar.
+        Yayımlanan fotoğraf <strong>anonimdir</strong> — kimin yüklediği
+        hiçbir yerde görünmez.
+      </p>
+      <p>
+        <strong>Konum ve cihaz bilgisi (EXIF) yüklenmeden önce siliniyor</strong>
+        (menü fotoğrafıyla aynı kural). Fotoğrafta
+        <strong>tanınabilir insan olmamasına dikkat et</strong>: bir mekanın
+        salonunu çekerken orada oturanlar da kadraja girer ve onlar
+        fotoğraflanmayı kabul etmedi. Bu tür fotoğraflar onaydan geçirilmez.
+      </p>
+      <p>
+        Sayfalarda ayrıca <strong>Wikimedia Commons</strong> kaynaklı, serbest
+        lisanslı fotoğraflar görebilirsin; bunlarda fotoğrafın altında
+        <strong>fotoğrafçının adı ve lisansı</strong> yazar — lisansın
+        gerektirdiği atıf budur. Google Maps ve benzeri kaynaklardan fotoğraf
+        veya yorum alınmıyor: onları kendi sitemizde yayımlama hakkımız yok.
+      </p>
+
+      <h3 id="menu">Menü ve ürün paylaşımı</h3>
+      <p>
+        Bir mekanın menü kalemini eklersen <strong>ürün adı, fiyatı</strong> ve
+        varsa <strong>yüklediğin fotoğraf</strong> saklanır. Kayıt
+        <strong>önce kontrol edilir</strong>, sonra yayımlanır.
+        Yayımlanan kalem <strong>anonimdir</strong> — kimin eklediği hiçbir yerde
+        görünmez. Yorumlardan farkı bu: yorumda “kim söylüyor” bilgi taşır,
+        fiyatta taşımaz.
+      </p>
+      <p>
+        <strong>Fotoğrafın konum ve cihaz bilgisi (EXIF) yüklenmeden önce
+        siliniyor.</strong> Telefon fotoğrafları GPS koordinatı, çekim saati ve
+        cihaz modeli taşır; fotoğraf tarayıcında yeniden kodlanıyor ve bu veriler
+        düşüyor — sunucuya hiç ulaşmıyorlar. Yüklediğin dosyanın kendisi değil,
+        yeniden kodlanmış hâli saklanıyor.
+      </p>
+      <p>
+        Fotoğrafta <strong>insan yüzü, plaka ve kişisel bilgi olmamasına dikkat
+        et.</strong> Bu tür fotoğraflar onaydan geçirilmez. Eklediğin kaydı
+        istediğin zaman hesap sayfandan silebilirsin; sildiğinde dosya da silinir.
+      </p>
+
+      <h3>Fiyat paylaşımı</h3>
+      <p>
+        Bir mekanın fiyatını paylaşırsan verdiğin bilgiler (mekan adı, ödenen tutar,
+        kişi sayısı, varsa fiş görseli) tarafıma iletilir ve <strong>yalnızca</strong>
+        mekanın fiyat bilgisini oluşturmak için kullanılır. Yayımlanan veri
+        anonimdir — kimin gönderdiği hiçbir yerde görünmez.
+      </p>
+      <p>
+        Fiş fotoğrafı gönderiyorsan kart numarası, ad-soyad gibi kişisel bilgileri
+        <strong>kapatarak</strong> gönder. Bu bilgileri istemiyorum ve saklamıyorum.
+      </p>
+
+      <h2 id="ucuncu">Üçüncü taraf istekleri</h2>
+      <p>
+        Sayfa açıldığında tarayıcın şu adreslerden dosya çeker ve bu istekler
+        sırasında <strong>IP adresin ilgili sağlayıcıya görünür</strong>:
+      </p>
+      <!-- BU LISTE CSP ILE KARSILASTIRILIYOR (test.py). CSP tarayicinin
+           hangi kaynaklara gidebilecegini soyleyen tek yetkili yer;
+           liste ondan sapinca kullaniciya yanlis sey soylemis oluruz.
+           Uc sapma birden yasandi: unpkg yaziyordu ama artik hic
+           cagrilmiyor (Leaflet yerele alindi), Wikimedia Commons ve
+           esm.sh ise cagriliyordu ama yazmiyordu. -->
+      <div class="sar">
+        <table>
+          <thead><tr><th>Sağlayıcı</th><th>Ne için</th></tr></thead>
+          <tbody>
+            <tr><td>Google Fonts</td><td>Yazı tipleri</td></tr>
+            <tr><td>OpenStreetMap / CARTO</td><td>Harita döşemeleri</td></tr>
+            <tr><td>Supabase</td><td>Hesap, oturum, favori ve fiyat paylaşımı verisi — yalnızca hesap açarsan</td></tr>
+            <tr><td>Wikimedia Commons</td><td>Serbest lisanslı mekan fotoğrafları — yalnızca o fotoğrafın olduğu sayfada</td></tr>
+            <tr><td>Vercel</td><td>Sitenin barındırılması</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Bu isteklerde sana ait bir tanımlayıcı gönderilmez; sağlayıcıların kendi
+        kayıtları kendi politikalarına tabidir.
+      </p>
+
+      <h2 id="haklar">KVKK kapsamındaki haklarınız</h2>
+      <p>
+        6698 sayılı Kanun'un 11. maddesi uyarınca; kişisel verinizin işlenip
+        işlenmediğini öğrenme, işlenmişse bilgi talep etme, işlenme amacını öğrenme,
+        eksik veya yanlış işlenmişse düzeltilmesini isteme, silinmesini veya yok
+        edilmesini isteme ve işlemenin kanuna aykırı olması sebebiyle zarara
+        uğramanız hâlinde zararın giderilmesini talep etme haklarına sahipsiniz.
+      </p>
+      <p>
+        Talebinizi <a href="mailto:uzaygokcek941@gmail.com">uzaygokcek941@gmail.com</a>
+        adresine iletebilir, hesabınız varsa taleplerinizi
+        <a href="hesabim.html">hesap sayfanızdan</a> da iletebilirsiniz. Hesap açmadıysanız
+        sizinle ilişkilendirilebilecek bir kayıt zaten tutulmamaktadır.
+      </p>
+
+      <h2 id="mekan-veri">Mekan bilgileri ve fiyatlar</h2>
+      <p>
+        Mekan adı, konumu ve özellikleri OpenStreetMap'ten (ODbL lisansı) alınmıştır.
+        Fiyatlar, işletmelerin kendi web sitelerinde herkese açık olarak yayımladığı
+        menülerden derlenmiştir. İşletmelerle bir ilişkimiz, anlaşmamız veya ticari
+        bağımız yoktur.
+      </p>
+      <p>
+        Gösterilen fiyatlar <strong>bağlayıcı değildir</strong>, derlendiği andaki
+        hâliyle durur ve değişmiş olabilir. Bir mekana gitmeden önce güncel fiyatı
+        işletmeden teyit etmek gerekir.
+      </p>
+
+      <h2 id="bildir">Hata bildirimi ve kaldırma talebi</h2>
+      <p>
+        Yanlış fiyat, kapanmış mekan, hatalı konum ya da kaldırılmasını istediğin
+        bir bilgi varsa yaz — düzeltilir. İşletme sahibiysen ve mekanınla ilgili
+        bilginin tamamen kaldırılmasını istiyorsan, talep <strong>en geç 7 gün
+        içinde</strong> karşılanır; gerekçe belirtmen gerekmez.
+      </p>
+
+      <div class="bildir-kutu">
+        <h3>Bildirim kanalı</h3>
+        <p style="margin-bottom:var(--a4)">
+          Mekan adını ve sorunu kısaca yazman yeterli. Aynı gün içinde dönüş yapıyorum.
+        </p>
+        <a class="dugme" href="mailto:uzaygokcek941@gmail.com?subject=Cebimde%20bildirim">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h18v12H3z"/><path d="m3 8 9 6 9-6"/></svg>
+          E-posta gönder
+        </a>
+        <p style="margin-top:var(--a4);font-size:13px">
+          Mekan verisi OpenStreetMap'ten geliyor; kalıcı düzeltme için
+          <a href="https://www.openstreetmap.org" target="_blank" rel="noopener">openstreetmap.org</a>
+          üzerinden de düzenleyebilirsin — düzeltme bütün haritalara yansır.
+        </p>
+      </div>
+
+      <p class="guncel">
+        Bu metin, uygulamanın işleyişi değiştikçe güncellenir.
+        Son güncelleme: <time datetime="2026-08-19">19 Ağustos 2026</time>.
+      </p>
+
+    </article>
+  </div>
+</main>
+
+<footer class="alt">
+  <div class="kap">
+    <div class="alt-izgara">
+      <div>
+        <a class="marka" href="index.html" style="margin-bottom:var(--a3)">
+          <svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="mg" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#ffa03a"/><stop offset="1" stop-color="#f4690a"/></linearGradient></defs><g transform="rotate(-14 26 11)"><rect x="13" y="3.2" width="26" height="7.2" rx="2.2" fill="#00bfa6"/><rect x="11" y="6.6" width="28" height="7.2" rx="2.2" fill="#ffb74d"/></g><path d="M32 8c-9.6 0-17.4 7.5-17.4 16.8 0 8.8 5.9 15.1 12.9 23.8 1.9 2.4 4.5 5.6 4.5 5.6s2.6-3.2 4.5-5.6c7-8.7 12.9-15 12.9-23.8C49.4 15.5 41.6 8 32 8Z" fill="url(#mg)"/><circle cx="32" cy="25.4" r="9.1" fill="#fff"/><g stroke="#f4690a" stroke-width="1.75" stroke-linecap="round"><path d="M27.5 20.1v3.3M29.4 20.1v3.3M31.3 20.1v3.3"/><path d="M29.4 23.4v7.2"/><path d="M35.9 20.1v4.4" stroke-width="3.3"/><path d="M35.9 24.2v6.4"/></g></svg>
+          <span>Ceb<em>imde</em></span>
+        </a>
+        <p style="font-size:16px;max-width:38ch">
+          Cebindeki bütçeyle keşfet. Türkiye'deki mekanları gerçek fiyat bilgisiyle gösteren
+          bağımsız bir proje.
+        </p>
+      </div>
+      <div>
+        <h4>Ürün</h4>
+        <ul>
+          <li><a href="kesfet.html">Mekanları keşfet</a></li>
+          <li><a href="paylas.html">Fiyat paylaş</a></li>
+          <li><a href="hakkinda.html">Hakkında</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Yasal</h4>
+        <ul>
+          <li><a href="gizlilik.html">Aydınlatma metni ve gizlilik</a></li>
+          <li><a href="gizlilik.html#bildir">Hata bildir / kaldırma talebi</a></li>
+          <li><a href="hakkinda.html#veri">Veri kaynağı ve lisans</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="kunye">
+      Mekan verisi <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap katkıcıları</a> (ODbL).
+      Fiyatlar işletmelerin kendi yayımladığı menülerden derlenir; güncelliği garanti edilmez, bağlayıcı değildir.
+    </p>
+  </div>
+</footer>
+
+<script src="ortak.js" defer></script>
+<script src="sahne.js" defer></script>
+<script src="yapilandirma.js"></script>
+<script type="module" src="kimlik.js"></script>
+</body>
+</html>

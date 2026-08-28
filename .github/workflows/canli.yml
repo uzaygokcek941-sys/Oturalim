@@ -1,0 +1,88 @@
+# YAYINDAKI siteyi gercek tarayicida sinar.
+#
+# NEDEN AYRI BIR IS AKISI. test.py ve test_sayfa.py depodaki dosyalara
+# bakiyor ve Supabase'i TAKLIT ediyor -- bilerek, cunku kontroller aga
+# cikmadan kosabilmeli. Ama o yuzden "depo dogru" ile "yayin dogru"
+# arasindaki fark bugune kadar hic olculmedi. Yayina gitmemis bir dosya,
+# Vercel'de uygulanmamis bir CSP basligi ya da yanlis bir Supabase
+# anahtari yerelde HICBIR kontrolu dusurmez.
+#
+# ZAMANLI, cunku yayin depo degismeden de bozulabilir: Vercel
+# yapilandirmasi, Supabase projesi ve tarayicilar bagimsiz degisiyor.
+#
+# HICBIR SEY YAZMIYOR. Betik yalniz okuyor ve konum izni istiyor;
+# yayindaki veriye tek satir eklemiyor. O yuzden zamanli kosmasi guvenli.
+name: Canli tur
+
+on:
+  schedule:
+    # 05:00 UTC = 08:00 Turkiye. Veri turlarindan sonra, gun basinda.
+    - cron: "0 5 * * *"
+  workflow_dispatch:
+    inputs:
+      adres:
+        description: "Sinanacak adres"
+        default: "https://oturalim.vercel.app"
+      incele:
+        description: "Tam inceleme raporu da uret (canli_incele.py)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: canli-tur
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  tur:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Playwright
+        run: |
+          python -m pip install --quiet playwright
+          python -m playwright install --with-deps chromium
+
+      - name: Tur
+        # set -o pipefail SART VE BU ADIM ONSUZ YALAN SOYLEDI: yayindaki
+        # ikinci tur COKTU ve is akisi YESIL yandi. Sebep boru hatti --
+        # bash borunun cikis kodunu SON komuttan aliyor ve son komut tee,
+        # yani hep 0. Butun gun kapattigim hatanin aynisi, bu kez bende:
+        # basarisizligi goremeyen bir kapi.
+        run: |
+          set -o pipefail
+          python canli_test.py "${{ inputs.adres || 'https://oturalim.vercel.app' }}" \
+            | tee tur.log
+          {
+            echo "### Canli tur"
+            echo '```'
+            cat tur.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # RAPOR, KAPI DEGIL. canli_test.py sartlari siniyor ve dusuyor;
+      # bu betik 16 sayfayi gezip NE GORDUGUNU yaziyor, hicbir seyi
+      # "basarisiz" saymiyor. O yuzden ayri ve ISTEGE BAGLI: her sabah
+      # 16 sayfa gezmek gereksiz, ama insan "her seyi incele" dediginde
+      # tek dugme.
+      - name: Tam inceleme
+        if: inputs.incele
+        run: |
+          set -o pipefail
+          python canli_incele.py "${{ inputs.adres || 'https://oturalim.vercel.app' }}" \
+            | tee incele.log
+          {
+            echo "### Tam inceleme"
+            echo '```'
+            cat incele.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

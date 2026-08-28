@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Giriş — Cebimde</title>
+<meta name="description" content="Cebimde hesabına giriş yap veya yeni hesap aç. Favori mekanlarını kaydet, fiyat paylaşımlarını takip et.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="marka.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="ikon/ikon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cebimde">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="stil.css">
+<link rel="stylesheet" href="sahne.css">
+<script>document.documentElement.classList.add("js-sahne");/* Emniyet: sahne.js gelmezse (CDN degil ama betik hatasi, engel,
+   eksik <script>) perde acilmaz ve icerik KALICI gizli kalirdi.
+   2 sn sonra sinif kendiliginden kalkiyor; sahne.css o sinif
+   olmadan hicbir seyi gizlemiyor. Bir kez oldu: isletme.html
+   sahne.js'i hic yuklemiyordu. */
+setTimeout(function(){if(!window.__sahneHazir)document.documentElement.classList.remove("js-sahne");},2000);</script>
+<script>
+try{var t=localStorage.getItem("cebimde.tema");if(t)document.documentElement.dataset.tema=t;}catch(e){}
+</script>
+<style>
+  .kimlik-kap{max-width:440px;margin-inline:auto}
+  .sekmeler{display:flex;gap:var(--a1);padding:var(--a1);background:var(--zemin-3);
+    border-radius:var(--r);margin-bottom:var(--a5)}
+  .sekmeler button{
+    flex:1;min-height:44px;border-radius:var(--r-s);font-weight:600;font-size:16px;
+    color:var(--metin-2);transition:var(--hiz) var(--egri);
+  }
+  .sekmeler button[aria-selected="true"]{background:var(--yuzey);color:var(--metin);box-shadow:var(--golge-1)}
+  .alanlar{display:grid;gap:var(--a4)}
+  .alanlar label{display:grid;gap:8px}
+  .alanlar .ad{font-size:13px;font-weight:700;color:var(--metin-2)}
+  .alanlar input{
+    min-height:48px;padding:12px 16px;border-radius:var(--r);background:var(--zemin-3);
+    border:1px solid var(--cizgi);color:var(--metin);font-size:16px;width:100%;
+  }
+  .alanlar input:hover{border-color:var(--cizgi-2)}
+  .alanlar input[aria-invalid="true"]{border-color:var(--kirmizi)}
+  .ipucu{font-size:13px;color:var(--metin-3);line-height:1.45}
+  .parola-sar{position:relative;display:block}
+  .parola-sar input{padding-right:52px}
+  /* 40 -> 44. Mutlak konumlu ve dikey ORTALI oldugu icin buyumesi
+     hicbir seyi itmiyor; simge 19 px'te kaliyor, yalniz dokunma alani
+     buyuyor. Parolayi gizle/goster telefonda en cok yanlis basilan
+     denetimlerden biri. */
+  .goster{
+    position:absolute;right:6px;top:50%;transform:translateY(-50%);
+    width:44px;height:44px;display:grid;place-items:center;border-radius:var(--r-s);
+    color:var(--metin-3);
+  }
+  .goster:hover{color:var(--metin);background:var(--zemin-2)}
+  .goster svg{width:19px;height:19px}
+  /* min-height 32 -> 44. Yazi 13 px kaliyor ve alti cizili gorunumu
+     degismiyor; buyuyen sey yalniz dokunma kutusu. "Parolami unuttum"
+     bir BAG GIBI duruyor ama <button> -- yani WCAG'in satir ici bag
+     muafiyeti buna islemiyor. */
+  .kucuk-baglanti{background:none;border:0;color:var(--vurgu);font-size:13px;
+    cursor:pointer;text-decoration:underline;text-underline-offset:3px;padding:4px 0;
+    justify-self:start;min-height:44px;display:inline-flex;align-items:center}
+  .uyari{
+    display:none;gap:var(--a3);padding:var(--a4);border-radius:var(--r);
+    font-size:13px;line-height:1.55;margin-bottom:var(--a4);align-items:flex-start;
+  }
+  .uyari.gorunur{display:flex}
+  .uyari svg{width:19px;height:19px;flex:0 0 auto;margin-top:1px}
+  .uyari.hata{background:color-mix(in srgb,var(--kirmizi) 14%,transparent);
+    border:1px solid var(--kirmizi);color:var(--metin)}
+  .uyari.iyi{background:var(--yesil-los);border:1px solid var(--yesil);color:var(--metin)}
+  .uyari.bilgi{background:var(--vurgu-los);border:1px solid var(--vurgu);color:var(--metin)}
+  .kapali-kutu{
+    padding:var(--a5);border:1px dashed var(--cizgi-2);border-radius:var(--r);
+    background:var(--zemin-3);display:grid;gap:var(--a3);
+  }
+  .kapali-kutu h2{font-family:var(--font-govde);font-size:16px;font-weight:700}
+  .kapali-kutu code{font-size:13px;background:var(--zemin);padding:4px 8px;border-radius:4px;
+    color:var(--vurgu);word-break:break-all}
+  .neden-hesap{margin-top:var(--a6);padding-top:var(--a5);border-top:1px solid var(--cizgi);
+    display:grid;gap:var(--a3)}
+  .neden-hesap li{display:flex;gap:var(--a3);font-size:13px;color:var(--metin-2);line-height:1.55}
+  .neden-hesap svg{width:17px;height:17px;color:var(--vurgu);flex:0 0 auto;margin-top:4px}
+  .neden-hesap ul{list-style:none;display:grid;gap:var(--a3)}
+</style>
+</head>
+<body class="sahne-kapi">
+<a class="atla" href="#ana">İçeriğe atla</a>
+
+<header class="ust">
+  <div class="kap">
+    <a class="marka" href="index.html" aria-label="Cebimde ana sayfa">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="mg" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#ffa03a"/><stop offset="1" stop-color="#f4690a"/></linearGradient></defs><g transform="rotate(-14 26 11)"><rect x="13" y="3.2" width="26" height="7.2" rx="2.2" fill="#00bfa6"/><rect x="11" y="6.6" width="28" height="7.2" rx="2.2" fill="#ffb74d"/></g><path d="M32 8c-9.6 0-17.4 7.5-17.4 16.8 0 8.8 5.9 15.1 12.9 23.8 1.9 2.4 4.5 5.6 4.5 5.6s2.6-3.2 4.5-5.6c7-8.7 12.9-15 12.9-23.8C49.4 15.5 41.6 8 32 8Z" fill="url(#mg)"/><circle cx="32" cy="25.4" r="9.1" fill="#fff"/><g stroke="#f4690a" stroke-width="1.75" stroke-linecap="round"><path d="M27.5 20.1v3.3M29.4 20.1v3.3M31.3 20.1v3.3"/><path d="M29.4 23.4v7.2"/><path d="M35.9 20.1v4.4" stroke-width="3.3"/><path d="M35.9 24.2v6.4"/></g></svg>
+      <span>Ceb<em>imde</em></span>
+    </a>
+    <nav class="menu" aria-label="Ana menü">
+      <a href="index.html">Ana sayfa</a>
+      <a href="kesfet.html">Keşfet</a>
+      <span data-kimlik-menu></span>
+      <button class="tema-dugme" data-tema-dugme type="button" aria-label="Temayı değiştir">
+        <svg data-ay viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+        <svg data-gunes viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" hidden><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+    </nav>
+  </div>
+</header>
+
+<main id="ana" class="bolum">
+  <div class="kap" data-giris="iris">
+    <div class="kimlik-kap">
+
+      <!-- Baglanti sorunu. AYRI bir kutu, cunku "kurulu degil" ile
+           "su an acilamiyor" kullanici icin bambaska iki sey: birincisinde
+           yapacak is site sahibinde, ikincisinde beklemekten baska bir sey
+           yok. Yayindaki sitede kurulum metnini gostermek hem YANLIS hem de
+           kullaniciyi erisemedigi bir dosyaya yolluyordu. -->
+      <div id="agyok" hidden>
+        <h1 style="font-size:40px;margin-bottom:var(--a4)">Giriş şu an açılamıyor</h1>
+        <div class="kapali-kutu">
+          <h2>Ne oldu</h2>
+          <p class="ipucu">
+            Giriş için gereken bir dosya yüklenemedi. Genellikle geçici bir
+            bağlantı sorunudur — internetin yavaşsa ya da ağın bazı adresleri
+            engelliyorsa olur. Hesabında bir sorun yok.
+          </p>
+          <p class="ipucu">
+            Sitenin geri kalanı normal çalışıyor: mekan arama, harita,
+            filtreler ve fiyatlar giriş gerektirmiyor.
+          </p>
+          <button class="dugme" type="button" id="tekrar">Tekrar dene</button>
+          <a class="dugme ikincil" href="kesfet.html">Mekanlara dön</a>
+        </div>
+      </div>
+
+      <div id="kapali" hidden>
+        <h1 style="font-size:40px;margin-bottom:var(--a4)">Giriş sistemi henüz kurulu değil</h1>
+        <div class="kapali-kutu">
+          <h2>Ne yapmalı</h2>
+          <p class="ipucu">
+            Supabase projesini açtıktan sonra <code>app/yapilandirma.js</code> dosyasındaki
+            <code>supabaseUrl</code> ve <code>supabaseAnahtar</code> alanlarını doldur.
+            Adımların tamamı <code>KURULUM.md</code> dosyasında.
+          </p>
+          <p class="ipucu">
+            O zamana kadar sitenin geri kalanı normal çalışıyor: mekan arama,
+            harita ve filtreler giriş gerektirmiyor.
+          </p>
+          <a class="dugme" href="kesfet.html">Mekanlara dön</a>
+        </div>
+      </div>
+
+      <div id="acik" hidden>
+        <h1 id="baslik" style="font-size:40px;margin-bottom:var(--a2)">Giriş yap</h1>
+        <p id="giris-metni" style="margin-bottom:var(--a5);font-size:16px">
+          Hesap yalnızca favori ve paylaşım için. Mekanlara bakmak için gerekmiyor.
+        </p>
+
+        <div class="sekmeler" role="tablist" id="sekmeler">
+          <button role="tab" type="button" aria-selected="true"  data-kip="giris">Giriş yap</button>
+          <button role="tab" type="button" aria-selected="false" data-kip="kayit">Hesap aç</button>
+        </div>
+
+        <div class="uyari" id="uyari" role="status" aria-live="polite">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" id="uyari-ikon"><path d="M12 8v5m0 4h.01"/><circle cx="12" cy="12" r="9"/></svg>
+          <span id="uyari-metin"></span>
+        </div>
+
+        <form class="alanlar" id="form" novalidate>
+          <label id="alan-ad" hidden>
+            <span class="ad">Görünen adın</span>
+            <input id="ad" type="text" autocomplete="name" maxlength="60" placeholder="Örn. Ayşe">
+            <span class="ipucu">İstersen boş bırak. Hiçbir yerde yayımlanmıyor.</span>
+          </label>
+
+          <label id="alan-eposta">
+            <span class="ad">E-posta</span>
+            <input id="eposta" type="email" autocomplete="email" inputmode="email"
+                   required placeholder="ornek@eposta.com">
+          </label>
+
+          <label id="alan-parola">
+            <span class="ad" id="parola-etiket">Parola</span>
+            <span class="parola-sar">
+              <input id="parola" type="password" autocomplete="current-password"
+                     required placeholder="••••••••">
+              <button class="goster" type="button" id="goster" aria-label="Parolayı göster">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </span>
+            <span class="ipucu" id="parola-ipucu" hidden>En az 8 karakter, bir harf ve bir rakam.</span>
+          </label>
+
+          <button class="dugme tam" type="submit" id="gonder">Giriş yap</button>
+          <button class="kucuk-baglanti" type="button" id="unuttum">Parolamı unuttum</button>
+        </form>
+
+        <div class="neden-hesap">
+          <p style="font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--metin-3)">
+            Hesap ne işe yarıyor
+          </p>
+          <ul>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 20-7.5-7.6a4.6 4.6 0 0 1 6.5-6.5l1 1 1-1a4.6 4.6 0 0 1 6.5 6.5Z"/></svg>
+              <span>Favori mekanların cihaz değiştirince kaybolmaz.</span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+              <span>Fiyat paylaşımını doğrudan uygulamadan gönderirsin, e-posta yazmana gerek kalmaz.</span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+              <span>Gönderdiğin fiyatların onay durumunu takip edersin.</span></li>
+          </ul>
+          <p class="ipucu" style="margin-top:var(--a2)">
+            Yalnızca e-posta ve parola saklanıyor; ad isteğe bağlı.
+            Ayrıntı: <a href="gizlilik.html">aydınlatma metni</a>.
+          </p>
+          <!-- Isletme sahibine AYRI KAPI. Ayni kimlik sistemi, ayri
+               akis: kart elindeki kisi buradan girince kodu da ayni
+               formda girip mekanini devralabiliyor. -->
+          <p class="ipucu" style="margin-top:var(--a3)">
+            <strong>İşletme sahibi misin?</strong>
+            <a href="isletme-giris.html">İşletme girişi</a> — karttaki kodla
+            sayfanı devral, bilgilerini sıraya girmeden güncelle.
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<script src="ortak.js" defer></script>
+<script src="sahne.js" defer></script>
+<script src="yapilandirma.js"></script>
+<script type="module">
+import Kimlik, { epostaGecerli, parolaSorunu } from "./kimlik.js";
+
+const el = s => document.querySelector(s);
+const P = new URLSearchParams(location.search);
+let kip = "giris";                       // giris | kayit | sifirla | yenile
+
+function uyar(tur, metin){
+  const k = el("#uyari");
+  k.className = "uyari gorunur " + tur;
+  el("#uyari-metin").textContent = metin;
+  el("#uyari-ikon").innerHTML = tur === "iyi"
+    ? '<path d="m5 13 4 4L19 7"/>'
+    : '<path d="M12 8v5m0 4h.01"/><circle cx="12" cy="12" r="9"/>';
+}
+function uyariSil(){ el("#uyari").className = "uyari"; }
+
+function kipUygula(yeni){
+  kip = yeni;
+  uyariSil();
+  const kayit   = kip === "kayit";
+  const sifirla = kip === "sifirla";
+  const yenile  = kip === "yenile";
+
+  el("#alan-ad").hidden      = !kayit;
+  el("#alan-parola").hidden  = sifirla;
+  el("#alan-eposta").hidden  = yenile;
+  el("#parola-ipucu").hidden = !(kayit || yenile);
+  el("#unuttum").hidden      = kayit || sifirla || yenile;
+  el("#sekmeler").hidden     = sifirla || yenile;
+  el("#giris-metni").hidden  = sifirla || yenile;
+
+  el("#parola").autocomplete = (kayit || yenile) ? "new-password" : "current-password";
+
+  el("#baslik").textContent =
+    kayit ? "Hesap aç" : sifirla ? "Parolanı sıfırla" : yenile ? "Yeni parola belirle" : "Giriş yap";
+  el("#gonder").textContent =
+    kayit ? "Hesap aç" : sifirla ? "Sıfırlama bağlantısı gönder" : yenile ? "Parolayı kaydet" : "Giriş yap";
+  el("#parola-etiket").textContent = yenile ? "Yeni parola" : "Parola";
+
+  document.querySelectorAll("#sekmeler button").forEach(b =>
+    b.setAttribute("aria-selected", String(b.dataset.kip === kip)));
+
+  if (sifirla)
+    uyar("bilgi", "E-posta adresini yaz; parolanı yenilemen için bağlantı göndereceğim.");
+}
+
+el("#sekmeler").addEventListener("click", e => {
+  const b = e.target.closest("button[data-kip]");
+  if (b) kipUygula(b.dataset.kip);
+});
+el("#unuttum").addEventListener("click", () => kipUygula("sifirla"));
+
+el("#goster").addEventListener("click", () => {
+  const p = el("#parola");
+  const gizli = p.type === "password";
+  p.type = gizli ? "text" : "password";
+  el("#goster").setAttribute("aria-label", gizli ? "Parolayı gizle" : "Parolayı göster");
+});
+
+el("#form").addEventListener("submit", async e => {
+  e.preventDefault();
+  uyariSil();
+  const eposta = el("#eposta").value.trim();
+  const parola = el("#parola").value;
+  const dugme  = el("#gonder");
+  const eskiMetin = dugme.textContent;
+
+  /* istemci tarafı doğrulama — sunucuya boşuna gitmesin */
+  if (kip !== "yenile" && !epostaGecerli(eposta)){
+    el("#eposta").setAttribute("aria-invalid", "true");
+    return uyar("hata", "Geçerli bir e-posta adresi yaz.");
+  }
+  el("#eposta").removeAttribute("aria-invalid");
+
+  if (kip === "kayit" || kip === "yenile"){
+    const sorun = parolaSorunu(parola);
+    if (sorun){
+      el("#parola").setAttribute("aria-invalid", "true");
+      return uyar("hata", sorun);
+    }
+  }
+  el("#parola").removeAttribute("aria-invalid");
+
+  dugme.disabled = true;
+  dugme.textContent = "Gönderiliyor…";
+  try {
+    if (kip === "giris"){
+      await Kimlik.giris(eposta, parola);
+      /* donus ADRES olarak kullaniliyor; denetimi ortak.js'te (guvenliDonus).
+         Denetimsiz hali javascript: URL'ini calistiriyordu -- hem de tam
+         giris yapildiktan sonra, jeton okunabilir haldeyken. */
+      location.href = guvenliDonus(P.get("donus")) || "hesabim.html";
+
+    } else if (kip === "kayit"){
+      const sonuc = await Kimlik.kayit(eposta, parola, el("#ad").value);
+      if (sonuc.dogrulamaBekliyor){
+        el("#form").hidden = true;
+        el("#sekmeler").hidden = true;
+        uyar("iyi", "Hesabın açıldı. " + eposta + " adresine doğrulama bağlantısı gönderdim; " +
+                    "bağlantıya tıkladıktan sonra giriş yapabilirsin.");
+      } else {
+        location.href = "hesabim.html";
+      }
+
+    } else if (kip === "sifirla"){
+      await Kimlik.parolaSifirlaIste(eposta);
+      uyar("iyi", "Bağlantı gönderildi. Posta kutunu kontrol et — spam klasörüne düşmüş olabilir.");
+
+    } else if (kip === "yenile"){
+      await Kimlik.parolaDegistir(parola);
+      uyar("iyi", "Parolan güncellendi. Yönlendiriliyorsun…");
+      setTimeout(() => { location.href = "hesabim.html"; }, 1200);
+    }
+  } catch (err){
+    uyar("hata", err.message);
+  } finally {
+    dugme.disabled = false;
+    dugme.textContent = eskiMetin;
+  }
+});
+
+/* açılış */
+el("#tekrar").addEventListener("click", () => location.reload());
+
+Kimlik.hazir.then(acik => {
+  /* Uc hal, uc AYRI ekran. Kimlik.sorun ikisini ayirt ediyor:
+     "yapilandirma" -> anahtar bos, site sahibinin yapacagi is var
+     "ag"           -> anahtar dolu ama supabase-js gelmedi */
+  const agSorunu = !acik && Kimlik.sorun === "ag";
+  el("#agyok").hidden  = !agSorunu;
+  el("#kapali").hidden = acik || agSorunu;
+  el("#acik").hidden   = !acik;
+  if (!acik) return;
+
+  /* Parola sıfırlama bağlantısıyla gelindiyse doğrudan yenileme kipi.
+     Supabase bağlantıdaki jetonu okuyup geçici oturum açıyor. */
+  if (P.has("yenile") || location.hash.includes("type=recovery")){
+    kipUygula("yenile");
+    return;
+  }
+  if (Kimlik.girisli){
+    location.href = guvenliDonus(P.get("donus")) || "hesabim.html";
+    return;
+  }
+  kipUygula(P.get("kip") === "kayit" ? "kayit" : "giris");
+});
+</script>
+</body>
+</html>

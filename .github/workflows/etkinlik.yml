@@ -1,0 +1,57 @@
+# Etkinlik verisini gunluk tazeler.
+#
+# Neden gerekli: restoran koordinatta durur, bir kez cekilir. Konser bir
+# tarihte olur; bugun dogru olan dosya yarin kismen yanlistir. Gecmis
+# etkinlik hem cekimde hem arayuzde eleniyor ama dosya tazelenmezse
+# uygulama giderek bosalir.
+name: Etkinlik verisi
+
+on:
+  schedule:
+    # 04:00 UTC = 07:00 Turkiye. Sabah, gunun etkinlikleri baslamadan once.
+    - cron: "0 4 * * *"
+  workflow_dispatch:        # elle de calistirilabilsin
+
+# Ayni anda iki calistirma dosyayi bozmasin.
+concurrency:
+  group: etkinlik-verisi
+  cancel-in-progress: false
+
+permissions:
+  contents: write           # veri dosyasini commit'lemek icin
+
+jobs:
+  tazele:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25     # 81 il x 3 tur x 1,5 sn ~ 7 dk; genis pay
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Etkinlikleri cek
+        run: python etkinlik_cek.py
+
+      - name: Degisiklik var mi
+        id: fark
+        run: |
+          if git diff --quiet -- app/veri/etkinlik.json; then
+            echo "degisti=hayir" >> "$GITHUB_OUTPUT"
+            echo "Veri ayni, commit yok."
+          else
+            echo "degisti=evet" >> "$GITHUB_OUTPUT"
+            echo "Veri degisti:"
+            git diff --stat -- app/veri/etkinlik.json
+          fi
+
+      - name: Commit ve push
+        if: steps.fark.outputs.degisti == 'evet'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/veri/etkinlik.json
+          git commit -m "veri: etkinlikler tazelendi ($(date -u +%Y-%m-%d))"
+          git push

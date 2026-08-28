@@ -1,0 +1,77 @@
+# Ara veri — Overpass ham ciktilari (9 MB, isletme wifi parolalari iceriyor).
+# Gerekirse turkiye_cek.py ile yeniden uretilir.
+ham/
+ham_eglence/
+
+# Gizli anahtarlar — asla depoya girmez
+.env
+.env.*
+!.env.ornek
+
+# Python
+__pycache__/
+*.pyc
+
+# Test artiklari
+test_ankara.json
+test_menu.html
+
+# Kullanilmayan eski surumler
+app/veri.json
+app/kesfet-eski-yedek.html
+
+# Isletim sistemi
+Thumbs.db
+.DS_Store
+
+# Tarama ara ciktisi — menu_pdf_tara.py yeniden uretir
+taranmamis.txt
+
+# Site haritasi — site_haritasi.py alan adiyla birlikte yeniden uretir.
+# Depoda tutulursa alan adi degistiginde sessizce eskir.
+app/sitemap.xml
+
+# Saha ciktilari — sahiplen.py yeniden uretir, elle doldurulan
+# sutunlar (dogrulandi_mi / ziyaret_edildi_mi) depoya girmez.
+sahiplenme_hedef.csv
+sahiplenme_kume.csv
+
+# Saha kartlari — saha.py uretir. UCU DE DEPOYA GIRMEZ:
+# saha_kartlar.html ve saha_liste.csv DUZ KODLARI tasiyor (her biri bir
+# isletme sayfasinin anahtari), saha_kodlar.sql ise yalniz ozetleri ama
+# hangi mekana hangi kartin gittigini gosteriyor. Kartlar basilip
+# dagitiliyor; kaynak depoda durmasi gereken sey degil.
+saha_kartlar.html
+saha_kodlar.sql
+saha_liste.csv
+
+# foto_cek.py ciktilari. KOKE SABITLENMIS (bastaki /): yol belirtmeyen
+# bir kalip AYNI ADLI her dosyayi yutuyor ve tam olarak bu oldu --
+# "mekan_foto.sql" satiri veritabani/mekan_foto.sql SEMA dosyasini da
+# kapsadi, dosya hic itilmedi ve kurulum eksik kaldi. Uretilen dosyanin
+# adi da ayrildi (foto_ekle.sql), boylece cakisma tekrar edemez.
+#
+# mekan_foto.csv ARTIK IZLENIYOR (asagida ! ile geri aliniyor).
+# KOPUK HALKA: foto_cek.py GitHub kosucusunda 48 dakika kostu, dosyayi
+# yazdi ve git onu YOK SAYDI -- veri dalinda ne csv ne sql vardi, yani
+# tur her seferinde bos donuyor gibi gorunuyordu. Icinde sir yok:
+# Commons'un acik lisansli dosya adlari, yazar ve lisans bilgisi.
+# Sonucun gorunmesi, turun ANLAMI.
+!/mekan_foto.csv
+
+# foto_ekle.sql IZLENMIYOR ve sebebi ayri: bu dosya Supabase'e ELLE
+# yapistirilan bir betik, yani bir CIKTI degil bir ARA ADIM. Sayilar
+# csv'de duruyor.
+/foto_ekle.sql
+
+# Android imzalama anahtari. ASLA depoya girmez: bu dosya + parolasi,
+# uygulamanin senin adina guncellenmesini saglayan tek sey. Kaybedersen
+# Play App Signing ile kurtarilabilir, SIZDIRIRSAN kurtarilamaz.
+*.jks
+*.keystore
+android.keystore
+twa-manifest.json.bak
+# Bubblewrap ciktilari (yeniden uretilebilir, buyuk)
+/app-release-bundle.aab
+/app-release-signed.apk
+/android/

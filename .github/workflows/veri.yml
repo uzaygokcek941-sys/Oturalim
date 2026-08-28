@@ -1,0 +1,313 @@
+# Veri toplama turlari — GitHub kosucusunda.
+#
+# NEDEN VAR: uc kaynak da AG istiyor (Overpass, isletme siteleri, NVIDIA
+# NIM) ve gelistirme ortaminda dis hedeflerin hepsi kapali. GitHub
+# kosucusunun agi acik; etkinlik.yml zaten ayni deseni kullaniyor:
+# veriyi ceker, degistiyse commit'ler.
+#
+# ELLE TETIKLENIR (workflow_dispatch). Zamanlanmis DEGIL, bilerek:
+#
+#   - Overpass ve isletme siteleri baskasinin sunuculari. Gunluk
+#     otomatik tam tarama, ihtiyac olmadan yuk bindirmek olurdu.
+#   - OCR turu para harciyor (NVIDIA NIM). Bir insan "evet" demeden
+#     kendiliginden harcamamali.
+#   - Mekan verisi ETKINLIK VERISI DEGIL: restoran koordinatta durur.
+#     Gunluk tazelemenin karsiligi yok (etkinlik.yml'in gerekcesi tam
+#     tersi ve orada gunluk kosuyor).
+#
+# GUVENLIK: sonuc DOGRUDAN main'e itilmiyor. Bir dala yaziliyor ve
+# kontroller GECMEDEN commit edilmiyor -- bozuk veriyi yayina itmek,
+# hic tazelememekten kotu.
+name: Veri turu
+
+on:
+  workflow_dispatch:
+    inputs:
+      mekan:
+        description: "OSM mekan cekimi (turkiye_cek.py) — 81 il, ~30 dk"
+        type: boolean
+        default: false
+      tarayici:
+        description: "Site taramasi (menu_pdf_tara.py) — sosyal bag + menu, ~2 saat"
+        type: boolean
+        default: false
+      sosyal:
+        description: "Sosyal bag turu (menu_pdf_tara.py sosyal) — hafif, ~1 saat"
+        type: boolean
+        default: false
+      ocr:
+        description: "Menu gorsellerini OCR ile oku (NVIDIA_API_KEY gerekir)"
+        type: boolean
+        default: false
+      kutuphane:
+        description: "supabase-js'i yerele al (kutuphane_al.py)"
+        type: boolean
+        default: false
+      foto:
+        description: "Wikimedia Commons fotograflari (foto_cek.py)"
+        type: boolean
+        default: false
+      foto_iller:
+        description: "Yalniz bu iller (ornek: TR-34 TR-06). Bos = 81 il"
+        default: ""
+
+concurrency:
+  group: veri-turu
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  topla:
+    runs-on: ubuntu-latest
+    # 6 saat GitHub'in ust siniri. Tam tarayici turu ~1.467 alan adi x
+    # ~5 sn = ~2 saat; genis pay birakiliyor.
+    timeout-minutes: 300
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Bagimliliklar
+        run: pip install --quiet httpx pymupdf playwright qrcode pillow
+
+      - name: Tarayici onbellegi
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}
+
+      # Iki tur da gercek tarayici istiyor.
+      - name: Chromium
+        if: inputs.tarayici || inputs.sosyal
+        run: python -m playwright install --with-deps chromium
+
+      # ---- 1. OSM mekan cekimi -------------------------------------
+      # Dort sosyal sutunu da dolduruyor (facebook/x/tiktok/youtube):
+      # kod besini de okuyor ama depodaki CSV o sutunlar eklenmeden
+      # onceki surumle uretilmis, o yuzden bugun sifirlar.
+      # addr:housename dususu de bu turda etkili oluyor.
+      - name: OSM mekanlari
+        if: inputs.mekan
+        run: python turkiye_cek.py
+
+      # ---- 2. Site/menu taramasi -----------------------------------
+      # VARSAYILAN KAPALI VE SEBEBI OLCULDU. "JS ile basilan 2.294 site
+      # gercek tarayiciyla okunur" diye bir hipotez kuruldu, ayri bir
+      # betik yazildi ve GitHub kosucusunda 40 alan adiyla denendi:
+      #
+      #     Denenen      40
+      #     Kalem cikan   0  (%0,0)
+      #     Hata          7
+      #
+      # Sifir. Sebebi de ortaya cikti: menu_pdf_tara.py bu isi ZATEN
+      # yapiyor ve daha iyi yapiyor -- siteyi gercek tarayicida aciyor
+      # VE menu bagini takip ediyor. 1.974 mekanda kosmus, sonuc
+      # "menu bulunamadi 1552". Yani hipotez zaten sinanmis ve
+      # cevaplanmisti; ayri betik gereksizdi ve silindi.
+      #
+      # AMA ARTIK IKINCI BIR GETIRISI VAR: ayni gecis sayfadaki SOSYAL
+      # BAGLARI da topluyor (menu_site_sosyal.csv). Olculdu: 35.852
+      # mekanin 304'unde (%0,8) sosyal hesap var ve hepsi Instagram.
+      # OSM'yi yeniden cekmek dort eksik sutunu dolduruyor ama etiketin
+      # OLMADIGI yerde yine bos kaliyor; isletmenin kendi sitesi o
+      # bosluga bakan tek ek kaynak ve ek istek istemiyor.
+      #
+      # Varsayilan yine KAPALI (baskasinin sunucusu, ~2 saat), ama
+      # acmanin sebebi artik menu degil sosyal bag.
+      - name: Site/menu taramasi
+        if: inputs.tarayici
+        run: python menu_pdf_tara.py tam
+
+      # ---- 2b. Sosyal bag turu (AYRI VE HAFIF) --------------------
+      # AYRI OLMAK ZORUNDA. site_isle sosyal bag topluyor ama
+      # islenmis() ayni siteyi iki kez taramiyor: olculdu, 2.294 js
+      # sitesinin 2.372'si menu icin taranmis ve "bu turda islenecek
+      # site: 0". Yani toplama, hicbir zaman kosmayacak bir kod yolu
+      # olarak kalirdi. Bu kip KENDI gunlugune bakiyor
+      # (menu_site_sosyal_log.csv) ve yarim kalirsa devam ediyor.
+      #
+      # HAFIF: menu bagini takip etmiyor, PDF indirmiyor, gorsel
+      # okumuyor. Bir sayfa acilip <a href> listesi okunuyor --
+      # baskasinin sunucusuna binen yuk kucuk.
+      - name: Sosyal bag turu
+        if: inputs.sosyal
+        run: python menu_pdf_tara.py sosyal
+
+      # ---- 3. Gorsel/PDF menuler (OCR) -----------------------------
+      # Anahtar GITHUB SECRETS'ta. Depoya ASLA girmiyor (.gitignore).
+      # Anahtar yoksa adim ACIKCA duruyor: sessizce atlamak, "kostu ve
+      # bir sey bulamadi" diye okunurdu.
+      - name: Menu OCR
+        if: inputs.ocr
+        env:
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+        run: |
+          if [ -z "$NVIDIA_API_KEY" ]; then
+            echo "::error::NVIDIA_API_KEY secret'i tanimli degil. GitHub -> Settings -> Secrets and variables -> Actions -> New repository secret"
+            exit 1
+          fi
+          python menu_ocr.py tam
+
+      # ---- 3b. supabase-js'i yerele al -----------------------------
+      # app/lib/supabase-js.js bugun YER TUTUCU (1,4 KB) ve calisma
+      # aninda esm.sh'ten cekiyor. Iki sorun: dinamik import()
+      # integrity DESTEKLEMIYOR (yani gelen sey dogrulanmiyor) ve CDN
+      # tek ariza noktasi -- bu depoda Leaflet ile YASANDI, kesfet
+      # ekraninin tamami olmustu.
+      #
+      # Betik npm kayit defterinin resmi sha512 ozetiyle dogrulamadan
+      # hicbir sey yazmiyor. Yerele inince esm.sh hem CSP'den hem
+      # gizlilik tablosundan kendiliginden dusuyor.
+      - name: supabase-js yerele
+        if: inputs.kutuphane
+        run: python kutuphane_al.py
+
+      # ---- 3c. Commons fotograflari --------------------------------
+      # Serbest lisansli, ATIFLI. Google Maps fotograflari
+      # "Yapilmayacaklar" listesinde: yazarlarinin telifinde ve
+      # platforma lisansli.
+      # KOPUK HALKAYI KAPATAN ADIM. Bu tur bir kez 48 dakika kostu ve
+      # sonucu KAYBOLDU: mekan_foto.csv .gitignore'daydi, dala hicbir
+      # sey yazilmadi ve tur "bos dondu" gibi gorundu. Artik csv
+      # izleniyor ve sayilar is akisi ozetine de yaziliyor -- kosumun
+      # ne buldugu, dala bakmadan gorunuyor.
+      #
+      # foto_ekle.sql IZLENMIYOR ve izlenmemeli: o dosya Supabase'e
+      # ELLE yapistirilan bir ara adim. Bugunku duvar da bu -- betik
+      # veritabanina kendi yazamiyor, cunku bunun icin service_role
+      # anahtari gerekirdi ve o anahtar bu depoya ASLA girmiyor.
+      # IL SECIMI NEDEN VAR: 81 ilin tamami Overpass'ta ~90 DAKIKA
+      # suruyor ve bu turun ciktisina bakmak icin her seferinde 90 dakika
+      # beklemek pratik degil. Buyuk sehirler ~5 dakika ve mekanlarin
+      # buyuk kismini kapsiyor. Bos birakilinca davranis DEGISMIYOR:
+      # 81 il taraniyor.
+      - name: Commons fotograflari
+        if: inputs.foto
+        run: |
+          python foto_cek.py ${{ inputs.foto_iller }}
+          {
+            echo "### Commons fotograflari"
+            if [ -f mekan_foto.csv ]; then
+              echo "- Satir: $(( $(wc -l < mekan_foto.csv) - 1 ))"
+            else
+              echo "- mekan_foto.csv URETILMEDI"
+            fi
+            echo "- foto_ekle.sql Supabase SQL Editor'e ELLE yapistirilmali."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # ---- 4. Uygulama verisini yeniden uret -----------------------
+      # csp_uret.py gizlilik tablosunu DA yeniden yaziyor: supabase-js
+      # yerele inince esm.sh CSP'den kendiliginden dusuyor ve tablo
+      # geride kalirsa kontrol patliyor. Bir kez patladi, o yuzden
+      # tablo artik uretiliyor.
+      # foto_ekle.sql ARTIK INDIRILEBILIYOR. Dosya .gitignore'da ve orada
+      # KALIYOR -- o bir cikti degil, Supabase SQL Editor'e ELLE
+      # yapistirilan bir ara adim. Ama gitignore'da olmak "ulasilamaz"
+      # demek olmamali: 27 Agustos'ta dosya 91 dakikalik bir turda
+      # uretildi ve kosucuyla birlikte KAYBOLDU.
+      #
+      # Artefakt olarak yuklemek dogru yer: Actions sayfasindan
+      # indiriliyor, depoya girmiyor, ve 14 gun sonra kendiliginden
+      # siliniyor. Icinde sir yok -- Commons'un acik lisansli dosya
+      # adresleri ve yazar adlari.
+      - name: foto_ekle.sql (indirilebilir)
+        if: inputs.foto && hashFiles('foto_ekle.sql') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: foto_ekle-sql
+          path: foto_ekle.sql
+          retention-days: 14
+
+      - name: Uygulama verisi
+        run: |
+          python app_veri.py
+          python vitrin_uret.py
+          python site_haritasi.py cebimde.vercel.app
+          python csp_uret.py
+          python sw_uret.py
+
+      # ---- 5. KONTROLLER GECMEDEN COMMIT YOK -----------------------
+      # Bu adim atlanirsa bozuk veri dala yazilir ve oradan yayina
+      # gidebilir. Yanlis fiyat, fiyatsizliktan kotudur -- kural
+      # veride de gecerli.
+      - name: Kontroller
+        run: python test.py
+
+      # ZINCIRIN UCUNCU HALKASI. "git diff" IZLENMEYEN DOSYAYI GORMUYOR.
+      # mekan_foto.csv .gitignore'dan cikarildi ama depoda bir surumu hic
+      # olmadigi icin YENI dosya, yani izlenmiyor -- git diff sessiz kaldi
+      # ve tur "Veri ayni, commit yok" dedi. Dosya 55 dakika calisip
+      # yine kayboldu. Asagidaki "Dala yaz" adimi zaten "git add -A"
+      # kullaniyor, yani yalniz KAPI kordu.
+      - name: Degisiklik var mi
+        id: fark
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "degisti=hayir" >> "$GITHUB_OUTPUT"
+            echo "Veri ayni, commit yok."
+          else
+            echo "degisti=evet" >> "$GITHUB_OUTPUT"
+            git status --short | tail -20
+          fi
+
+      # DOGRUDAN main'e ITILMIYOR. Ayri bir dala yaziliyor; birlestirme
+      # karari insanin.
+      - name: Dala yaz
+        if: steps.fark.outputs.degisti == 'evet'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          DAL="veri/tur-$(date -u +%Y%m%d-%H%M)"
+
+          # ORPHAN DAL: yalniz VERI tasiyor, .github/ TASIMIYOR.
+          #
+          # NEDEN. Normal bir dal main'in kopyasi olur ve icindeki is akisi
+          # dosyalarini da tasir. GITHUB_TOKEN'in "workflows" yetkisi yok,
+          # o yuzden dal ESKI bir is akisi surumu tasidigi anda push
+          # REDDEDILIYOR:
+          #   refusing to allow a GitHub App to create or update workflow
+          #   `.github/workflows/canli.yml` without `workflows` permission
+          # 27 Agustos'ta tam bu oldu: 91 dakikalik Commons turu bitti,
+          # kapi dosyayi GORDU, ve push duvara carpti.
+          #
+          # Cozum yetkiyi buyutmek DEGIL. Is akisi yazabilen bir jeton
+          # kendi kendini degistirebilir; veri turunun buna ihtiyaci yok.
+          # Dal artik yalniz VERI tasiyor -- gozden gecirmesi de kolay:
+          # icinde koddan tek satir yok.
+          git checkout --orphan "$DAL"
+          git rm -r --cached . >/dev/null 2>&1 || true
+          git add -A -- app/veri
+          for f in mekan_foto.csv turkiye_mekanlar.csv menu_site_sosyal.csv \
+                   tr_menu_tarayici.csv menu_ocr_kalem.csv; do
+            [ -f "$f" ] && git add -- "$f"
+          done
+          git commit -m "veri: toplama turu ($(date -u +%Y-%m-%d)) — mekan=${{ inputs.mekan }} tarayici=${{ inputs.tarayici }} ocr=${{ inputs.ocr }} foto=${{ inputs.foto }}"
+          git push -u origin "$DAL"
+          {
+            echo "### Yeni veri dali: \`$DAL\`"
+            echo "Kontroller gecti. Dal YALNIZ VERI tasiyor (kod yok)."
+            echo "Almak icin:"
+            echo '```'
+            echo "git fetch origin $DAL"
+            echo "git checkout main"
+            echo "git checkout origin/$DAL -- mekan_foto.csv app/veri"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Ozet
+        if: always()
+        run: |
+          {
+            echo "### Veri turu"
+            echo "- OSM mekan: ${{ inputs.mekan }}"
+            echo "- Tarama   : ${{ inputs.tarayici }}"
+            echo "- Sosyal   : ${{ inputs.sosyal }}"
+            echo "- OCR      : ${{ inputs.ocr }}"
+            echo "- Kutuphane: ${{ inputs.kutuphane }}"
+            echo "- Foto     : ${{ inputs.foto }}"
+          } >> "$GITHUB_STEP_SUMMARY"
