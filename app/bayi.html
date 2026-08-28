@@ -277,10 +277,15 @@ async function ciz(){
   if (!hazir || !Kimlik.girisli){
     /* Girişsiz kullanıcı boş ekran görmesin, nereye gideceğini söyleyen
        bir yere gitsin. replace: geri tuşu buraya döndürmesin. */
-    /* Duz "giris.html": ?sonra= diye bir parametre giris.html'de YOK
-       (arandi, yok). Calismayan bir parametre yazmak, calisiyormus gibi
-       gorunen olu bir baglanti birakmak olurdu. */
-    location.replace("giris.html");
+    /* ?donus= ile: giris.html bu parametreyi destekliyor ve degeri
+       ortak.js'teki guvenliDonus() denetliyor (javascript:, data:, dis
+       site ve ust klasor hepsi DUSUYOR -- kendi test tablosu var).
+       Ilk yazimda "?sonra=" aramistim, bulamayinca duz giris.html
+       birakmistim: yanlis parametre ADI yuzunden calisan bir ozelligi
+       yok saymisim. Sonucu somut -- bayi giris yapip hesabim.html'e
+       dusuyor ve panele elle donmesi gerekiyordu.
+       replace: geri tusu buraya dondurmesin. */
+    location.replace("giris.html?donus=" + encodeURIComponent("bayi.html"));
     return;
   }
   try { await ciz(); }
