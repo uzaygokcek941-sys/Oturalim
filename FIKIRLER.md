@@ -171,11 +171,35 @@ bir havuz var: ODTÜ, Hacettepe, Bilkent, Ankara Üniversitesi.
 - Öğrenci **hedef kullanıcının kendisi** — "cebindeki bütçeyle keşfet"
   cümlesi en çok ona hitap ediyor
 - Mahalleyi biliyor, yürüyor, ve hakediş küçük olsa bile anlamlı
-- Bir fakülte caddesi = yürüme mesafesinde yoğunluk, yani
-  `PAZARLAMA.md` B2'nin **derinlik** kararının birebir uygulaması
 
-**Ölçü:** bir kampüs caddesinde bir hafta sonu. Hedef, Kadıköy hedefinin
-aynısı: o caddede fiyat kapsaması %30+.
+### Ama "kampüs caddesi" iddiası ÖLÇÜLDÜ ve zayıf çıktı
+
+İlk yazımda "bir fakülte caddesi = yürüme mesafesinde yoğunluk"
+demiştim. Sayıldı (`app/veri/06.json`, düz izdüşüm):
+
+| Kampüs | 500 m | 1 km | 2 km | 1 km'de menülü |
+|---|---|---|---|---|
+| ODTÜ | 36 | 63 | 85 | 0 |
+| Bilkent | 24 | 30 | 66 | 0 |
+| Hacettepe Beytepe | 10 | **14** | 49 | 0 |
+| Ankara Ü. Cebeci | 3 | 81 | 257 | 1 |
+| Ankara Ü. Tandoğan | 3 | 24 | 172 | 0 |
+| **Kızılay** (kıyas) | **101** | **161** | 313 | 1 |
+
+Ankara kampüsleri şehir dışında; çevrelerinde yürünecek yoğunluk yok.
+Hacettepe Beytepe'de 1 km'de **14 mekan** var — bir hafta sonu değil,
+bir saatlik iş.
+
+**Düzeltilmiş öneri: öğrenci işgücü, Kızılay/Tunus sahası.** Öğrenciyi
+kendi kampüsüne değil, zaten 64 kartın basıldığı hatta yolla. Yoğunluk
+orada (500 m'de 101 mekan), öğrenci de zaten oraya iniyor.
+
+**Ölçü:** bir hafta sonu, Kızılay 500 m. Hedef Kadıköy hedefinin aynısı:
+o yarıçapta fiyat kapsaması %30+.
+
+**Araç hazır:** `saha.py --merkez 39.9208,32.8541 --yaricap 500` bir
+noktanın çevresindeki kümeleri süzüyor, yani her bayiye yürünebilir bir
+saha verilebiliyor.
 
 Hakediş zaten koda bağlı, beyana değil — yani öğrenci bayiyi denetlemek
 diye bir iş yok, sistem kendi ölçüyor.

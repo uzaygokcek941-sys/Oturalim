@@ -9,10 +9,17 @@ ve tek kullanimlik bir sahiplenme kodu var (Faz 4).
     python saha.py oturalim.vercel.app --kume 5
     python saha.py oturalim.vercel.app --il Ankara --kume 2
     python saha.py oturalim.vercel.app --il Ankara --atla 1 --kume 1  # ikinci kume
+    python saha.py oturalim.vercel.app --merkez 39.9208,32.8541 --yaricap 500
     python saha.py oturalim.vercel.app --il Ankara --bayi 3 --parti ankara-eylul
     python saha.py sql saha_liste.csv --bayi 1     # basilmis partiyi bayiye bagla
     python saha.py olc                             # dagitim sonrasi olcum
     python saha.py test
+
+MERKEZ VE YARICAP (istege bagli). Bir noktanin cevresindeki mekanlari
+suzuyor -- kampus, meydan, cadde. Kume yapisi KORUNUYOR: yaricapa
+dusmeyen uyeler eleniyor, geriye kalan uyeler kendi kumelerinde
+duruyor, yani bir kume KISMEN kapsanabiliyor. Kac uyenin elendigi
+yaziliyor; sessizce kirpilmiyor.
 
 BAYI (istege bagli). --bayi verilirse basilan PARTI o bayiye baglaniyor:
 uretilen SQL sahiplenme_kodu satirlarina bayi ve parti yaziyor, isletme
@@ -96,15 +103,18 @@ def _guncel_kimlikler():
     return kimlik
 
 
-def kumeleri_oku(yol=KUME_CSV, il=None):
+def kumeleri_oku(yol=KUME_CSV, il=None, merkez=None, yaricap=None):
     if not os.path.exists(yol):
         sys.exit("%s yok. Once 'python sahiplen.py' calistir." % yol)
     kume = collections.defaultdict(list)
     yok = 0
+    satir = 0        # dosyadaki TOPLAM satir; bayatlik orani buna gore
     disarida = 0
+    uzakta = 0
     guncel = _guncel_kimlikler()
     with io.open(yol, encoding="utf-8-sig") as f:
         for r in csv.DictReader(f):
+            satir += 1
             _, mekan_id = mekan_kimligi(r["sayfa"])
             # BAYAT CSV KORUMASI. Kume dosyasi veriden ONCE uretilmis
             # olabilir; o zaman icinde artik var olmayan mekanlar bulunur
@@ -123,13 +133,40 @@ def kumeleri_oku(yol=KUME_CSV, il=None):
             if il and r["il"] != il:
                 disarida += 1
                 continue
+            # MERKEZ SUZGECI. Kampus/meydan cevresi icin. Duz izdusum
+            # yeter: yaricap birkac yuz metre ve Turkiye enlemlerinde
+            # 1 derece boylam ~85 km, 1 derece enlem ~111 km. Ayni
+            # yaklasim kesfet.js'teki uzaklik() icinde de var; hassas
+            # bir olcum degil, YURUME mesafesi ayirt ediyor.
+            if merkez:
+                try:
+                    dx = (float(r["lon"]) - merkez[1]) * 85.0
+                    dy = (float(r["lat"]) - merkez[0]) * 111.0
+                except (TypeError, ValueError):
+                    uzakta += 1
+                    continue
+                if (dx * dx + dy * dy) ** .5 > (yaricap or 500) / 1000.0:
+                    uzakta += 1
+                    continue
             kume[r["kume"]].append(r)
     if yok:
-        oran = 100.0 * yok / (yok + sum(len(v) for v in kume.values()))
+        # ORAN BUTUN DOSYAYA GORE, suzulmus kumeye gore DEGIL. Ilk halinde
+        # payda "yok + kalan" idi ve --merkez suzgeci eklenince kendi
+        # kapim yanlis yandi: ODTU cevresinde 1 km'de 10 kayip kayit
+        # %1,4 yerine %24,4 gorunuyor ve betik "dosya bayat" diyip
+        # duruyordu. Bayatlik DOSYANIN ozelligi; sectigim yaricapla
+        # degismemeli.
+        oran = 100.0 * yok / satir
         print("UYARI: %s icindeki %d kayit (%.1f%%) artik veride yok, atlandi."
               % (yol, yok, oran))
         if oran > 5:
             sys.exit("Kume dosyasi bayat gorunuyor. 'python sahiplen.py' calistir.")
+    if merkez and not kume:
+        sys.exit("%.5f,%.5f cevresinde %d m icinde kume yok. Yaricapi buyut."
+                 % (merkez[0], merkez[1], yaricap or 500))
+    if merkez:
+        print("merkez suzgeci %.5f,%.5f / %d m: %d kayit disarida, %d kume kaldi"
+              % (merkez[0], merkez[1], yaricap or 500, uzakta, len(kume)))
     if il and not kume:
         sys.exit("'%s' icin kume yok. Il adi kume dosyasindaki gibi, TURKCE "
                  "harflerle yazilmali: Ankara, \u0130zmir, \u0130stanbul." % il)
@@ -376,12 +413,13 @@ def _ciktilari_koru(ustune_yaz):
 
 
 def main(taban, adet, il=None, bayi=None, parti=None, atla=0,
-         ustune_yaz=False):
+         ustune_yaz=False, merkez=None, yaricap=None):
     if not taban.startswith("http"):
         taban = "https://" + taban
     taban = taban.rstrip("/")
 
-    secilen = sec(kumeleri_oku(il=il), adet, atla=atla)
+    secilen = sec(kumeleri_oku(il=il, merkez=merkez, yaricap=yaricap),
+                  adet, atla=atla)
     if not secilen:
         sys.exit("kume yok")
 
@@ -766,6 +804,11 @@ if __name__ == "__main__":
                    help="ilk N kumeyi atla (ikinci partiyi basmak icin)")
     a.add_argument("--ustune-yaz", action="store_true",
                    help="var olan cikti dosyalarinin uzerine yaz")
+    a.add_argument("--merkez", default=None,
+                   help="bir noktanin cevresi: 'enlem,boylam' (ornek: "
+                        "39.9208,32.8541)")
+    a.add_argument("--yaricap", type=int, default=500,
+                   help="--merkez ile: metre (varsayilan 500)")
     a.add_argument("--il", default=None,
                    help="yalniz bu ildeki kumeler (ornek: Ankara)")
     a.add_argument("--bayi", type=int, default=None,
@@ -775,5 +818,18 @@ if __name__ == "__main__":
     n = a.parse_args()
     if n.parti and n.bayi is None:
         a.error("--parti yalniz --bayi ile anlamli: parti bir bayiye ait.")
+    m = None
+    if n.merkez:
+        try:
+            m = tuple(float(x) for x in n.merkez.split(","))
+            if len(m) != 2:
+                raise ValueError
+        except ValueError:
+            a.error("--merkez 'enlem,boylam' olmali (ornek: 39.9208,32.8541)")
+        # Turkiye siniri kabaca: 35-43 K, 25-45 D. Ters yazilmis bir cift
+        # (boylam,enlem) sessizce bos liste uretirdi.
+        if not (35 <= m[0] <= 43 and 25 <= m[1] <= 45):
+            a.error("--merkez Turkiye disinda gorunuyor (%s). Sira "
+                    "'enlem,boylam' -- ters yazmis olabilirsin." % n.merkez)
     main(n.alan_adi, n.kume, il=n.il, bayi=n.bayi, parti=n.parti,
-         atla=n.atla, ustune_yaz=n.ustune_yaz)
+         atla=n.atla, ustune_yaz=n.ustune_yaz, merkez=m, yaricap=n.yaricap)
