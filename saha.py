@@ -210,16 +210,36 @@ def kart_html(taban, kayitlar):
             sayfa = "/" + sayfa
         url = taban + sayfa + "&kod=" + r["kod"]
         kartlar.append(
+            # KAZANC ONCE, EKSIK SONRA (FIKIRLER.md F6).
+            #
+            # Ilk kart "Sizde eksik gorunen: acilis-kapanis, telefon..."
+            # diye basliyordu -- yani kapiya birakilan kagit isletmeciye
+            # ONUN EKSIGINI soyluyordu. Kart okunmadan cope gidiyorsa
+            # sebebi burasi: kimse kendi eksigini duymak icin QR
+            # okutmuyor.
+            #
+            # Artik once ONUN KAZANCI yaziyor ve o cumle bugun GERCEK:
+            # isletme paneli goruntulenme sayisini ve "bakanlar hangi
+            # butceyle ariyordu" dagilimini gosteriyor (sayac.sql,
+            # mekan_butce_talebi). Bu, isletmecinin hicbir yerden
+            # alamayacagi bir sayi -- Google Maps de, Yemeksepeti de
+            # arayanin butcesini yayinlamiyor.
+            #
+            # Eksik listesi KALIYOR ama kucuk ve altta: kartin isini
+            # gormeye devam ediyor (ne guncellenecegi belli), sadece
+            # artik ilk cumle degil.
             '<article class="kart">'
             '<header><b>%s</b><span>%s · %s</span></header>'
-            '<p class="eksik">Sizde eksik görünen: <b>%s</b></p>'
+            '<p class="kazanc">Sayfanızı <b>kaç kişi gördü</b> ve '
+            '<b>hangi bütçeyle</b> arıyorlardı — panelinizde yazıyor.</p>'
+            '<p class="eksik">Güncelleyebilecekleriniz: %s</p>'
             '<div class="alt"><div class="qr">%s</div>'
             '<div class="kod"><span>Sayfanızı sahiplenme kodu</span>'
             '<b>%s</b><small>%s</small></div></div>'
             '</article>'
             % (html.escape(_oz(r["ad"], 42)),
                html.escape(r["tur"]), html.escape(r["il"]),
-               html.escape(_oz(r["sor"], 110)),
+               html.escape(_oz(r["sor"], 78)),
                qr_svg(url),
                html.escape(r["kod"]),
                html.escape(taban.replace("https://", ""))))
@@ -238,8 +258,11 @@ def kart_html(taban, kayitlar):
         height:62mm;display:flex;flex-direction:column;justify-content:space-between}
   .kart header b{display:block;font-size:16px;line-height:1.25}
   .kart header span{font-size:11px;color:#666;letter-spacing:.04em;text-transform:uppercase}
-  .eksik{margin:2mm 0;font-size:11.5px;color:#333}
-  .eksik b{font-weight:600}
+  /* KAZANC ustte ve buyuk, EKSIK altta ve kucuk. Sira bilerek: kapiya
+     birakilan kagidin ilk cumlesi isletmecinin eksigi degil, kazanci. */
+  .kazanc{margin:2mm 0 1mm;font-size:12px;line-height:1.35;color:#111}
+  .kazanc b{font-weight:600}
+  .eksik{margin:0 0 2mm;font-size:10px;color:#666;line-height:1.3}
   .alt{display:flex;gap:4mm;align-items:flex-end}
   .qr svg{width:26mm;height:26mm;display:block}
   .kod{flex:1;min-width:0}
@@ -392,6 +415,33 @@ def _parti_adi(il, kumeler):
     return ad[:60]
 
 
+def _basilmis_mekanlar(dizin="."):
+    """Daha once basilmis parti listelerindeki mekan kimlikleri.
+
+    NEDEN VAR. Uzerine yazma korumasi DOSYAYI koruyor, MEKANI degil.
+    Yasandi: Ankara 51 ve 52 basildiktan sonra Kizilay 500 m icin
+    basmaya kalktim ve secilen iki kumeden biri 52'nin AYNISIYDI --
+    ayni 32 isletme icin ikinci bir gecerli kod uretilecekti. Ikisi de
+    calisir, biri kullanilinca oteki olu kagit olur ve isletmeci onu
+    zaten eline almistir.
+
+    Kaynak: yanindaki saha_liste*.csv dosyalari. Duz kod tasidiklari
+    icin depoya girmiyorlar, ama diskte duruyorlar ve tek kayit onlar."""
+    import glob as _glob
+    basilmis = {}
+    for yol in sorted(_glob.glob(os.path.join(dizin, "saha_liste*.csv"))):
+        try:
+            with io.open(yol, encoding="utf-8-sig") as f:
+                for r in csv.DictReader(f):
+                    k = (r.get("mekan_id") or "").strip()
+                    if k:
+                        basilmis.setdefault(k, (r.get("parti") or "").strip()
+                                            or os.path.basename(yol))
+        except (OSError, csv.Error):
+            continue
+    return basilmis
+
+
 def _ciktilari_koru(ustune_yaz):
     """Var olan bir partinin uzerine yazma.
 
@@ -413,7 +463,7 @@ def _ciktilari_koru(ustune_yaz):
 
 
 def main(taban, adet, il=None, bayi=None, parti=None, atla=0,
-         ustune_yaz=False, merkez=None, yaricap=None):
+         ustune_yaz=False, merkez=None, yaricap=None, tekrar=False):
     if not taban.startswith("http"):
         taban = "https://" + taban
     taban = taban.rstrip("/")
@@ -438,6 +488,24 @@ def main(taban, adet, il=None, bayi=None, parti=None, atla=0,
     # Ayni kod iki mekana denk gelmesin. 29^8 ~ 5e11 icinde carpisma
     # olasiligi yok denecek kadar az ama "yok denecek kadar" bir kontrol
     # yerine gecmez: carpisma sessizce iki isletmeyi ayni sayfaya baglardi.
+    # BASILMIS MEKAN IKINCI KEZ BASILMIYOR. Eleme SESSIZ DEGIL: kac
+    # tanesinin ve hangi partiden dustugu yaziliyor. Bilerek isteniyorsa
+    # --tekrar.
+    if not tekrar:
+        onceki = _basilmis_mekanlar()
+        if onceki:
+            cakisan = [r for r in kayitlar if r["mekan_id"] in onceki]
+            if cakisan:
+                nereden = collections.Counter(onceki[r["mekan_id"]]
+                                              for r in cakisan)
+                print("ZATEN BASILMIS %d mekan elendi: %s"
+                      % (len(cakisan), ", ".join("%s (%d)" % (a, n)
+                         for a, n in nereden.most_common(4))))
+                kayitlar = [r for r in kayitlar if r["mekan_id"] not in onceki]
+    if not kayitlar:
+        sys.exit("Secilen mekanlarin HEPSI daha once basilmis. Baska bir "
+                 "kume/yaricap sec, ya da bilerek istiyorsan --tekrar.")
+
     kodlar = [r["kod"] for r in kayitlar]
     assert len(set(kodlar)) == len(kodlar), "kod carpismasi"
 
@@ -759,6 +827,23 @@ def kendini_kontrol_et():
     assert "<script>x</script>" not in kart, "kart HTML kacirmiyor"
     assert "&lt;script&gt;" in kart
 
+    # KAZANC CUMLESI EKSIKTEN ONCE (FIKIRLER.md F6). Sira kartin butun
+    # meselesi: kapiya birakilan kagit isletmeciye once ONUN KAZANCINI
+    # soylemeli. Sirayi degistirmek hicbir yerde hata vermez, o yuzden
+    # burada siniyor.
+    assert "hangi bütçeyle" in kart, "kartta kazanc cumlesi yok"
+    # SINIF NITELIGINE bakiliyor, ada degil. Ilk yazimda
+    # kart.index("kazanc") diyordum ve SABOTAJ YAKALANMADI: "kazanc"
+    # CSS blogunda da geciyor ve CSS kartlardan ONCE, yani kontrol
+    # kart sirasindan bagimsiz olarak hep geciyordu. Bugun ucuncu kez
+    # ayni ders: bir adin metinde gecmesi, aradigim yerde oldugu
+    # anlamina gelmiyor.
+    assert kart.index('class="kazanc"') < kart.index('class="eksik"'), \
+        "eksik listesi kazanctan ONCE geliyor"
+    # Eksik listesi DE duruyor: kart ne guncellenecegini soylemeye
+    # devam etmeli, yalnizca ilk cumle degil.
+    assert "Güncelleyebilecekleriniz" in kart, "eksik listesi kartlardan dusmus"
+
     # Olcum tarafi: yapilandirma okunabiliyor mu ve HANGI anahtari
     # aliyor. service_role sizarsa RLS tamamen atlanir; kontrol bunu
     # ada gore degil JETONUN ICINDEKI ROLE gore yakaliyor.
@@ -802,6 +887,9 @@ if __name__ == "__main__":
     a.add_argument("--kume", type=int, default=3, help="kac kume (varsayilan 3)")
     a.add_argument("--atla", type=int, default=0,
                    help="ilk N kumeyi atla (ikinci partiyi basmak icin)")
+    a.add_argument("--tekrar", action="store_true",
+                   help="daha once basilmis mekanlari YENIDEN bas "
+                        "(ayni mekana ikinci gecerli kod uretir)")
     a.add_argument("--ustune-yaz", action="store_true",
                    help="var olan cikti dosyalarinin uzerine yaz")
     a.add_argument("--merkez", default=None,
@@ -832,4 +920,5 @@ if __name__ == "__main__":
             a.error("--merkez Turkiye disinda gorunuyor (%s). Sira "
                     "'enlem,boylam' -- ters yazmis olabilirsin." % n.merkez)
     main(n.alan_adi, n.kume, il=n.il, bayi=n.bayi, parti=n.parti,
-         atla=n.atla, ustune_yaz=n.ustune_yaz, merkez=m, yaricap=n.yaricap)
+         atla=n.atla, ustune_yaz=n.ustune_yaz, merkez=m, yaricap=n.yaricap,
+         tekrar=n.tekrar)
