@@ -102,6 +102,13 @@ girmek için araştırma + tarihli yol haritası: **`PAZARLAMA.md`**.
 
 Üç şey oradan buraya taşınacak kadar önemli:
 
+0. **KARAR VERİLDİ (28 Ağustos 2026): şirket kurulmuyor.** Faz 0 olduğu
+   gibi kalıyor; melek yatırımı ve YC masadan kalktı. Webrazzi de
+   İstanbul'da olduğu için hedef **Ankara'ya** çekildi:
+   **21 Ekim — TechAnkara Proje Pazarı** (başvuru kapandı, ziyaretçi
+   olarak gidilir) ve **8 Aralık — 18. Ankara Start-Up Zirvesi**
+   (başvuru açık, şirket şartı görünmüyor). Ayrıntı `PAZARLAMA.md` B3.
+
 1. **Faz 0 iki hedefi birden bloke ediyor.** *"Şirket: gelir doğana kadar
    kurulmayacak"* kararı dururken ne melek yatırımı alınabilir (hisse için
    şirket gerekir) ne de YC'ye girilebilir (ABD/Cayman/Singapur çatısı

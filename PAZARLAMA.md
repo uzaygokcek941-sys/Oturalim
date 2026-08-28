@@ -167,15 +167,39 @@ bilerek kapalı, 5 uydurma vakası ölçüldü) → boru hattı.
 Ayrıca **112 Kadıköy saha kartı basılmayı bekliyor** — o da aynı
 kilometrekarede.
 
-## B3 — Takvim
+## B3 — Takvim (28 Ağustos 2026'da YENİDEN YAZILDI)
 
-Üç gerçek tarih var ve ikisi dışarıdan geliyor:
+**İki karar bu bölümü baştan değiştirdi:**
 
-- **21 Ekim 2026 — Webrazzi Summit, İstanbul.** Nevzat Aydın, NA Kapital
-  kurucusu olarak konuşmacı. **Bugünden 8 hafta sonra.** Ona ulaşmanın en
-  kısa ve en doğal yolu bu; soğuk e-posta değil, aynı salonda bulunmak.
-- **~Kasım 2026 — YC Winter 2027 son başvuru** (tarih YC'den doğrulanmalı).
-- **Ocak–Mart 2027 — W2027 grubu, San Francisco.**
+1. **Şirket kurulmayacak.** Faz 0 olduğu gibi kalıyor. B4'teki üç
+   seçenekten **birincisi** seçildi — yani melek yatırımı ve YC masadan
+   kalkıyor. Sebebi aşağıda, ve bu bir kayıp değil bir SADELEŞME.
+2. **Webrazzi Summit İstanbul'da.** Hedef Ankara'ya çekildi.
+
+### Ankara'daki gerçek tarihler
+
+| Tarih | Etkinlik | Durum |
+|---|---|---|
+| **21 Ekim 2026** | **TechAnkara Proje Pazarı** finali | Başvuru **KAPANDI** (25 May–5 Tem). Ziyaretçi olarak gidilir |
+| **8 Aralık 2026** | **18. Ankara Start-Up Zirvesi**, Bilkent MSSF Konser Salonu | **Başvuru açık** (`ankarastartup.com`) |
+
+**TechAnkara** Ankara Kalkınma Ajansı'nın 12. yılı; bu yıl 460 başvuru
+geldi, 43 kişilik jüri 320'sini değerlendirdi, ilk **100 proje** yatırımcıyla
+B2B görüşme yapıyor. Ödül ve ticarileştirme desteği toplam 1,45 milyon TL,
+ayrıca ücretsiz ofis ve hızlandırıcı. Destekleyenler: ODTÜ Teknokent,
+Bilkent Cyberpark, Hacettepe, Gazi, Ankara Üniversitesi, ASO ve OSTİM
+Teknopark. **Bu yılki başvuru kapandı** — 2027 için Mayıs'ta açılıyor,
+takvime yaz.
+
+**Ankara Start-Up Zirvesi** Türkiye'nin ilk startup yarışması, 19 yıllık.
+8 Aralık'ta **20 girişim** yarışıyor. Duyurusunda *"7'den 70'e fikri olan
+herkes"* deniyor — yani **şirket şartı görünmüyor**, ama başvuru formunda
+teyit et. Bu, şirketsiz gidilebilecek tek yakın etkinlik.
+
+**ÜÇÜNCÜ ETKİNLİK GEÇTİ, kayda geçsin:** Savunma Teknolojileri
+Entegrasyon Zirvesi 23 Temmuz 2026'da Ankara BTK'da yapıldı. Zaten
+konumuz değil (savunma sanayii), ama Anadolu Bilişim Buluşmaları
+serisinin Ankara ayağı olarak takip listesinde dursun.
 
 ### Faz A — 26 Ağustos → 21 Ekim (8 hafta): göstermeye değer bir şey
 
@@ -188,38 +212,63 @@ kilometrekarede.
 | 2–8 | Günde 1 içerik — takvim ve formatlar hazır (`icerik_takvim.md`), ilk 3'ün çekim notu `icerik_ilk3.md` | 40+ içerik |
 | 4–8 | **İlk 100 kullanıcı** — Kadıköy odaklı, ilçe grupları, üniversite | 100 kayıt |
 | 6–8 | Play Store: Bubblewrap → Play Console → `assetlinks_uret.py` | Uygulama yayında |
-| 8 | **Webrazzi Summit'e git.** Pitch değil, ürünü aç ve Kadıköy'ü göster | Tanışma |
+| 8 | ~~Webrazzi~~ → **21 Ekim: TechAnkara Proje Pazarı finali**, Ankara. Başvuru kapandı; ziyaretçi olarak git, 100 projeyi ve jüriyi gör | Tanışma |
+| +7 | **8 Aralık: Ankara Start-Up Zirvesi.** Başvuru açık, şirket şartı görünmüyor — teyit et ve başvur | Başvuru gönderildi |
 
 **Faz A'nın tek başarı ölçüsü:** telefonu birine uzattığında, o kişi
 Kadıköy'de rastgele bir sokak seçip fiyat görebiliyor mu.
 
-### Faz B — Ekim → Kasım: yatırım ve YC başvurusu
+### Faz B — DÜŞTÜ (28 Ağustos 2026 kararı)
 
-**Önce kilidi aç (aşağıda B4).** Sonra:
+Şirket kurulmayacağı için melek yatırımı ve YC başvurusu **masada değil**.
+Bu bölümün eski hali (data room, YC videosu, mülakat provası, ikinci
+kurucu arayışı) buradan kaldırıldı — yapılmayacak bir işi listede
+tutmak, listeyi okunmaz yapar.
 
-- **Data room:** ürün canlı, 8 haftalık kullanıcı ve katkı grafiği,
-  kapsama grafiği (4 → 150), maliyet tablosu (bugün 0 ₺/ay)
-- **YC başvurusu:** yazılı + video. Video'da slayt yok — **telefonda
-  Kadıköy'de bir sokak aç.**
-- **Mülakat provası:** 10 dakika, kesen sorular. Ezberleme — YC ortakları
-  fazla hazırlanmış kurucuyu fark ediyor ve bu aleyhine işliyor.
-- **İkinci kurucu ara.** Tek kurucu %10–15'lik dilim ve daha yüksek çıta.
-  Aramak, bulamamaktan iyidir; "aradım, şu profili arıyorum" cevabı
-  "tek başımayım"dan çok daha güçlü.
+**Yerine geçen şey daha küçük ve daha gerçekçi: 8 Aralık, Ankara
+Start-Up Zirvesi.** Orada yatırım aranmıyor; aranan şey *ürünü 20
+girişimin yanında göstermek* ve Ankara ekosistemindeki insanlarla
+tanışmak. Hazırlığı da Faz A'nın hazırlığıyla AYNI — Kadıköy yerine
+**Çankaya** derinleştirmesi mantıklı olur, çünkü salondaki herkes orayı
+biliyor ve telefonu açtığında kendi mahallesini arar.
 
-### Faz C — Ocak → Mart 2027: San Francisco
+**Bu bir geri adım değil, kapsam daralması.** Yatırımsız da ürün
+büyüyebilir: maliyet bugün 0 ₺/ay, kullanıcı katkısı bedava, ve
+uygulamanın tek işi zaten para harcamadan yapılabiliyor. Yatırım
+gerekseydi bugün gerekirdi; gerekmiyor.
 
-Kabul gelirse SF hedefi zaten çözülüyor: grup yüz yüze, Demo Day binlerce
-yatırımcıya.
+### Faz C — San Francisco: BUGÜN İÇİN KAPALI
 
-**Kabul gelmezse SF hedefi ölmüyor** — YC tek yol değil:
-- 500 Global, Techstars gibi programlar
-- TechCrunch Disrupt / SF Tech Week yan etkinlikleri
-- Endeavor Türkiye ağı (Nevzat Aydın ekosistemde), Türk kurucular ağı
-- YC'ye **tekrar başvurmak normaldir** ve reddedilip sonraki grupta
-  alınan çok şirket var
+YC şirkete yatırım yapıyor ve ABD/Cayman/Singapur çatısı istiyor; şirket
+kurulmayacağına göre bu yol açık değil. 500 Global ve Techstars da aynı
+şeyi istiyor.
 
-## B4 — Kilit: Faz 0 hem yatırımı hem YC'yi bloke ediyor
+**Kapalı olan yol "asla" demek değil.** Şirket kararı, ürün bir gelir
+doğurduğu gün yeniden bakılacak bir karar — Faz 0 zaten öyle yazılmış
+("gelir doğana kadar kurulmayacak"). O gün gelirse bu bölüm yeniden
+açılır; bugün açık tutmak, olmayan bir yolu haritada göstermek olurdu.
+
+**Ankara'da kalan hedef:** 8 Aralık'ta 20 girişimin arasında olmak.
+Ölçüsü SF değil, salonda telefonu uzattığın kişinin ekranda ne
+gördüğü.
+
+## B4 — KARAR VERİLDİ (28 Ağustos 2026): şirket kurulmuyor
+
+Aşağıdaki analiz olduğu gibi duruyor çünkü **karar ondan çıktı**. Üç
+seçenek sunulmuştu; **birincisi seçildi**: Faz 0 olduğu gibi korunuyor,
+yatırım ve YC masadan kalkıyor.
+
+Bu, yol haritasının B fazını düşürüyor ve hedefi küçültüyor — ama
+tutarlı bir seçim. Şirketsiz yapılamayan tek şey hisse karşılığı para
+almaktı; ürünün kendisi şirketsiz de büyüyor, çünkü maliyeti sıfır.
+
+**Değişen tek şey hedef değil, ÖLÇÜ.** Artık "yatırım aldık mı" diye bir
+soru yok. Kalan soru bir tane ve zaten Faz A'nın ölçüsüydü: *telefonu
+birine uzattığında rastgele bir sokakta fiyat görebiliyor mu.*
+
+---
+
+### B4-eski — Kilit: Faz 0 hem yatırımı hem YC'yi bloke ediyor
 
 Bu, yol haritasındaki en önemli cümle.
 
@@ -286,7 +335,11 @@ geçerli. Aşağıdakiler doğru değil, söylenirse ilk kontrol eden yakalar:
 
 Bugünkü değerleriyle, hepsi depodan sayılabilir:
 
-| Ölçü | Bugün | 21 Ekim hedefi | YC başvurusu hedefi |
+> **YC sütunu 28 Ağustos'ta düştü** (B4 kararı). Yerine 8 Aralık
+> kondu — Ankara Start-Up Zirvesi. Sayılar aynı kaldı çünkü hedef
+> değişmedi, yalnız kime gösterileceği değişti.
+
+| Ölçü | Bugün | 21 Ekim hedefi | 8 Aralık hedefi |
 |---|---|---|---|
 | Kadıköy 500 m fiyat kapsaması | **4/474 (%0,8)** | **150/474 (%32)** | 250/474 (%53) |
 | Kayıtlı kullanıcı | 0 | 100 | 500 |
