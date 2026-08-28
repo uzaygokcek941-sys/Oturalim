@@ -274,6 +274,7 @@ function ciz(haritayiOrtala){
      tazeleniyor. Cagri asenkron ve icinde yaris korumasi var; ciz()
      onu BEKLEMIYOR, cunku liste talep satirini beklemek zorunda degil. */
   talepYaz(l);
+  endeksYaz(l);
 
   /* Sicrama girisi YALNIZ ilk cizimde. Her filtre degisiminde tekrar
      oynarsa arac hissi bozuluyor -- burasi kesfet, gosteri degil. */
@@ -541,6 +542,40 @@ async function talepYaz(liste){
     : (f[f.length / 2 - 1] + f[f.length / 2]) / 2) : null;
 
   const c = talepAcigiCumlesi(dagilim, medyan);
+  if (!c){ kutu.hidden = true; kutu.textContent = ""; return; }
+  kutu.textContent = c;
+  kutu.hidden = false;
+}
+
+/* ---------- fiyat endeksi (FIKIRLER.md F4) ----------
+   Ay ay kisi basi medyan, ayni listeden. talepYaz ile AYNI cagride
+   tetikleniyor ve ayni kurallara tabi: 500 sinir, yaris korumasi,
+   soyleyecek bir sey yoksa satir hic cikmiyor.
+
+   AYRI BIR SAYAC, cunku iki serit ayri hizda donuyor; tek sayac
+   kullansaydik gec donen endeks cevabi talebi de iptal ederdi. */
+let endeksSayac = 0;
+
+async function endeksYaz(liste){
+  const kutu = el("#endeks");
+  if (!kutu) return;
+  const benim = ++endeksSayac;
+  const K = window.Kimlik;
+  if (!K || !K.acik){ kutu.hidden = true; return; }
+
+  const idler = (liste || []).map(m => m.id);
+  if (!idler.length || idler.length > 500){
+    kutu.hidden = true; kutu.textContent = ""; return;
+  }
+
+  let satirlar = [];
+  try {
+    await K.hazir;
+    satirlar = await K.civarFiyatEndeksi(idler, 6);
+  } catch (e) { /* talep.sql kurulu degil ya da ag yok: satir cikmasin */ }
+  if (benim !== endeksSayac) return;
+
+  const c = endeksCumlesi(satirlar);
   if (!c){ kutu.hidden = true; kutu.textContent = ""; return; }
   kutu.textContent = c;
   kutu.hidden = false;

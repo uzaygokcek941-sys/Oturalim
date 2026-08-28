@@ -2116,6 +2116,46 @@ function talepAcigiCumlesi(dagilim, medyan){
   return bas + son + ".";
 }
 
+/* FİYAT ENDEKSİ (FIKIRLER.md F4). Ay ay kişi başı medyan.
+
+   ASIL KAZANÇ KATKI TARAFINDA. Bugün fiş paylaşmanın gerekçesi "bir
+   sonraki kişi kazık yemesin" — özel bir iyilik. Endeks varken gerekçe
+   şuna dönüşüyor: "senin fişin buranın endeksine giriyor." Özel iyilik
+   yerine kamusal fayda; ikincisi çok daha güçlü bir çağrı.
+
+   RESMÎ BİR ENDEKS DEĞİL ve bu cümle ÇIKARILAMAZ. Türkiye'de enflasyon
+   rakamı tartışmalı bir konu; buradaki sayının ne olduğu (Cebimde
+   kullanıcılarının paylaştığı fişlerin medyanı) her göründüğü yerde
+   yazılı olmak zorunda. test.py bunu kontrol ediyor.
+
+   DAYANAK HER AYIN YANINDA. "Ağustos 340 ₺" tek başına bir iddia;
+   "340 ₺ (12 fiş)" bir ölçüm. Sunucu üç fişten az olan ayı zaten hiç
+   döndürmüyor, ama kaç fişten geldiği yine de yazılıyor.
+
+   İKİ AYDAN AZ VERİYLE DEĞİŞİM YAZILMIYOR: tek ayın "değişimi" yok. */
+function endeksCumlesi(satirlar){
+  if (!satirlar || satirlar.length < 1) return "";
+  const AY = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz",
+              "Ağustos","Eylül","Ekim","Kasım","Aralık"];
+  const adi = a => {
+    const d = new Date(a);
+    return isNaN(d) ? "" : AY[d.getMonth()];
+  };
+  /* Son ay başta: kullanıcının sorduğu şey "şimdi ne kadar". */
+  const l = satirlar.slice().sort((a, b) => (a.ay < b.ay ? 1 : -1));
+  const parca = l.slice(0, 3).map(r =>
+    adi(r.ay) + " " + tl(r.medyan) + " (" + sayi(r.fis) + " fiş)");
+  let c = "Kişi başı medyan — " + parca.join(" · ");
+  if (l.length >= 2 && l[0].medyan && l[l.length - 1].medyan){
+    const fark = Math.round(100 * (l[0].medyan - l[l.length - 1].medyan) /
+                            l[l.length - 1].medyan);
+    if (fark) c += ". " + adi(l[l.length - 1].ay) + "'a göre " +
+                 (fark > 0 ? "%" + fark + " yukarıda" : "%" + (-fark) + " aşağıda");
+  }
+  return c + ". Cebimde kullanıcılarının paylaştığı fişlerden; " +
+         "resmî bir endeks değil.";
+}
+
 /* ---------- kohort ölçümü ----------
    Çerezsiz ve sunucusuz: yalnız localStorage, yalnız bu cihaz.
    Hangi günlerde açıldığı tutuluyor; D1/D7/D30 buradan hesaplanıyor. */
@@ -3325,6 +3365,25 @@ function kendiniKontrolEt(){
     ["ek sifir",      sayiEkli(0),        "0'ı"],
     /* TALEP ACIGI. Medyan aranan bandin TAVANININ ustundeyse "aradiklarinin
        ustunde" diyor; altindaysa DEMIYOR -- olmayan bir acik uydurmuyor. */
+    /* ENDEKS. "Resmi bir endeks degil" cumlesi HER ZAMAN sonda; bir ayla
+       degisim yazilmiyor; dayanak (kac fis) her ayin yaninda. */
+    ["endeks bos",                   endeksCumlesi([]),                  ""],
+    ["endeks tek ay: degisim YOK",
+     /göre/.test(endeksCumlesi([{ay:"2026-08-01",fis:5,kisi:5,medyan:300}])), false],
+    ["endeks tek ay: uyari VAR",
+     /resmî bir endeks değil/.test(endeksCumlesi(
+       [{ay:"2026-08-01",fis:5,kisi:5,medyan:300}])),                    true],
+    ["endeks dayanak yaninda",
+     /\(5 fiş\)/.test(endeksCumlesi(
+       [{ay:"2026-08-01",fis:5,kisi:5,medyan:300}])),                    true],
+    ["endeks artis yuzdesi",
+     /%50 yukarıda/.test(endeksCumlesi([
+       {ay:"2026-07-01",fis:4,kisi:4,medyan:200},
+       {ay:"2026-08-01",fis:5,kisi:5,medyan:300}])),                     true],
+    ["endeks son ay basta",
+     /^Kişi başı medyan — Ağustos/.test(endeksCumlesi([
+       {ay:"2026-07-01",fis:4,kisi:4,medyan:200},
+       {ay:"2026-08-01",fis:5,kisi:5,medyan:300}])),                     true],
     ["talep acigi bos",              talepAcigiCumlesi([], 300),         ""],
     ["talep acigi medyansiz",
      /9 kişinin 5'i .*arıyordu\.$/.test(talepAcigiCumlesi(

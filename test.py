@@ -2436,6 +2436,30 @@ def talep_zinciri_ayrismis_mi():
         if "500" not in govde:
             s.append("talepYaz() 500 sinirini hic gozetmiyor")
 
+    # ---- FIYAT ENDEKSI (F4) ----
+    if "endeksCumlesi" not in ortak:
+        s.append("ortak.js'te endeksCumlesi() yok")
+    if not re.search(r"^\s*endeksYaz\(", kesfet, re.M):
+        s.append("kesfet.js endeksYaz() CAGIRMIYOR; endeks seridi cizilmiyor")
+    if 'id="endeks"' not in html:
+        s.append("kesfet.html'de endeks seridinin yuvasi yok")
+
+    # "RESMI BIR ENDEKS DEGIL" CIKARILAMAZ.
+    #
+    # Turkiye'de enflasyon rakami tartismali bir konu. Burada uretilen
+    # sey Cebimde kullanicilarinin paylastigi fislerin medyani; sayinin
+    # NE OLDUGU her gorundugu yerde yazili olmak zorunda. Cumleyi
+    # kaldirmak hicbir yerde hata vermez -- o yuzden kontrol var.
+    UYARI = "resmî bir endeks değil"
+    m = re.search(r"function endeksCumlesi\(.*?\n\}", ortak, re.S)
+    if not m:
+        s.append("ortak.js: endeksCumlesi() govdesi okunamadi")
+    elif UYARI not in m.group(0):
+        s.append("endeksCumlesi() '%s' uyarisini yazmiyor" % UYARI)
+    paylas = oku("app", "paylas.html")
+    if "endeks" in paylas and UYARI not in paylas:
+        s.append("paylas.html endeksten soz ediyor ama '%s' demiyor" % UYARI)
+
     # Sunucudaki iki esik yerinde mi (sayi degisirse gerekce de degismeli).
     if not re.search(r"count\(\*\) from son\) >= 5", sql):
         s.append("talep.sql: bakis esigi (5) kaldirilmis")
