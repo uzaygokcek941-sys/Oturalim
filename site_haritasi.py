@@ -39,6 +39,10 @@ SAYFALAR = [
     # zaten yayinda olan katkilar duruyor. Icerigi her gun degisiyor.
     ("topluluk.html", "0.7",  "daily"),
     ("hakkinda.html", "0.5",  "monthly"),
+    # Kapsama: sayilari her veri turundan sonra degisiyor, o yuzden
+    # weekly. noindex DEGIL ve bu bilerek -- sayfanin butun amaci
+    # goruunmek: "uygulamaniz bos" itirazini once biz soyluyoruz.
+    ("kapsama.html",  "0.5",  "weekly"),
     ("paylas.html",   "0.5",  "monthly"),
     ("gizlilik.html", "0.3",  "yearly"),
 ]

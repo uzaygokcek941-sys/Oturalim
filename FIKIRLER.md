@@ -67,11 +67,16 @@ Menüsü olan 6 mekanın kişi başı medyanı **281 ₺**.
 | İl | Mekan | Menülü | Oran |
 |---|---|---|---|
 | İstanbul | 12.095 | 191 | %1,58 |
-| Kocaeli | 1.053 | 19 | **%1,80** ← en iyi |
+| Kocaeli | 1.053 | 19 | %1,80 |
 | İzmir | 2.309 | 16 | %0,69 |
 | Antalya | 3.322 | 17 | %0,51 |
 | Ankara | 2.360 | 6 | %0,25 |
 | Tekirdağ | 1.314 | **0** | %0,00 |
+
+> Bu tablo **en büyük** illeri gösteriyor, en dolu olanları değil.
+> Oranı en yüksek il aslında **Yalova: 103 mekan, 3 menü, %2,91** —
+> küçük il olduğu için bu listede görünmüyor. Kapsama sayfası (F2)
+> 81 ili orana göre sıralıyor ve bu farkı ortaya çıkardı.
 
 ---
 

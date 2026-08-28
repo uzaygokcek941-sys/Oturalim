@@ -423,7 +423,8 @@ GIRISLI = [
    ["kul-1"]),
 ]
 
-SAYFALAR = ["/index.html", "/kesfet.html", "/kesfet.html?il=34&tur=Kafe&butce=300",
+SAYFALAR = ["/index.html", "/kapsama.html",
+            "/kesfet.html", "/kesfet.html?il=34&tur=Kafe&butce=300",
             "/isletme.html?il=34&id=node/8223784325", "/isletme.html?il=34&id=yok",
             "/paylas.html", "/giris.html", "/hesabim.html", "/yonetim.html",
             "/hakkinda.html", "/gizlilik.html", "/topluluk.html",

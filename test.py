@@ -2225,6 +2225,82 @@ def varsayilan_sira_dolu_mu():
     return s
 
 
+def kapsama_tutarli_mi():
+    """kapsama.json veriyle ayni mi, ve sayfa onu gercekten okuyor mu.
+
+    NEDEN KONTROL VAR. Bu sayfanin butun degeri sayilarin DOGRU olmasi:
+    "kotu sayiyi kendimiz yayinliyoruz" diyen bir sayfanin yanlis sayi
+    yayinlamasi, hic yayinlamamasindan kotu. Ayni tuzak vitrin.json'da
+    ZATEN yasandi -- kesfet.html iki yerde "36.102 mekan" yaziyordu,
+    gercek 35.852'ydi ve kimse aylarca gormedi.
+
+    URETICI KOSULMAZSA sayfa eski sayilari gosterir ve HICBIR YERDE hata
+    vermez: dosya duruyor, sayfa aciliyor, sayilar yalniz eskimis. Tam
+    olarak bu depodaki "basarisizligi goremeyen kapi" deseni.
+
+    SAYFA METNINDE SAYI OLMAMALI. Rakamlar yalniz kapsama.json'dan
+    gelmeli; HTML'e elle yazilan bir sayi ureticiden bagimsiz eskir."""
+    import importlib
+    s = []
+    try:
+        KU = importlib.import_module("kapsama_uret")
+        gercek = KU.uret()
+    except Exception as e:
+        return ["kapsama_uret.py calistirilamadi: %s" % e]
+
+    try:
+        v = json.loads(oku("app", "kapsama.json"))
+    except Exception as e:
+        return ["app/kapsama.json okunamadi (%s) -- kapsama_uret.py calistir" % e]
+
+    for anahtar in ("il", "mekan", "menulu", "menuluMarka", "ulasilamaz",
+                    "menusuzIl"):
+        if v.get(anahtar) != gercek[anahtar]:
+            s.append("kapsama.json %s=%s ama veride %s -- kapsama_uret.py "
+                     "calistir" % (anahtar, v.get(anahtar), gercek[anahtar]))
+    if len(v.get("iller") or []) != len(gercek["iller"]):
+        s.append("kapsama.json il sayisi %s, veride %s"
+                 % (len(v.get("iller") or []), len(gercek["iller"])))
+    if [a.get("alan") for a in (v.get("alanlar") or [])] != \
+       [a["alan"] for a in gercek["alanlar"]]:
+        s.append("kapsama.json alan listesi ureticininkinden farkli")
+
+    html = oku("app", "kapsama.html")
+    # CAGRIYA bakiliyor, dizeye degil. Ilk yazimda yalnizca "kapsama.json"
+    # geciyor mu diye bakiyordum ve SABOTAJ YAKALAMADI: dosyanin yorum
+    # blogunda o ad zaten geciyor, yani fetch baska bir dosyaya
+    # cevrildiginde kontrol yesil kaliyordu. Bir adin metinde gecmesi,
+    # o adin KULLANILDIGI anlamina gelmiyor -- ayni ders bu depoda bos
+    # <svg> etiketinde de alinmisti.
+    if not re.search(r'fetch\(\s*["\']kapsama\.json["\']\s*\)', html):
+        s.append("kapsama.html kapsama.json'u FETCH ETMIYOR; sayilar "
+                 "nereden geliyor?")
+    # GORUNEN GOVDE, yani <main>. Once butun dosyaya bakiyordum ve
+    # kendi kontrolum yanlis alarm verdi: og:image:width="1200".
+    # Meta etiketindeki bir olcu, elle yazilmis bir VERI sayisi degil.
+    # Olmayan bir ihlali raporlamak gercek olanlari da bakilmaz hale
+    # getirir -- ayni ders canli_incele.py'nin 44 px sayilarinda alindi.
+    m = re.search(r"<main\b.*?</main>", html, re.S)
+    govde = m.group(0) if m else ""
+    if not m:
+        s.append("kapsama.html'de <main> yok")
+    # Betik ve yorum disinda dort haneli bir rakam olmamali: elle
+    # yazilmis bir sayi ureticiden bagimsiz eskir.
+    govde = re.sub(r"<script.*?</script>", "", govde, flags=re.S)
+    govde = re.sub(r"<style.*?</style>", "", govde, flags=re.S)
+    govde = re.sub(r"<!--.*?-->", "", govde, flags=re.S)
+    kacak = set(re.findall(r"\b\d{4,}\b", govde))
+    if kacak:
+        s.append("kapsama.html govdesinde elle yazilmis sayi var: %s"
+                 % ", ".join(sorted(kacak)[:5]))
+    # Site haritasinda olmali: sayfanin butun amaci GORUNMEK.
+    if 'kapsama.html' not in oku("site_haritasi.py"):
+        s.append("site_haritasi.py kapsama.html'i saymiyor")
+    if "noindex" in html:
+        s.append("kapsama.html noindex; oysa amaci gorunmek")
+    return s
+
+
 def veri_turu_kapisi_mi():
     """Veri turunun "degisiklik var mi" kapisi YENI dosyayi goruyor mu.
 
@@ -3466,6 +3542,7 @@ def main():
     kayit("degismez: saha kartlari depoya girmiyor", saha_ciktilari_gizli_mi())
     kayit("degismez: kesfet once bilgisi olani gosteriyor",
           varsayilan_sira_dolu_mu())
+    kayit("degismez: kapsama sayfasi veriyle ayni", kapsama_tutarli_mi())
     kayit("degismez: overpass turu gecici hatada pes etmiyor",
           overpass_denemesi_mi())
     kayit("degismez: seviye onayli katkiyi sayiyor", seviye_mi())
