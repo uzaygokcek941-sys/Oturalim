@@ -251,23 +251,38 @@ def sql_uret(kayitlar, bayi=None, parti=None):
     Kart basilip SQL'i calismayan bir parti, dagitildiginda hicbir kodu
     kabul etmez -- basilmamis karttan kotu."""
     bayi_var = bayi is not None
-    satirlar = [
-        "-- Cebimde — saha kodlari (saha.py uretti)",
-        "-- Supabase SQL Editor'e yapistirip BIR KEZ calistir.",
-        "--",
-        "-- Burada KODUN KENDISI YOK, yalniz sha256 ozeti. Kodlar",
-        "-- saha_kartlar.html ve saha_liste.csv icinde; ikisi de depoya girmiyor.",
-        "-- Bu dosyayi calistirmadan kart dagitirsan kodlar calismaz.",
+    # BASLIK /* */ BLOGU VE SAF ASCII. Ikisi de yasanmis bir hatanin
+    # sonucu: dosya "-- Cebimde — saha kodlari" diye basliyordu ve
+    # Supabase SQL Editor'e YAPISTIRILDIGINDA bastaki iki tire TEK
+    # karaktere donusup Postgres "syntax error at or near \"-\"" dedi.
+    # Dosyadaki bayt dogruydu (0x2d 0x2d, olculdu); bozan sey yol
+    # uzerindeki akilli-noktalama duzeltmesi -- "--" yerine tire benzeri
+    # tek bir karakter birakan tur. /* ile boyle bir esdegeri yok.
+    #
+    # ASCII olan yalniz BASLIK. Mekan adlari Turkce harflerini koruyor:
+    # onlar tirnak icinde ve uygulamada oyle gorunuyor.
+    basi = [
+        "/* Cebimde - saha kodlari (saha.py uretti)",
+        " *",
+        " * TEK CUMLE: bu dosyanin TAMAMINI yapistir ve BIR KEZ calistir.",
+        " * Sondaki 'on conflict' satirlari cumlenin parcasi; tek baslarina",
+        " * yapistirilirsa 'syntax error at or near \"on\"' derler.",
+        " *",
+        " * Burada KODUN KENDISI YOK, yalniz sha256 ozeti. Kodlar",
+        " * saha_kartlar.html ve saha_liste.csv icinde; ikisi de depoya",
+        " * girmiyor. Bu dosyayi calistirmadan kart dagitirsan kodlar",
+        " * calismaz.",
     ]
     if bayi_var:
-        satirlar += [
-            "--",
-            "-- PARTI SAHIBI: bayi #%d, parti '%s'. Bu iki sutun"
+        basi += [
+            " *",
+            " * PARTI SAHIBI: bayi #%d, parti '%s'. Bu iki sutun"
             % (bayi, parti or ""),
-            "-- veritabani/bayilik.sql ile geliyor; o dosya calistirilmadan",
-            "-- burasi 'column \"bayi\" does not exist' der ve HICBIR kod",
-            "-- yazilmaz (islem tek parca). Kartlari dagitmadan once kos.",
+            " * veritabani/bayilik.sql ile geliyor; o dosya calistirilmadan",
+            " * burasi 'column \"bayi\" does not exist' der ve HICBIR kod",
+            " * yazilmaz (islem tek parca). Kartlari dagitmadan once kos.",
         ]
+    satirlar = basi + [" */"]
     sutun = "kod_ozeti, mekan_id, il, mekan_ad, gecerlilik"
     if bayi_var:
         sutun += ", bayi, parti"
@@ -674,6 +689,19 @@ def kendini_kontrol_et():
     # oldugu ve kullanilip kullanilmadigi bu dosyayla degismemeli.
     for yasak in ("mekan_id =", "gecerlilik =", "kullanildi =", "kullanan ="):
         assert yasak not in sb, "guncelleme %s sutununa dokunuyor" % yasak
+
+    # BASLIK SAF ASCII VE /* BLOGU. "--" ile baslayan bir baslik, akilli
+    # noktalama duzeltmesinden gecen bir yapistirmada tek tireye donusup
+    # butun dosyayi dusuruyordu (yasandi, Supabase SQL Editor: "syntax
+    # error at or near \"-\"" ve LINE 1 tek tireyle geliyordu).
+    for metin, ad in ((s, "bayisiz"), (sb, "bayili")):
+        basi = metin.split("*/")[0]
+        assert basi.startswith("/*"), "%s SQL basligi /* ile baslamiyor" % ad
+        assert basi == basi.encode("ascii", "ignore").decode(), \
+            "%s SQL basliginda ASCII disi karakter var" % ad
+        assert not any(sat.lstrip().startswith("--")
+                       for sat in metin.splitlines()), \
+            "%s SQL'de '--' yorum satiri kalmis" % ad
 
     # Parti etiketi: Turkce harf ve bosluk tasimamali (dosya adi, SQL ve
     # panelde yan yana geciyor).
